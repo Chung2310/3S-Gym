@@ -118,7 +118,7 @@ jobs:
       # --- Triển khai lên Staging (nhánh develop) ---
       - name: Copy docker-compose.yml to Staging VPS
         if: github.ref_name == 'develop'
-        uses: appleboy/scp-action@v1.0.1
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -167,7 +167,7 @@ jobs:
       # --- Triển khai lên Production (nhánh production) ---
       - name: Copy docker-compose.yml to Production VPS
         if: github.ref_name == 'production'
-        uses: appleboy/scp-action@v1.0.1
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST_PROD }}
           username: ${{ secrets.SSH_USER_PROD }}
