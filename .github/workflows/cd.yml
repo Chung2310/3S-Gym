@@ -29,21 +29,17 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
-          cache-dependency-path: |
-            frontend/package-lock.json
-            backend/package-lock.json
+          cache-dependency-path: package-lock.json
 
-      - name: Install & check Frontend
-        run: |
-          cd frontend
-          npm ci
-          npm run lint
-          npm run build
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Install Backend
-        run: |
-          cd backend
-          npm ci
+      - name: Run Lint
+        run: npm run lint
+
+      - name: Build Frontend check (PR only)
+        if: github.event_name == 'pull_request'
+        run: npm run build
 
   # BƯỚC 2: BUILD DOCKER IMAGE (Chỉ chạy khi push/merge và Step 1 thành công)
   build-image:

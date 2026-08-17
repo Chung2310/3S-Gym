@@ -1,9 +1,9 @@
 # Step 1: Build frontend
 FROM node:22-alpine AS frontend-builder
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
+WORKDIR /app
+COPY package*.json ./
 RUN npm ci
-COPY frontend/ ./
+COPY . .
 RUN npm run build
 
 # Step 2: Build backend & Runner
@@ -13,16 +13,13 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3008
 
-# Copy backend dependencies
-COPY backend/package*.json ./backend/
-WORKDIR /app/backend
+# Copy dependencies and source
+COPY package*.json ./
 RUN npm ci --omit=dev
+COPY backend/ ./backend/
 
-# Copy backend source
-COPY backend/ ./
-
-# Copy built frontend assets to backend/public
-COPY --from=frontend-builder /app/frontend/dist ./public
+# Copy built frontend assets (dist) to backend/public
+COPY --from=frontend-builder /app/dist ./backend/public
 
 EXPOSE 3008
-CMD ["node", "server.js"]
+CMD ["node", "backend/server.js"]
