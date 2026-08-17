@@ -494,7 +494,15 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
 
             {/* Accordion Menu Item: Công cụ tính */}
             <button 
-              onClick={() => setIsFormulaMenuOpen(!isFormulaMenuOpen)}
+              onClick={() => {
+                if (isSidebarCollapsed) {
+                  setIsSidebarCollapsed(false);
+                  setIsFormulaMenuOpen(true);
+                } else {
+                  setIsFormulaMenuOpen(!isFormulaMenuOpen);
+                }
+              }}
+              title={isSidebarCollapsed ? 'Mở rộng Công cụ tính' : 'Công cụ tính'}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '11px 14px', borderRadius: '10px', border: 'none',
