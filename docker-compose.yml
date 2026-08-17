@@ -10,7 +10,7 @@ services:
     env_file:
       - .env
     volumes:
-      - .env:/app/.env
+      - .env:/app/backend/.env
     networks:
       - default_network
     dns:

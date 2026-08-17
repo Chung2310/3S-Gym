@@ -28,19 +28,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'yarn'
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile --prefer-offline --no-progress
+      - name: Install & check Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run lint
+          npm run build
 
-      - name: Type check
-        run: yarn typecheck
-
-      # Chỉ build thử trên PR để bắt lỗi build (vite/esbuild) trước khi merge.
-      # Khi push thì bỏ qua vì Step 2 đã build trong Docker rồi — tránh build trùng
-      - name: Build check (PR only)
-        if: github.event_name == 'pull_request'
-        run: yarn build
+      - name: Install Backend
+        run: |
+          cd backend
+          npm ci
 
   # BƯỚC 2: BUILD DOCKER IMAGE (Chỉ chạy khi push/merge và Step 1 thành công)
   build-image:
