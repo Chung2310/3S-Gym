@@ -4,21 +4,49 @@ node_modules/
 
 # Environment Variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+*.env
+!.env.example
 
 # AI Kit & Temp Folders
 antigravity-ai-kit-main/
+antigravity-ai-kit-main
+*antigravity*
 .agent/
+.agent
 
-# Build Outputs
+# Build & Runtime Outputs
 dist/
 build/
+dist-server/
+coverage/
+logs/
+scratch/
+uploads/
+tmp/
+temp/
 
 # IDE & System Files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+*.log
+
+# Local databases & dumps
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.bak
+
+# Private keys and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+service_account*.json
+.worktrees/
+.superpowers/

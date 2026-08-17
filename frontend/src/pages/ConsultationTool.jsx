@@ -1,210 +1,1883 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Calculator, Utensils, Activity, Target, Zap, ChevronRight, Sunrise, Sun, Apple, Moon } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
+import MealInfographicPoster from '../components/MealInfographicPoster';
+import { 
+  Calculator, 
+  Utensils, 
+  Activity, 
+  Target, 
+  Sparkles, 
+  ChevronRight,
+  ChevronLeft,
+  ChevronDown,
+  Bot,
+  Users,
+  BarChart3,
+  LogOut,
+  Globe,
+  Home,
+  User as UserIcon,
+  Search,
+  Scale,
+  Droplets,
+  Dumbbell,
+  Camera,
+  Upload,
+  FileText,
+  CheckCircle2,
+  Menu,
+  X
+} from 'lucide-react';
+
+const FOOD_DATABASE = [
+  { id: 1, name: 'Ức gà tươi (không da)', category: 'meat', calories: 165, protein: 31, carbs: 0, fat: 3.6, unit: '100g' },
+  { id: 2, name: 'Thịt bò thăn nạc', category: 'meat', calories: 250, protein: 26, carbs: 0, fat: 15, unit: '100g' },
+  { id: 3, name: 'Cá hồi Na Uy', category: 'meat', calories: 206, protein: 22, carbs: 0, fat: 13, unit: '100g' },
+  { id: 4, name: 'Tôm thô luộc', category: 'meat', calories: 99, protein: 24, carbs: 0.2, fat: 0.3, unit: '100g' },
+  { id: 5, name: 'Thịt thăn heo nạc', category: 'meat', calories: 143, protein: 26, carbs: 0, fat: 3.5, unit: '100g' },
+  { id: 6, name: 'Trứng gà (1 quả vừa ~ 50g)', category: 'meat', calories: 72, protein: 6.3, carbs: 0.4, fat: 4.8, unit: '1 quả' },
+  { id: 7, name: 'Lòng trắng trứng gà (1 quả)', category: 'meat', calories: 17, protein: 3.6, carbs: 0.2, fat: 0.1, unit: '1 quả' },
+  { id: 8, name: 'Cơm trắng', category: 'carbs', calories: 130, protein: 2.7, carbs: 28, fat: 0.3, unit: '100g' },
+  { id: 9, name: 'Cơm gạo lứt', category: 'carbs', calories: 111, protein: 2.6, carbs: 23, fat: 0.9, unit: '100g' },
+  { id: 10, name: 'Khoai lang luộc', category: 'carbs', calories: 86, protein: 1.6, carbs: 20, fat: 0.1, unit: '100g' },
+  { id: 11, name: 'Yến mạch thô', category: 'carbs', calories: 389, protein: 16.9, carbs: 66, fat: 6.9, unit: '100g' },
+  { id: 12, name: 'Bánh mì nguyên cám (1 lát ~ 30g)', category: 'carbs', calories: 80, protein: 4, carbs: 13, fat: 1, unit: '1 lát' },
+  { id: 13, name: 'Bông cải xanh (Súp lơ)', category: 'veggies', calories: 34, protein: 2.8, carbs: 6.6, fat: 0.4, unit: '100g' },
+  { id: 14, name: 'Rau muống luộc', category: 'veggies', calories: 19, protein: 3.2, carbs: 2.1, fat: 0.4, unit: '100g' },
+  { id: 15, name: 'Bơ sáp chín', category: 'veggies', calories: 160, protein: 2, carbs: 8.5, fat: 14.7, unit: '100g' },
+  { id: 16, name: 'Táo tây (1 quả vừa ~ 180g)', category: 'veggies', calories: 95, protein: 0.5, carbs: 25, fat: 0.3, unit: '1 quả' },
+  { id: 17, name: 'Chuối chín (1 quả vừa ~ 120g)', category: 'veggies', calories: 105, protein: 1.3, carbs: 27, fat: 0.3, unit: '1 quả' },
+  { id: 18, name: 'Whey Protein Isolate (1 muỗng ~ 30g)', category: 'supplements', calories: 120, protein: 27, carbs: 1, fat: 0.5, unit: '1 muỗng' },
+  { id: 19, name: 'Sữa chua không đường (1 hũ ~ 100g)', category: 'supplements', calories: 63, protein: 3.7, carbs: 5.3, fat: 3.2, unit: '1 hũ' },
+  { id: 20, name: 'Hạt hạnh nhân nướng', category: 'supplements', calories: 579, protein: 21, carbs: 22, fat: 50, unit: '100g' }
+];
 
 const ConsultationTool = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    gender: 'male',
-    weight: '',
-    height: '',
-    age: '',
-    activityLevel: 'moderate',
-    goal: 'maintain'
-  });
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const rawToken = localStorage.getItem('token');
+  const token = (rawToken && rawToken !== 'undefined' && rawToken !== 'null') ? rawToken : null;
+  
+  const user = (() => {
+    try {
+      const raw = localStorage.getItem('user');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
     }
-  }, [navigate]);
+  }, [token, navigate]);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const [activeTab, setActiveTab] = useState('ai_assistant');
+  const [isFormulaMenuOpen, setIsFormulaMenuOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [foodQuery, setFoodQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  if (!token) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f4f7fa', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+        <div style={{ textAlign: 'center', color: '#003b70', fontWeight: 700 }}>
+          Đang chuyển hướng đến trang đăng nhập...
+        </div>
+      </div>
+    );
+  }
+
+  // Sub-calculators states (Math, non-AI)
+  const [bmiCalcForm, setBmiCalcForm] = useState({ height: '172', weight: '70', gender: 'male' });
+  const [bmiCalcResult, setBmiCalcResult] = useState(null);
+
+  const [tdeeCalcForm, setTdeeCalcForm] = useState({ gender: 'male', weight: '70', height: '172', age: '25', activity: 'moderate', goal: 'lose' });
+  const [tdeeCalcResult, setTdeeCalcResult] = useState(null);
+
+  const [bfpForm, setBfpForm] = useState({ gender: 'male', weight: '70', height: '172', waist: '80', neck: '38', hip: '95' });
+  const [bfpResult, setBfpResult] = useState(null);
+
+  const [waterForm, setWaterForm] = useState({ weight: '70', workoutMinutes: '45' });
+  const [waterResult, setWaterResult] = useState(null);
+
+  const [onermForm, setOnermForm] = useState({ weight: '80', reps: '5' });
+  const [onermResult, setOnermResult] = useState(null);
+
+  const [formData, setFormData] = useState({
+    clientName: '',
+    gender: 'male',
+    weight: '70',
+    height: '172',
+    age: '25',
+    activityLevel: 'moderate',
+    mealCount: '3',
+    timeframe: '1_day'
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [scanningInbody, setScanningInbody] = useState(false);
+  const [scanSuccessMsg, setScanSuccessMsg] = useState('');
+  const [result, setResult] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [currentAiStep, setCurrentAiStep] = useState(0);
+  const [activePosterTab, setActivePosterTab] = useState(0);
+
+  const handleInbodyFileUpload = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    setScanningInbody(true);
+    setScanSuccessMsg('');
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const base64Data = evt.target.result;
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/nutrition/scan-inbody`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64Data })
+        });
+        const resData = await response.json();
+
+        if (resData.success && resData.data) {
+          const d = resData.data;
+          const updatedFormData = {
+            clientName: d.clientName || formData.clientName || 'Hội viên InBody',
+            gender: d.gender === 'female' ? 'female' : 'male',
+            age: d.age ? String(d.age) : formData.age,
+            height: d.height ? String(d.height) : formData.height,
+            weight: d.weight ? String(d.weight) : formData.weight,
+            activityLevel: formData.activityLevel || 'moderate',
+            mealCount: formData.mealCount || '3',
+            timeframe: formData.timeframe || '1_day'
+          };
+
+          setFormData(updatedFormData);
+          setScanSuccessMsg(`AI đã đọc thành công phiếu của ${updatedFormData.clientName}! Chiều cao: ${updatedFormData.height}cm, Cân nặng: ${updatedFormData.weight}kg.`);
+
+          // Trigger full AI calculation in separate try block
+          try {
+            setLoading(true);
+            const calcRes = await fetch(`${API_BASE_URL}/api/nutrition/calculate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...updatedFormData, useAI: true })
+            });
+            const calcData = await calcRes.json();
+            setResult(calcData);
+          } catch (calcErr) {
+            console.error('Calculation post-scan error:', calcErr);
+          } finally {
+            setLoading(false);
+          }
+        } else {
+          alert(resData.error || 'Không thể đọc chỉ số từ phiếu InBody. Vui lòng kiểm tra lại file ảnh/PDF!');
+        }
+      } catch (err) {
+        console.error('InBody scan upload error:', err);
+        alert('Lỗi kết nối khi quét phiếu InBody. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại!');
+      } finally {
+        setScanningInbody(false);
+      }
+    };
+
+    reader.readAsDataURL(file);
   };
 
-  const handleCalculate = async (e) => {
-    e.preventDefault();
+  const getParsedSteps = (rawText) => {
+    if (!rawText) return [];
+    
+    // Normalize newlines
+    const text = rawText.replace(/\r\n/g, '\n').trim();
+    
+    // Extract intro greeting (text before BƯỚC 1)
+    const firstStepIndex = text.search(/(?:\*\*|\#\#)?\s*BƯỚC\s*1/i);
+    let introText = '';
+    let bodyText = text;
+
+    if (firstStepIndex > 0) {
+      introText = text.substring(0, firstStepIndex).trim();
+      bodyText = text.substring(firstStepIndex).trim();
+    }
+
+    // Explicitly parse 5 steps by BƯỚC number
+    const stepRegex = /(?:\*\*|\#\#)?\s*BƯỚC\s*(\d+)[\:\s\-]*(.*?)(?=(?:\*\*|\#\#)?\s*BƯỚC\s*\d+|$)/gsi;
+    
+    const stepsMap = {};
+    let match;
+
+    while ((match = stepRegex.exec(bodyText)) !== null) {
+      const num = parseInt(match[1], 10);
+      const fullBlock = match[0].trim();
+      
+      const lines = fullBlock.split('\n').map(l => l.trim()).filter(Boolean);
+      const titleLine = lines[0] ? lines[0].replace(/[\*\#]/g, '').trim() : `BƯỚC ${num}`;
+      
+      let content = lines.slice(1).join('\n').trim();
+      
+      // If content is empty (e.g. single line), use full block
+      if (!content) content = fullBlock;
+      
+      // Prepend intro text to Step 1
+      if (num === 1 && introText) {
+        content = `${introText}\n\n${content}`;
+      }
+
+      stepsMap[num] = {
+        stepNum: num,
+        title: titleLine,
+        content
+      };
+    }
+
+    const defaultTitles = [
+      'BƯỚC 1: PHÂN TÍCH THỂ TRẠNG & BMI',
+      'BƯỚC 2: ĐỀ XUẤT LỜI KHUYÊN & MỤC TIÊU',
+      'BƯỚC 3: MỨC CALO MỤC TIÊU MỖI NGÀY',
+      'BƯỚC 4: TỶ LỆ DINH DƯỠNG (MACROS)',
+      'BƯỚC 5: ĐỀ XUẤT THỰC ĐƠN & BÀI TẬP'
+    ];
+
+    const resultSteps = [];
+    for (let i = 1; i <= 5; i++) {
+      if (stepsMap[i]) {
+        resultSteps.push(stepsMap[i]);
+      } else {
+        resultSteps.push({
+          stepNum: i,
+          title: defaultTitles[i - 1],
+          content: 'Đang cập nhật thông tin chi tiết cho bước này...'
+        });
+      }
+    }
+
+    return resultSteps;
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCalculate = async (e, customData = null) => {
+    if (e && e.preventDefault) e.preventDefault();
     setLoading(true);
+
+    const targetData = (typeof customData === 'object' && customData !== null) ? customData : formData;
+
     try {
-      const response = await fetch('http://localhost:5000/api/nutrition/calculate', {
+      const response = await fetch(`${API_BASE_URL}/api/nutrition/calculate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          weight: Number(formData.weight),
-          height: Number(formData.height),
-          age: Number(formData.age)
-        })
+        body: JSON.stringify({ ...targetData, useAI: true })
       });
       const data = await response.json();
-      if (response.ok) {
-        setResult(data);
-      } else {
-        alert(data.message || 'Lỗi khi tính toán');
-      }
+      setResult(data);
     } catch (err) {
-      alert('Không thể kết nối máy chủ');
+      console.error('Error connecting to nutrition server:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/');
+  };
+
+  const handleCopy = () => {
+    if (!result) return;
+    const text = `
+KẾT QUẢ TƯ VẤN & THỰC ĐƠN TỪ TRỢ LÝ AI PT 3S GYM
+---------------------------------------------
+Hội viên: ${result.clientName}
+Chiều cao: ${formData.height} cm | Cân nặng: ${formData.weight} kg | Tuổi: ${formData.age}
+Chỉ số BMI: ${result.bmi} (${result.bmiCategory})
+Calo Mục Tiêu: ${result.targetCalories} kcal/ngày
+---------------------------------------------
+PHÂN BỔ BỮA ĂN GỢI Ý (${result.mealCount} BỮA/NGÀY):
+${result.mealsList.map((m, i) => `${i + 1}. ${m.name} (${m.calories} kcal): ${m.suggestedDish}`).join('\n')}
+---------------------------------------------
+Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
+    `.trim();
+
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  // 1. BMI & Ideal Weight Calculator (Math)
+  const calculateStandaloneBMI = (e) => {
+    e.preventDefault();
+    const h = parseFloat(bmiCalcForm.height) / 100;
+    const w = parseFloat(bmiCalcForm.weight);
+    const bmi = parseFloat((w / (h * h)).toFixed(1));
+
+    let category = '';
+    if (bmi < 18.5) category = 'Thiếu cân (Underweight)';
+    else if (bmi <= 24.9) category = 'Bình thường / Cân đối (Normal)';
+    else if (bmi <= 29.9) category = 'Thừa cân (Overweight)';
+    else category = 'Béo phì (Obese)';
+
+    // Ideal Weight Range (BMI 18.5 - 24.9)
+    const minWeight = parseFloat((18.5 * h * h).toFixed(1));
+    const maxWeight = parseFloat((24.9 * h * h).toFixed(1));
+
+    setBmiCalcResult({ bmi, category, minWeight, maxWeight });
+  };
+
+  // 2. TDEE & BMR Calculator (Math)
+  const calculateStandaloneTDEE = (e) => {
+    e.preventDefault();
+    const h = parseFloat(tdeeCalcForm.height);
+    const w = parseFloat(tdeeCalcForm.weight);
+    const age = parseInt(tdeeCalcForm.age);
+
+    let bmr = (10 * w) + (6.25 * h) - (5 * age);
+    bmr = tdeeCalcForm.gender === 'female' ? bmr - 161 : bmr + 5;
+
+    const mults = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9 };
+    const tdee = Math.round(bmr * (mults[tdeeCalcForm.activity] || 1.55));
+    
+    let loseCal = tdee - 500;
+    let gainCal = tdee + 500;
+
+    setTdeeCalcResult({ bmr: Math.round(bmr), tdee, loseCal, gainCal });
+  };
+
+  // 3. Body Fat Calculator (US Navy Math)
+  const calculateBFP = (e) => {
+    e.preventDefault();
+    const h = parseFloat(bfpForm.height);
+    const w = parseFloat(bfpForm.weight);
+    const waist = parseFloat(bfpForm.waist);
+    const neck = parseFloat(bfpForm.neck);
+    const hip = parseFloat(bfpForm.hip);
+
+    let bodyFat = 0;
+    if (bfpForm.gender === 'male') {
+      bodyFat = 495 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(h)) - 450;
+    } else {
+      bodyFat = 495 / (1.29579 - 0.35004 * Math.log10(waist + hip - neck) + 0.22100 * Math.log10(h)) - 450;
+    }
+
+    bodyFat = parseFloat(Math.max(3, Math.min(50, bodyFat)).toFixed(1));
+    const fatMass = parseFloat((w * (bodyFat / 100)).toFixed(1));
+    const leanMass = parseFloat((w - fatMass).toFixed(1));
+
+    let category = '';
+    if (bfpForm.gender === 'male') {
+      if (bodyFat < 6) category = 'Vận động viên thi đấu (Essential Fat)';
+      else if (bodyFat <= 13) category = 'Vận động viên (Athletic)';
+      else if (bodyFat <= 17) category = 'Cân đối / Săn chắc (Fitness)';
+      else if (bodyFat <= 24) category = 'Trung bình (Average)';
+      else category = 'Thừa mỡ (Obese)';
+    } else {
+      if (bodyFat < 14) category = 'Vận động viên thi đấu (Essential Fat)';
+      else if (bodyFat <= 20) category = 'Vận động viên (Athletic)';
+      else if (bodyFat <= 24) category = 'Cân đối / Săn chắc (Fitness)';
+      else if (bodyFat <= 31) category = 'Trung bình (Average)';
+      else category = 'Thừa mỡ (Obese)';
+    }
+
+    setBfpResult({ bodyFat, fatMass, leanMass, category });
+  };
+
+  // 4. Daily Water Intake Calculator (Math)
+  const calculateWaterIntake = (e) => {
+    e.preventDefault();
+    const w = parseFloat(waterForm.weight);
+    const mins = parseInt(waterForm.workoutMinutes) || 0;
+
+    let baseWater = w * 0.035; // 35ml per kg
+    let workoutWater = (mins / 30) * 0.35; // 350ml every 30 mins workout
+    let totalLiters = parseFloat((baseWater + workoutWater).toFixed(1));
+    let glasses = Math.round(totalLiters / 0.25); // 250ml glass
+
+    setWaterResult({ totalLiters, glasses });
+  };
+
+  // 5. 1RM Strength Calculator (Epley Math Formula)
+  const calculate1RM = (e) => {
+    e.preventDefault();
+    const w = parseFloat(onermForm.weight);
+    const r = parseInt(onermForm.reps);
+
+    const onerm = Math.round(w * (1 + r / 30));
+    const pct95 = Math.round(onerm * 0.95);
+    const pct90 = Math.round(onerm * 0.90);
+    const pct85 = Math.round(onerm * 0.85);
+    const pct75 = Math.round(onerm * 0.75);
+
+    setOnermResult({ onerm, pct95, pct90, pct85, pct75 });
+  };
+
+  // Filter food database
+  const filteredFoods = FOOD_DATABASE.filter(food => {
+    const matchesSearch = food.name.toLowerCase().includes(foodQuery.toLowerCase());
+    const matchesCat = selectedCategory === 'all' || food.category === selectedCategory;
+    return matchesSearch && matchesCat;
+  });
+
   return (
-    <div className="container" style={{ padding: '60px 24px', position: 'relative' }}>
+    <div className="dashboard-main-wrapper" style={{ display: 'flex', minHeight: '100vh', background: '#f4f7fa', fontFamily: "'Be Vietnam Pro', 'Inter', system-ui, sans-serif" }}>
       
-      <div className="animate-fade-in-up" style={{ marginBottom: '40px' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--secondary-color)', fontWeight: 600, marginBottom: '12px' }}>
-          <Activity size={18} /> PT PORTAL
-        </div>
-        <h1 className="display-font" style={{ fontSize: '3.5rem', color: 'var(--primary-color)', lineHeight: 1.2 }}>PHÂN TÍCH<br/>THỂ TRẠNG & DINH DƯỠNG</h1>
-      </div>
+      {/* Mobile Drawer Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)} 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }} 
+        />
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr minmax(350px, 1fr)', gap: '40px', alignItems: 'start' }}>
-        
-        {/* Input Form */}
-        <div className="glass-card animate-fade-in-up delay-100" style={{ position: 'sticky', top: '100px' }}>
-          <h2 className="display-font" style={{ fontSize: '2rem', marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--primary-color)' }}>
-            <Calculator color="var(--secondary-color)" size={28} /> THÔNG SỐ HỘI VIÊN
-          </h2>
-          <form onSubmit={handleCalculate}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              <div className="form-group">
-                <label>Giới tính</label>
-                <select name="gender" value={formData.gender} onChange={handleChange} style={{ cursor: 'pointer' }}>
-                  <option value="male">Nam giới</option>
-                  <option value="female">Nữ giới</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Tuổi</label>
-                <input type="number" name="age" value={formData.age} onChange={handleChange} required min="10" max="100" placeholder="Ví dụ: 25" />
-              </div>
-              <div className="form-group">
-                <label>Chiều cao (cm)</label>
-                <input type="number" name="height" value={formData.height} onChange={handleChange} required min="100" max="250" placeholder="Ví dụ: 170" />
-              </div>
-              <div className="form-group">
-                <label>Cân nặng (kg)</label>
-                <input type="number" name="weight" value={formData.weight} onChange={handleChange} required min="30" max="200" placeholder="Ví dụ: 65" />
-              </div>
+      {/* LEFT SIDEBAR NAVIGATION */}
+      <aside className={`dashboard-sidebar-container ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{ width: '270px', background: '#ffffff', color: 'var(--text-dark)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '24px 16px', position: 'sticky', top: 0, minHeight: '100vh', zIndex: 100, borderRight: '1px solid #e2e8f0', boxShadow: '2px 0 12px rgba(0,0,0,0.03)' }}>
+        <div>
+          {/* Logo Brand Header */}
+          <div style={{ padding: '0 12px 20px', borderBottom: '1px solid #edf2f7', marginBottom: '20px', textAlign: 'center' }}>
+            <Link to="/">
+              <img src="/images/logo.png" alt="3S Wellness" style={{ height: '75px', width: 'auto', objectFit: 'contain' }} />
+            </Link>
+            <div style={{ fontSize: '0.75rem', letterSpacing: '1.5px', color: '#003b70', fontWeight: 800, marginTop: '6px', textTransform: 'uppercase', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+              3S PT ADMIN DASHBOARD
+            </div>
+          </div>
+
+          {/* Navigation Menu */}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', padding: '6px 12px 2px' }}>
+              TRỢ LÝ & CÔNG CỤ TÍNH
             </div>
 
-            <div className="form-group" style={{ marginTop: '12px' }}>
-              <label>Mức độ vận động (Activity Level)</label>
-              <select name="activityLevel" value={formData.activityLevel} onChange={handleChange} style={{ cursor: 'pointer' }}>
-                <option value="sedentary">Ít vận động (Dân văn phòng, không tập)</option>
-                <option value="light">Vận động nhẹ (Tập 1-3 ngày/tuần)</option>
-                <option value="moderate">Vận động vừa (Tập 3-5 ngày/tuần)</option>
-                <option value="active">Vận động nhiều (Tập 6-7 ngày/tuần)</option>
-                <option value="very_active">Vận động cường độ cao (VĐV, lao động nặng)</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Mục tiêu tập luyện</label>
-              <select name="goal" value={formData.goal} onChange={handleChange} style={{ cursor: 'pointer' }}>
-                <option value="lose">Giảm cân / Giảm mỡ (-500 kcal)</option>
-                <option value="maintain">Giữ dáng / Duy trì (+0 kcal)</option>
-                <option value="gain">Tăng cân / Tăng cơ (+500 kcal)</option>
-              </select>
-            </div>
-
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '24px', fontSize: '1.2rem', padding: '16px' }} disabled={loading}>
-              {loading ? 'ĐANG XỬ LÝ...' : 'PHÂN TÍCH CHỈ SỐ'} <ChevronRight style={{ marginLeft: '8px' }}/>
+            <button 
+              onClick={() => setActiveTab('ai_assistant')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '11px 14px', borderRadius: '10px',
+                borderStyle: 'solid', borderWidth: '0 0 0 4px',
+                borderColor: activeTab === 'ai_assistant' ? '#00a4e4' : 'transparent',
+                background: activeTab === 'ai_assistant' ? 'rgba(0,164,228,0.1)' : 'transparent',
+                color: activeTab === 'ai_assistant' ? '#003b70' : '#64748b', 
+                fontWeight: activeTab === 'ai_assistant' ? 700 : 600,
+                fontSize: '0.9rem', cursor: 'pointer', textAlign: 'left',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Bot size={18} color={activeTab === 'ai_assistant' ? '#00a4e4' : '#64748b'} />
+              <span>Trợ lí PT AI</span>
             </button>
-          </form>
+
+            {/* Nav Item: Quét Phiếu InBody (AI) */}
+            <button 
+              onClick={() => setActiveTab('inbody_scan')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '11px 14px', borderRadius: '10px',
+                borderStyle: 'solid', borderWidth: '0 0 0 4px',
+                borderColor: activeTab === 'inbody_scan' ? '#00a4e4' : 'transparent',
+                background: activeTab === 'inbody_scan' ? 'rgba(0,164,228,0.1)' : 'transparent',
+                color: activeTab === 'inbody_scan' ? '#003b70' : '#64748b',
+                fontWeight: activeTab === 'inbody_scan' ? 700 : 600,
+                fontSize: '0.9rem', cursor: 'pointer', textAlign: 'left',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Camera size={18} color={activeTab === 'inbody_scan' ? '#00a4e4' : '#64748b'} />
+              <span>Quét Phiếu InBody (AI)</span>
+            </button>
+
+            {/* Accordion Menu Item: Công cụ tính */}
+            <button 
+              onClick={() => setIsFormulaMenuOpen(!isFormulaMenuOpen)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '11px 14px', borderRadius: '10px', border: 'none',
+                background: ['food_calculator', 'bmi_calculator', 'tdee_calculator', 'bfp_calculator', 'water_calculator', 'onerm_calculator'].includes(activeTab) ? 'rgba(0,164,228,0.06)' : 'transparent',
+                color: ['food_calculator', 'bmi_calculator', 'tdee_calculator', 'bfp_calculator', 'water_calculator', 'onerm_calculator'].includes(activeTab) ? '#003b70' : '#64748b', 
+                fontWeight: 700,
+                fontSize: '0.9rem', cursor: 'pointer', textAlign: 'left',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Calculator size={18} color={['food_calculator', 'bmi_calculator', 'tdee_calculator', 'bfp_calculator', 'water_calculator', 'onerm_calculator'].includes(activeTab) ? '#00a4e4' : '#64748b'} />
+                <span>Công cụ tính</span>
+              </div>
+              {isFormulaMenuOpen ? <ChevronDown size={16} color="#00a4e4" /> : <ChevronRight size={16} color="#94a3b8" />}
+            </button>
+
+            {/* Collapsible Submenu */}
+            {isFormulaMenuOpen && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '14px', borderLeft: '2px solid #e2e8f0', marginLeft: '14px', marginTop: '2px', marginBottom: '4px' }}>
+                <button 
+                  onClick={() => setActiveTab('food_calculator')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '8px 10px', borderRadius: '8px', border: 'none',
+                    background: activeTab === 'food_calculator' ? 'rgba(0,164,228,0.12)' : 'transparent',
+                    color: activeTab === 'food_calculator' ? '#003b70' : '#64748b', 
+                    fontWeight: activeTab === 'food_calculator' ? 700 : 500,
+                    fontSize: '0.82rem', cursor: 'pointer', textAlign: 'left'
+                  }}
+                >
+                  <Utensils size={14} color={activeTab === 'food_calculator' ? '#00a4e4' : '#64748b'} />
+                  <span>Tra cứu Calo Thực phẩm</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('bmi_calculator')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '8px 10px', borderRadius: '8px', border: 'none',
+                    background: activeTab === 'bmi_calculator' ? 'rgba(0,164,228,0.12)' : 'transparent',
+                    color: activeTab === 'bmi_calculator' ? '#003b70' : '#64748b', 
+                    fontWeight: activeTab === 'bmi_calculator' ? 700 : 500,
+                    fontSize: '0.82rem', cursor: 'pointer', textAlign: 'left'
+                  }}
+                >
+                  <Activity size={14} color={activeTab === 'bmi_calculator' ? '#00a4e4' : '#64748b'} />
+                  <span>Tính BMI & Cân nặng chuẩn</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('tdee_calculator')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '8px 10px', borderRadius: '8px', border: 'none',
+                    background: activeTab === 'tdee_calculator' ? 'rgba(0,164,228,0.12)' : 'transparent',
+                    color: activeTab === 'tdee_calculator' ? '#003b70' : '#64748b', 
+                    fontWeight: activeTab === 'tdee_calculator' ? 700 : 500,
+                    fontSize: '0.82rem', cursor: 'pointer', textAlign: 'left'
+                  }}
+                >
+                  <Target size={14} color={activeTab === 'tdee_calculator' ? '#00a4e4' : '#64748b'} />
+                  <span>Tính Calo TDEE & BMR</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('bfp_calculator')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '8px 10px', borderRadius: '8px', border: 'none',
+                    background: activeTab === 'bfp_calculator' ? 'rgba(0,164,228,0.12)' : 'transparent',
+                    color: activeTab === 'bfp_calculator' ? '#003b70' : '#64748b', 
+                    fontWeight: activeTab === 'bfp_calculator' ? 700 : 500,
+                    fontSize: '0.82rem', cursor: 'pointer', textAlign: 'left'
+                  }}
+                >
+                  <Scale size={14} color={activeTab === 'bfp_calculator' ? '#00a4e4' : '#64748b'} />
+                  <span>Tính % Mỡ Cơ Thể (BFP)</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('water_calculator')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '8px 10px', borderRadius: '8px', border: 'none',
+                    background: activeTab === 'water_calculator' ? 'rgba(0,164,228,0.12)' : 'transparent',
+                    color: activeTab === 'water_calculator' ? '#003b70' : '#64748b', 
+                    fontWeight: activeTab === 'water_calculator' ? 700 : 500,
+                    fontSize: '0.82rem', cursor: 'pointer', textAlign: 'left'
+                  }}
+                >
+                  <Droplets size={14} color={activeTab === 'water_calculator' ? '#00a4e4' : '#64748b'} />
+                  <span>Tính Lượng Nước Nạp</span>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('onerm_calculator')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '8px 10px', borderRadius: '8px', border: 'none',
+                    background: activeTab === 'onerm_calculator' ? 'rgba(0,164,228,0.12)' : 'transparent',
+                    color: activeTab === 'onerm_calculator' ? '#003b70' : '#64748b', 
+                    fontWeight: activeTab === 'onerm_calculator' ? 700 : 500,
+                    fontSize: '0.82rem', cursor: 'pointer', textAlign: 'left'
+                  }}
+                >
+                  <Dumbbell size={14} color={activeTab === 'onerm_calculator' ? '#00a4e4' : '#64748b'} />
+                  <span>Tính Sức Mạnh 1RM</span>
+                </button>
+              </div>
+            )}
+
+            <div style={{ height: '1px', background: '#edf2f7', margin: '10px 0' }} />
+
+            <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', padding: '6px 12px 2px' }}>
+              QUẢN LÝ
+            </div>
+
+            <button 
+              onClick={() => setActiveTab('members')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '11px 14px', borderRadius: '10px', border: 'none',
+                background: activeTab === 'members' ? 'rgba(0,164,228,0.1)' : 'transparent',
+                color: activeTab === 'members' ? '#003b70' : '#64748b',
+                fontWeight: activeTab === 'members' ? 700 : 600,
+                fontSize: '0.9rem', cursor: 'pointer', textAlign: 'left'
+              }}
+            >
+              <Users size={18} color={activeTab === 'members' ? '#00a4e4' : '#64748b'} />
+              <span>Quản lý Hội viên</span>
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('analytics')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '11px 14px', borderRadius: '10px', border: 'none',
+                background: activeTab === 'analytics' ? 'rgba(0,164,228,0.1)' : 'transparent',
+                color: activeTab === 'analytics' ? '#003b70' : '#64748b',
+                fontWeight: activeTab === 'analytics' ? 700 : 600,
+                fontSize: '0.9rem', cursor: 'pointer', textAlign: 'left'
+              }}
+            >
+              <BarChart3 size={18} color={activeTab === 'analytics' ? '#00a4e4' : '#64748b'} />
+              <span>Thống kê Calo</span>
+            </button>
+
+            <Link 
+              to="/" 
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '11px 14px', borderRadius: '10px',
+                color: '#64748b', fontSize: '0.9rem', textDecoration: 'none', fontWeight: 600
+              }}
+            >
+              <Globe size={18} color="#00a4e4" />
+              <span>Xem Trang Chủ Web</span>
+            </Link>
+          </nav>
         </div>
 
-        {/* Results */}
-        {result ? (
-          <div className="animate-fade-in-up delay-200" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
-            {/* Target Card */}
-            <div className="glass-card" style={{ background: 'linear-gradient(135deg, var(--primary-color), #00284d)', color: 'white' }}>
-              <h3 className="display-font" style={{ fontSize: '1.5rem', color: 'rgba(255,255,255,0.8)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Target size={20} color="var(--secondary-color)" /> NĂNG LƯỢNG MỤC TIÊU
-              </h3>
-              <div style={{ fontSize: '4.5rem', fontWeight: 'bold', fontFamily: 'Oswald', lineHeight: 1, marginBottom: '16px', color: 'var(--secondary-color)' }}>
-                {result.targetCalories} <span style={{ fontSize: '1.5rem', fontWeight: 'normal', color: 'white', fontFamily: 'Montserrat' }}>kcal/ngày</span>
+        {/* Sidebar Footer User Info */}
+        <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ background: '#003b70', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800 }}>
+                <UserIcon size={18} />
               </div>
-              <div style={{ display: 'flex', gap: '24px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
-                <div>
-                  <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>BMR (Năng lượng nền)</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 600 }}>{result.bmr} kcal</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>TDEE (Tổng tiêu hao)</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 600 }}>{result.tdee} kcal</div>
-                </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#003b70' }}>{user?.username || 'Admin PT'}</div>
+                <div style={{ fontSize: '0.75rem', color: '#00a4e4', fontWeight: 600 }}>HLV Trưởng 3S</div>
               </div>
             </div>
 
-            {/* Macros Card */}
-            <div className="glass-card">
-              <h3 className="display-font" style={{ fontSize: '1.5rem', marginBottom: '24px', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Zap size={20} color="var(--secondary-color)" /> TỈ LỆ MACRO (ĐA LƯỢNG)
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-                <div style={{ background: 'rgba(255, 51, 102, 0.05)', border: '1px solid rgba(255, 51, 102, 0.2)', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
-                  <div style={{ color: 'var(--accent-color)', fontWeight: 600, fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '8px' }}>Protein (30%)</div>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, fontFamily: 'Oswald', color: 'var(--text-dark)' }}>{result.macros.protein}g</div>
-                </div>
-                <div style={{ background: 'rgba(0, 164, 228, 0.05)', border: '1px solid rgba(0, 164, 228, 0.2)', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
-                  <div style={{ color: 'var(--secondary-color)', fontWeight: 600, fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '8px' }}>Carb (40%)</div>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, fontFamily: 'Oswald', color: 'var(--text-dark)' }}>{result.macros.carbs}g</div>
-                </div>
-                <div style={{ background: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
-                  <div style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '8px' }}>Fat (30%)</div>
-                  <div style={{ fontSize: '2rem', fontWeight: 700, fontFamily: 'Oswald', color: 'var(--text-dark)' }}>{result.macros.fat}g</div>
-                </div>
-              </div>
-            </div>
+            <button 
+              onClick={handleLogout}
+              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px' }}
+              title="Đăng xuất"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
+      </aside>
 
-            {/* Meals Card */}
-            <div className="glass-card">
-              <h3 className="display-font" style={{ fontSize: '1.5rem', marginBottom: '24px', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Utensils size={20} color="var(--secondary-color)" /> GỢI Ý PHÂN BỔ BỮA ĂN
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {[
-                  { name: 'Bữa Sáng', pct: '25%', data: result.meals.breakfast, icon: <Sunrise size={22} color="var(--secondary-color)"/> },
-                  { name: 'Bữa Trưa', pct: '35%', data: result.meals.lunch, icon: <Sun size={22} color="#f59e0b"/> },
-                  { name: 'Bữa Phụ', pct: '10%', data: result.meals.snack, icon: <Apple size={22} color="var(--accent-color)"/> },
-                  { name: 'Bữa Tối', pct: '30%', data: result.meals.dinner, icon: <Moon size={22} color="var(--primary-color)"/> }
-                ].map((meal, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', background: 'var(--white)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', transition: 'transform 0.2s ease', cursor: 'default' }} onMouseOver={(e) => e.currentTarget.style.transform = 'translateX(8px)'} onMouseOut={(e) => e.currentTarget.style.transform = 'none'}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <div style={{ background: 'rgba(0,0,0,0.03)', padding: '10px', borderRadius: '10px', display: 'flex', alignItems: 'center' }}>{meal.icon}</div>
-                      <div>
-                        <div style={{ fontWeight: 700, color: 'var(--text-dark)' }}>{meal.name}</div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--secondary-color)', fontWeight: 600 }}>{meal.pct} Năng lượng</div>
+      {/* RIGHT MAIN WORKSPACE */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
+        
+        {/* Top Header Bar */}
+        <header className="dashboard-header-bar" style={{ height: '65px', background: 'white', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', position: 'sticky', top: 0, zIndex: 90 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.85rem', color: 'var(--text-light)' }}>
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+              className="mobile-hamburger-btn" 
+              style={{ display: 'none', background: 'none', border: 'none', padding: '4px', cursor: 'pointer', marginRight: '4px' }}
+              title="Menu"
+            >
+              {isMobileMenuOpen ? <X size={22} color="#003b70" /> : <Menu size={22} color="#003b70" />}
+            </button>
+            <Home size={15} /> <span>/</span> <span>Admin Dashboard</span> <span>/</span> 
+            <span style={{ color: 'var(--primary-color)', fontWeight: 700 }}>
+              {activeTab === 'ai_assistant' && 'Trợ lí PT AI'}
+              {activeTab === 'food_calculator' && 'Tra cứu Calo Thực phẩm'}
+              {activeTab === 'bmi_calculator' && 'Tính BMI & Cân nặng chuẩn'}
+              {activeTab === 'tdee_calculator' && 'Tính Calo TDEE & BMR'}
+              {activeTab === 'bfp_calculator' && 'Tính % Mỡ Cơ Thể (BFP)'}
+              {activeTab === 'water_calculator' && 'Tính Lượng Nước Nạp'}
+              {activeTab === 'onerm_calculator' && 'Tính Sức Mạnh 1RM'}
+              {activeTab === 'members' && 'Quản lý Hội viên'}
+              {activeTab === 'analytics' && 'Thống kê Calo'}
+              {activeTab === 'inbody_scan' && 'Quét Phiếu InBody (AI)'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '5px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+              Trợ Lý AI 3S Gym Đang Hoạt Động
+            </div>
+          </div>
+        </header>
+
+        {/* Mobile Quick Horizontal Scrollable Nav Tabs */}
+        <div className="mobile-quick-tabs-bar" style={{ display: 'none', gap: '8px', padding: '10px 14px', background: '#ffffff', borderBottom: '1px solid #e2e8f0', overflowX: 'auto', WebkitOverflowScrolling: 'touch', position: 'sticky', top: '65px', zIndex: 85 }}>
+          {[
+            { id: 'ai_assistant', label: 'Trợ lí PT AI', icon: Bot },
+            { id: 'inbody_scan', label: 'Quét InBody (AI)', icon: Camera },
+            { id: 'food_calculator', label: 'Tra Calo', icon: Utensils },
+            { id: 'bmi_calculator', label: 'Tính BMI', icon: Activity },
+            { id: 'tdee_calculator', label: 'Tính TDEE', icon: Target },
+            { id: 'bfp_calculator', label: 'Tính % Mỡ', icon: Scale }
+          ].map(tab => {
+            const IconComponent = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 14px', borderRadius: '20px', border: '1.5px solid',
+                  borderColor: isActive ? '#00a4e4' : '#cbd5e1',
+                  background: isActive ? 'linear-gradient(135deg, #003b70, #00a4e4)' : '#f8fafc',
+                  color: isActive ? 'white' : '#475569',
+                  fontWeight: isActive ? 800 : 600,
+                  fontSize: '0.82rem', whiteSpace: 'nowrap', cursor: 'pointer'
+                }}
+              >
+                <IconComponent size={15} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Dashboard Body Workspace */}
+        <main className="dashboard-main-padding" style={{ padding: '32px', flex: 1 }}>
+          
+          {/* TAB: QUÉT PHIẾU INBODY (AI VISION) */}
+          {activeTab === 'inbody_scan' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
+              {/* Upload Drop Zone & Meal Options */}
+              <div style={{ background: 'white', padding: '28px', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+                <h3 style={{ fontSize: '1.05rem', color: '#003b70', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+                  <Upload size={18} color="#00a4e4" /> TẢI PHIẾU INBODY & CHỌN CẤU HÌNH THỰC ĐƠN
+                </h3>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', alignItems: 'center' }}>
+                  {/* Upload Drop Zone */}
+                  <div style={{
+                    border: '2px dashed #00a4e4',
+                    borderRadius: '16px',
+                    padding: '36px 20px',
+                    textAlign: 'center',
+                    background: '#f0f9ff',
+                    transition: 'all 0.2s ease'
+                  }}>
+                    <FileText size={48} color="#00a4e4" style={{ marginBottom: '12px' }} />
+                    <h4 style={{ margin: '0 0 6px 0', color: '#003b70', fontWeight: 800, fontSize: '1rem' }}>
+                      Chọn hoặc Kéo thả File Phiếu InBody
+                    </h4>
+                    <p style={{ margin: '0 0 18px 0', fontSize: '0.82rem', color: '#64748b' }}>
+                      Định dạng hỗ trợ: File ảnh (.JPG, .PNG, .WEBP) hoặc File tài liệu PDF
+                    </p>
+
+                    <label style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: scanningInbody ? '#cbd5e1' : 'linear-gradient(135deg, #003b70, #00a4e4)',
+                      color: 'white',
+                      padding: '12px 26px',
+                      borderRadius: '12px',
+                      fontWeight: 800,
+                      fontSize: '0.92rem',
+                      cursor: scanningInbody ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 14px rgba(0,164,228,0.3)',
+                      transition: 'all 0.2s ease'
+                    }}>
+                      {scanningInbody ? (
+                        <>
+                          <div style={{ width: '18px', height: '18px', border: '2px solid #fff', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                          <span>AI đang bóc tách phiếu InBody...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={20} />
+                          <span>Tải Phiếu InBody Ngay</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={handleInbodyFileUpload}
+                        disabled={scanningInbody}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Right Options Box */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', background: '#f8fafc', padding: '22px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '8px', display: 'block', fontFamily: "'Be Vietnam Pro', sans-serif" }}>Số Bữa Ăn Muốn Chọn Trong Ngày</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                        {['2', '3', '4'].map(count => (
+                          <button
+                            key={count}
+                            type="button"
+                            onClick={() => {
+                              const updated = { ...formData, mealCount: count };
+                              setFormData(updated);
+                              if (result) handleCalculate(null, updated);
+                            }}
+                            style={{
+                              padding: '10px', borderRadius: '8px', border: '1.5px solid',
+                              borderColor: formData.mealCount === count ? '#00a4e4' : '#cbd5e1',
+                              background: formData.mealCount === count ? '#e0f2fe' : 'white',
+                              color: formData.mealCount === count ? '#003b70' : '#475569',
+                              fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer',
+                              fontFamily: "'Be Vietnam Pro', sans-serif", letterSpacing: '0', textTransform: 'none'
+                            }}
+                          >
+                            {count} Bữa
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '1.2rem', fontFamily: 'Oswald', color: 'var(--primary-color)' }}>{meal.data.calories} kcal</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-light)', fontWeight: 500, marginTop: '4px' }}>
-                        P: {meal.data.protein}g &bull; C: {meal.data.carbs}g &bull; F: {meal.data.fat}g
+
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '8px', display: 'block', fontFamily: "'Be Vietnam Pro', sans-serif" }}>Thời Lượng Lộ Trình Thực Đơn</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                        {[{ id: '1_day', label: '1 Ngày' }, { id: '1_week', label: '1 Tuần' }, { id: '1_month', label: '1 Tháng' }].map(t => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              const updated = { ...formData, timeframe: t.id };
+                              setFormData(updated);
+                              if (result) handleCalculate(null, updated);
+                            }}
+                            style={{
+                              padding: '10px', borderRadius: '8px', border: '1.5px solid',
+                              borderColor: formData.timeframe === t.id ? '#00a4e4' : '#cbd5e1',
+                              background: formData.timeframe === t.id ? '#003b70' : 'white',
+                              color: formData.timeframe === t.id ? 'white' : '#475569',
+                              fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer',
+                              fontFamily: "'Be Vietnam Pro', sans-serif", letterSpacing: '0', textTransform: 'none'
+                            }}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {scanSuccessMsg && (
+                  <div style={{ marginTop: '18px', padding: '14px 18px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', fontSize: '0.88rem', color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CheckCircle2 size={18} color="#22c55e" /> {scanSuccessMsg}
+                  </div>
+                )}
+              </div>
+
+              {/* Loading State Display (Penguin Animation) */}
+              {(loading || scanningInbody) && (
+                <div style={{ background: 'white', borderRadius: '20px', padding: '40px 24px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1.5px solid rgba(0,164,228,0.3)', width: '100%', marginTop: '24px' }}>
+                  <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
+                    <img src="/images/loading_penguin.gif" alt="AI đang làm việc..." style={{ width: '110px', height: 'auto', borderRadius: '50%', boxShadow: '0 4px 15px rgba(0,164,228,0.2)' }} />
+                  </div>
+                  <h3 style={{ fontSize: '1.2rem', color: '#003b70', fontWeight: 800, fontFamily: "'Be Vietnam Pro', sans-serif", marginBottom: '6px' }}>
+                    {scanningInbody ? 'Trợ Lý AI Vision đang đọc phiếu InBody...' : 'Trợ Lý AI 3S đang phân tích chỉ số & thiết kế mâm cơm...'}
+                  </h3>
+                  <p style={{ color: '#64748b', fontSize: '0.88rem' }}>
+                    {scanningInbody ? 'Chú chim cánh cụt PT 3S Gym đang chăm chỉ kiểm tra hình ảnh và bóc tách chỉ số!' : 'Vui lòng chờ trong giây lát để hệ thống tính toán calo và tạo hình ảnh lộ trình dinh dưỡng!'}
+                  </p>
+                </div>
+              )}
+
+              {/* Consultation Results Display */}
+              {!loading && !scanningInbody && result && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                    <div style={{ background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Hội viên InBody</div>
+                      <div style={{ fontSize: '1.2rem', color: '#003b70', fontWeight: 800, marginTop: '4px' }}>{result.clientName}</div>
+                    </div>
+                    <div style={{ background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Chỉ số BMI</div>
+                      <div style={{ fontSize: '1.2rem', color: '#00a4e4', fontWeight: 800, marginTop: '4px' }}>{result.bmi} kg/m²</div>
+                    </div>
+                    <div style={{ background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Khuyến nghị</div>
+                      <div style={{ fontSize: '1.1rem', color: '#ef4444', fontWeight: 800, marginTop: '4px' }}>{result.actionRecommendation}</div>
+                    </div>
+                    <div style={{ background: 'white', padding: '18px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Calo Mục Tiêu</div>
+                      <div style={{ fontSize: '1.2rem', color: '#003b70', fontWeight: 800, marginTop: '4px' }}>{result.targetCalories} Kcal/ngày</div>
+                    </div>
+                  </div>
+
+                  {/* Multi-Dish Poster */}
+                  {result.posterList && result.posterList.length > 0 && (
+                    <MealInfographicPoster
+                      titleTag="Thực Đơn Tư Vấn Phiếu InBody"
+                      subTitle="Lộ Trình Dinh Dưỡng Cá Nhân Hóa"
+                      timeframeText={`${result.timeframeLabel || '1 Ngày'} - 3S GYM`}
+                      dishes={result.posterList[activePosterTab]?.dishes || result.posterList[0]?.dishes}
+                    />
+                  )}
+
+                  {/* Detailed AI Report Steps */}
+                  {result.adviceText && (
+                    <div style={{ background: 'white', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+                      <h3 style={{ fontSize: '1.1rem', color: '#003b70', fontWeight: 800, fontFamily: "'Be Vietnam Pro', sans-serif", marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={20} color="#00a4e4" /> LỜI KHUYÊN & LỘ TRÌNH CHI TIẾT TỪ TRỢ LÝ AI
+                      </h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {getParsedSteps(result.adviceText).map((step, idx) => (
+                          <div key={idx} style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '12px', borderLeft: '4px solid #00a4e4' }}>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#003b70', marginBottom: '6px', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+                              {step.title}
+                            </div>
+                            <div style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.6, whitespace: 'pre-wrap' }}>
+                              {step.content}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* TAB 1: TRỢ LÝ AI PT */}
+          {activeTab === 'ai_assistant' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+              
+              {/* TOP SECTION: 2 COLUMNS (Form Input Left, Summary Indicators Right) */}
+              <div className="dashboard-grid-layout">
+                
+                {/* Form Input Column */}
+                <div style={{ background: 'white', padding: '26px', borderRadius: '18px', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', border: '1px solid #edf2f7' }}>
+                  <h3 style={{ fontSize: '1.2rem', color: 'var(--primary-color)', marginBottom: '18px', fontFamily: "'Be Vietnam Pro', sans-serif", fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Calculator size={18} color="var(--secondary-color)" /> CHỈ SỐ HỘI VIÊN
+                  </h3>
+
+                  <form onSubmit={(e) => handleCalculate(e)} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '6px', display: 'block' }}>Họ tên hội viên</label>
+                      <input 
+                        type="text" 
+                        name="clientName" 
+                        value={formData.clientName} 
+                        onChange={handleInputChange} 
+                        placeholder="Ví dụ: Nguyễn Văn A..." 
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }} 
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '6px', display: 'block' }}>Giới tính</label>
+                        <select 
+                          name="gender" 
+                          value={formData.gender} 
+                          onChange={handleInputChange} 
+                          style={{ width: '100%', padding: '10px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                        >
+                          <option value="male">Nam</option>
+                          <option value="female">Nữ</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '6px', display: 'block' }}>Tuổi</label>
+                        <input 
+                          type="number" 
+                          name="age" 
+                          value={formData.age} 
+                          onChange={handleInputChange} 
+                          placeholder="25" 
+                          style={{ width: '100%', padding: '10px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }} 
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '6px', display: 'block' }}>Chiều cao (cm)</label>
+                        <input 
+                          type="number" 
+                          name="height" 
+                          value={formData.height} 
+                          onChange={handleInputChange} 
+                          placeholder="170" 
+                          style={{ width: '100%', padding: '10px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }} 
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '6px', display: 'block' }}>Cân nặng (kg)</label>
+                        <input 
+                          type="number" 
+                          name="weight" 
+                          value={formData.weight} 
+                          onChange={handleInputChange} 
+                          placeholder="70" 
+                          style={{ width: '100%', padding: '10px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }} 
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '6px', display: 'block' }}>Mức độ vận động</label>
+                      <select 
+                        name="activityLevel" 
+                        value={formData.activityLevel} 
+                        onChange={handleInputChange} 
+                        style={{ width: '100%', padding: '10px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                      >
+                        <option value="sedentary">Ít vận động (Văn phòng)</option>
+                        <option value="light">Vận động nhẹ (Tập 1-3 buổi/tuần)</option>
+                        <option value="moderate">Vận động vừa (Tập 3-5 buổi/tuần)</option>
+                        <option value="active">Vận động cao (Tập 6-7 buổi/tuần)</option>
+                        <option value="very_active">Vận động rất cao (VĐV)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '6px', display: 'block' }}>Số bữa ăn chọn trong ngày</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                        {[
+                          { count: '2', label: '2 Bữa' },
+                          { count: '3', label: '3 Bữa' },
+                          { count: '4', label: '4 Bữa' }
+                        ].map((item) => (
+                          <button
+                            key={item.count}
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, mealCount: item.count }))}
+                            style={{
+                              padding: '9px',
+                              borderRadius: '8px',
+                              border: formData.mealCount === item.count ? '2px solid var(--secondary-color)' : '1px solid #cbd5e1',
+                              background: formData.mealCount === item.count ? 'rgba(0,164,228,0.1)' : '#f8fafc',
+                              color: formData.mealCount === item.count ? 'var(--secondary-color)' : 'var(--text-dark)',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              fontSize: '0.88rem',
+                              fontFamily: "'Be Vietnam Pro', sans-serif",
+                              letterSpacing: '0',
+                              textTransform: 'none'
+                            }}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '6px', display: 'block', fontFamily: "'Be Vietnam Pro', sans-serif" }}>Thời lượng lộ trình dinh dưỡng</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                        {[
+                          { key: '1_day', label: '1 Ngày' },
+                          { key: '1_week', label: '1 Tuần' },
+                          { key: '1_month', label: '1 Tháng' }
+                        ].map((item) => (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, timeframe: item.key }))}
+                            style={{
+                              padding: '9px',
+                              borderRadius: '8px',
+                              border: formData.timeframe === item.key ? '2px solid #003b70' : '1px solid #cbd5e1',
+                              background: formData.timeframe === item.key ? '#003b70' : '#f8fafc',
+                              color: formData.timeframe === item.key ? '#ffffff' : 'var(--text-dark)',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              fontSize: '0.88rem',
+                              fontFamily: "'Be Vietnam Pro', sans-serif",
+                              letterSpacing: '0',
+                              textTransform: 'none'
+                            }}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      disabled={loading}
+                      className="btn btn-secondary" 
+                      style={{ width: '100%', padding: '12px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '4px' }}
+                    >
+                      {loading ? (
+                        <>Đang phân tích...</>
+                      ) : (
+                        <>
+                          <Sparkles size={18} /> TÍNH TOÁN
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Summary Indicators Column (Right Column) */}
+                <div>
+                  {loading && (
+                    <div style={{ background: 'white', borderRadius: '20px', padding: '60px 24px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1.5px solid rgba(0,164,228,0.3)', width: '100%', height: '100%', minHeight: '450px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ position: 'relative', display: 'inline-block', marginBottom: '20px' }}>
+                        <img 
+                          src="/images/loading_penguin.gif" 
+                          onError={(e) => { e.target.onerror = null; e.target.src = 'https://media1.tenor.com/m/3fQbTuU0YPoAAAAC/pengu-pudgy.gif'; }}
+                          alt="Trợ Lý AI 3S Gym đang tập luyện & phân tích..." 
+                          style={{ width: '160px', height: '160px', borderRadius: '24px', objectFit: 'cover', boxShadow: '0 8px 24px rgba(0,164,228,0.25)', border: '3px solid #00a4e4' }} 
+                        />
+                      </div>
+                      <h3 style={{ fontSize: '1.25rem', color: '#003b70', fontWeight: 800, fontFamily: "'Be Vietnam Pro', sans-serif", marginBottom: '8px' }}>
+                        Trợ Lý AI 3S đang phân tích & lên thực đơn...
+                      </h3>
+                      <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '360px', margin: '0 auto', lineHeight: 1.5 }}>
+                        Chú chim cánh cụt PT 3S Gym đang hăng hái tập luyện và tính toán calo cá nhân hóa cho hội viên!
+                      </p>
+                    </div>
+                  )}
+
+                  {!result && !loading && (
+                    <div style={{ background: 'white', padding: '60px 24px', borderRadius: '20px', textAlign: 'center', border: '2px dashed #cbd5e1', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                      <Sparkles size={48} color="#00a4e4" style={{ marginBottom: '16px' }} />
+                      <h3 style={{ fontSize: '1.25rem', color: '#003b70', fontWeight: 800, fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+                        Nhập Chỉ Số & Bấm "TÍNH TOÁN"
+                      </h3>
+                      <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '380px', margin: '8px auto 0', lineHeight: 1.6 }}>
+                        Trợ Lý AI 3S Gym sẽ tự động phân tích thể trạng, chỉ số BMI, calo mục tiêu và thiết kế <strong>Bộ Poster Thực Đơn Dinh Dưỡng Cân Bằng</strong> cá nhân hóa cho hội viên!
+                      </p>
+                    </div>
+                  )}
+
+                  {!loading && result && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      
+                      {/* Header Action Bar */}
+                      <div style={{ background: 'white', padding: '16px 24px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #edf2f7' }}>
+                        <div>
+                          <h2 style={{ fontSize: '1.25rem', color: 'var(--primary-color)', fontFamily: "'Be Vietnam Pro', sans-serif", fontWeight: 800 }}>
+                            KẾT QUẢ TƯ VẤN: <span style={{ color: 'var(--secondary-color)', textTransform: 'uppercase' }}>{result.clientName}</span>
+                          </h2>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: '2px' }}>
+                            Ngày tạo: {new Date().toLocaleDateString('vi-VN')} | 3S Wellness Admin
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card 1: BMI & Khoảng Cân Nặng Chuẩn */}
+                      <div style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #edf2f7' }}>
+                        <h3 style={{ fontSize: '1.05rem', color: 'var(--primary-color)', fontFamily: "'Be Vietnam Pro', sans-serif", fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Activity size={20} color="var(--secondary-color)" /> 1. CHỈ SỐ BMI & KHOẢNG CÂN NẶNG CHUẨN
+                        </h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '20px', alignItems: 'center' }}>
+                          <div style={{ background: 'rgba(0, 59, 112, 0.03)', padding: '16px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(0, 59, 112, 0.08)' }}>
+                            <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--primary-color)', lineHeight: 1 }}>{result.bmi}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: '4px' }}>BMI (kg/m²)</div>
+                            <div style={{ 
+                              marginTop: '8px', 
+                              display: 'inline-block', 
+                              background: result.bmiCategory?.includes('Béo phì') ? '#fee2e2' : result.bmiCategory?.includes('Thừa cân') ? '#ffedd5' : result.bmiCategory?.includes('Thiếu cân') ? '#fef3c7' : '#dcfce7', 
+                              color: result.bmiCategory?.includes('Béo phì') ? '#dc2626' : result.bmiCategory?.includes('Thừa cân') ? '#c2410c' : result.bmiCategory?.includes('Thiếu cân') ? '#d97706' : '#15803d', 
+                              padding: '4px 12px', 
+                              borderRadius: '12px', 
+                              fontSize: '0.75rem', 
+                              fontWeight: 700 
+                            }}>
+                              {result.bmiCategory}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
+                              <span style={{
+                                background: result.actionRecommendation?.includes('TĂNG') ? '#fff7ed' : result.actionRecommendation?.includes('GIẢM') ? '#eff6ff' : '#f0fdf4',
+                                color: result.actionRecommendation?.includes('TĂNG') ? '#c2410c' : result.actionRecommendation?.includes('GIẢM') ? '#1d4ed8' : '#166534',
+                                border: '1px solid rgba(0,164,228,0.2)',
+                                padding: '4px 12px',
+                                borderRadius: '20px',
+                                fontWeight: 800,
+                                fontSize: '0.85rem'
+                              }}>
+                                {result.actionRecommendation || 'ĐỀ XUẤT DINH DƯỠNG'}
+                              </span>
+                              
+                              {result.minIdealWeight && result.maxIdealWeight && (
+                                <span style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#003b70', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700 }}>
+                                  Mức Cân Chuẩn: {result.minIdealWeight}kg - {result.maxIdealWeight}kg
+                                </span>
+                              )}
+                            </div>
+
+                            <p style={{ fontSize: '0.88rem', color: 'var(--text-dark)', lineHeight: 1.5, margin: 0, fontWeight: 600 }}>
+                              {result.actionTargetText || result.bmiAdvice}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card 2: Calo & Macros */}
+                      <div style={{ background: 'white', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #edf2f7' }}>
+                        <h3 style={{ fontSize: '1.05rem', color: 'var(--primary-color)', fontFamily: "'Be Vietnam Pro', sans-serif", fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Target size={20} color="var(--secondary-color)" /> 2. NHU CẦU CALO & MACROS
+                        </h3>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '12px', marginBottom: '16px' }}>
+                          <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>BMR</div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-color)' }}>{result.bmr} <span style={{ fontSize: '0.75rem' }}>kcal</span></div>
+                          </div>
+
+                          <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>TDEE</div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary-color)' }}>{result.tdee} <span style={{ fontSize: '0.75rem' }}>kcal</span></div>
+                          </div>
+
+                          <div style={{ background: 'rgba(0,164,228,0.08)', padding: '14px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(0,164,228,0.2)' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--secondary-color)', fontWeight: 700 }}>MỤC TIÊU CALO</div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--secondary-color)' }}>{result.targetCalories} <span style={{ fontSize: '0.75rem' }}>kcal</span></div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                          <div style={{ background: 'rgba(0, 59, 112, 0.04)', padding: '12px 14px', borderRadius: '10px', borderLeft: '3px solid var(--primary-color)' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-color)' }}>Protein (30%)</div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-dark)' }}>{result.macros.protein}g</div>
+                          </div>
+
+                          <div style={{ background: 'rgba(0, 164, 228, 0.04)', padding: '12px 14px', borderRadius: '10px', borderLeft: '3px solid var(--secondary-color)' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--secondary-color)' }}>Carbs (45%)</div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-dark)' }}>{result.macros.carbs}g</div>
+                          </div>
+
+                          <div style={{ background: 'rgba(245, 158, 11, 0.04)', padding: '12px 14px', borderRadius: '10px', borderLeft: '3px solid #f59e0b' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#d97706' }}>Fat (25%)</div>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-dark)' }}>{result.macros.fat}g</div>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* SECTION 1: FULL WIDTH AI REAL-TIME ANALYSIS CARD (PHÂN TÍCH CHUYÊN SÂU TỪ TRỢ LÝ AI 3S GYM) */}
+              {!loading && result && result.openRouterResponse ? (() => {
+                const steps = getParsedSteps(result.openRouterResponse);
+                const activeStepObj = steps[currentAiStep] || steps[0];
+                const stepTitles = ['1. Thể Trạng & BMI', '2. Lời Khuyên & Mục Tiêu', '3. Mức Calo Nạp', '4. Dinh Dưỡng Macros', '5. Thực Đơn Chi Tiết'];
+
+                return (
+                  <div style={{ background: 'white', padding: '24px 28px', borderRadius: '20px', boxShadow: '0 2px 14px rgba(0,0,0,0.03)', border: '1px solid rgba(0,164,228,0.3)', width: '100%', height: '520px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #edf2f7', paddingBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                      <h3 style={{ fontSize: '1.15rem', color: 'var(--primary-color)', fontFamily: "'Be Vietnam Pro', sans-serif", fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+                        <Bot size={22} color="var(--secondary-color)" /> PHÂN TÍCH CHUYÊN SÂU TỪ TRỢ LÝ AI 3S GYM
+                      </h3>
+                      <span style={{ fontSize: '0.75rem', background: result.isRealAI ? 'linear-gradient(135deg, #003b70, #00a4e4)' : '#64748b', color: 'white', padding: '4px 14px', borderRadius: '16px', fontWeight: 700 }}>
+                        {result.isRealAI ? 'AI Phân tích Real-time' : 'Trợ Lý AI 3S Gym'}
+                      </span>
+                    </div>
+
+                    {/* 5-Step Progress Tabs */}
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
+                      {stepTitles.map((stTitle, sIdx) => (
+                        <button
+                          key={sIdx}
+                          onClick={() => setCurrentAiStep(sIdx)}
+                          style={{
+                            flex: 1,
+                            padding: '8px 10px',
+                            borderRadius: '10px',
+                            border: 'none',
+                            background: currentAiStep === sIdx ? 'linear-gradient(135deg, #003b70, #00264d)' : '#f1f5f9',
+                            color: currentAiStep === sIdx ? 'white' : '#64748b',
+                            fontWeight: currentAiStep === sIdx ? 700 : 600,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.2s ease',
+                            boxShadow: currentAiStep === sIdx ? '0 4px 12px rgba(0,59,112,0.2)' : 'none'
+                          }}
+                        >
+                          {stTitle}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Active Step Content Block - FIXED HEIGHT 300px */}
+                    <div style={{ background: '#f8fafc', padding: '20px 24px', borderRadius: '16px', border: '1px solid #e2e8f0', height: '300px', overflowY: 'auto' }}>
+                      <h4 style={{ fontSize: '1.05rem', color: '#003b70', fontWeight: 800, marginBottom: '12px', fontFamily: "'Be Vietnam Pro', sans-serif", borderLeft: '4px solid #00a4e4', paddingLeft: '10px' }}>
+                        {activeStepObj?.title || `BƯỚC ${currentAiStep + 1}`}
+                      </h4>
+
+                      <div style={{ lineHeight: 1.65, fontSize: '0.9rem', color: '#334155' }}>
+                        {activeStepObj?.content.split('\n').map((line, lIdx) => {
+                          const trimmed = line.trim();
+                          if (!trimmed) return null;
+
+                          const parts = trimmed.split(/(\*\*.*?\*\*)/g);
+                          const parsedLine = parts.map((part, pIdx) => {
+                            if (part.startsWith('**') && part.endsWith('**')) {
+                              return <strong key={pIdx} style={{ color: '#003b70', fontWeight: 800 }}>{part.slice(2, -2)}</strong>;
+                            }
+                            return part;
+                          });
+
+                          if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+                            return (
+                              <div key={lIdx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', marginLeft: '6px', marginBottom: '8px', fontSize: '0.9rem', color: '#334155', lineHeight: 1.6 }}>
+                                <span style={{ color: '#00a4e4', fontWeight: 'bold' }}>•</span>
+                                <div style={{ flex: 1 }}>{parsedLine}</div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <p key={lIdx} style={{ marginBottom: '8px', fontSize: '0.9rem', color: '#334155', lineHeight: 1.6 }}>
+                              {parsedLine}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Bottom Step Navigation Bar (Next / Prev Arrows) */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentAiStep((prev) => Math.max(0, prev - 1))}
+                        disabled={currentAiStep === 0}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          padding: '8px 18px', borderRadius: '20px',
+                          border: '1px solid #cbd5e1', background: currentAiStep === 0 ? '#f1f5f9' : 'white',
+                          color: currentAiStep === 0 ? '#cbd5e1' : '#003b70',
+                          fontWeight: 700, fontSize: '0.85rem', cursor: currentAiStep === 0 ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <ChevronLeft size={16} /> Trang Trước
+                      </button>
+
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', background: 'rgba(0,164,228,0.1)', padding: '4px 14px', borderRadius: '12px' }}>
+                        Trang {currentAiStep + 1} / {steps.length > 5 ? 5 : steps.length}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setCurrentAiStep((prev) => Math.min(steps.length - 1, prev + 1))}
+                        disabled={currentAiStep === (steps.length - 1) || currentAiStep === 4}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          padding: '8px 20px', borderRadius: '20px',
+                          border: 'none', background: (currentAiStep === 4 || currentAiStep === steps.length - 1) ? '#cbd5e1' : 'linear-gradient(135deg, #00a4e4, #0082c5)',
+                          color: 'white', fontWeight: 700, fontSize: '0.85rem',
+                          cursor: (currentAiStep === 4 || currentAiStep === steps.length - 1) ? 'not-allowed' : 'pointer',
+                          boxShadow: (currentAiStep === 4 || currentAiStep === steps.length - 1) ? 'none' : '0 4px 12px rgba(0,164,228,0.3)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Trang Tiếp <ChevronRight size={16} />
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })() : null}
+
+              {/* SECTION 2: FULL WIDTH INFOGRAPHIC MEAL POSTER CARD (PLACED BELOW AI ANALYSIS) */}
+              {result && result.posterList && result.posterList.length > 0 && (
+                <div style={{ background: 'white', padding: '24px 28px', borderRadius: '20px', boxShadow: '0 2px 14px rgba(0,0,0,0.03)', border: '1px solid rgba(0,164,228,0.3)', width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                    <h3 style={{ fontSize: '1.2rem', color: 'var(--primary-color)', fontFamily: "'Be Vietnam Pro', sans-serif", fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Utensils size={22} color="var(--secondary-color)" /> THỰC ĐƠN DINH DƯỠNG CÂN BẰNG (INFOGRAPHIC CHUẨN)
+                    </h3>
+                    
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      style={{ background: 'linear-gradient(135deg, #003b70, #00264d)', color: 'white', border: 'none', padding: '8px 18px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(0,59,112,0.2)' }}
+                    >
+                      In / Tải Xuất Poster Infographic
+                    </button>
+                  </div>
+
+                  {/* Week Navigation Tabs if 1 Month (4 Posters) */}
+                  {result.posterList.length > 1 && (
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
+                      {result.posterList.map((pItem, pIdx) => (
+                        <button
+                          key={pIdx}
+                          type="button"
+                          onClick={() => setActivePosterTab(pIdx)}
+                          style={{
+                            padding: '10px 20px',
+                            borderRadius: '12px',
+                            border: activePosterTab === pIdx ? 'none' : '1px solid #cbd5e1',
+                            background: activePosterTab === pIdx ? 'linear-gradient(135deg, #003b70, #00264d)' : '#f8fafc',
+                            color: activePosterTab === pIdx ? 'white' : '#64748b',
+                            fontWeight: activePosterTab === pIdx ? 700 : 600,
+                            fontSize: '0.88rem',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            boxShadow: activePosterTab === pIdx ? '0 4px 12px rgba(0,59,112,0.2)' : 'none'
+                          }}
+                        >
+                          {pItem.weekTitle || `Tuần ${pIdx + 1}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Render Poster Component (100% Width) */}
+                  <MealInfographicPoster 
+                    titleTag="Bữa Ăn Khoa Học - Dễ Chế Biến"
+                    subTitle="Thực Đơn Dinh Dưỡng Cân Bằng"
+                    timeframeText={`${result.timeframeLabel || '1 Ngày'} - ${result.posterList[activePosterTab]?.weekTitle || 'Khẩu Phần Chuẩn'}`}
+                    dishes={result.posterList[activePosterTab]?.dishes || result.posterList[0]?.dishes}
+                  />
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* SUB-CALCULATOR 1: TRA CỨU CALO THỰC PHẨM (NO AI) */}
+          {activeTab === 'food_calculator' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ background: 'white', padding: '32px', borderRadius: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #edf2f7' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(0,164,228,0.1)', color: 'var(--secondary-color)', padding: '4px 14px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px' }}>
+                  <Utensils size={16} /> CÔNG CỤ DINH DƯỠNG KHÔNG AI (100% MATH)
+                </div>
+                <h2 style={{ fontSize: '2.2rem', color: '#003b70', fontWeight: 800, fontFamily: "'Be Vietnam Pro', sans-serif", marginBottom: '8px' }}>
+                  Tra cứu calo thực phẩm
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '24px' }}>
+                  Tra cứu nhanh lượng calories, đạm, tinh bột và chất béo trong các thực phẩm fitness quen thuộc hàng ngày.
+                </p>
+
+                <div style={{ position: 'relative', maxWidth: '600px', marginBottom: '20px' }}>
+                  <Search size={20} color="#94a3b8" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input 
+                    type="text" 
+                    value={foodQuery}
+                    onChange={(e) => setFoodQuery(e.target.value)}
+                    placeholder="Tìm kiếm thực phẩm... (Ví dụ: ức gà, cơm lứt, trứng, cá hồi...)"
+                    style={{ width: '100%', padding: '14px 16px 14px 48px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'all', label: 'Tất cả thực phẩm' },
+                    { id: 'meat', label: 'Thịt & Đạm' },
+                    { id: 'carbs', label: 'Tinh bột' },
+                    { id: 'veggies', label: 'Rau củ & Trái cây' },
+                    { id: 'supplements', label: 'Sữa & Whey' }
+                  ].map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      style={{
+                        padding: '8px 16px', borderRadius: '20px', border: 'none',
+                        background: selectedCategory === cat.id ? '#003b70' : '#f1f5f9',
+                        color: selectedCategory === cat.id ? 'white' : '#475569',
+                        fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer'
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+                {filteredFoods.map(food => (
+                  <div key={food.id} style={{ background: 'white', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                    <div style={{ fontWeight: 800, color: '#003b70', fontSize: '1.05rem', marginBottom: '4px', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+                      {food.name}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '14px' }}>Hàm lượng tính trên: {food.unit}</div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', textAlign: 'center', background: '#fafcfd', padding: '12px 8px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Calo</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 800, color: '#00a4e4' }}>{food.calories}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Protein</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 800, color: '#003b70' }}>{food.protein}g</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Carbs</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 800, color: '#00a4e4' }}>{food.carbs}g</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Fat</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 800, color: '#d97706' }}>{food.fat}g</div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+          )}
 
-          </div>
-        ) : (
-          <div className="animate-fade-in-up delay-200" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '400px', opacity: 0.5, textAlign: 'center' }}>
-            <Activity size={64} color="var(--secondary-color)" style={{ marginBottom: '24px' }} />
-            <h3 className="display-font" style={{ fontSize: '2rem', color: 'var(--primary-color)' }}>CHỜ PHÂN TÍCH</h3>
-            <p style={{ maxWidth: '300px', margin: '16px auto', color: 'var(--text-light)' }}>Vui lòng nhập thông số hội viên ở form bên trái để hệ thống tính toán lộ trình dinh dưỡng.</p>
-          </div>
-        )}
+          {/* SUB-CALCULATOR 2: TÍNH BMI & CÂN NẶNG CHUẨN (NO AI) */}
+          {activeTab === 'bmi_calculator' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '28px', alignItems: 'start' }}>
+              <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Activity size={20} color="#00a4e4" /> TÍNH CHỈ SỐ BMI & CÂN NẶNG CHUẨN
+                </h3>
+                <form onSubmit={calculateStandaloneBMI} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '6px', display: 'block' }}>Chiều cao (cm)</label>
+                    <input type="number" value={bmiCalcForm.height} onChange={(e) => setBmiCalcForm({ ...bmiCalcForm, height: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '6px', display: 'block' }}>Cân nặng (kg)</label>
+                    <input type="number" value={bmiCalcForm.weight} onChange={(e) => setBmiCalcForm({ ...bmiCalcForm, weight: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                  </div>
+                  <button type="submit" className="btn btn-secondary" style={{ width: '100%', padding: '12px', fontWeight: 700, marginTop: '8px' }}>
+                    TÍNH CHỈ SỐ BMI
+                  </button>
+                </form>
+              </div>
+
+              <div>
+                {bmiCalcResult ? (
+                  <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                    <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '20px', fontWeight: 800 }}>KẾT QUẢ TÍNH BMI & CÂN NẶNG LÝ TƯỞNG</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div style={{ background: 'rgba(0,164,228,0.08)', padding: '24px', borderRadius: '16px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#00a4e4', fontWeight: 700 }}>CHỈ SỐ BMI</div>
+                        <div style={{ fontSize: '3rem', fontWeight: 800, color: '#003b70', margin: '6px 0' }}>{bmiCalcResult.bmi}</div>
+                        <span style={{ background: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: '12px', fontWeight: 700, fontSize: '0.85rem' }}>{bmiCalcResult.category}</span>
+                      </div>
+
+                      <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', textAlign: 'center', border: '1px solid #edf2f7' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 700 }}>KHOẢNG CÂN NẶNG CHUẨN LÝ TƯỞNG</div>
+                        <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#00a4e4', margin: '8px 0' }}>{bmiCalcResult.minWeight} - {bmiCalcResult.maxWeight} kg</div>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Dựa trên tiêu chuẩn y khoa WHO cho chiều cao {bmiCalcForm.height}cm</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: 'white', padding: '60px', borderRadius: '18px', textAlign: 'center', border: '1px solid #edf2f7' }}>
+                    <Activity size={48} color="#00a4e4" style={{ marginBottom: '12px' }} />
+                    <h4 style={{ color: '#003b70' }}>Sẵn sàng tính chỉ số BMI</h4>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Nhập chiều cao và cân nặng bên trái để xem ngay kết quả.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-CALCULATOR 3: TÍNH CALO TDEE & BMR (NO AI) */}
+          {activeTab === 'tdee_calculator' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '28px', alignItems: 'start' }}>
+              <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Target size={20} color="#00a4e4" /> TÍNH TDEE & BMR (MIFFLIN-ST JEOR)
+                </h3>
+                <form onSubmit={calculateStandaloneTDEE} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Giới tính</label>
+                      <select value={tdeeCalcForm.gender} onChange={(e) => setTdeeCalcForm({ ...tdeeCalcForm, gender: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                        <option value="male">Nam</option>
+                        <option value="female">Nữ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Tuổi</label>
+                      <input type="number" value={tdeeCalcForm.age} onChange={(e) => setTdeeCalcForm({ ...tdeeCalcForm, age: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Chiều cao (cm)</label>
+                      <input type="number" value={tdeeCalcForm.height} onChange={(e) => setTdeeCalcForm({ ...tdeeCalcForm, height: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Cân nặng (kg)</label>
+                      <input type="number" value={tdeeCalcForm.weight} onChange={(e) => setTdeeCalcForm({ ...tdeeCalcForm, weight: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Tần suất tập luyện</label>
+                    <select value={tdeeCalcForm.activity} onChange={(e) => setTdeeCalcForm({ ...tdeeCalcForm, activity: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <option value="sedentary">Ít vận động (Văn phòng)</option>
+                      <option value="light">Nhẹ (Tập 1-3 buổi/tuần)</option>
+                      <option value="moderate">Vừa (Tập 3-5 buổi/tuần)</option>
+                      <option value="active">Nhiều (Tập 6-7 buổi/tuần)</option>
+                    </select>
+                  </div>
+
+                  <button type="submit" className="btn btn-secondary" style={{ width: '100%', padding: '12px', fontWeight: 700, marginTop: '6px' }}>
+                    TÍNH CALO TDEE
+                  </button>
+                </form>
+              </div>
+
+              <div>
+                {tdeeCalcResult ? (
+                  <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                    <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '20px', fontWeight: 800 }}>KẾT QUẢ TÍNH TDEE & MỤC TIÊU CALO HÀNG NGÀY</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                      <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>BMR (Tỷ lệ trao đổi chất)</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: '#003b70' }}>{tdeeCalcResult.bmr} kcal</div>
+                      </div>
+                      <div style={{ background: 'rgba(0,164,228,0.08)', padding: '20px', borderRadius: '14px', textAlign: 'center', border: '1px solid rgba(0,164,228,0.2)' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#00a4e4', fontWeight: 700 }}>TDEE (Calo duy trì)</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: '#00a4e4' }}>{tdeeCalcResult.tdee} kcal</div>
+                      </div>
+                      <div style={{ background: '#fef3c7', padding: '20px', borderRadius: '14px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#d97706', fontWeight: 700 }}>Calo Giảm Cân (-500)</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: '#b45309' }}>{tdeeCalcResult.loseCal} kcal</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: 'white', padding: '60px', borderRadius: '18px', textAlign: 'center', border: '1px solid #edf2f7' }}>
+                    <Target size={48} color="#00a4e4" style={{ marginBottom: '12px' }} />
+                    <h4 style={{ color: '#003b70' }}>Sẵn sàng tính chỉ số TDEE</h4>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Nhập thông tin bên trái để tính lượng calo tiêu thụ mỗi ngày.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-CALCULATOR 4: TÍNH % MỠ CƠ THỂ BFP (NO AI) */}
+          {activeTab === 'bfp_calculator' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '28px', alignItems: 'start' }}>
+              <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Scale size={20} color="#00a4e4" /> TÍNH TỶ LỆ % MỠ (US NAVY)
+                </h3>
+                <form onSubmit={calculateBFP} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '4px', display: 'block' }}>Giới tính</label>
+                    <select value={bfpForm.gender} onChange={(e) => setBfpForm({ ...bfpForm, gender: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <option value="male">Nam</option>
+                      <option value="female">Nữ</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Chiều cao (cm)</label>
+                      <input type="number" value={bfpForm.height} onChange={(e) => setBfpForm({ ...bfpForm, height: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Cân nặng (kg)</label>
+                      <input type="number" value={bfpForm.weight} onChange={(e) => setBfpForm({ ...bfpForm, weight: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Vòng cổ (cm)</label>
+                      <input type="number" value={bfpForm.neck} onChange={(e) => setBfpForm({ ...bfpForm, neck: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Vòng eo (cm)</label>
+                      <input type="number" value={bfpForm.waist} onChange={(e) => setBfpForm({ ...bfpForm, waist: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                    </div>
+                  </div>
+
+                  {bfpForm.gender === 'female' && (
+                    <div>
+                      <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70' }}>Vòng hông (cm - Cho Nữ)</label>
+                      <input type="number" value={bfpForm.hip} onChange={(e) => setBfpForm({ ...bfpForm, hip: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                    </div>
+                  )}
+
+                  <button type="submit" className="btn btn-secondary" style={{ width: '100%', padding: '12px', fontWeight: 700, marginTop: '6px' }}>
+                    TÍNH TỶ LỆ % MỠ
+                  </button>
+                </form>
+              </div>
+
+              <div>
+                {bfpResult ? (
+                  <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                    <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '20px', fontWeight: 800 }}>KẾT QUẢ TÍNH TỶ LỆ MỠ CƠ THỂ</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                      <div style={{ background: 'rgba(0,164,228,0.08)', padding: '20px', borderRadius: '14px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#00a4e4', fontWeight: 700 }}>TỶ LỆ % MỠ (BFP)</div>
+                        <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#003b70', margin: '4px 0' }}>{bfpResult.bodyFat}%</div>
+                        <span style={{ fontSize: '0.75rem', background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>{bfpResult.category}</span>
+                      </div>
+                      <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>KHỐI LƯỢNG MỠ</div>
+                        <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#d97706', margin: '4px 0' }}>{bfpResult.fatMass} kg</div>
+                      </div>
+                      <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>KHỐI CƠ NẠC (LEAN MASS)</div>
+                        <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#003b70', margin: '4px 0' }}>{bfpResult.leanMass} kg</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: 'white', padding: '60px', borderRadius: '18px', textAlign: 'center', border: '1px solid #edf2f7' }}>
+                    <Scale size={48} color="#00a4e4" style={{ marginBottom: '12px' }} />
+                    <h4 style={{ color: '#003b70' }}>Sẵn sàng tính % mỡ cơ thể</h4>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Nhập chỉ số vòng eo, cổ bên trái và bấm nút tính toán.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-CALCULATOR 5: TÍNH LƯỢNG NƯỚC NẠP HÀNG NGÀY (NO AI) */}
+          {activeTab === 'water_calculator' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '28px', alignItems: 'start' }}>
+              <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Droplets size={20} color="#00a4e4" /> TÍNH LƯỢNG NƯỚC NẠP HÀNG NGÀY
+                </h3>
+                <form onSubmit={calculateWaterIntake} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '6px', display: 'block' }}>Cân nặng cơ thể (kg)</label>
+                    <input type="number" value={waterForm.weight} onChange={(e) => setWaterForm({ ...waterForm, weight: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '6px', display: 'block' }}>Thời gian tập luyện / ngày (Phút)</label>
+                    <input type="number" value={waterForm.workoutMinutes} onChange={(e) => setWaterForm({ ...waterForm, workoutMinutes: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                  </div>
+                  <button type="submit" className="btn btn-secondary" style={{ width: '100%', padding: '12px', fontWeight: 700, marginTop: '8px' }}>
+                    TÍNH LƯỢNG NƯỚC CẦN UỐNG
+                  </button>
+                </form>
+              </div>
+
+              <div>
+                {waterResult ? (
+                  <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                    <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '20px', fontWeight: 800 }}>KẾT QUẢ KHUYẾN NGHỊ LƯỢNG NƯỚC</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div style={{ background: 'rgba(0,164,228,0.08)', padding: '24px', borderRadius: '16px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#00a4e4', fontWeight: 700 }}>LƯỢNG NƯỚC TIÊU CHUẨN</div>
+                        <div style={{ fontSize: '3rem', fontWeight: 800, color: '#003b70', margin: '6px 0' }}>{waterResult.totalLiters} <span style={{ fontSize: '1.2rem' }}>Lít/ngày</span></div>
+                      </div>
+                      <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '16px', textAlign: 'center', border: '1px solid #edf2f7' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 700 }}>TƯƠNG ĐƯƠNG SỐ CỐC NƯỚC</div>
+                        <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#00a4e4', margin: '6px 0' }}>~ {waterResult.glasses} Cốc</div>
+                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Dung tích 250ml / cốc tiêu chuẩn</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: 'white', padding: '60px', borderRadius: '18px', textAlign: 'center', border: '1px solid #edf2f7' }}>
+                    <Droplets size={48} color="#00a4e4" style={{ marginBottom: '12px' }} />
+                    <h4 style={{ color: '#003b70' }}>Sẵn sàng tính lượng nước</h4>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Nhập cân nặng và thời gian tập luyện để nhận kết quả.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* SUB-CALCULATOR 6: TÍNH SỨC MẠNH 1RM ONE REP MAX (NO AI) */}
+          {activeTab === 'onerm_calculator' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '28px', alignItems: 'start' }}>
+              <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '18px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Dumbbell size={20} color="#00a4e4" /> TÍNH SỨC MẠNH TỐI ĐA (1RM)
+                </h3>
+                <form onSubmit={calculate1RM} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '6px', display: 'block' }}>Mức tạ tập được (kg)</label>
+                    <input type="number" value={onermForm.weight} onChange={(e) => setOnermForm({ ...onermForm, weight: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '6px', display: 'block' }}>Số lần lặp tối đa (Reps)</label>
+                    <input type="number" value={onermForm.reps} onChange={(e) => setOnermForm({ ...onermForm, reps: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required />
+                  </div>
+                  <button type="submit" className="btn btn-secondary" style={{ width: '100%', padding: '12px', fontWeight: 700, marginTop: '8px' }}>
+                    TÍNH 1RM MAX TẠ
+                  </button>
+                </form>
+              </div>
+
+              <div>
+                {onermResult ? (
+                  <div style={{ background: 'white', padding: '28px', borderRadius: '18px', border: '1px solid #edf2f7' }}>
+                    <h3 style={{ fontSize: '1.2rem', color: '#003b70', marginBottom: '20px', fontWeight: 800 }}>KẾT QUẢ SỨC MẠNH 1RM MAX TẠ (EPLEY FORMULA)</h3>
+                    <div style={{ background: 'rgba(0,164,228,0.08)', padding: '24px', borderRadius: '16px', textAlign: 'center', marginBottom: '20px' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#00a4e4', fontWeight: 700 }}>1RM TẠ TỐI ĐA (1 LẦN LẶP)</div>
+                      <div style={{ fontSize: '3.2rem', fontWeight: 800, color: '#003b70', margin: '4px 0' }}>{onermResult.onerm} <span style={{ fontSize: '1.5rem' }}>kg</span></div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', textAlign: 'center' }}>
+                      <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>95% 1RM (~2 reps)</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#003b70' }}>{onermResult.pct95} kg</div>
+                      </div>
+                      <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>90% 1RM (~4 reps)</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#003b70' }}>{onermResult.pct90} kg</div>
+                      </div>
+                      <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>85% 1RM (~6 reps)</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#003b70' }}>{onermResult.pct85} kg</div>
+                      </div>
+                      <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>75% 1RM (~10 reps)</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#003b70' }}>{onermResult.pct75} kg</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ background: 'white', padding: '60px', borderRadius: '18px', textAlign: 'center', border: '1px solid #edf2f7' }}>
+                    <Dumbbell size={48} color="#00a4e4" style={{ marginBottom: '12px' }} />
+                    <h4 style={{ color: '#003b70' }}>Sẵn sàng tính sức mạnh 1RM</h4>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Nhập mức tạ và số reps lặp được bên trái.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: QUẢN LÝ HỘI VIÊN */}
+          {activeTab === 'members' && (
+            <div style={{ background: 'white', padding: '40px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+              <h2 style={{ color: 'var(--primary-color)', fontFamily: "'Be Vietnam Pro', sans-serif", marginBottom: '16px' }}>DANH SÁCH HỘI VIÊN DỰ ÁN 3S GYM</h2>
+              <p style={{ color: 'var(--text-light)' }}>Tính năng quản lý danh sách và lịch sử thực đơn hội viên đang hoạt động.</p>
+            </div>
+          )}
+
+          {/* TAB 8: THỐNG KÊ CALO */}
+          {activeTab === 'analytics' && (
+            <div style={{ background: 'white', padding: '40px', borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+              <h2 style={{ color: 'var(--primary-color)', fontFamily: "'Be Vietnam Pro', sans-serif", marginBottom: '16px' }}>THỐNG KÊ CALO & HIỆU SUẤT TẬP LUYỆN</h2>
+              <p style={{ color: 'var(--text-light)' }}>Hệ thống đang lưu trữ và thống kê lượng calo trung bình của các gói tập PT.</p>
+            </div>
+          )}
+
+        </main>
 
       </div>
+
     </div>
   );
 };

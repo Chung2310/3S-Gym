@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  3s-gym:
+    image: ghcr.io/chung2310/3s-gym:${IMAGE_TAG:-latest}
+    container_name: ${CONTAINER_NAME:-3s-gym}
+    restart: always
+    ports:
+      - "${PORT:-3008}:${PORT:-3008}"
+    env_file:
+      - .env
+    volumes:
+      - .env:/app/.env
+    networks:
+      - default_network
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  default_network:
+    external: true
