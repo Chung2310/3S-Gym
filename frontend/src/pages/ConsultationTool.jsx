@@ -11,6 +11,8 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronDown,
+  PanelLeftClose,
+  PanelLeftOpen,
   Bot,
   Users,
   BarChart3,
@@ -76,6 +78,7 @@ const ConsultationTool = () => {
   const [activeTab, setActiveTab] = useState('ai_assistant');
   const [isFormulaMenuOpen, setIsFormulaMenuOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [foodQuery, setFoodQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -434,10 +437,10 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
       )}
 
       {/* LEFT SIDEBAR NAVIGATION */}
-      <aside className={`dashboard-sidebar-container ${isMobileMenuOpen ? 'mobile-open' : ''}`} style={{ width: '270px', background: '#ffffff', color: 'var(--text-dark)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '24px 16px', position: 'sticky', top: 0, minHeight: '100vh', zIndex: 100, borderRight: '1px solid #e2e8f0', boxShadow: '2px 0 12px rgba(0,0,0,0.03)' }}>
+      <aside className={`dashboard-sidebar-container ${isMobileMenuOpen ? 'mobile-open' : ''} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`} style={{ width: isSidebarCollapsed ? '76px' : '270px', background: '#ffffff', color: 'var(--text-dark)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '24px 16px', position: 'sticky', top: 0, minHeight: '100vh', zIndex: 100, borderRight: '1px solid #e2e8f0', boxShadow: '2px 0 12px rgba(0,0,0,0.03)', transition: 'width 0.25s ease' }}>
         <div>
           {/* Logo Brand Header */}
-          <div style={{ padding: '0 12px 20px', borderBottom: '1px solid #edf2f7', marginBottom: '20px', textAlign: 'center' }}>
+          <div className="sidebar-brand" style={{ padding: '0 12px 20px', borderBottom: '1px solid #edf2f7', marginBottom: '20px', textAlign: 'center' }}>
             <Link to="/">
               <img src="/images/logo.png" alt="3S Wellness" style={{ height: '75px', width: 'auto', objectFit: 'contain' }} />
             </Link>
@@ -448,7 +451,7 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
 
           {/* Navigation Menu */}
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', padding: '6px 12px 2px' }}>
+            <div className="sidebar-label" style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', padding: '6px 12px 2px' }}>
               TRỢ LÝ & CÔNG CỤ TÍNH
             </div>
 
@@ -606,7 +609,7 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
 
             <div style={{ height: '1px', background: '#edf2f7', margin: '10px 0' }} />
 
-            <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', padding: '6px 12px 2px' }}>
+            <div className="sidebar-label" style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', padding: '6px 12px 2px' }}>
               QUẢN LÝ
             </div>
 
@@ -655,13 +658,23 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
         </div>
 
         {/* Sidebar Footer User Info */}
-        <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+        <div className="sidebar-footer">
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="sidebar-collapse-button"
+            title={isSidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+            aria-label={isSidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+          >
+            {isSidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            <span className="sidebar-label">{isSidebarCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}</span>
+          </button>
+          <div className="sidebar-user-card" style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ background: '#003b70', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800 }}>
                 <UserIcon size={18} />
               </div>
-              <div>
+              <div className="sidebar-label">
                 <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#003b70' }}>{user?.username || 'Admin PT'}</div>
                 <div style={{ fontSize: '0.75rem', color: '#00a4e4', fontWeight: 600 }}>HLV Trưởng 3S</div>
               </div>
@@ -674,6 +687,7 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
             >
               <LogOut size={16} />
             </button>
+          </div>
           </div>
         </div>
       </aside>
