@@ -79,17 +79,6 @@ const ConsultationTool = () => {
   const [foodQuery, setFoodQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  if (!token) {
-    return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f4f7fa', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
-        <div style={{ textAlign: 'center', color: '#003b70', fontWeight: 700 }}>
-          Đang chuyển hướng đến trang đăng nhập...
-        </div>
-      </div>
-    );
-  }
-
-  // Sub-calculators states (Math, non-AI)
   const [bmiCalcForm, setBmiCalcForm] = useState({ height: '172', weight: '70', gender: 'male' });
   const [bmiCalcResult, setBmiCalcResult] = useState(null);
 
@@ -123,6 +112,16 @@ const ConsultationTool = () => {
   const [copied, setCopied] = useState(false);
   const [currentAiStep, setCurrentAiStep] = useState(0);
   const [activePosterTab, setActivePosterTab] = useState(0);
+
+  if (!token) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f4f7fa', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+        <div style={{ textAlign: 'center', color: '#003b70', fontWeight: 700 }}>
+          Đang chuyển hướng đến trang đăng nhập...
+        </div>
+      </div>
+    );
+  }
 
   const handleInbodyFileUpload = (e) => {
     const file = e.target.files && e.target.files[0];
