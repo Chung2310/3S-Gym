@@ -435,6 +435,12 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }} 
         />
       )}
+      {isSidebarCollapsed && isFormulaMenuOpen && (
+        <div
+          onClick={() => setIsFormulaMenuOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+        />
+      )}
 
       {/* LEFT SIDEBAR NAVIGATION */}
       <aside className={`dashboard-sidebar-container ${isMobileMenuOpen ? 'mobile-open' : ''} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`} style={{ width: isSidebarCollapsed ? '76px' : '270px', background: '#ffffff', color: 'var(--text-dark)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '24px 16px', position: 'sticky', top: 0, minHeight: '100vh', zIndex: 100, borderRight: '1px solid #e2e8f0', boxShadow: '2px 0 12px rgba(0,0,0,0.03)', transition: 'width 0.25s ease' }}>
@@ -494,14 +500,7 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
 
             {/* Accordion Menu Item: Công cụ tính */}
             <button 
-              onClick={() => {
-                if (isSidebarCollapsed) {
-                  setIsSidebarCollapsed(false);
-                  setIsFormulaMenuOpen(true);
-                } else {
-                  setIsFormulaMenuOpen(!isFormulaMenuOpen);
-                }
-              }}
+              onClick={() => setIsFormulaMenuOpen(!isFormulaMenuOpen)}
               title={isSidebarCollapsed ? 'Mở rộng Công cụ tính' : 'Công cụ tính'}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -521,7 +520,7 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
             </button>
 
             {/* Collapsible Submenu */}
-            {isFormulaMenuOpen && (
+            {isFormulaMenuOpen && !isSidebarCollapsed && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', paddingLeft: '14px', borderLeft: '2px solid #e2e8f0', marginLeft: '14px', marginTop: '2px', marginBottom: '4px' }}>
                 <button 
                   onClick={() => setActiveTab('food_calculator')}
@@ -612,6 +611,32 @@ Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
                   <Dumbbell size={14} color={activeTab === 'onerm_calculator' ? '#00a4e4' : '#64748b'} />
                   <span>Tính Sức Mạnh 1RM</span>
                 </button>
+              </div>
+            )}
+
+            {isFormulaMenuOpen && isSidebarCollapsed && (
+              <div className="collapsed-tools-popover" onClick={(e) => e.stopPropagation()}>
+                <div className="collapsed-tools-popover-title">Công cụ tính</div>
+                {[
+                  ['food_calculator', Utensils, 'Tra cứu Calo Thực phẩm'],
+                  ['bmi_calculator', Activity, 'Tính BMI & Cân nặng chuẩn'],
+                  ['tdee_calculator', Target, 'Tính Calo TDEE & BMR'],
+                  ['bfp_calculator', Scale, 'Tính % Mỡ Cơ Thể (BFP)'],
+                  ['water_calculator', Droplets, 'Tính Lượng Nước Nạp'],
+                  ['onerm_calculator', Dumbbell, 'Tính Sức Mạnh 1RM']
+                ].map(([tab, Icon, label]) => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      setActiveTab(tab);
+                      setIsFormulaMenuOpen(false);
+                    }}
+                    className="collapsed-tools-popover-item"
+                  >
+                    <Icon size={15} />
+                    <span>{label}</span>
+                  </button>
+                ))}
               </div>
             )}
 
