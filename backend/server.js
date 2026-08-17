@@ -22,7 +22,9 @@ const fs = require('fs');
 const publicPath = path.join(__dirname, 'public');
 if (fs.existsSync(publicPath)) {
     app.use(express.static(publicPath));
-    app.get('*', (req, res) => {
+    // Express 5 requires a named wildcard parameter; the old '*' syntax
+    // throws during startup with path-to-regexp.
+    app.get('/{*splat}', (req, res) => {
         if (!req.path.startsWith('/api')) {
             res.sendFile(path.join(publicPath, 'index.html'));
         } else {
