@@ -64,7 +64,7 @@ const ConsultationTool = () => {
     try {
       const raw = localStorage.getItem('user');
       return raw ? JSON.parse(raw) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   })();
@@ -112,7 +112,6 @@ const ConsultationTool = () => {
   const [scanningInbody, setScanningInbody] = useState(false);
   const [scanSuccessMsg, setScanSuccessMsg] = useState('');
   const [result, setResult] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [currentAiStep, setCurrentAiStep] = useState(0);
   const [activePosterTab, setActivePosterTab] = useState(0);
 
@@ -144,7 +143,7 @@ const ConsultationTool = () => {
         });
         const resData = await response.json();
 
-        if (resData.success && resData.data) {
+        if (response.ok && resData.success && resData.data) {
           const d = resData.data;
           const updatedFormData = {
             clientName: d.clientName || formData.clientName || 'Hội viên InBody',
@@ -168,15 +167,16 @@ const ConsultationTool = () => {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ ...updatedFormData, useAI: true })
             });
-            const calcData = await calcRes.json();
-            setResult(calcData);
+            const calcPayload = await calcRes.json();
+            if (!calcRes.ok || calcPayload.success === false) throw new Error(calcPayload.message || 'Không thể tính toán dinh dưỡng.');
+            setResult(calcPayload.data);
           } catch (calcErr) {
             console.error('Calculation post-scan error:', calcErr);
           } finally {
             setLoading(false);
           }
         } else {
-          alert(resData.error || 'Không thể đọc chỉ số từ phiếu InBody. Vui lòng kiểm tra lại file ảnh/PDF!');
+          alert(resData.message || 'Không thể đọc chỉ số từ phiếu InBody. Vui lòng kiểm tra lại file ảnh/PDF!');
         }
       } catch (err) {
         console.error('InBody scan upload error:', err);
@@ -196,7 +196,7 @@ const ConsultationTool = () => {
     const text = rawText.replace(/\r\n/g, '\n').trim();
     
     // Extract intro greeting (text before BƯỚC 1)
-    const firstStepIndex = text.search(/(?:\*\*|\#\#)?\s*BƯỚC\s*1/i);
+    const firstStepIndex = text.search(/(?:\*\*|##)?\s*BƯỚC\s*1/i);
     let introText = '';
     let bodyText = text;
 
@@ -206,7 +206,7 @@ const ConsultationTool = () => {
     }
 
     // Explicitly parse 5 steps by BƯỚC number
-    const stepRegex = /(?:\*\*|\#\#)?\s*BƯỚC\s*(\d+)[\:\s\-]*(.*?)(?=(?:\*\*|\#\#)?\s*BƯỚC\s*\d+|$)/gsi;
+    const stepRegex = /(?:\*\*|##)?\s*BƯỚC\s*(\d+)[:\s-]*(.*?)(?=(?:\*\*|##)?\s*BƯỚC\s*\d+|$)/gsi;
     
     const stepsMap = {};
     let match;
@@ -216,7 +216,7 @@ const ConsultationTool = () => {
       const fullBlock = match[0].trim();
       
       const lines = fullBlock.split('\n').map(l => l.trim()).filter(Boolean);
-      const titleLine = lines[0] ? lines[0].replace(/[\*\#]/g, '').trim() : `BƯỚC ${num}`;
+      const titleLine = lines[0] ? lines[0].replace(/[*#]/g, '').trim() : `BƯỚC ${num}`;
       
       let content = lines.slice(1).join('\n').trim();
       
@@ -276,8 +276,9 @@ const ConsultationTool = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...targetData, useAI: true })
       });
-      const data = await response.json();
-      setResult(data);
+      const payload = await response.json();
+      if (!response.ok || payload.success === false) throw new Error(payload.message || 'Không thể tính toán dinh dưỡng.');
+      setResult(payload.data);
     } catch (err) {
       console.error('Error connecting to nutrition server:', err);
     } finally {
@@ -289,27 +290,6 @@ const ConsultationTool = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/');
-  };
-
-  const handleCopy = () => {
-    if (!result) return;
-    const text = `
-KẾT QUẢ TƯ VẤN & THỰC ĐƠN TỪ TRỢ LÝ AI PT 3S GYM
----------------------------------------------
-Hội viên: ${result.clientName}
-Chiều cao: ${formData.height} cm | Cân nặng: ${formData.weight} kg | Tuổi: ${formData.age}
-Chỉ số BMI: ${result.bmi} (${result.bmiCategory})
-Calo Mục Tiêu: ${result.targetCalories} kcal/ngày
----------------------------------------------
-PHÂN BỔ BỮA ĂN GỢI Ý (${result.mealCount} BỮA/NGÀY):
-${result.mealsList.map((m, i) => `${i + 1}. ${m.name} (${m.calories} kcal): ${m.suggestedDish}`).join('\n')}
----------------------------------------------
-Lượng nước nạp: Tối thiểu ${result.waterLiters}L/ngày.
-    `.trim();
-
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
   };
 
   // 1. BMI & Ideal Weight Calculator (Math)

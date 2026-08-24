@@ -2,18 +2,19 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import { useToast } from '../components/ToastProvider';
+import { destinationForRole, saveSession } from '../services/session';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
@@ -26,21 +27,21 @@ const LoginPage = () => {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/consultation');
+        saveSession(data.data);
+        toast.success(data.message || 'Đăng nhập thành công.');
+        navigate(destinationForRole(data.data.user.role));
       } else {
-        setError(data.message || 'Tài khoản hoặc mật khẩu không chính xác');
+        toast.error(data.message || 'Tài khoản hoặc mật khẩu không chính xác.');
       }
-    } catch (err) {
-      setError('Không thể kết nối đến server');
+    } catch {
+      toast.error('Không thể kết nối đến máy chủ.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', height: '100vh', width: '100vw', overflow: 'hidden', fontFamily: 'Montserrat, sans-serif' }}>
+    <div className="login-page-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', height: '100vh', width: '100vw', overflow: 'hidden', fontFamily: 'Montserrat, sans-serif' }}>
       
       {/* LEFT COLUMN: BRAND PHOTO & OVERLAY */}
       <div style={{ position: 'relative', width: '100%', height: '100%', background: '#07162c', overflow: 'hidden' }}>
@@ -96,12 +97,6 @@ const LoginPage = () => {
               Nhập tài khoản quản trị để truy cập Trợ Lý AI PT
             </p>
           </div>
-
-          {error && (
-            <div style={{ background: '#fef2f2', color: '#991b1b', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.85rem', fontWeight: 600, borderLeft: '4px solid #ef4444' }}>
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div>

@@ -1,5 +1,32 @@
 const express = require('express');
+const { asyncHandler } = require('../middlewares/asyncHandler');
+const { AppError } = require('../errors/AppError');
+const { ERROR_CODES } = require('../errors/errorCodes');
+const { validate } = require('../middlewares/validate');
+const { success } = require('../middlewares/response');
 const router = express.Router();
+
+const calculateValidator = (req) => {
+  const errors = [];
+  const ranges = { weight: [20, 400], height: [80, 250], age: [12, 100], mealCount: [1, 10] };
+  for (const [field, [min, max]] of Object.entries(ranges)) {
+    const value = Number(req.body[field] ?? (field === 'mealCount' ? 3 : NaN));
+    if (!Number.isFinite(value) || value < min || value > max) errors.push({ field, message: `${field} phải nằm trong khoảng ${min} đến ${max}.` });
+  }
+  if (req.body.gender && !['male', 'female'].includes(req.body.gender)) errors.push({ field: 'gender', message: 'Giới tính không hợp lệ.' });
+  if (req.body.activityLevel && !['sedentary', 'light', 'moderate', 'active', 'very_active'].includes(req.body.activityLevel)) errors.push({ field: 'activityLevel', message: 'Mức vận động không hợp lệ.' });
+  if (req.body.timeframe && !['1_day', '1_week', '1_month'].includes(req.body.timeframe)) errors.push({ field: 'timeframe', message: 'Khoảng thời gian không hợp lệ.' });
+  return errors;
+};
+const mealImageValidator = (req) => {
+  const errors = [];
+  if (req.query.prompt && (typeof req.query.prompt !== 'string' || req.query.prompt.length > 500)) errors.push({ field: 'prompt', message: 'Mô tả ảnh không được vượt quá 500 ký tự.' });
+  if (req.query.items && (typeof req.query.items !== 'string' || req.query.items.length > 1000)) errors.push({ field: 'items', message: 'Danh sách món ăn không hợp lệ.' });
+  if (req.query.seed && (!Number.isInteger(Number(req.query.seed)) || Number(req.query.seed) < 0)) errors.push({ field: 'seed', message: 'Mã tạo ảnh không hợp lệ.' });
+  return errors;
+};
+const scanValidator = (req) => typeof req.body.imageBase64 === 'string' && req.body.imageBase64.length >= 100
+  ? [] : [{ field: 'imageBase64', message: 'Vui lòng cung cấp ảnh InBody hợp lệ.' }];
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
@@ -165,7 +192,7 @@ function parseAiMealPlanToPoster(text, targetCalories, proteinGrams) {
   const step4Match = text.match(/\*\*BƯỚC 4:[^*]+\*\*([\s\S]*?)(?=\*\*BƯỚC 5:|$)/i) || text.match(/LỘ TRÌNH THỰC ĐƠN[\s\S]*?(?=\*\*BƯỚC 5:|$)/i);
   const mealSection = step4Match ? step4Match[1] : text;
 
-  const dayRegex = /(?:\*\*|\#\#)?(?:Ngày\s*\d+|Thứ\s*\d+|Chủ\s*Nhật)(?:\*\*|\#\#)?\s*:/gi;
+  const dayRegex = /(?:\*\*|##)?(?:Ngày\s*\d+|Thứ\s*\d+|Chủ\s*Nhật)(?:\*\*|##)?\s*:/gi;
   const dayMatches = [...mealSection.matchAll(dayRegex)];
 
   let posterList = [];
@@ -175,7 +202,7 @@ function parseAiMealPlanToPoster(text, targetCalories, proteinGrams) {
     lines.forEach((line) => {
       const trimmed = line.trim();
       if (trimmed.includes('Sáng') || trimmed.includes('Trưa') || trimmed.includes('Tối') || trimmed.includes('Phụ')) {
-        const clean = trimmed.replace(/^[\*\-\s•]+/, '').replace(/\*\*/g, '');
+        const clean = trimmed.replace(/^[*\-\s•]+/, '').replace(/\*\*/g, '');
         const colonIdx = clean.indexOf(':');
         let mealName = clean;
         let mealDesc = clean;
@@ -242,7 +269,7 @@ function parseAiMealPlanToPoster(text, targetCalories, proteinGrams) {
       const dayChunk = mealSection.slice(startIdx, endIdx).trim();
 
       const lines = dayChunk.split('\n');
-      const headerLine = lines[0].replace(/\*/g, '').replace(/\#/g, '').replace(/:$/, '').trim();
+      const headerLine = lines[0].replace(/\*/g, '').replace(/#/g, '').replace(/:$/, '').trim();
       
       const dishes = parseLinesToDishes(lines.slice(1));
       if (dishes.length > 0) {
@@ -326,6 +353,9 @@ async function enrichPosterWithImages(posterList) {
 
   return enriched;
 }
+
+// Giữ helper cho chế độ nhúng ảnh base64 có thể bật lại mà không làm ảnh hưởng luồng proxy hiện tại.
+void enrichPosterWithImages;
 
 async function fetchOpenRouterAIAdvice(userStats) {
   const count = parseInt(userStats.mealCount) || 3;
@@ -426,11 +456,11 @@ ${mealTemplate}
   return null;
 }
 
-router.post('/calculate', async (req, res) => {
-    const { clientName, gender, weight, height, age, activityLevel, mealCount = 3, timeframe = '1_day', useAI = true } = req.body;
+router.post('/calculate', validate(calculateValidator), asyncHandler(async (req, res) => {
+    const { clientName, gender, weight, height, age, activityLevel, mealCount = 3, timeframe = '1_day' } = req.body;
 
     if (!weight || !height || !age) {
-        return res.status(400).json({ message: 'Thiếu thông tin chiều cao, cân nặng hoặc tuổi' });
+        throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Thiếu thông tin chiều cao, cân nặng hoặc tuổi.' });
     }
 
     const numericWeight = parseFloat(weight);
@@ -551,7 +581,7 @@ router.post('/calculate', async (req, res) => {
       }));
     }
 
-    res.json({
+    return success(res, { message: 'Tính toán và tạo tư vấn dinh dưỡng thành công.', data: {
         clientName: clientName || 'Hội viên 3S',
         bmi,
         bmiCategory,
@@ -572,12 +602,12 @@ router.post('/calculate', async (req, res) => {
         adviceText: aiTextAdvice,
         openRouterResponse: aiTextAdvice,
         isRealAI: !!aiTextAdvice
-    });
-});
+    } });
+}));
 
 // GET /api/nutrition/meal-image?prompt=...&items=...&seed=...
 // Real-time AI Multi-Dish Meal Platter Image proxy with seed support
-router.get('/meal-image', async (req, res) => {
+router.get('/meal-image', validate(mealImageValidator), asyncHandler(async (req, res) => {
   const prompt = req.query.prompt || 'Full healthy meal platter set with dishes on table';
   const itemsStr = req.query.items || '';
   const itemNames = itemsStr ? itemsStr.split(',') : [prompt];
@@ -624,14 +654,14 @@ router.get('/meal-image', async (req, res) => {
   }
 
   return res.redirect(fallbackUrl);
-});
+}));
 
 // POST /api/nutrition/scan-inbody — Multimodal AI InBody Sheet Scanner
-router.post('/scan-inbody', async (req, res) => {
+router.post('/scan-inbody', validate(scanValidator), asyncHandler(async (req, res) => {
   try {
     const { imageBase64 } = req.body;
     if (!imageBase64) {
-      return res.status(400).json({ error: 'Vui lòng cung cấp hình ảnh hoặc file PDF phiếu InBody' });
+      throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng cung cấp hình ảnh hoặc file PDF phiếu InBody.' });
     }
 
     console.log('Scanning InBody sheet via Gemini Multimodal AI...');
@@ -705,7 +735,7 @@ YÊU CẦU ĐẮC BIỆT: CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ T
 
       // Fix dangling incomplete key-value pairs like "bmr": or "height":
       jsonString = jsonString
-        .replace(/"([^"]+)":\s*(?=[,\}\n])/g, '"$1": null')
+        .replace(/"([^"]+)":\s*(?=[,}\n])/g, '"$1": null')
         .replace(/,\s*}/g, '}')
         .replace(/,\s*\]/g, ']');
 
@@ -728,19 +758,16 @@ YÊU CẦU ĐẮC BIỆT: CHỈ TRẢ VỀ DUY NHẤT 1 OBJECT JSON HỢP LỆ T
         };
       }
 
-      return res.json({
-        success: true,
-        data: extractedStats,
-        message: 'Quét phiếu InBody bằng AI thành công!'
-      });
+      return success(res, { data: extractedStats, message: 'Quét phiếu InBody bằng AI thành công.' });
     }
 
     throw new Error('AI không phản hồi dữ liệu phiếu InBody');
   } catch (err) {
     console.error('InBody Scan error:', err);
-    res.status(500).json({ error: 'Không thể đọc dữ liệu từ phiếu InBody. Vui lòng kiểm tra lại file ảnh/PDF!' });
+    if (err instanceof AppError) throw err;
+    throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'Không thể đọc dữ liệu từ phiếu InBody. Vui lòng kiểm tra lại file ảnh/PDF.', cause: err });
   }
-});
+}));
 
 module.exports = router;
 

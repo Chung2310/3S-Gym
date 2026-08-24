@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, LogOut, User as UserIcon, Mail, MapPin, Phone, Menu, X, Bot } from 'lucide-react';
+import { LogIn, LogOut, User as UserIcon, MapPin, Phone, Menu, X, Bot } from 'lucide-react';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -12,7 +12,7 @@ const Navbar = () => {
     try {
       const raw = localStorage.getItem('user');
       return raw ? JSON.parse(raw) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   })();
