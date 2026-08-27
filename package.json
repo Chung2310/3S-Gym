@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "typecheck:backend": "tsc --noEmit -p tsconfig.backend.json",
     "lint": "oxlint backend frontend vite.config.ts vitest.config.ts",
-    "test": "vitest run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts",
+    "db:migrate": "tsx backend/scripts/migrate.ts",
+    "db:seed": "tsx backend/scripts/seed.ts"
   },
   "dependencies": {
     "@sentry/node": "^10.70.0",
