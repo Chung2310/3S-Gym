@@ -1,12 +1,12 @@
 import type { Server } from 'node:http';
-import type { Logger } from 'pino';
+import type { AppLogger } from '../config/logger.js';
 
 interface ShutdownDependencies {
   server?: Pick<Server, 'close'>;
   disconnect: () => Promise<unknown>;
   flush: () => Promise<unknown>;
   exit: (code: number) => void;
-  logger: Pick<Logger, 'info' | 'fatal'>;
+  logger: Pick<AppLogger, 'info' | 'fatal'>;
   timeoutMs?: number;
 }
 
