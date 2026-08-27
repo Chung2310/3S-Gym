@@ -57,6 +57,39 @@ async function completeTask(user: AuthenticatedUser, id: string, result: string)
   await CareLog.create({ customerId: task.customerId, ptId: task.assignedPtId, kind: 'TASK_COMPLETED', referenceId: task._id, note: result });
   return task;
 }
+async function listTasks(user: AuthenticatedUser, query: Record<string, unknown>) {
+  const page = Number(query.page || 1); const limit = Number(query.limit || 20);
+  const filter: Record<string, unknown> = user.role === 'PT' ? { assignedPtId: new Types.ObjectId(user.id) } : {};
+  if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId);
+  if (query.status === 'OPEN' || query.status === 'DONE') filter.status = query.status;
+  const [items, total] = await Promise.all([CareTask.find(filter).sort({ dueAt: 1 }).skip((page - 1) * limit).limit(limit).lean(), CareTask.countDocuments(filter)]);
+  return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+}
+async function getTask(user: AuthenticatedUser, id: string) {
+  const task = await CareTask.findOne({ _id: id, ...(user.role === 'PT' ? { assignedPtId: user.id } : {}) });
+  if (!task) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy nhiệm vụ chăm sóc.' });
+  return task;
+}
+async function updateTask(user: AuthenticatedUser, id: string, payload: { title?: string; dueAt?: string }) {
+  const task = await CareTask.findOne({ _id: id, status: 'OPEN', ...(user.role === 'PT' ? { assignedPtId: user.id } : {}) });
+  if (!task) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy nhiệm vụ đang mở.' });
+  if (payload.title !== undefined) task.title = payload.title;
+  if (payload.dueAt !== undefined) task.dueAt = new Date(payload.dueAt);
+  return task.save();
+}
+async function deleteTask(user: AuthenticatedUser, id: string) {
+  const task = await CareTask.findOneAndDelete({ _id: id, status: 'OPEN', ...(user.role === 'PT' ? { assignedPtId: user.id } : {}) });
+  if (!task) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy nhiệm vụ đang mở.' });
+  return task;
+}
+async function listLogs(user: AuthenticatedUser, query: Record<string, unknown>) {
+  const page = Number(query.page || 1); const limit = Number(query.limit || 20);
+  const filter: Record<string, unknown> = user.role === 'PT' ? { ptId: new Types.ObjectId(user.id) } : {};
+  if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId);
+  if (typeof query.kind === 'string') filter.kind = query.kind;
+  const [items, total] = await Promise.all([CareLog.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), CareLog.countDocuments(filter)]);
+  return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+}
 async function getToday(user: AuthenticatedUser, date: Date) {
   const start = new Date(date); start.setUTCHours(0, 0, 0, 0);
   const end = new Date(start); end.setUTCDate(end.getUTCDate() + 1);
@@ -69,4 +102,4 @@ async function getToday(user: AuthenticatedUser, date: Date) {
   ]);
   return { date: start, overdueTasks, dueTodayTasks, openAlerts };
 }
-export { recalculate, list, resolve, createTask, completeTask, getToday };
+export { recalculate, list, resolve, createTask, completeTask, listTasks, getTask, updateTask, deleteTask, listLogs, getToday };
