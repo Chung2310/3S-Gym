@@ -13,7 +13,9 @@
     "typecheck:backend": "tsc --noEmit -p tsconfig.backend.json",
     "lint": "oxlint backend frontend vite.config.ts vitest.config.ts",
     "test": "vitest run --config vitest.config.ts",
-    "db:migrate": "tsx backend/scripts/migrate.ts",
+    "db:migrate": "tsx backend/scripts/migrate.ts up",
+    "db:migrate:down": "tsx backend/scripts/migrate.ts down",
+    "db:migrate:status": "tsx backend/scripts/migrate.ts status",
     "db:seed": "tsx backend/scripts/seed.ts"
   },
   "dependencies": {

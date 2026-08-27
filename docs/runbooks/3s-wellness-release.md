@@ -20,6 +20,7 @@ Kiểm tra `manifest.json`, dung lượng file và log `mongodump`. Không tiế
 
 ```powershell
 npm run db:migrate
+npm run db:migrate:status
 npm run db:seed
 ```
 
