@@ -3,7 +3,15 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
+import { useState } from 'react';
 import ProfileFormModal from './ProfileFormModal';
+
+it('đóng bằng Escape và trả focus về nút mở modal', async () => {
+  const user = userEvent.setup();
+  function Harness() { const [open, setOpen] = useState(false); return <><button onClick={() => setOpen(true)}>Mở form</button><ProfileFormModal open={open} title="Form test" onClose={() => setOpen(false)}><input aria-label="Trường đầu" /></ProfileFormModal></>; }
+  render(<Harness />);
+  const opener = screen.getByRole('button', { name: 'Mở form' }); await user.click(opener); expect(screen.getByRole('dialog')).toBeVisible(); await user.keyboard('{Escape}'); expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); expect(opener).toHaveFocus();
+});
 
 describe('ProfileFormModal', () => {
   it('không render khi đóng và có tên truy cập khi mở', () => {
