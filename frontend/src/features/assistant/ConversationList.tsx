@@ -1,0 +1,2 @@
+export interface Conversation { _id: string; title: string; messages?: Array<{ role: string; content: string }> }
+export default function ConversationList({ items, onSelect }: { items: Conversation[]; onSelect: (item: Conversation) => void }) { return <section className="panel"><h2>Hội thoại</h2>{items.map((item) => <button className="published-card" key={item._id} onClick={() => onSelect(item)}>{item.title}</button>)}</section>; }

@@ -14,6 +14,9 @@ import CareWorkspace from '../features/care/CareWorkspace';
 import PtDashboard from '../features/dashboard/PtDashboard';
 import NotificationCenter from '../features/notifications/NotificationCenter';
 import InternalCalendar from '../features/calendar/InternalCalendar';
+import KnowledgeBase from '../features/knowledge/KnowledgeBase';
+import KnowledgeSearch from '../features/knowledge/KnowledgeSearch';
+import PtAssistant from '../features/assistant/PtAssistant';
 import { FeaturesProvider, useFeatures } from '../services/features';
 import { getSession } from '../services/session';
 import type { Session, User } from '../types';
@@ -33,6 +36,9 @@ function PortalRoutes({ user }: { user: User }) {
     <Routes>
       <Route path="/portal/notifications" element={<NotificationCenter />} />
       <Route path="/portal/calendar" element={<FeatureRoute user={user} roles={['ADMIN', 'PT']}><InternalCalendar role={user.role} /></FeatureRoute>} />
+      <Route path="/portal/admin/knowledge" element={<FeatureRoute user={user} roles={['ADMIN']} feature="KNOWLEDGE_BASE"><KnowledgeBase /></FeatureRoute>} />
+      <Route path="/portal/pt/knowledge-search" element={<FeatureRoute user={user} roles={['PT']} feature="KNOWLEDGE_BASE"><KnowledgeSearch /></FeatureRoute>} />
+      <Route path="/portal/pt/assistant" element={<FeatureRoute user={user} roles={['PT']} feature="PT_ASSISTANT"><PtAssistant /></FeatureRoute>} />
       <Route path="/portal/admin/*" element={<FeatureRoute user={user} roles={['ADMIN']}><AdminRoutes /></FeatureRoute>} />
       <Route path="/portal/pt/inbody" element={<FeatureRoute user={user} roles={['PT']} feature="OCR_INBODY"><InBodyWorkspace /></FeatureRoute>} />
       <Route path="/portal/pt/roadmaps" element={<FeatureRoute user={user} roles={['PT']} feature="ROADMAP"><RoadmapWorkspace /></FeatureRoute>} />

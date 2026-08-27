@@ -12,6 +12,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/portal/notifications', label: 'Thông báo', roles: ['ADMIN', 'PT', 'CUSTOMER'] },
   { path: '/portal/calendar', label: 'Lịch nội bộ', roles: ['ADMIN', 'PT'] },
   { path: '/portal/admin', label: 'Quản lý PT', roles: ['ADMIN'] },
+  { path: '/portal/admin/knowledge', label: 'Kho tri thức', roles: ['ADMIN'], feature: 'KNOWLEDGE_BASE' },
   { path: '/portal/pt/customers', label: 'Khách hàng', roles: ['PT'] },
   { path: '/portal/pt/inbody', label: 'InBody OCR', roles: ['PT'], feature: 'OCR_INBODY' },
   { path: '/portal/pt/roadmaps', label: 'Roadmap', roles: ['PT'], feature: 'ROADMAP' },
@@ -23,6 +24,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/portal/pt/dashboard', label: 'Dashboard PT', roles: ['PT'], feature: 'DASHBOARD' },
   { path: '/consultation', label: 'Trợ lý dinh dưỡng', roles: ['PT'] },
   { path: '/portal/pt/assistant', label: 'PT Assistant', roles: ['PT'], feature: 'PT_ASSISTANT' },
+  { path: '/portal/pt/knowledge-search', label: 'Tra cứu tri thức', roles: ['PT'], feature: 'KNOWLEDGE_BASE' },
   { path: '/portal/me', label: 'Hành trình của tôi', roles: ['CUSTOMER'] },
 ];
 
