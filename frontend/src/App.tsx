@@ -9,7 +9,7 @@ import { ToastProvider } from './components/ToastProvider';
 
 function MainContent() {
   const location = useLocation();
-  const hideNavbar = location.pathname === '/consultation' || location.pathname === '/login' || location.pathname === '/portal';
+  const hideNavbar = location.pathname === '/consultation' || location.pathname === '/login' || location.pathname.startsWith('/portal');
 
   return (
     <div className="App">
@@ -19,7 +19,7 @@ function MainContent() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/consultation" element={<ProtectedRoute><ConsultationTool /></ProtectedRoute>} />
-          <Route path="/portal" element={<ProtectedRoute><PortalPage /></ProtectedRoute>} />
+          <Route path="/portal/*" element={<ProtectedRoute><PortalPage /></ProtectedRoute>} />
         </Routes>
       </main>
     </div>

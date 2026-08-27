@@ -10,4 +10,11 @@ describe('AppShell', () => {
     expect(screen.getAllByText('PT Minh')).toHaveLength(2);
     expect(screen.getByText('Nội dung CRM')).toBeInTheDocument();
   });
+
+  it('chỉ hiển thị navigation phù hợp vai trò và feature', () => {
+    render(<MemoryRouter><AppShell user={{ username: 'customer-a', role: 'CUSTOMER' }} features={{ PT_ASSISTANT: true }}><div>Portal</div></AppShell></MemoryRouter>);
+    expect(screen.getByRole('link', { name: 'Hành trình của tôi' })).toHaveAttribute('href', '/portal/me');
+    expect(screen.queryByRole('link', { name: 'PT Assistant' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Quản lý PT' })).not.toBeInTheDocument();
+  });
 });

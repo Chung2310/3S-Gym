@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
 import PortalPage from './PortalPage';
 import { ToastProvider } from '../components/ToastProvider';
@@ -59,6 +59,19 @@ describe('PortalPage', () => {
   ])('hiển thị màn hình phù hợp vai trò %s', async (role, heading) => {
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: role.toLowerCase(), role } }} /></ToastProvider></MemoryRouter>);
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+  });
+
+  it.each<[UserRole, string]>([
+    ['ADMIN', '/portal/admin'],
+    ['PT', '/portal/pt/customers'],
+    ['CUSTOMER', '/portal/me'],
+  ])('điều hướng vai trò %s tới route riêng', async (role, expectedPath) => {
+    function Location() {
+      const { pathname } = useLocation();
+      return <span data-testid="route-path">{pathname}</span>;
+    }
+    render(<MemoryRouter initialEntries={['/portal']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: role.toLowerCase(), role } }} /><Location /></ToastProvider></MemoryRouter>);
+    expect(await screen.findByTestId('route-path')).toHaveTextContent(expectedPath);
   });
 
   it('PT có thao tác cấp tài khoản cho khách chưa có user', async () => {
