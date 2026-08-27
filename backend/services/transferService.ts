@@ -5,6 +5,16 @@ import User from '../models/User.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { recordAudit } from './auditService.js';
+import CareAlert from '../models/CareAlert.js';
+import CareTask from '../models/CareTask.js';
+
+async function reassignOpenCare(customerId: Types.ObjectId, toPtId: Types.ObjectId) {
+  await Promise.all([
+    CareAlert.updateMany({ customerId, status: 'OPEN' }, { $set: { ptId: toPtId } }),
+    CareTask.updateMany({ customerId, status: 'OPEN' }, { $set: { assignedPtId: toPtId } }),
+  ]);
+}
 
 interface TransferPayload { customerId: string; toPtId: string; reason: string }
 interface TransferQuery { page?: unknown; limit?: unknown; status?: unknown; customerId?: unknown }
@@ -62,7 +72,11 @@ async function resolveTransfer(user: AuthenticatedUser, id: string, action: 'acc
   transfer.resolvedByName = resolver?.fullName || resolver?.username || '';
   transfer.resolvedAt = new Date();
   await transfer.save();
-  if (action === 'accept') await CustomerProfile.updateOne({ _id: transfer.customerId, assignedPtId: transfer.fromPtId }, { assignedPtId: transfer.toPtId });
+  if (action === 'accept') {
+    await CustomerProfile.updateOne({ _id: transfer.customerId, assignedPtId: transfer.fromPtId }, { assignedPtId: transfer.toPtId });
+    await reassignOpenCare(transfer.customerId, transfer.toPtId);
+  }
+  await recordAudit({ actor: user, action: action === 'accept' ? 'TRANSFER_ACCEPTED' : 'TRANSFER_REJECTED', resourceType: 'transfers', resourceId: transfer.id, customerId: transfer.customerId, metadata: { fromPtId: String(transfer.fromPtId), toPtId: String(transfer.toPtId) } });
   return transfer;
 }
 
@@ -81,6 +95,8 @@ async function forceTransfer(user: AuthenticatedUser, requestId: string, payload
   transfer.resolvedAt = new Date();
   await transfer.save();
   await CustomerProfile.updateOne({ _id: customer._id }, { assignedPtId: transfer.toPtId });
+  await reassignOpenCare(customer._id, transfer.toPtId);
+  await recordAudit({ actor: user, action: 'TRANSFER_ADMIN_FORCED', resourceType: 'transfers', resourceId: transfer.id, customerId: customer._id, metadata: { fromPtId: String(transfer.fromPtId), toPtId: String(transfer.toPtId), reason: transfer.reason } });
   return transfer;
 }
 

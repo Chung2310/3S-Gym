@@ -8,6 +8,9 @@ import User from '../models/User.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import type { UserDocument } from '../models/User.js';
 import type { CustomerProfileDocument } from '../models/CustomerProfile.js';
+import AuditLog from '../models/AuditLog.js';
+import CareAlert from '../models/CareAlert.js';
+import CareTask from '../models/CareTask.js';
 let mongo: MongoMemoryServer;
 let admin: UserDocument;
 let ptA: UserDocument;
@@ -46,6 +49,8 @@ describe('Chuyển khách giữa PT', () => {
 
     expect(created.status).toBe(201);
     expect((await CustomerProfile.findById(customer.id))!.assignedPtId.toString()).toBe(ptA.id);
+    const alert = await CareAlert.create({ customerId: customer.id, ptId: ptA.id, ruleKey: 'TRANSFER_TEST', title: 'Open alert', reason: 'Transfer ownership test', status: 'OPEN', dueAt: new Date() });
+    const task = await CareTask.create({ customerId: customer.id, assignedPtId: ptA.id, title: 'Open task', dueAt: new Date(), status: 'OPEN' });
 
     const accepted = await request(app)
       .patch(`/api/transfers/${created.body.data._id}/accept`)
@@ -55,6 +60,9 @@ describe('Chuyển khách giữa PT', () => {
     expect(accepted.status).toBe(200);
     expect(accepted.body.data.status).toBe('ACCEPTED');
     expect((await CustomerProfile.findById(customer.id))!.assignedPtId.toString()).toBe(ptB.id);
+    expect(await AuditLog.countDocuments({ action: 'TRANSFER_ACCEPTED', resourceId: created.body.data._id })).toBe(1);
+    expect(String((await CareAlert.findById(alert.id))!.ptId)).toBe(ptB.id);
+    expect(String((await CareTask.findById(task.id))!.assignedPtId)).toBe(ptB.id);
   });
 
   it('Admin ép chuyển phải có lý do và lưu trạng thái', async () => {
@@ -72,6 +80,7 @@ describe('Chuyển khách giữa PT', () => {
     expect(forced.status).toBe(200);
     expect(forced.body.data.status).toBe('ADMIN_FORCED');
     expect((await CustomerProfile.findById(customer.id))!.assignedPtId.toString()).toBe(ptA.id);
+    expect(await AuditLog.countDocuments({ action: 'TRANSFER_ADMIN_FORCED', resourceId: forced.body.data._id })).toBe(1);
   });
 
   it('danh sách yêu cầu có phân trang', async () => {

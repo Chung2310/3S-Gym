@@ -61,7 +61,7 @@ async function list(user: AuthenticatedUser, query: Record<string, unknown>) {
   if (user.role === 'PT') {
     const ids = await CustomerProfile.find({ assignedPtId: user.id }).distinct('_id');
     if (typeof query.customerId === 'string' && !ids.some((id) => String(id) === query.customerId)) return { items: [], meta: { page, limit, total: 0, totalPages: 0 } };
-    filter.ptId = new Types.ObjectId(user.id);
+    if (typeof query.customerId !== 'string') filter.customerId = { $in: ids };
   }
   const [items, total] = await Promise.all([Roadmap.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), Roadmap.countDocuments(filter)]);
   return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };

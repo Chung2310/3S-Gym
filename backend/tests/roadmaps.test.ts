@@ -12,6 +12,8 @@ let mongo: MongoMemoryServer;
 let ownerToken: string;
 let otherToken: string;
 let customerId: string;
+let ownerId: string;
+let otherId: string;
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
 
 beforeAll(async () => {
@@ -22,7 +24,22 @@ beforeAll(async () => {
   const other = await User.create({ username: 'pt-roadmap-other', password, role: 'PT' });
   const customer = await CustomerProfile.create({ fullName: 'Khách Roadmap', phone: '0907000002', assignedPtId: owner.id });
   await FeatureFlag.create({ key: 'ROADMAP', enabled: true, roles: ['PT'] });
-  ownerToken = tokenFor(owner); otherToken = tokenFor(other); customerId = customer.id;
+  ownerToken = tokenFor(owner); otherToken = tokenFor(other); customerId = customer.id; ownerId = owner.id; otherId = other.id;
+});
+
+it('roadmap list follows current customer assignment after PT transfer', async () => {
+  const created = await request(app).post('/api/roadmaps').set('Authorization', `Bearer ${ownerToken}`).send({
+    customerId, title: 'Transferred roadmap', phases: [{ order: 1, name: 'Base', durationWeeks: 2, goals: [], weeks: [] }],
+  });
+  await CustomerProfile.updateOne({ _id: customerId, assignedPtId: ownerId }, { assignedPtId: otherId });
+  try {
+    const oldOwner = await request(app).get(`/api/roadmaps?customerId=${customerId}`).set('Authorization', `Bearer ${ownerToken}`);
+    const newOwner = await request(app).get(`/api/roadmaps?customerId=${customerId}`).set('Authorization', `Bearer ${otherToken}`);
+    expect(oldOwner.body.data).toHaveLength(0);
+    expect(newOwner.body.data.some((item: { _id: string }) => item._id === created.body.data._id)).toBe(true);
+  } finally {
+    await CustomerProfile.updateOne({ _id: customerId }, { assignedPtId: ownerId });
+  }
 });
 
 afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); });
