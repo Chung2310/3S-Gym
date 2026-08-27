@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { success } from './middlewares/response.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
 import { registerFrontend } from './services/frontendService.js';
 import { requestContext } from './middlewares/requestContext.js';
 import { AppError } from './errors/AppError.js';
@@ -70,7 +71,8 @@ app.use('/api/content-drafts', contentDraftsRouter);
 
 app.use('/api', (req, res, next) => next(new AppError({ status: 404, code: ERROR_CODES.ROUTE_NOT_FOUND, message: 'Không tìm thấy đường dẫn API.' })));
 
-const frontendPath = process.env.NODE_ENV === 'production' ? path.resolve(__dirname, '../dist') : path.resolve(__dirname, '../frontend');
+const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
+const frontendPath = process.env.NODE_ENV === 'production' ? path.resolve(currentDirectory, '../dist') : path.resolve(currentDirectory, '../frontend');
 app.frontendReady = process.env.NODE_ENV === 'test' ? Promise.resolve(false) : registerFrontend(app, frontendPath);
 app.use(errorHandler);
 
