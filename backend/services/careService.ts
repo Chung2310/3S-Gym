@@ -9,9 +9,11 @@ import InBodyRecord from '../models/InBodyRecord.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { createNotificationOnce } from './notificationService.js';
 
 async function upsertOpen(customerId: Types.ObjectId, ptId: Types.ObjectId, ruleKey: string, title: string, reason: string, dueAt: Date) {
-  await CareAlert.updateOne({ customerId, ruleKey, status: 'OPEN' }, { $setOnInsert: { customerId, ptId, ruleKey, title, reason, dueAt, status: 'OPEN' } }, { upsert: true });
+  const alert = await CareAlert.findOneAndUpdate({ customerId, ruleKey, status: 'OPEN' }, { $setOnInsert: { customerId, ptId, ruleKey, title, reason, dueAt, status: 'OPEN' } }, { upsert: true, returnDocument: 'after' });
+  await createNotificationOnce({ userId: ptId, type: 'CARE_ALERT_CREATED', title, message: reason, resourceType: 'careAlerts', resourceId: alert.id });
 }
 async function recalculate(user: AuthenticatedUser, asOf: Date) {
   const customers = await CustomerProfile.find(user.role === 'PT' ? { assignedPtId: user.id, status: 'ACTIVE' } : { status: 'ACTIVE' });
@@ -48,7 +50,9 @@ async function createTask(user: AuthenticatedUser, payload: { customerId: string
   const customer = await CustomerProfile.findById(payload.customerId);
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
   if (user.role === 'PT' && String(customer.assignedPtId) !== user.id) throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền quản lý khách hàng này.' });
-  return CareTask.create({ ...payload, assignedPtId: customer.assignedPtId, status: 'OPEN' });
+  const task = await CareTask.create({ ...payload, assignedPtId: customer.assignedPtId, status: 'OPEN' });
+  await createNotificationOnce({ userId: customer.assignedPtId, type: 'CARE_TASK_CREATED', title: 'Nhiệm vụ chăm sóc mới', message: task.title, resourceType: 'careTasks', resourceId: task.id });
+  return task;
 }
 async function completeTask(user: AuthenticatedUser, id: string, result: string) {
   const task = await CareTask.findOne({ _id: id, status: 'OPEN', ...(user.role === 'PT' ? { assignedPtId: user.id } : {}) });
