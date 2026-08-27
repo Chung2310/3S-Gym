@@ -8,6 +8,8 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import type { ContentResource } from '../routes/contentRouteFactory.js';
+import { recordAudit } from './auditService.js';
+import ProgressReport from '../models/ProgressReport.js';
 
 interface ContentBase {
   customerId: Types.ObjectId;
@@ -95,20 +97,29 @@ async function setPublication(resource: ContentResource, user: AuthenticatedUser
   await assertCustomerAccess(user, item.customerId);
   item.status = publish ? 'PUBLISHED' : 'DRAFT';
   item.publishedAt = publish ? new Date() : null;
-  return item.save();
+  const saved = await item.save();
+  await recordAudit({
+    actor: user,
+    action: publish ? 'CONTENT_PUBLISHED' : 'CONTENT_UNPUBLISHED',
+    resourceType: resource,
+    resourceId: id,
+    customerId: item.customerId,
+  });
+  return saved;
 }
 
 async function getMyContent(user: AuthenticatedUser) {
   const customer = await CustomerProfile.findOne({ userId: user.id });
   if (!customer) throw appError('Không tìm thấy hồ sơ khách hàng.', 404);
   const filter = { customerId: customer.id, status: 'PUBLISHED' as const };
-  const [inbody, goals, workoutPlans, nutritionPlans] = await Promise.all([
+  const [inbody, goals, workoutPlans, nutritionPlans, progressReports] = await Promise.all([
     InBodyRecord.find(filter).sort({ measurementDate: -1 }).lean(),
     Goal.find(filter).sort({ createdAt: -1 }).lean(),
     WorkoutPlan.find(filter).sort({ createdAt: -1 }).lean(),
     NutritionPlan.find(filter).sort({ createdAt: -1 }).lean(),
+    ProgressReport.find(filter).sort({ periodEnd: -1 }).lean(),
   ]);
-  return { profile: customer, inbody, goals, workoutPlans, nutritionPlans };
+  return { profile: customer, inbody, goals, workoutPlans, nutritionPlans, progressReports };
 }
 
 export { createContent, updateContent, deleteContent, listContent, setPublication, getMyContent };

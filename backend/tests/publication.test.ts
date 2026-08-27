@@ -129,4 +129,20 @@ describe('Nội dung nháp và công bố', () => {
     expect(response.status).toBe(400);
     expect(response.body.message).toBe('Dữ liệu gửi lên không hợp lệ.');
   });
+
+  it('ghi audit log khi PT công bố nội dung', async () => {
+    const created = await request(app).post('/api/goals').set('Authorization', `Bearer ${ptToken}`).send({
+      customerId: customer.id, type: 'FAT_LOSS', title: 'Mục tiêu cần audit', deadline: '2026-12-24',
+    });
+
+    const published = await request(app)
+      .patch(`/api/goals/${created.body.data._id}/publish`)
+      .set('Authorization', `Bearer ${ptToken}`);
+
+    expect(published.status).toBe(200);
+    const audit = await mongoose.connection.collection('auditlogs').findOne({
+      action: 'CONTENT_PUBLISHED', resourceType: 'goals', resourceId: created.body.data._id,
+    });
+    expect(audit).toMatchObject({ actorId: new mongoose.Types.ObjectId(pt.id), customerId: customer._id });
+  });
 });

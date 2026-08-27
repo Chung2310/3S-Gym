@@ -15,9 +15,23 @@ const schema = new mongoose.Schema({
   priorities: { type: String, default: '' },
   recommendation: { type: String, default: '' },
   source: { type: String, enum: ['MANUAL', 'AI_SCAN'], default: 'MANUAL' },
+  ocrStatus: { type: String, enum: ['NOT_APPLICABLE', 'REVIEW_REQUIRED', 'CONFIRMED'], default: 'NOT_APPLICABLE' },
+  confidence: { type: Number, min: 0, max: 1, default: null },
+  ocrWarnings: { type: [String], default: [] },
+  sourceImage: {
+    fileName: { type: String, default: '' }, mimeType: { type: String, default: '' }, data: { type: Buffer, default: null },
+  },
   status: { type: String, enum: ['DRAFT', 'PUBLISHED'], default: 'DRAFT', index: true },
   publishedAt: { type: Date, default: null },
   version: { type: Number, default: 1 },
-}, { timestamps: true });
+}, {
+  timestamps: true,
+  toJSON: {
+    transform: (_doc, ret) => {
+      delete ret.sourceImage;
+      return ret;
+    },
+  },
+});
 
 export default mongoose.model('InBodyRecord', schema);

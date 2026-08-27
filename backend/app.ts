@@ -19,6 +19,16 @@ import nutritionPlansRouter from './routes/nutritionPlans.js';
 import meRouter from './routes/me.js';
 import nutritionRouter from './routes/nutrition.js';
 import uploadRouter from './routes/upload.js';
+import featuresRouter from './routes/features.js';
+import inbodyOcrRouter from './routes/inbodyOcr.js';
+import roadmapsRouter from './routes/roadmaps.js';
+import exercisesRouter from './routes/exercises.js';
+import workoutProgressRouter from './routes/workoutProgress.js';
+import careDashboardRouter from './routes/careDashboard.js';
+import knowledgeAssistantRouter from './routes/knowledgeAssistant.js';
+import operationsRouter from './routes/operations.js';
+import nutritionMetricsRouter from './routes/nutritionMetrics.js';
+import contentDraftsRouter from './routes/contentDrafts.js';
 const app = express();
 
 app.use(requestContext);
@@ -47,6 +57,16 @@ app.use('/api/nutrition-plans', nutritionPlansRouter);
 app.use('/api/me', meRouter);
 app.use('/api/nutrition', nutritionRouter);
 app.use('/api/upload', uploadRouter);
+app.use('/api/features', featuresRouter);
+app.use('/api/inbody/ocr', inbodyOcrRouter);
+app.use('/api/roadmaps', roadmapsRouter);
+app.use('/api/exercises', exercisesRouter);
+app.use('/api', workoutProgressRouter);
+app.use('/api', careDashboardRouter);
+app.use('/api', knowledgeAssistantRouter);
+app.use('/api', operationsRouter);
+app.use('/api', nutritionMetricsRouter);
+app.use('/api/content-drafts', contentDraftsRouter);
 
 app.use('/api', (req, res, next) => next(new AppError({ status: 404, code: ERROR_CODES.ROUTE_NOT_FOUND, message: 'Không tìm thấy đường dẫn API.' })));
 

@@ -1,0 +1,10 @@
+import { asyncHandler } from '../middlewares/asyncHandler.js'; import { success } from '../middlewares/response.js'; import * as s from '../services/operationsService.js';
+const createReport = asyncHandler(async (req, res) => success(res, { status: 201, message: 'Tạo báo cáo tiến độ thành công.', data: await s.createReport(req.user!, req.body) }));
+const publishReport = asyncHandler(async (req, res) => success(res, { message: 'Công bố báo cáo tiến độ thành công.', data: await s.publishReport(req.user!, String(req.params.id)) }));
+const notifications = asyncHandler(async (req, res) => { const r = await s.listNotifications(req.user!, req.query); return success(res, { message: 'Lấy thông báo thành công.', data: r.items, meta: r.meta }); });
+const readNotification = asyncHandler(async (req, res) => success(res, { message: 'Đánh dấu thông báo đã đọc thành công.', data: await s.readNotification(req.user!, String(req.params.id)) }));
+const createEvent = asyncHandler(async (req, res) => success(res, { status: 201, message: 'Tạo lịch thành công.', data: await s.createEvent(req.user!, req.body) }));
+const events = asyncHandler(async (req, res) => { const r = await s.listEvents(req.user!, req.query); return success(res, { message: 'Lấy lịch thành công.', data: r.items, meta: r.meta }); });
+const updateEvent = asyncHandler(async (req, res) => success(res, { message: 'Cập nhật lịch thành công.', data: await s.updateEvent(req.user!, String(req.params.id), req.body) }));
+const adminDashboard = asyncHandler(async (_req, res) => success(res, { message: 'Lấy dashboard Admin thành công.', data: await s.adminDashboard() }));
+export { createReport, publishReport, notifications, readNotification, createEvent, events, updateEvent, adminDashboard };

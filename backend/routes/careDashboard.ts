@@ -1,0 +1,17 @@
+import express, { type Request } from 'express';
+import mongoose from 'mongoose';
+import { authenticate, authorize } from '../middlewares/auth.js';
+import { requireFeature } from '../middlewares/requireFeature.js';
+import { validate, listValidator, type ValidationIssue } from '../middlewares/validate.js';
+import * as controller from '../controllers/careDashboardController.js';
+const router = express.Router();
+const care = [authenticate, authorize('ADMIN', 'PT'), requireFeature('CARE')] as const;
+const listAlerts = (req: Request): ValidationIssue[] => { const errors = listValidator(req); if (req.query.customerId && !mongoose.isValidObjectId(String(req.query.customerId))) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' }); if (req.query.status && !['OPEN', 'RESOLVED'].includes(String(req.query.status))) errors.push({ field: 'status', message: 'Trạng thái cảnh báo không hợp lệ.' }); return errors; };
+router.post('/care/recalculate', ...care, validate((req) => req.body.asOf && Number.isNaN(Date.parse(req.body.asOf)) ? [{ field: 'asOf', message: 'Thời điểm tính cảnh báo không hợp lệ.' }] : []), controller.recalculate);
+router.get('/care/alerts', ...care, validate(listAlerts), controller.listAlerts);
+router.get('/care/today', ...care, validate((req) => req.query.date && Number.isNaN(Date.parse(String(req.query.date))) ? [{ field: 'date', message: 'Ngày không hợp lệ.' }] : []), controller.today);
+router.patch('/care/alerts/:id/resolve', ...care, validate((req) => { const errors: ValidationIssue[] = []; if (!mongoose.isValidObjectId(req.params.id)) errors.push({ field: 'id', message: 'Mã cảnh báo không hợp lệ.' }); if (typeof req.body.result !== 'string' || !req.body.result.trim()) errors.push({ field: 'result', message: 'Vui lòng nhập kết quả xử lý.' }); return errors; }), controller.resolveAlert);
+router.post('/care/tasks', ...care, validate((req) => { const errors: ValidationIssue[] = []; if (!mongoose.isValidObjectId(req.body.customerId)) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' }); if (typeof req.body.title !== 'string' || !req.body.title.trim()) errors.push({ field: 'title', message: 'Vui lòng nhập tên nhiệm vụ.' }); if (!req.body.dueAt || Number.isNaN(Date.parse(req.body.dueAt))) errors.push({ field: 'dueAt', message: 'Hạn xử lý không hợp lệ.' }); return errors; }), controller.createTask);
+router.patch('/care/tasks/:id/complete', ...care, validate((req) => { const errors: ValidationIssue[] = []; if (!mongoose.isValidObjectId(req.params.id)) errors.push({ field: 'id', message: 'Mã nhiệm vụ không hợp lệ.' }); if (typeof req.body.result !== 'string' || !req.body.result.trim()) errors.push({ field: 'result', message: 'Vui lòng nhập kết quả xử lý.' }); return errors; }), controller.completeTask);
+router.get('/dashboard/pt', authenticate, authorize('PT'), requireFeature('DASHBOARD'), controller.ptDashboard);
+export default router;

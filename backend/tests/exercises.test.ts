@@ -1,0 +1,58 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import request from 'supertest';
+import app from '../app.js';
+import User, { type UserDocument } from '../models/User.js';
+import FeatureFlag from '../models/FeatureFlag.js';
+
+let mongo: MongoMemoryServer; let adminToken: string; let ptToken: string; let otherPtToken: string;
+const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
+beforeAll(async () => {
+  mongo = await MongoMemoryServer.create(); await mongoose.connect(mongo.getUri());
+  const password = await bcrypt.hash('MatKhau123!', 10);
+  const admin = await User.create({ username: 'admin-exercise', password, role: 'ADMIN' });
+  const pt = await User.create({ username: 'pt-exercise', password, role: 'PT' });
+  const otherPt = await User.create({ username: 'pt-exercise-other', password, role: 'PT' });
+  await FeatureFlag.create({ key: 'EXERCISE_LIBRARY', enabled: true, roles: ['ADMIN', 'PT'] });
+  adminToken = tokenFor(admin); ptToken = tokenFor(pt); otherPtToken = tokenFor(otherPt);
+});
+afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); });
+
+it('Admin tạo bài tập dùng chung và PT lọc theo nhóm cơ/level', async () => {
+  const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${adminToken}`).send({
+    name: 'Goblet Squat', muscleGroup: 'LEGS', level: 'BEGINNER', equipment: ['DUMBBELL'],
+    technique: 'Giữ lưng trung lập.', commonMistakes: ['Gối đổ vào trong'], contraindications: ['Đau gối cấp'], variants: ['Bodyweight Squat'],
+  });
+  expect(created.status).toBe(201);
+  expect(created.body.data).toMatchObject({ scope: 'GLOBAL', muscleGroup: 'LEGS', level: 'BEGINNER' });
+
+  const list = await request(app).get('/api/exercises?page=1&limit=10&muscleGroup=LEGS&level=BEGINNER').set('Authorization', `Bearer ${ptToken}`);
+  expect(list.status).toBe(200);
+  expect(list.body.meta).toMatchObject({ page: 1, limit: 10, total: 1 });
+});
+
+it('PT tạo bài tập riêng nhưng không được tạo bài tập global', async () => {
+  const own = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
+    name: 'Mobility riêng', muscleGroup: 'FULL_BODY', level: 'BEGINNER', equipment: [], scope: 'PRIVATE',
+  });
+  expect(own.status).toBe(201);
+  expect(own.body.data.scope).toBe('PRIVATE');
+
+  const forbidden = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
+    name: 'Global trái phép', muscleGroup: 'CHEST', level: 'BEGINNER', equipment: [], scope: 'GLOBAL',
+  });
+  expect(forbidden.status).toBe(403);
+});
+
+it('PT updates only a private exercise owned by that PT', async () => {
+  const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
+    name: 'Private Row', muscleGroup: 'BACK', level: 'BEGINNER', scope: 'PRIVATE', equipment: [],
+  });
+  const forbidden = await request(app).patch(`/api/exercises/${created.body.data._id}`).set('Authorization', `Bearer ${otherPtToken}`).send({ name: 'Changed by another PT' });
+  expect(forbidden.status).toBe(403);
+  const updated = await request(app).patch(`/api/exercises/${created.body.data._id}`).set('Authorization', `Bearer ${ptToken}`).send({ name: 'Private Row Updated', technique: 'Keep the spine neutral.' });
+  expect(updated.status).toBe(200);
+  expect(updated.body.data).toMatchObject({ name: 'Private Row Updated', scope: 'PRIVATE' });
+});

@@ -13,6 +13,8 @@ const schema = new mongoose.Schema({
   },
   menu: { type: [mongoose.Schema.Types.Mixed], default: [] },
   notes: { type: String, default: '' },
+  createdByAi: { type: Boolean, default: false },
+  reviewStatus: { type: String, enum: ['NOT_REQUIRED', 'PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED'], default: 'NOT_REQUIRED' },
   status: { type: String, enum: ['DRAFT', 'PUBLISHED'], default: 'DRAFT', index: true },
   publishedAt: { type: Date, default: null },
   version: { type: Number, default: 1 },

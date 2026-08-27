@@ -9,6 +9,7 @@ import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { validate } from '../middlewares/validate.js';
 import type { Request } from 'express';
 import type { ValidationIssue } from '../middlewares/validate.js';
+import { authenticate, authorize } from '../middlewares/auth.js';
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
@@ -22,7 +23,7 @@ const imageValidator = (req: Request): ValidationIssue[] => {
   return errors;
 };
 
-router.post('/image', upload.single('image'), validate(imageValidator), asyncHandler(async (req, res) => {
+router.post('/image', authenticate, authorize('ADMIN', 'PT'), upload.single('image'), validate(imageValidator), asyncHandler(async (req, res) => {
     if (!req.file) {
       throw new AppError({ status: 400, code: ERROR_CODES.UPLOAD, message: 'Vui lòng cung cấp file ảnh để upload.' });
     }

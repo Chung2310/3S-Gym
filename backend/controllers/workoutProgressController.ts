@@ -1,0 +1,10 @@
+import { asyncHandler } from '../middlewares/asyncHandler.js';
+import { success } from '../middlewares/response.js';
+import * as service from '../services/workoutProgressService.js';
+const listTemplates = asyncHandler(async (req, res) => { const result = await service.listTemplates(req.user!, req.query); return success(res, { message: 'Láº¥y danh sÃ¡ch giÃ¡o Ã¡n máº«u thÃ nh cÃ´ng.', data: result.items, meta: result.meta }); });
+const updateTemplate = asyncHandler(async (req, res) => success(res, { message: 'Cáº­p nháº­t giÃ¡o Ã¡n máº«u thÃ nh cÃ´ng.', data: await service.updateTemplate(req.user!, String(req.params.id), req.body) }));
+const createTemplate = asyncHandler(async (req, res) => success(res, { status: 201, message: 'Tạo giáo án mẫu thành công.', data: await service.createTemplate(req.user!, req.body) }));
+const createSession = asyncHandler(async (req, res) => { const result = await service.createSession(req.user!, req.body); return success(res, { status: result.created ? 201 : 200, message: result.created ? 'Ghi nhận buổi tập thành công.' : 'Buổi tập đã được ghi nhận trước đó.', data: result.session }); });
+const createMeasurement = asyncHandler(async (req, res) => success(res, { status: 201, message: 'Lưu số đo thành công.', data: await service.createMeasurement(req.user!, req.body) }));
+const getProgress = asyncHandler(async (req, res) => success(res, { message: 'Lấy dữ liệu tiến độ thành công.', data: await service.getProgress(req.user!, String(req.params.customerId)) }));
+export { createTemplate, listTemplates, updateTemplate, createSession, createMeasurement, getProgress };

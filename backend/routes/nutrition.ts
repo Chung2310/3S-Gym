@@ -6,6 +6,8 @@ import { validate } from '../middlewares/validate.js';
 import { success } from '../middlewares/response.js';
 import type { Request } from 'express';
 import type { ValidationIssue } from '../middlewares/validate.js';
+import { authenticate, authorize } from '../middlewares/auth.js';
+import { requireFeature } from '../middlewares/requireFeature.js';
 const router = express.Router();
 
 type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
@@ -519,7 +521,7 @@ ${mealTemplate}
   return null;
 }
 
-router.post('/calculate', validate(calculateValidator), asyncHandler(async (req, res) => {
+router.post('/calculate', authenticate, authorize('ADMIN', 'PT'), requireFeature('NUTRITION_AI'), validate(calculateValidator), asyncHandler(async (req, res) => {
     const { clientName, gender, weight, height, age, activityLevel, mealCount = 3, timeframe = '1_day' } = req.body as CalculateBody;
 
     if (!weight || !height || !age) {
@@ -670,7 +672,7 @@ router.post('/calculate', validate(calculateValidator), asyncHandler(async (req,
 
 // GET /api/nutrition/meal-image?prompt=...&items=...&seed=...
 // Real-time AI Multi-Dish Meal Platter Image proxy with seed support
-router.get('/meal-image', validate(mealImageValidator), asyncHandler(async (req, res) => {
+router.get('/meal-image', authenticate, authorize('ADMIN', 'PT'), requireFeature('NUTRITION_AI'), validate(mealImageValidator), asyncHandler(async (req, res) => {
   const prompt = typeof req.query.prompt === 'string'
     ? req.query.prompt
     : 'Full healthy meal platter set with dishes on table';
@@ -722,7 +724,7 @@ router.get('/meal-image', validate(mealImageValidator), asyncHandler(async (req,
 }));
 
 // POST /api/nutrition/scan-inbody — Multimodal AI InBody Sheet Scanner
-router.post('/scan-inbody', validate(scanValidator), asyncHandler(async (req, res) => {
+router.post('/scan-inbody', authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), validate(scanValidator), asyncHandler(async (req, res) => {
   try {
     const { imageBase64 } = req.body;
     if (!imageBase64) {
