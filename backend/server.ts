@@ -4,7 +4,7 @@ import { ensureBootstrapAdmin } from './services/userService.js';
 import { initTelemetry, flushTelemetry } from './services/telemetryService.js';
 import { createShutdown } from './services/lifecycleService.js';
 import { logger } from './config/logger.js';
-import { getEnv } from './config/env.js';
+import { APP_POLICY, getEnv } from './config/env.js';
 const PORT = getEnv().PORT;
 
 async function startServer() {
@@ -18,7 +18,7 @@ async function startServer() {
         await app.frontendReady;
         initTelemetry();
         const server = app.listen(PORT, () => logger.info({ port: PORT }, 'Máy chủ đã khởi động'));
-        const shutdown = createShutdown({ server, disconnect: disconnectDatabase, flush: flushTelemetry, exit: (code: number) => { process.exitCode = code; }, logger, timeoutMs: Number(process.env.SHUTDOWN_TIMEOUT_MS || 10000) });
+        const shutdown = createShutdown({ server, disconnect: disconnectDatabase, flush: flushTelemetry, exit: (code: number) => { process.exitCode = code; }, logger, timeoutMs: APP_POLICY.SHUTDOWN_TIMEOUT_MS });
         process.once('SIGTERM', () => shutdown('SIGTERM', 0));
         process.once('SIGINT', () => shutdown('SIGINT', 0));
         process.once('message', (message) => {

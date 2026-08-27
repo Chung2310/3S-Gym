@@ -43,7 +43,13 @@ async function runProductionSmoke(sourceEnv = process.env) {
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     memoryServer = await MongoMemoryServer.create();
     env.MONGODB_URI = memoryServer.getUri();
+    env.MONGODB_USER = '';
+    env.MONGODB_PASSWORD = '';
+    env.MONGODB_AUTH_SOURCE = '';
   }
+  env.MONGODB_USER ??= '';
+  env.MONGODB_PASSWORD ??= '';
+  env.MONGODB_AUTH_SOURCE ??= '';
 
   env.NODE_ENV ||= 'test';
   env.JWT_SECRET ||= `${randomUUID()}${randomUUID()}`;

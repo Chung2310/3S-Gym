@@ -24,12 +24,14 @@ describe('hạ tầng xử lý lỗi', () => {
   });
 
   it('lỗi ngoài dự kiến trả message chung và request ID', () => {
+    process.env.ERROR_DEBUG = 'true';
     const res = { status: vi.fn().mockReturnThis(), json: vi.fn().mockReturnThis(), headersSent: false };
     const req = { requestId: 'req-test', log: { error: vi.fn() } };
     errorHandler(new Error('Mongo network timeout'), req as unknown as Request, res as unknown as Response, vi.fn());
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ success: false, message: 'Hệ thống đang gặp sự cố. Vui lòng thử lại sau.', code: 'INTERNAL_SERVER_ERROR', requestId: 'req-test' });
     expect(req.log.error).toHaveBeenCalledWith(expect.objectContaining({ context: 'Error Handler', requestId: 'req-test', err: expect.any(Error) }), 'Xử lý request thất bại');
+    delete process.env.ERROR_DEBUG;
   });
 
   it('lỗi nghiệp vụ ghi warn với context nhưng không ghi stack', () => {

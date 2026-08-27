@@ -1,4 +1,5 @@
 import { inspect } from 'node:util';
+import { APP_POLICY } from './env.js';
 
 interface SanitizeOptions {
   maxDepth?: number;
@@ -24,9 +25,9 @@ function positiveInteger(value: string | undefined, fallback: number): number {
 }
 
 const defaultOptions = {
-  maxDepth: positiveInteger(process.env.LOG_MAX_DEPTH, 4),
-  maxCollectionItems: positiveInteger(process.env.LOG_MAX_COLLECTION_ITEMS, 25),
-  maxStringLength: positiveInteger(process.env.LOG_MAX_STRING_LENGTH, 2_000),
+  maxDepth: APP_POLICY.LOG_MAX_DEPTH,
+  maxCollectionItems: APP_POLICY.LOG_MAX_COLLECTION_ITEMS,
+  maxStringLength: APP_POLICY.LOG_MAX_STRING_LENGTH,
   includeErrorStack: process.env.NODE_ENV !== 'production',
 };
 
