@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import { ToastProvider } from '../../components/ToastProvider';
+import { ToastProvider } from '../ui/ToastProvider';
 import { api } from '../../services/api';
 import WorkoutWorkspace from './WorkoutWorkspace';
 

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import ConfirmModal from '../../components/ConfirmModal';
-import DataList, { type DataColumn } from '../../components/DataList';
-import Pagination from '../../components/Pagination';
-import { useToast } from '../../components/ToastProvider';
+import ConfirmModal from '../ui/ConfirmModal';
+import DataList, { type DataColumn } from '../ui/DataList';
+import Pagination from '../ui/Pagination';
+import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
 import type { PaginationMeta } from '../../types';
 import { errorMessage } from '../../types';

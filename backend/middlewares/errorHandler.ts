@@ -2,7 +2,6 @@ import { normalizeError } from '../errors/normalizeError.js';
 import { captureError } from '../services/telemetryService.js';
 import { logger } from '../config/logger.js';
 import type { ErrorRequestHandler } from 'express';
-import { logger } from '../config/logger.js';
 
 interface ErrorBody {
   success: false;

@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import { ToastProvider } from '../../components/ToastProvider';
+import { ToastProvider } from '../ui/ToastProvider';
 import { api } from '../../services/api';
 import CustomerWorkoutPlanModal from './CustomerWorkoutPlanModal';
 
