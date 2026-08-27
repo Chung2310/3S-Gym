@@ -25,7 +25,7 @@ describe('Transfer workspace', () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PtView /></ToastProvider></MemoryRouter>);
 
-    await user.click(screen.getByRole('button', { name: 'Chuyển PT' }));
+    await user.click(screen.getByRole('tab', { name: 'Chuyển PT' }));
     await user.click((await screen.findAllByRole('button', { name: 'Xác nhận nhận khách' }))[0]);
     await user.click(screen.getByRole('button', { name: 'Xác nhận' }));
 
@@ -39,7 +39,7 @@ describe('Transfer workspace', () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PtView /></ToastProvider></MemoryRouter>);
 
-    await user.click(screen.getByRole('button', { name: 'Chuyển PT' }));
+    await user.click(screen.getByRole('tab', { name: 'Chuyển PT' }));
     await user.click((await screen.findAllByRole('button', { name: 'Xác nhận nhận khách' }))[0]);
     await user.click(screen.getByRole('button', { name: 'Xác nhận' }));
 

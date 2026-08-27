@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Check, Pencil, Plus, RefreshCw, Send, X } from 'lucide-react';
+import { ArrowRightLeft, Check, Dumbbell, Pencil, Plus, RefreshCw, Ruler, Salad, Send, Target, Users, X, type LucideIcon } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import ContentFormModal from '../../components/ContentFormModal';
 import CustomerAccountModal from '../../components/CustomerAccountModal';
@@ -56,8 +56,16 @@ export function AdminView() {
   </>;
 }
 
-const ptTabs: Array<['customers' | 'transfers' | Resource, string]> = [
-  ['customers', 'Khách hàng'], ['inbody', 'InBody'], ['goals', 'Mục tiêu'], ['workout-plans', 'Giáo án'], ['nutrition-plans', 'Dinh dưỡng'], ['transfers', 'Chuyển PT'],
+type PtTab = 'customers' | 'transfers' | Resource;
+interface PtTabItem { value: PtTab; label: string; icon: LucideIcon }
+
+const ptTabs: PtTabItem[] = [
+  { value: 'customers', label: 'Khách hàng', icon: Users },
+  { value: 'inbody', label: 'InBody', icon: Ruler },
+  { value: 'goals', label: 'Mục tiêu', icon: Target },
+  { value: 'workout-plans', label: 'Giáo án', icon: Dumbbell },
+  { value: 'nutrition-plans', label: 'Dinh dưỡng', icon: Salad },
+  { value: 'transfers', label: 'Chuyển PT', icon: ArrowRightLeft },
 ];
 
 export function PtView() {
@@ -103,16 +111,25 @@ export function PtView() {
     if (tab === 'customers') setCustomerForm({ open: true, customer: null });
     else { setFormItem(null); setShowForm(true); }
   };
+  const selectTab = (value: PtTab) => {
+    setTab(value);
+    setStatusFilter('');
+    setCustomerFilter('');
+    setShowForm(false);
+    setCustomerForm({ open: false, customer: null });
+  };
   return <>
     <SectionHeader title="Khách hàng của tôi" description="Quản lý hồ sơ và công bố nội dung cho khách hàng." action={<button className="button button-primary" onClick={openCreateForm}><Plus size={18} /> Tạo mới</button>} />
-    <div className="tab-bar">{ptTabs.map(([value, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => { setTab(value); setStatusFilter(''); setCustomerFilter(''); setShowForm(false); setCustomerForm({ open: false, customer: null }); }}>{label}</button>)}</div>
+    <div className="customer-browser-tabs" role="tablist" aria-label="Nội dung khách hàng">{ptTabs.map(({ value, label, icon: Icon }) => <button id={`customer-tab-${value}`} type="button" role="tab" aria-selected={tab === value} aria-controls="customer-tab-panel" key={value} className={tab === value ? 'active' : ''} onClick={() => selectTab(value)}><Icon size={16} aria-hidden="true" /><span>{label}</span></button>)}</div>
     <TransferFormModal open={showForm && tab === 'transfers'} transfer={formItem} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />
     <ContentFormModal open={showForm && !['customers', 'transfers'].includes(tab)} resource={tab as Resource} item={formItem as ContentItem | null} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />
     <CustomerAccountModal open={Boolean(accountCustomer)} customer={accountCustomer} onClose={() => setAccountCustomer(null)} onSaved={() => { setAccountCustomer(null); load(); }} />
     <PtPackageManagerModal open={Boolean(packageCustomer)} customer={packageCustomer} onClose={() => setPackageCustomer(null)} />
+    <div id="customer-tab-panel" className="customer-tab-panel" role="tabpanel" aria-labelledby={`customer-tab-${tab}`}>
     {tab === 'customers' && <div className="filter-bar panel"><label className="field"><span>Trạng thái khách hàng</span><select aria-label="Lọc trạng thái khách hàng" value={customerStatus} onChange={(event) => setCustomerStatus(event.target.value)}><option value="">Tất cả trạng thái</option><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Ngừng hoạt động</option><option value="LEAD">Tiềm năng</option></select></label></div>}
     {tab !== 'customers' && <div className="filter-bar panel"><label className="field"><span>Trạng thái</span><select aria-label="Lọc theo trạng thái" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">Tất cả trạng thái</option>{tab === 'transfers' ? <><option value="PENDING">Chờ xác nhận</option><option value="ACCEPTED">Đã nhận</option><option value="REJECTED">Đã từ chối</option><option value="ADMIN_FORCED">Admin chuyển</option></> : <><option value="DRAFT">Bản nháp</option><option value="PUBLISHED">Đã công bố</option></>}</select></label><label className="field"><span>Mã khách hàng</span><input aria-label="Lọc theo mã khách hàng" value={customerFilter} onChange={(event) => setCustomerFilter(event.target.value)} placeholder="Nhập mã khách hàng" /></label><button className="button button-secondary" onClick={() => load()}><RefreshCw size={17} /> Lọc</button></div>}
     <div className="panel">{tab === 'customers' && <FilterBar ariaLabel="Tìm khách hàng" keyword={keyword} onKeywordChange={setKeyword}><button className="button button-secondary" onClick={() => load()}><RefreshCw size={17} /> Lọc</button></FilterBar>}<DataList items={items} columns={columns} renderActions={(item) => <div className="inline-actions">{tab === 'customers' ? <><button className="text-button" onClick={() => setCustomerForm({ open: true, customer: item })}><Pencil size={16} /> Sửa</button>{!item.userId && <button className="text-button" onClick={() => setAccountCustomer(item)}>Cấp tài khoản</button>}</> : <button className="text-button" onClick={() => { setFormItem(item); setShowForm(true); }}><Pencil size={16} /> Sửa</button>}{tab === 'transfers' && item.status === 'PENDING' && <><button className="text-button" onClick={() => setTransferDecision({ item, action: 'accept' })}><Check size={16} /> Xác nhận nhận khách</button><button className="text-button" onClick={() => setTransferDecision({ item, action: 'reject' })}><X size={16} /> Từ chối</button></>}{!['customers', 'transfers'].includes(tab) && <button className="text-button" onClick={() => setConfirm(item)}><Send size={16} /> {item.status === 'PUBLISHED' ? 'Thu hồi' : 'Công bố'}</button>}<button className="text-button text-danger" onClick={() => setDeleteTarget(item)}>Xóa</button></div>} /><Pagination page={meta.page || 1} totalPages={meta.totalPages || 0} onPageChange={load} /></div>
+    </div>
     <CustomerFormModal open={customerForm.open} customer={customerForm.customer} onClose={() => setCustomerForm({ open: false, customer: null })} onSaved={() => { setCustomerForm({ open: false, customer: null }); load(meta.page || 1); }} />
     <ConfirmModal open={Boolean(confirm)} title={confirm?.status === 'PUBLISHED' ? 'Thu hồi nội dung?' : 'Công bố nội dung?'} description={confirm?.status === 'PUBLISHED' ? 'Khách hàng sẽ không còn nhìn thấy nội dung này.' : 'Khách hàng sẽ nhìn thấy nội dung sau khi công bố.'} onClose={() => setConfirm(null)} onConfirm={publish} />
     <ConfirmModal open={Boolean(transferDecision)} title={transferDecision?.action === 'accept' ? 'Xác nhận nhận khách?' : 'Từ chối nhận khách?'} description={transferDecision?.action === 'accept' ? 'Sau khi xác nhận, khách hàng sẽ được chuyển sang danh sách quản lý của bạn.' : 'Yêu cầu chuyển khách sẽ được đánh dấu là đã từ chối.'} onClose={() => setTransferDecision(null)} onConfirm={resolveTransfer} />

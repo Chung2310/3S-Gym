@@ -478,9 +478,15 @@ a {
 .status-published, .status-active, .status-accepted { color: #166534; background: #dcfce7; }
 .status-locked, .status-rejected { color: #991b1b; background: #fee2e2; }
 .status-pending, .status-draft { color: #92400e; background: #fef3c7; }
-.tab-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 18px; padding-bottom: 4px; }
-.tab-bar button { flex: 0 0 auto; padding: 9px 13px; border: 1px solid #cbdce8; border-radius: 999px; color: #415b70; background: #fff; cursor: pointer; }
-.tab-bar button.active { border-color: var(--primary-color); color: #fff; background: var(--primary-color); }
+.customer-browser-tabs { display: flex; align-items: end; gap: 4px; overflow-x: auto; padding: 0 5px; scrollbar-width: thin; }
+.customer-browser-tabs button { position: relative; z-index: 0; display: inline-flex; flex: 0 0 auto; align-items: center; gap: 7px; padding: 11px 16px; border: 1px solid #bfd0dc; border-bottom-color: #afc3d1; border-radius: 12px 12px 0 0; color: #526b7e; background: #eaf1f5; font: inherit; font-weight: 700; white-space: nowrap; cursor: pointer; transition: color .16s ease, background .16s ease, border-color .16s ease; }
+.customer-browser-tabs button:hover { color: var(--primary-color); background: #f5f9fb; }
+.customer-browser-tabs button.active { z-index: 2; margin-bottom: -1px; padding-top: 13px; border-color: #b8ccd9; border-bottom-color: #fff; color: var(--primary-color); background: #fff; box-shadow: 0 -4px 12px rgba(15,57,92,.06); }
+.customer-browser-tabs button.active::before { position: absolute; top: 0; right: 9px; left: 9px; height: 3px; border-radius: 0 0 3px 3px; background: var(--primary-color); content: ''; }
+.customer-browser-tabs button:focus-visible { z-index: 3; }
+.customer-tab-panel { position: relative; z-index: 1; padding: 18px; border: 1px solid #b8ccd9; border-radius: 0 14px 14px; background: #fff; box-shadow: 0 10px 30px rgba(15,57,92,.06); }
+.customer-tab-panel > .panel:first-child { margin-top: 0; }
+.customer-tab-panel > .panel:last-child { margin-bottom: 0; }
 .customer-content-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
 .published-card { margin-top: 12px; padding: 14px; border: 1px solid #dce8f0; border-radius: 10px; background: #f9fcfe; }
 .published-card h3 { margin: 9px 0; font-size: 1rem; }
@@ -530,6 +536,10 @@ a {
   .mobile-close { display: inline-flex; margin-left: auto; border: 0; color: #fff; background: transparent; }
   .portal-header { padding: 10px 16px; }
   .portal-content { padding: 18px 14px; }
+  .customer-browser-tabs { margin-right: -14px; padding-right: 14px; padding-left: 2px; }
+  .customer-browser-tabs button { padding: 10px 13px; }
+  .customer-browser-tabs button.active { padding-top: 12px; }
+  .customer-tab-panel { padding: 12px; border-radius: 0 12px 12px; }
   .section-header { align-items: stretch; flex-direction: column; }
   .section-header .button { width: 100%; }
   .form-grid, .customer-content-grid { grid-template-columns: 1fr; }
