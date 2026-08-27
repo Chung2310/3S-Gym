@@ -19,8 +19,8 @@ it('gửi API cập nhật khi lưu popup sửa PT', async () => {
   const onSaved = vi.fn();
   render(<ToastProvider><PtFormModal open pt={pt} onClose={vi.fn()} onSaved={onSaved} /></ToastProvider>);
 
-  await user.clear(screen.getByLabelText('Chuyên môn'));
-  await user.type(screen.getByLabelText('Chuyên môn'), 'Yoga');
+  await user.clear(screen.getByLabelText('Chuyên môn huấn luyện'));
+  await user.type(screen.getByLabelText('Chuyên môn huấn luyện'), 'Yoga');
   await user.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
 
   expect(api.patch).toHaveBeenCalledWith('/api/users/pt-1', expect.objectContaining({ username: 'pt-lan', specialization: 'Yoga', certificates: ['ACE'], role: 'PT' }));
@@ -32,7 +32,7 @@ it('hỏi xác nhận khi đóng popup có dữ liệu đã thay đổi', async 
   const onClose = vi.fn();
   render(<ToastProvider><PtFormModal open pt={pt} onClose={onClose} onSaved={vi.fn()} /></ToastProvider>);
 
-  await user.type(screen.getByLabelText('Giới thiệu'), 'Có thay đổi');
+  await user.type(screen.getByLabelText('Giới thiệu bản thân & Triết lý huấn luyện'), 'Có thay đổi');
   await user.click(screen.getByRole('button', { name: 'Hủy' }));
 
   expect(screen.getByRole('dialog', { name: 'Bỏ các thay đổi?' })).toBeInTheDocument();
