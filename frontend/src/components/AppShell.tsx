@@ -13,6 +13,8 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/portal/pt/customers', label: 'Khách hàng', roles: ['PT'] },
   { path: '/portal/pt/inbody', label: 'InBody OCR', roles: ['PT'], feature: 'OCR_INBODY' },
   { path: '/portal/pt/roadmaps', label: 'Roadmap', roles: ['PT'], feature: 'ROADMAP' },
+  { path: '/portal/pt/exercises', label: 'Thư viện bài tập', roles: ['PT'], feature: 'EXERCISE_LIBRARY' },
+  { path: '/portal/pt/workouts', label: 'Giáo án & buổi tập', roles: ['PT'], feature: 'PROGRESS' },
   { path: '/consultation', label: 'Trợ lý dinh dưỡng', roles: ['PT'] },
   { path: '/portal/pt/assistant', label: 'PT Assistant', roles: ['PT'], feature: 'PT_ASSISTANT' },
   { path: '/portal/me', label: 'Hành trình của tôi', roles: ['CUSTOMER'] },

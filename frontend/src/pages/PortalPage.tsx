@@ -6,6 +6,8 @@ import PtRoutes from '../features/customers/PtRoutes';
 import CustomerRoutes from '../features/customer-portal/CustomerRoutes';
 import InBodyWorkspace from '../features/inbody/InBodyWorkspace';
 import RoadmapWorkspace from '../features/roadmap/RoadmapWorkspace';
+import ExerciseLibrary from '../features/exercises/ExerciseLibrary';
+import WorkoutWorkspace from '../features/workouts/WorkoutWorkspace';
 import { FeaturesProvider, useFeatures } from '../services/features';
 import { getSession } from '../services/session';
 import type { Session, User } from '../types';
@@ -26,6 +28,8 @@ function PortalRoutes({ user }: { user: User }) {
       <Route path="/portal/admin/*" element={<FeatureRoute user={user} roles={['ADMIN']}><AdminRoutes /></FeatureRoute>} />
       <Route path="/portal/pt/inbody" element={<FeatureRoute user={user} roles={['PT']} feature="OCR_INBODY"><InBodyWorkspace /></FeatureRoute>} />
       <Route path="/portal/pt/roadmaps" element={<FeatureRoute user={user} roles={['PT']} feature="ROADMAP"><RoadmapWorkspace /></FeatureRoute>} />
+      <Route path="/portal/pt/exercises" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><ExerciseLibrary /></FeatureRoute>} />
+      <Route path="/portal/pt/workouts" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><WorkoutWorkspace /></FeatureRoute>} />
       <Route path="/portal/pt/*" element={<FeatureRoute user={user} roles={['PT']}><PtRoutes /></FeatureRoute>} />
       <Route path="/portal/me/*" element={<FeatureRoute user={user} roles={['CUSTOMER']}><CustomerRoutes /></FeatureRoute>} />
       <Route path="*" element={isPortalRoot ? <Navigate to={roleDestinations[user.role]} replace /> : <Navigate to="/portal" replace />} />
