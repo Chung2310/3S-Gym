@@ -18,10 +18,10 @@ import type { PaginationMeta } from '../../types';
 import { errorMessage } from '../../types';
 import type { ContentItem, Resource } from '../../components/ContentFormModal';
 
-interface PortalItem { _id?: string; id?: string; title?: string; status?: string; customerId?: string; measurementDate?: string; weight?: number; targetCalories?: number; fullName?: string; username?: string; phone?: string; email?: string; initialGoal?: string; packages?: unknown; userId?: string; fromPtId?: string; toPtId?: string; reason?: string; [key: string]: unknown }
+interface PortalItem { _id?: string; id?: string; title?: string; summary?: string; status?: string; customerId?: string; measurementDate?: string; weight?: number; targetCalories?: number; fullName?: string; username?: string; phone?: string; email?: string; initialGoal?: string; packages?: unknown; userId?: string; fromPtId?: string; toPtId?: string; reason?: string; [key: string]: unknown }
 interface SectionHeaderProps { title: string; description: string; action?: ReactNode }
 interface TransferDecision { item: PortalItem; action: 'accept' | 'reject' }
-interface CustomerContent { inbody: PortalItem[]; goals: PortalItem[]; workoutPlans: PortalItem[]; nutritionPlans: PortalItem[] }
+interface CustomerContent { inbody: PortalItem[]; goals: PortalItem[]; workoutPlans: PortalItem[]; nutritionPlans: PortalItem[]; progressReports: PortalItem[] }
 
 function SectionHeader({ title, description, action }: SectionHeaderProps) {
   return <div className="section-header"><div><h1>{title}</h1><p>{description}</p></div>{action}</div>;
@@ -122,8 +122,8 @@ export function PtView() {
 
 export function CustomerView() {
   const toast = useToast();
-  const [content, setContent] = useState<CustomerContent>({ inbody: [], goals: [], workoutPlans: [], nutritionPlans: [] });
+  const [content, setContent] = useState<CustomerContent>({ inbody: [], goals: [], workoutPlans: [], nutritionPlans: [], progressReports: [] });
   useEffect(() => { api.get<CustomerContent>('/api/me/content').then((result) => setContent(result.data)).catch((error: unknown) => toast.error(errorMessage(error))); }, [toast]);
-  const groups: Array<[keyof CustomerContent, string]> = [['inbody', 'Kết quả InBody'], ['goals', 'Mục tiêu'], ['workoutPlans', 'Giáo án'], ['nutritionPlans', 'Dinh dưỡng']];
+  const groups: Array<[keyof CustomerContent, string]> = [['inbody', 'Kết quả InBody'], ['goals', 'Mục tiêu'], ['workoutPlans', 'Giáo án'], ['nutritionPlans', 'Dinh dưỡng'], ['progressReports', 'Báo cáo tiến độ']];
   return <><SectionHeader title="Hành trình của tôi" description="Các nội dung đã được PT xác nhận và công bố." /><div className="customer-content-grid">{groups.map(([key, label]) => <section className="panel" key={key}><h2>{label}</h2>{content[key]?.length ? content[key].map((item) => <article className="published-card" key={item._id}><StatusBadge status={item.status} /><h3>{item.title || (item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : label)}</h3>{item.weight && <p>Cân nặng: <strong>{item.weight} kg</strong></p>}{item.targetCalories && <p>Calories mục tiêu: <strong>{item.targetCalories} kcal</strong></p>}</article>) : <div className="empty-state">PT chưa công bố nội dung.</div>}</section>)}</div></>;
 }
