@@ -3,6 +3,8 @@ import { Search, X, Activity, RotateCcw } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
+import WorkoutCheckIn from '../workouts/WorkoutCheckIn';
+import WorkoutSessionHistory from '../workouts/WorkoutSessionHistory';
 import MeasurementForm from './MeasurementForm';
 import ProgressCharts, { type Measurement } from './ProgressCharts';
 import ProgressReportEditor from './ProgressReportEditor';
@@ -11,6 +13,7 @@ import ProgressReportList, { type ProgressReport } from './ProgressReportList';
 export default function ProgressWorkspace() {
   const toast = useToast();
   const [customerId, setCustomerId] = useState('');
+  const [sessionRefresh, setSessionRefresh] = useState(0);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [reports, setReports] = useState<ProgressReport[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,9 +40,11 @@ export default function ProgressWorkspace() {
       <div className="section-header">
         <div>
           <h1>Tiến độ khách hàng</h1>
-          <p>Số đo, biểu đồ và báo cáo công bố.</p>
+          <p>Check-in, lịch sử tập, số đo, biểu đồ và báo cáo công bố.</p>
         </div>
       </div>
+
+      <WorkoutCheckIn onCompleted={() => setSessionRefresh((value) => value + 1)} />
 
       <div className="panel" style={{ padding: '10px 14px', marginBottom: '14px' }}>
         <div className="filter-bar" style={{ margin: 0 }}>
@@ -84,6 +89,8 @@ export default function ProgressWorkspace() {
           )}
         </div>
       </div>
+
+      <WorkoutSessionHistory customerId={customerId} refreshKey={sessionRefresh} />
 
       {customerId && (
         <>

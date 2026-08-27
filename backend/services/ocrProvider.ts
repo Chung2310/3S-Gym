@@ -1,6 +1,6 @@
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
-import { getEnv } from '../config/env.js';
+import { APP_POLICY, getEnv } from '../config/env.js';
 import { fetchWithTimeout } from './providerRequest.js';
 
 export interface InBodyExtraction {
@@ -32,7 +32,7 @@ async function extractInBody(file: Express.Multer.File): Promise<InBodyExtractio
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: process.env.OCR_MODEL || 'google/gemini-2.5-flash', temperature: 0,
+        model: APP_POLICY.AI_MODEL, temperature: 0,
         messages: [{ role: 'user', content: [
           { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, confidence và warnings. Chỉ trả JSON.' },
           { type: 'image_url', image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` } },

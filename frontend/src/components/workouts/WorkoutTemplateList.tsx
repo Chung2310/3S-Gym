@@ -24,9 +24,10 @@ export interface WorkoutTemplate {
 interface Props {
   refreshKey: number;
   onEdit: (template: WorkoutTemplate) => void;
+  onAssign?: (template: WorkoutTemplate) => void;
 }
 
-export default function WorkoutTemplateList({ refreshKey, onEdit }: Props) {
+export default function WorkoutTemplateList({ refreshKey, onEdit, onAssign }: Props) {
   const toast = useToast();
   const [items, setItems] = useState<WorkoutTemplate[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0 });
@@ -114,6 +115,7 @@ export default function WorkoutTemplateList({ refreshKey, onEdit }: Props) {
           <div className="inline-actions">
             {item.status === 'ACTIVE' ? (
               <>
+                {onAssign && <button className="text-button" onClick={() => onAssign(item)}>Gán cho khách</button>}
                 <button className="text-button" onClick={() => onEdit(item)}>Sửa</button>
                 <button className="text-button" onClick={() => void archive(item)}>Lưu trữ</button>
               </>

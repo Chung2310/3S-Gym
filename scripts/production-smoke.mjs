@@ -6,6 +6,16 @@ import { fileURLToPath } from 'node:url';
 const timeoutMs = 30_000;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+function buildSmokeEnvironment(sourceEnv = process.env) {
+  const env = { ...sourceEnv };
+  if (!sourceEnv.MONGODB_USER?.trim() && !sourceEnv.MONGODB_PASSWORD?.trim()) {
+    env.MONGODB_USER = ' ';
+    env.MONGODB_PASSWORD = ' ';
+    env.MONGODB_AUTH_SOURCE = ' ';
+  }
+  return env;
+}
+
 async function waitForReady(baseUrl, deadline) {
   while (Date.now() < deadline) {
     try {
@@ -28,12 +38,18 @@ async function requestJson(url, init) {
 
 async function runProductionSmoke(sourceEnv = process.env) {
   let memoryServer;
-  const env = { ...sourceEnv };
+  const env = buildSmokeEnvironment(sourceEnv);
   if (!env.MONGODB_URI) {
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     memoryServer = await MongoMemoryServer.create();
     env.MONGODB_URI = memoryServer.getUri();
+    env.MONGODB_USER = '';
+    env.MONGODB_PASSWORD = '';
+    env.MONGODB_AUTH_SOURCE = '';
   }
+  env.MONGODB_USER ??= '';
+  env.MONGODB_PASSWORD ??= '';
+  env.MONGODB_AUTH_SOURCE ??= '';
 
   env.NODE_ENV ||= 'test';
   env.JWT_SECRET ||= `${randomUUID()}${randomUUID()}`;
@@ -96,4 +112,4 @@ if (process.argv[1] && fileURLToPath(import.meta.url).toLowerCase() === process.
   });
 }
 
-export { runProductionSmoke };
+export { buildSmokeEnvironment, runProductionSmoke };

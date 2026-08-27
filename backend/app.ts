@@ -5,7 +5,7 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
 import { registerFrontend } from './services/frontendService.js';
-import { requestContext } from './middlewares/requestContext.js';
+import { requestContext, requestLogging } from './middlewares/requestContext.js';
 import { AppError } from './errors/AppError.js';
 import { ERROR_CODES } from './errors/errorCodes.js';
 import authRouter from './routes/auth.js';
@@ -37,6 +37,7 @@ const app = express();
 app.use(requestContext);
 const env = getEnv();
 configureSecurity(app, { corsOrigins: env.CORS_ORIGINS, trustProxy: env.TRUST_PROXY, jsonBodyLimit: env.JSON_BODY_LIMIT });
+app.use(requestLogging);
 app.use('/api', createRateLimiter({ limit: 1_000, windowMs: 60_000 }));
 
 app.get('/api/health', (req, res) => success(res, {

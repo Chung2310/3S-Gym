@@ -4,16 +4,16 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { cosineSimilarity, embedText } from './embeddingProvider.js';
 import type { PipelineStage } from 'mongoose';
+import { APP_POLICY } from '../config/env.js';
 
 export interface VectorFilters { status?: 'PUBLISHED'; topic?: string }
 export interface VectorHit { documentId: string; title?: string; topic: string; content: string; score: number }
 
 export async function searchVectors(query: string, filters: VectorFilters, limit: number): Promise<VectorHit[]> {
-  const mode = process.env.VECTOR_SEARCH_MODE || (process.env.NODE_ENV === 'production' ? 'atlas' : 'local');
+  const mode = process.env.NODE_ENV === 'production' ? 'atlas' : 'local';
   const queryVector = embedText(query);
   if (mode === 'atlas') {
-    const index = process.env.VECTOR_SEARCH_INDEX;
-    if (!index) throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Vector Search chưa được cấu hình.' });
+    const index = APP_POLICY.VECTOR_SEARCH_INDEX;
     try {
       const pipeline: PipelineStage[] = [
         { $vectorSearch: { index, path: 'embedding', queryVector, numCandidates: Math.max(limit * 10, 50), limit } },

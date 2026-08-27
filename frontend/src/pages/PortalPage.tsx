@@ -45,7 +45,8 @@ function PortalRoutes({ user }: { user: User }) {
       <Route path="pt/inbody" element={<FeatureRoute user={user} roles={['PT']} feature="OCR_INBODY"><InBodyWorkspace /></FeatureRoute>} />
       <Route path="pt/roadmaps" element={<FeatureRoute user={user} roles={['PT']} feature="ROADMAP"><RoadmapWorkspace /></FeatureRoute>} />
       <Route path="pt/exercises" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><ExerciseLibrary /></FeatureRoute>} />
-      <Route path="pt/workouts" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><WorkoutWorkspace /></FeatureRoute>} />
+      <Route path="pt/workout-plans" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><WorkoutWorkspace /></FeatureRoute>} />
+      <Route path="pt/workouts" element={<Navigate to="/portal/pt/workout-plans" replace />} />
       <Route path="pt/progress" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><ProgressWorkspace /></FeatureRoute>} />
       <Route path="pt/nutrition" element={<FeatureRoute user={user} roles={['PT']} feature="NUTRITION_AI"><NutritionWorkspace /></FeatureRoute>} />
       <Route path="pt/care" element={<FeatureRoute user={user} roles={['PT']} feature="CARE"><CareWorkspace /></FeatureRoute>} />

@@ -14,7 +14,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/portal/pt/inbody', label: 'InBody OCR', section: 'Vận hành', icon: Ruler, roles: ['PT'], feature: 'OCR_INBODY', matchChildren: true },
   { path: '/portal/pt/roadmaps', label: 'Roadmap', section: 'Vận hành', icon: Map, roles: ['PT'], feature: 'ROADMAP', matchChildren: true },
   { path: '/portal/pt/exercises', label: 'Thư viện bài tập', section: 'Vận hành', icon: Dumbbell, roles: ['PT'], feature: 'EXERCISE_LIBRARY', matchChildren: true },
-  { path: '/portal/pt/workouts', label: 'Giáo án & buổi tập', section: 'Vận hành', icon: ClipboardList, roles: ['PT'], feature: 'PROGRESS', matchChildren: true },
+  { path: '/portal/pt/workout-plans', label: 'Giáo án', section: 'Vận hành', icon: ClipboardList, roles: ['PT'], feature: 'EXERCISE_LIBRARY', matchChildren: true },
   { path: '/portal/pt/progress', label: 'Tiến độ', section: 'Vận hành', icon: ChartNoAxesCombined, roles: ['PT'], feature: 'PROGRESS', matchChildren: true },
   { path: '/portal/pt/nutrition', label: 'Dinh dưỡng', section: 'Vận hành', icon: Salad, roles: ['PT'], feature: 'NUTRITION_AI', matchChildren: true },
   { path: '/portal/pt/care', label: 'Chăm sóc', section: 'Vận hành', icon: HeartPulse, roles: ['PT'], feature: 'CARE', matchChildren: true },
