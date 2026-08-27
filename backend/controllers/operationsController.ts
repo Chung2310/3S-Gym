@@ -16,6 +16,6 @@ const events = asyncHandler(async (req, res) => { const r = await s.listEvents(r
 const getEvent = asyncHandler(async (req, res) => success(res, { message: 'Lấy lịch thành công.', data: await s.getEvent(req.user!, String(req.params.id)) }));
 const updateEvent = asyncHandler(async (req, res) => success(res, { message: 'Cập nhật lịch thành công.', data: await s.updateEvent(req.user!, String(req.params.id), req.body) }));
 const deleteEvent = asyncHandler(async (req, res) => success(res, { message: 'Xóa lịch thành công.', data: await s.deleteEvent(req.user!, String(req.params.id)) }));
-const adminDashboard = asyncHandler(async (_req, res) => success(res, { message: 'Lấy dashboard Admin thành công.', data: await s.adminDashboard() }));
+const adminDashboard = asyncHandler(async (req, res) => success(res, { message: 'Lấy dashboard Admin thành công.', data: await s.adminDashboard(req.query) }));
 
 export { createReport, reports, getReport, updateReport, publishReport, unpublishReport, deleteReport, notifications, readNotification, createEvent, events, getEvent, updateEvent, deleteEvent, adminDashboard };

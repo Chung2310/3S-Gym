@@ -1,6 +1,6 @@
 import { Types, type QueryFilter } from 'mongoose';
 import ProgressReport, { type IProgressReport } from '../models/ProgressReport.js'; import Notification, { type INotification } from '../models/Notification.js'; import CalendarEvent, { type ICalendarEvent } from '../models/CalendarEvent.js';
-import CustomerProfile from '../models/CustomerProfile.js'; import User from '../models/User.js'; import CareAlert from '../models/CareAlert.js'; import PtPackage from '../models/PtPackage.js';
+import CustomerProfile from '../models/CustomerProfile.js'; import User, { type IUser } from '../models/User.js'; import CareAlert from '../models/CareAlert.js'; import PtPackage from '../models/PtPackage.js';
 import { AppError } from '../errors/AppError.js'; import { ERROR_CODES } from '../errors/errorCodes.js'; import { recordAudit } from './auditService.js'; import type { AuthenticatedUser } from '../types/express.js';
 import { createNotificationOnce } from './notificationService.js';
 const denied = (message: string, status: number) => new AppError({ message, status, code: status === 403 ? ERROR_CODES.AUTHORIZATION : ERROR_CODES.NOT_FOUND });
@@ -25,4 +25,19 @@ export async function listEvents(user: AuthenticatedUser, query: Record<string, 
 export async function updateEvent(user: AuthenticatedUser, id: string, payload: Partial<ICalendarEvent>) { const item = await CalendarEvent.findOne({ _id: id, ...(user.role === 'ADMIN' ? {} : { ownerPtId: user.id }) }); if (!item) throw denied('Không tìm thấy lịch.', 404); for (const field of ['title', 'startsAt', 'endsAt', 'notes', 'status'] as const) if (payload[field] !== undefined) item.set(field, payload[field]); return item.save(); }
 export async function getEvent(user: AuthenticatedUser, id: string) { const item = await CalendarEvent.findOne({ _id: id, ...(user.role === 'ADMIN' ? {} : { ownerPtId: user.id }) }); if (!item) throw denied('Không tìm thấy lịch.', 404); return item; }
 export async function deleteEvent(user: AuthenticatedUser, id: string) { const item = await CalendarEvent.findOneAndDelete({ _id: id, ...(user.role === 'ADMIN' ? {} : { ownerPtId: user.id }) }); if (!item) throw denied('Không tìm thấy lịch.', 404); return item; }
-export async function adminDashboard() { const [totalPts, totalCustomers, openAlerts, activePackages] = await Promise.all([User.countDocuments({ role: 'PT', status: 'ACTIVE' }), CustomerProfile.countDocuments(), CareAlert.countDocuments({ status: 'OPEN' }), PtPackage.countDocuments({ status: 'ACTIVE' })]); return { totalPts, totalCustomers, openAlerts, activePackages }; }
+export async function adminDashboard(query: Record<string, unknown> = {}) {
+  const customerFilter: Record<string, unknown> = {};
+  if (typeof query.ptId === 'string') customerFilter.assignedPtId = new Types.ObjectId(query.ptId);
+  if (query.customerStatus === 'ACTIVE' || query.customerStatus === 'INACTIVE' || query.customerStatus === 'LEAD') customerFilter.status = query.customerStatus;
+  if (query.fromDate || query.toDate) customerFilter.createdAt = { ...(query.fromDate ? { $gte: new Date(String(query.fromDate)) } : {}), ...(query.toDate ? { $lt: new Date(String(query.toDate)) } : {}) };
+  const customerIds = await CustomerProfile.find(customerFilter).distinct('_id');
+  const ptFilter: QueryFilter<IUser> = { role: 'PT', status: 'ACTIVE' };
+  if (typeof query.ptId === 'string') ptFilter._id = new Types.ObjectId(query.ptId);
+  const [totalPts, openAlerts, activePackages] = await Promise.all([
+    User.countDocuments(ptFilter),
+    CareAlert.countDocuments({ customerId: { $in: customerIds }, status: 'OPEN' }),
+    PtPackage.countDocuments({ customerId: { $in: customerIds }, status: 'ACTIVE' }),
+  ]);
+  const filters = { ...(typeof query.ptId === 'string' ? { ptId: query.ptId } : {}), ...(typeof query.customerStatus === 'string' ? { customerStatus: query.customerStatus } : {}), ...(typeof query.fromDate === 'string' ? { fromDate: query.fromDate } : {}), ...(typeof query.toDate === 'string' ? { toDate: query.toDate } : {}) };
+  return { totalPts, totalCustomers: customerIds.length, openAlerts, activePackages, filters, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] };
+}
