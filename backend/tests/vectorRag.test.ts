@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import request from 'supertest';
 import app from '../app.js';
 import FeatureFlag from '../models/FeatureFlag.js';
@@ -9,9 +9,9 @@ import KnowledgeChunk from '../models/KnowledgeChunk.js';
 import User, { type UserDocument } from '../models/User.js';
 
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
-let mongo: MongoMemoryServer; let adminToken: string; let ptToken: string;
+let mongo: MongoMemoryReplSet; let adminToken: string; let ptToken: string;
 beforeAll(async () => {
-  mongo = await MongoMemoryServer.create(); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10);
+  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } }); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10);
   const admin = await User.create({ username: 'admin-vector-rag', password, role: 'ADMIN' }); const pt = await User.create({ username: 'pt-vector-rag', password, role: 'PT' });
   await FeatureFlag.create({ key: 'KNOWLEDGE_BASE', enabled: true, roles: ['ADMIN', 'PT'] });
   adminToken = tokenFor(admin); ptToken = tokenFor(pt);

@@ -4,4 +4,5 @@ const schema = new Schema({
   topic: { type: String, required: true, index: true }, position: { type: Number, required: true }, content: { type: String, required: true }, embedding: { type: [Number], default: [] },
 }, { timestamps: true });
 schema.index({ content: 'text', topic: 'text' });
+schema.index({ documentId: 1, documentVersion: 1, position: 1 });
 export default mongoose.model('KnowledgeChunk', schema);

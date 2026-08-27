@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import request from 'supertest';
 import app from '../app.js';
 import User, { type UserDocument } from '../models/User.js';
@@ -9,10 +9,10 @@ import CustomerProfile from '../models/CustomerProfile.js';
 import PtPackage from '../models/PtPackage.js';
 import FeatureFlag from '../models/FeatureFlag.js';
 
-let mongo: MongoMemoryServer; let token: string; let customerId: string;
+let mongo: MongoMemoryReplSet; let token: string; let customerId: string;
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
 beforeAll(async () => {
-  mongo = await MongoMemoryServer.create(); await mongoose.connect(mongo.getUri());
+  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } }); await mongoose.connect(mongo.getUri());
   const password = await bcrypt.hash('MatKhau123!', 10); const pt = await User.create({ username: 'pt-progress', password, role: 'PT' });
   const customer = await CustomerProfile.create({ fullName: 'Khách Progress', phone: '0907000003', assignedPtId: pt.id });
   await PtPackage.create({ customerId: customer.id, name: 'Gói 20 buổi', totalSessions: 20, usedSessions: 0, remainingSessions: 20, startDate: '2026-08-01', endDate: '2026-12-01', status: 'ACTIVE' });

@@ -1,5 +1,7 @@
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
+import { getEnv } from '../config/env.js';
+import { fetchWithTimeout } from './providerRequest.js';
 
 export interface InBodyExtraction {
   weight: number;
@@ -25,11 +27,9 @@ function extractContent(payload: unknown): string | null {
 async function extractInBody(file: Express.Multer.File): Promise<InBodyExtraction> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Dịch vụ OCR InBody chưa được cấu hình.' });
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST', signal: controller.signal,
+    const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: process.env.OCR_MODEL || 'google/gemini-2.5-flash', temperature: 0,
@@ -38,8 +38,7 @@ async function extractInBody(file: Express.Multer.File): Promise<InBodyExtractio
           { type: 'image_url', image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` } },
         ] }],
       }),
-    });
-    if (!response.ok) throw new Error(`OCR provider trả HTTP ${response.status}`);
+    }, getEnv().PROVIDER_TIMEOUT_MS);
     const content = extractContent(await response.json());
     const match = content?.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('OCR provider không trả JSON hợp lệ');
@@ -49,8 +48,6 @@ async function extractInBody(file: Express.Multer.File): Promise<InBodyExtractio
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'Không thể đọc phiếu InBody. Vui lòng nhập thủ công hoặc thử lại.', cause: error });
-  } finally {
-    clearTimeout(timeout);
   }
 }
 

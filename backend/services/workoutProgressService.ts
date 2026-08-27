@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import { Types, type ClientSession } from 'mongoose';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import WorkoutSession from '../models/WorkoutSession.js';
 import BodyMeasurement from '../models/BodyMeasurement.js';
@@ -7,6 +7,7 @@ import PtPackage from '../models/PtPackage.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { withTransaction } from './transactionService.js';
 
 interface TemplatePayload { title: string; goal: string; level: string; sessions: Array<Record<string, unknown>> }
 interface SessionPayload {
@@ -16,8 +17,8 @@ interface SessionPayload {
 interface MeasurementPayload { customerId: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements?: Record<string, number> }
 
 const fail = (message: string, status: number) => new AppError({ message, status, code: status === 403 ? ERROR_CODES.AUTHORIZATION : ERROR_CODES.NOT_FOUND });
-async function customerFor(user: AuthenticatedUser, id: string) {
-  const customer = await CustomerProfile.findById(id);
+async function customerFor(user: AuthenticatedUser, id: string, session?: ClientSession) {
+  const customer = await CustomerProfile.findById(id).session(session || null);
   if (!customer) throw fail('Không tìm thấy khách hàng.', 404);
   if (user.role === 'PT' && String(customer.assignedPtId) !== user.id) throw fail('Bạn không có quyền quản lý khách hàng này.', 403);
   return customer;
@@ -54,23 +55,40 @@ async function createSession(user: AuthenticatedUser, payload: SessionPayload) {
   const templateId = new Types.ObjectId(payload.templateId);
   const existing = await WorkoutSession.findOne({ ptId, idempotencyKey: payload.idempotencyKey });
   if (existing) return { session: existing, created: false };
-  await customerFor(user, String(payload.customerId));
-  const template = await WorkoutTemplate.findOne({ _id: templateId, ownerPtId: ptId }).lean();
-  if (!template) throw fail('Không tìm thấy giáo án mẫu.', 404);
-  const sessionIndex = Number(payload.sessionIndex);
-  const selectedSession = template.sessions[sessionIndex];
-  if (!selectedSession) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Buổi tập trong giáo án không hợp lệ.' });
-  const session = await WorkoutSession.create({
-    ...payload, ptId: user.id, planSnapshot: { templateId: template._id, title: template.title, version: template.version, session: selectedSession },
-  });
-  if (payload.attendance === 'PRESENT' || payload.attendance === 'LATE') {
-    const selectedPackage = await PtPackage.findOne({ customerId, status: 'ACTIVE', remainingSessions: { $gt: 0 } }).sort({ endDate: 1 });
-    if (selectedPackage) {
-      const completing = selectedPackage.remainingSessions === 1;
-      await PtPackage.updateOne({ _id: selectedPackage._id, remainingSessions: selectedPackage.remainingSessions }, { $inc: { usedSessions: 1, remainingSessions: -1 }, ...(completing ? { $set: { status: 'COMPLETED' } } : {}) });
+  try {
+    return await withTransaction(async (mongoSession) => {
+      const duplicate = await WorkoutSession.findOne({ ptId, idempotencyKey: payload.idempotencyKey }).session(mongoSession);
+      if (duplicate) return { session: duplicate, created: false };
+      await customerFor(user, String(payload.customerId), mongoSession);
+      const template = await WorkoutTemplate.findOne({ _id: templateId, ownerPtId: ptId }).session(mongoSession).lean();
+      if (!template) throw fail('Không tìm thấy giáo án mẫu.', 404);
+      const selectedSession = template.sessions[Number(payload.sessionIndex)];
+      if (!selectedSession) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Buổi tập trong giáo án không hợp lệ.' });
+      const [createdSession] = await WorkoutSession.create([{
+        ...payload, ptId: user.id,
+        planSnapshot: { templateId: template._id, title: template.title, version: template.version, session: selectedSession },
+      }], { session: mongoSession });
+      if (payload.attendance === 'PRESENT' || payload.attendance === 'LATE') {
+        const selectedPackage = await PtPackage.findOne({ customerId, status: 'ACTIVE', remainingSessions: { $gt: 0 } })
+          .sort({ endDate: 1 }).session(mongoSession);
+        if (selectedPackage) {
+          const completing = selectedPackage.remainingSessions === 1;
+          await PtPackage.updateOne(
+            { _id: selectedPackage._id, remainingSessions: selectedPackage.remainingSessions },
+            { $inc: { usedSessions: 1, remainingSessions: -1 }, ...(completing ? { $set: { status: 'COMPLETED' } } : {}) },
+            { session: mongoSession },
+          );
+        }
+      }
+      return { session: createdSession, created: true };
+    });
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+      const duplicate = await WorkoutSession.findOne({ ptId, idempotencyKey: payload.idempotencyKey });
+      if (duplicate) return { session: duplicate, created: false };
     }
+    throw error;
   }
-  return { session, created: true };
 }
 async function createMeasurement(user: AuthenticatedUser, payload: MeasurementPayload) {
   await customerFor(user, String(payload.customerId));

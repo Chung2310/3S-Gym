@@ -4,6 +4,8 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import app from '../app.js';
 import FeatureFlag from '../models/FeatureFlag.js';
+import User from '../models/User.js';
+import bcrypt from 'bcryptjs';
 
 let mongo: MongoMemoryServer;
 let ptToken: string;
@@ -11,7 +13,8 @@ let ptToken: string;
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create();
   await mongoose.connect(mongo.getUri());
-  ptToken = jwt.sign({ id: new mongoose.Types.ObjectId().toString(), role: 'PT' }, process.env.JWT_SECRET || 'secret_key');
+  const pt = await User.create({ username: 'pt-route-validation', password: await bcrypt.hash('MatKhau123!', 4), role: 'PT' });
+  ptToken = jwt.sign({ id: pt.id, role: 'PT' }, process.env.JWT_SECRET || 'secret_key');
   await FeatureFlag.create([
     { key: 'NUTRITION_AI', enabled: true, roles: ['PT'] },
     { key: 'OCR_INBODY', enabled: true, roles: ['PT'] },

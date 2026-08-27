@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import request from 'supertest';
 import { vi } from 'vitest';
 
@@ -15,10 +15,10 @@ import FeatureFlag from '../models/FeatureFlag.js';
 import PtPackage from '../models/PtPackage.js';
 
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
-let mongo: MongoMemoryServer; let adminToken: string; let ptToken: string; let customerToken: string; let customerId: string;
+let mongo: MongoMemoryReplSet; let adminToken: string; let ptToken: string; let customerToken: string; let customerId: string;
 
 beforeAll(async () => {
-  mongo = await MongoMemoryServer.create(); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10);
+  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } }); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10);
   const admin = await User.create({ username: 'admin-full-journey', password, role: 'ADMIN' });
   const pt = await User.create({ username: 'pt-full-journey', password, role: 'PT' });
   const customerUser = await User.create({ username: 'customer-full-journey', password, role: 'CUSTOMER' });

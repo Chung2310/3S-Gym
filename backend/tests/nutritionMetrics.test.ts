@@ -1,7 +1,7 @@
-import bcrypt from 'bcryptjs'; import jwt from 'jsonwebtoken'; import mongoose from 'mongoose'; import { MongoMemoryServer } from 'mongodb-memory-server'; import request from 'supertest'; import app from '../app.js'; import User, { type UserDocument } from '../models/User.js';
+import bcrypt from 'bcryptjs'; import jwt from 'jsonwebtoken'; import mongoose from 'mongoose'; import { MongoMemoryReplSet } from 'mongodb-memory-server'; import request from 'supertest'; import app from '../app.js'; import User, { type UserDocument } from '../models/User.js';
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
-let mongo: MongoMemoryServer; let adminToken: string; let ptToken: string;
-beforeAll(async () => { mongo = await MongoMemoryServer.create(); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10); const admin = await User.create({ username: 'admin-nutrition-metric', password, role: 'ADMIN' }); const pt = await User.create({ username: 'pt-nutrition-metric', password, role: 'PT' }); adminToken = tokenFor(admin); ptToken = tokenFor(pt); });
+let mongo: MongoMemoryReplSet; let adminToken: string; let ptToken: string;
+beforeAll(async () => { mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } }); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10); const admin = await User.create({ username: 'admin-nutrition-metric', password, role: 'ADMIN' }); const pt = await User.create({ username: 'pt-nutrition-metric', password, role: 'PT' }); adminToken = tokenFor(admin); ptToken = tokenFor(pt); });
 afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); });
 it('tính BMR/TDEE/macro có tên công thức và phiên bản', async () => {
   const response = await request(app).post('/api/nutrition/metrics').set('Authorization', `Bearer ${ptToken}`).send({ sex: 'FEMALE', weightKg: 62, heightCm: 165, age: 32, activityFactor: 1.55, goal: 'FAT_LOSS' });

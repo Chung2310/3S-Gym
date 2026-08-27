@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
+import { getEnv } from '../config/env.js';
 async function login({ username, password }: { username: string; password: string }) {
   const user = await User.findOne({ username: username.trim() });
   if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -12,10 +13,11 @@ async function login({ username, password }: { username: string; password: strin
     throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Tài khoản đã bị khóa.' });
   }
 
+  const env = getEnv();
   const token = jwt.sign(
     { id: user.id, role: user.role },
-    process.env.JWT_SECRET || 'secret_key',
-    { expiresIn: '1d' },
+    env.JWT_SECRET,
+    { expiresIn: '1d', algorithm: env.JWT_ALGORITHM, issuer: env.JWT_ISSUER, audience: env.JWT_AUDIENCE },
   );
 
   return {

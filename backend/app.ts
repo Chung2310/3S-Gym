@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import mongoose from 'mongoose';
 import { success } from './middlewares/response.js';
 import { errorHandler } from './middlewares/errorHandler.js';
@@ -30,12 +29,15 @@ import knowledgeAssistantRouter from './routes/knowledgeAssistant.js';
 import operationsRouter from './routes/operations.js';
 import nutritionMetricsRouter from './routes/nutritionMetrics.js';
 import contentDraftsRouter from './routes/contentDrafts.js';
+import { configureSecurity } from './middlewares/security.js';
+import { createRateLimiter } from './middlewares/rateLimit.js';
+import { getEnv } from './config/env.js';
 const app = express();
 
 app.use(requestContext);
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+const env = getEnv();
+configureSecurity(app, { corsOrigins: env.CORS_ORIGINS, trustProxy: env.TRUST_PROXY, jsonBodyLimit: env.JSON_BODY_LIMIT });
+app.use('/api', createRateLimiter({ limit: 1_000, windowMs: 60_000 }));
 
 app.get('/api/health', (req, res) => success(res, {
   message: 'Hệ thống hoạt động bình thường.',
@@ -47,7 +49,7 @@ app.get('/api/health/ready', (req, res, next) => {
   return next(new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Hệ thống chưa sẵn sàng phục vụ.' }));
 });
 
-app.use('/api/auth', authRouter);
+app.use('/api/auth', createRateLimiter({ limit: env.AUTH_RATE_LIMIT_PER_15M, windowMs: 15 * 60_000 }), authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/customers', customersRouter);
 app.use('/api/transfers', transfersRouter);
@@ -72,7 +74,7 @@ app.use('/api/content-drafts', contentDraftsRouter);
 app.use('/api', (req, res, next) => next(new AppError({ status: 404, code: ERROR_CODES.ROUTE_NOT_FOUND, message: 'Không tìm thấy đường dẫn API.' })));
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
-const frontendPath = process.env.NODE_ENV === 'production' ? path.resolve(currentDirectory, '../dist') : path.resolve(currentDirectory, '../frontend');
+const frontendPath = process.env.NODE_ENV === 'production' ? path.resolve(currentDirectory, '..') : path.resolve(currentDirectory, '../frontend');
 app.frontendReady = process.env.NODE_ENV === 'test' ? Promise.resolve(false) : registerFrontend(app, frontendPath);
 app.use(errorHandler);
 
