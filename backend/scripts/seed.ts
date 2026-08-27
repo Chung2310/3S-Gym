@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ quiet: true });
 import { connectDatabase, disconnectDatabase } from '../config/db.js';
 import { seedReferenceData } from '../services/migrationService.js';
 

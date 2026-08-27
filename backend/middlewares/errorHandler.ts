@@ -1,5 +1,6 @@
 import { normalizeError } from '../errors/normalizeError.js';
 import { captureError } from '../services/telemetryService.js';
+import { logger } from '../config/logger.js';
 import type { ErrorRequestHandler } from 'express';
 
 interface ErrorBody {
@@ -14,7 +15,7 @@ interface ErrorBody {
 const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
   if (res.headersSent) return next(error);
   const normalized = normalizeError(error);
-  const log = req.log || console;
+  const log = req.log || logger;
   const level = normalized.status >= 500 ? 'error' : 'warn';
   const logData = normalized.isOperational
     ? { errorName: error.name, code: normalized.code, requestId: req.requestId }

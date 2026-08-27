@@ -12,7 +12,21 @@ export interface SecurityOptions {
 
 export function configureSecurity(app: Application, options: SecurityOptions): void {
   if (options.trustProxy !== false) app.set('trust proxy', options.trustProxy);
-  app.use(helmet());
+
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  app.use(helmet({
+    contentSecurityPolicy: isDevelopment ? false : {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+        imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+        connectSrc: ["'self'", 'ws:', 'wss:', 'https:'],
+        fontSrc: ["'self'", 'https:', 'data:'],
+      },
+    },
+  }));
+
   app.use(cors({
     origin(origin, callback) {
       if (!origin || options.corsOrigins.length === 0 || options.corsOrigins.includes(origin)) return callback(null, true);

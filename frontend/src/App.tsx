@@ -1,11 +1,11 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+﻿import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ConsultationTool from './pages/ConsultationTool';
 import PortalPage from './pages/PortalPage';
 import ProtectedRoute from './components/ProtectedRoute';
-import { ToastProvider } from './components/ToastProvider';
+import { ToastProvider } from './components/ui/ToastProvider';
 
 function MainContent() {
   const location = useLocation();

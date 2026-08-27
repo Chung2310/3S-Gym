@@ -1,4 +1,0 @@
-// @vitest-environment jsdom
-import '@testing-library/jest-dom/vitest'; import { render, screen } from '@testing-library/react'; import { ToastProvider } from '../../components/ToastProvider'; import { api } from '../../services/api'; import PtDashboard from './PtDashboard';
-vi.mock('../../services/api', () => ({ api: { get: vi.fn() } }));
-it('hiển thị explainability và không xếp hạng khi rank null', async () => { vi.mocked(api.get).mockResolvedValue({ data: { totalCustomers: 1, openAlerts: 0, customers: [{ customerId: 'c1', fullName: 'Khách A', dataStatus: 'INSUFFICIENT_DATA', rank: null, score: null, scoreBreakdown: null, sourcePath: '/api/progress/c1' }] }, message: '' }); render(<ToastProvider><PtDashboard /></ToastProvider>); expect(await screen.findByText('INSUFFICIENT_DATA')).toBeVisible(); expect(screen.getByText('/api/progress/c1')).toBeVisible(); expect(screen.queryByText(/Hạng #/)).not.toBeInTheDocument(); });

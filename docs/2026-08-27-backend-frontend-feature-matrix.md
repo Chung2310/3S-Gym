@@ -91,8 +91,8 @@ Việc đánh dấu dựa trên mã nguồn hiện tại trong `frontend/src`, b
 
 - Route và feature gate: `frontend/src/pages/PortalPage.tsx`, `frontend/src/components/FeatureRoute.tsx`.
 - Điều hướng theo role/feature: `frontend/src/config/portalNavigation.ts`, `frontend/src/components/AppShell.tsx`.
-- User, customer, package, transfer, goal và plan: `frontend/src/features/portal/PortalViews.tsx` và các modal trong `frontend/src/components`.
-- InBody, roadmap, exercise, workout, progress, nutrition, care, calendar, notification, knowledge và assistant: các thư mục tương ứng trong `frontend/src/features`.
-- Customer portal: `frontend/src/features/customer-portal/CustomerRoutes.tsx`, `frontend/src/features/portal/PortalViews.tsx`.
+- User, customer, package, transfer, goal và plan: `frontend/src/components/portal/PortalViews.tsx` và các modal trong `frontend/src/components/ui`.
+- InBody, roadmap, exercise, workout, progress, nutrition, care, calendar, notification, knowledge và assistant: các thư mục tương ứng trong `frontend/src/components`.
+- Customer portal: `frontend/src/components/customer-portal/CustomerRoutes.tsx`, `frontend/src/components/portal/PortalViews.tsx`.
 - Login/session/API: `frontend/src/pages/LoginPage.tsx`, `frontend/src/services/session.ts`, `frontend/src/services/api.ts`.
-- Kiểm thử hành trình: `frontend/src/tests/fullJourney.ui.test.tsx` và các file `*.test.tsx` trong từng module.
+- Kiểm thử hành trình: `frontend/tests/fullJourney.ui.test.tsx` và các file `*.test.tsx` trong `frontend/tests/components/`.

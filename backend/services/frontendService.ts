@@ -14,7 +14,8 @@ function registerFrontend(app: Express, frontendPath: string, options: FrontendO
   const mode = options.mode || process.env.NODE_ENV || 'development';
   if (mode !== 'production') {
     const createViteServer = options.createViteServer || createServer;
-    const viteReady = createViteServer({ root: frontendPath, appType: 'spa', server: { middlewareMode: true } });
+    const configFile = path.resolve(frontendPath, '../vite.config.ts');
+    const viteReady = createViteServer({ root: frontendPath, configFile: fs.existsSync(configFile) ? configFile : undefined, appType: 'spa', server: { middlewareMode: true } });
     app.use(async (req, res, next) => {
       try { const vite = await viteReady; return vite.middlewares(req, res, next); }
       catch (error) { return next(error); }
