@@ -4,25 +4,31 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { recordAudit } from './auditService.js';
+import { cosineSimilarity, embedText } from './embeddingProvider.js';
+import type { Types } from 'mongoose';
+async function replaceChunks(doc: { _id: Types.ObjectId; version: number; topic: string; content: string }) { await KnowledgeChunk.deleteMany({ documentId: doc._id }); const parts = doc.content.match(/[\s\S]{1,1000}/g) || [doc.content]; await KnowledgeChunk.insertMany(parts.map((content, position) => ({ documentId: doc._id, documentVersion: doc.version, topic: doc.topic, position, content, embedding: embedText(`${doc.topic} ${content}`) }))); return parts.length; }
 export async function createDocument(payload: Record<string, unknown>) { return KnowledgeDocument.create({ ...payload, status: 'DRAFT', version: 1 }); }
 export async function listDocuments(query: Record<string, unknown>) { const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = {}; if (query.status === 'DRAFT' || query.status === 'PUBLISHED') filter.status = query.status; if (typeof query.topic === 'string') filter.topic = query.topic; const [items, total] = await Promise.all([KnowledgeDocument.find(filter).sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), KnowledgeDocument.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
 export async function updateDocument(id: string, payload: Record<string, unknown>) { const doc = await KnowledgeDocument.findById(id); if (!doc) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài liệu.' }); for (const field of ['title', 'topic', 'content'] as const) if (payload[field] !== undefined) doc.set(field, payload[field]); doc.version += 1; doc.status = 'DRAFT'; doc.publishedAt = undefined; doc.approvedById = undefined; await KnowledgeChunk.deleteMany({ documentId: doc._id }); return doc.save(); }
 export async function unpublishDocument(id: string) { const doc = await KnowledgeDocument.findById(id); if (!doc) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài liệu.' }); doc.status = 'DRAFT'; doc.publishedAt = undefined; await KnowledgeChunk.deleteMany({ documentId: doc._id }); return doc.save(); }
-export async function indexDocument(id: string) { const doc = await KnowledgeDocument.findOne({ _id: id, status: 'PUBLISHED' }); if (!doc) throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Chỉ có thể index tài liệu đã xuất bản.' }); await KnowledgeChunk.deleteMany({ documentId: doc._id }); const parts = doc.content.match(/[\s\S]{1,1000}/g) || [doc.content]; await KnowledgeChunk.insertMany(parts.map((content, position) => ({ documentId: doc._id, documentVersion: doc.version, topic: doc.topic, position, content }))); return { documentId: String(doc._id), documentVersion: doc.version, chunkCount: parts.length }; }
+export async function indexDocument(id: string) { const doc = await KnowledgeDocument.findOne({ _id: id, status: 'PUBLISHED' }); if (!doc) throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Chỉ có thể index tài liệu đã xuất bản.' }); const chunkCount = await replaceChunks(doc); return { documentId: String(doc._id), documentVersion: doc.version, chunkCount }; }
 export async function deleteDocument(id: string) { const doc = await KnowledgeDocument.findById(id); if (!doc) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài liệu.' }); if (doc.status === 'PUBLISHED') throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Hãy thu hồi tài liệu trước khi xóa.' }); await KnowledgeChunk.deleteMany({ documentId: doc._id }); await doc.deleteOne(); }
 export async function publishDocument(user: AuthenticatedUser, id: string) {
   const doc = await KnowledgeDocument.findById(id); if (!doc) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài liệu.' });
   doc.status = 'PUBLISHED'; doc.publishedAt = new Date(); doc.effectiveAt = new Date(); doc.approvedById = new (await import('mongoose')).Types.ObjectId(user.id); await doc.save();
-  await KnowledgeChunk.deleteMany({ documentId: doc._id });
-  const parts = doc.content.match(/[\s\S]{1,1000}/g) || [doc.content];
-  await KnowledgeChunk.insertMany(parts.map((content, position) => ({ documentId: doc._id, documentVersion: doc.version, topic: doc.topic, position, content })));
+  await replaceChunks(doc);
   await recordAudit({ actor: user, action: 'KNOWLEDGE_PUBLISHED', resourceType: 'knowledge', resourceId: id, metadata: { version: doc.version } });
   return doc;
 }
 export async function searchPublished(query: string, limit = 5) {
-  const escaped = query.trim().split(/\s+/).filter(Boolean).map((value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  if (!escaped.length) return [];
-  const regex = new RegExp(escaped.join('|'), 'i');
-  const docs = await KnowledgeDocument.find({ status: 'PUBLISHED', $or: [{ title: regex }, { content: regex }, { topic: regex }] }).limit(limit).lean();
-  return docs.map((doc) => ({ documentId: String(doc._id), title: doc.title, topic: doc.topic, content: doc.content, version: doc.version }));
+  if (!query.trim()) return [];
+  const queryEmbedding = embedText(query);
+  const chunks = await KnowledgeChunk.find({ embedding: { $exists: true, $ne: [] } }).lean();
+  const ranked = chunks.map((chunk) => ({ chunk, score: cosineSimilarity(queryEmbedding, chunk.embedding) })).filter((item) => item.score > 0).sort((left, right) => right.score - left.score);
+  const bestByDocument = new Map<string, (typeof ranked)[number]>();
+  for (const item of ranked) { const id = String(item.chunk.documentId); if (!bestByDocument.has(id)) bestByDocument.set(id, item); }
+  const candidates = [...bestByDocument.values()].slice(0, limit);
+  const docs = await KnowledgeDocument.find({ _id: { $in: candidates.map((item) => item.chunk.documentId) }, status: 'PUBLISHED' }).lean();
+  const byId = new Map(docs.map((doc) => [String(doc._id), doc]));
+  return candidates.flatMap(({ chunk, score }) => { const doc = byId.get(String(chunk.documentId)); return doc ? [{ documentId: String(doc._id), title: doc.title, topic: doc.topic, content: chunk.content, version: doc.version, score }] : []; });
 }
