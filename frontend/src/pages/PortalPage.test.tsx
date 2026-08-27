@@ -10,10 +10,19 @@ import { api } from '../services/api';
 import type { UserRole } from '../types';
 
 vi.mock('../services/api', () => ({
-  api: { get: vi.fn().mockResolvedValue({ data: [], meta: { page: 1, totalPages: 0 } }), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+  api: { get: vi.fn().mockImplementation(async (path: string) => path.startsWith('/api/dashboard/admin')
+    ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
+    : { data: [], meta: { page: 1, totalPages: 0 }, message: '' }), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+const defaultGet = async (path: string) => path.startsWith('/api/dashboard/admin')
+  ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
+  : { data: [], meta: { page: 1, totalPages: 0 }, message: '' };
+
 describe('PortalPage', () => {
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset().mockImplementation(defaultGet);
+  });
   it('Admin thêm PT bằng popup có đầy đủ thông tin', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'admin', role: 'ADMIN' } }} /></ToastProvider></MemoryRouter>);
@@ -38,7 +47,9 @@ describe('PortalPage', () => {
 
   it('Admin sửa PT trong popup với dữ liệu điền sẵn', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.get).mockResolvedValueOnce({ data: [{ _id: 'pt-1', username: 'pt-lan', fullName: 'PT Lan', phone: '0901234567', email: 'lan@example.com', specialization: 'Yoga', certificates: ['RYT 200'], status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' });
+    vi.mocked(api.get).mockImplementation(async (path: string) => path.startsWith('/api/dashboard/admin')
+      ? { data: { totalPts: 1, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers'] }, message: '' }
+      : { data: [{ _id: 'pt-1', username: 'pt-lan', fullName: 'PT Lan', phone: '0901234567', email: 'lan@example.com', specialization: 'Yoga', certificates: ['RYT 200'], status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' });
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'admin', role: 'ADMIN' } }} /></ToastProvider></MemoryRouter>);
 
     const editButtons = await screen.findAllByRole('button', { name: 'Sửa' });
