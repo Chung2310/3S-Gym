@@ -6,6 +6,8 @@ import MealInfographicPoster from '../components/MealInfographicPoster';
 import type { MealDish } from '../components/MealInfographicPoster';
 import AppShell from '../components/AppShell';
 import { getSession } from '../services/session';
+import { useToast } from '../components/ui/ToastProvider';
+import { errorMessage } from '../types';
 import { 
   Calculator, 
   Utensils, 
@@ -75,6 +77,7 @@ const FOOD_DATABASE = [
 ];
 
 const ConsultationTool = () => {
+  const toast = useToast();
   const navigate = useNavigate();
   const session = getSession();
   const token = session?.token || null;
@@ -159,6 +162,7 @@ const ConsultationTool = () => {
 
           setFormData(updatedFormData);
           setScanSuccessMsg(`AI đã đọc thành công phiếu của ${updatedFormData.clientName}! Chiều cao: ${updatedFormData.height}cm, Cân nặng: ${updatedFormData.weight}kg.`);
+          toast.success(`Quét InBody thành công cho ${updatedFormData.clientName}`);
 
           try {
             setLoading(true);
@@ -172,15 +176,16 @@ const ConsultationTool = () => {
             setResult(calcPayload.data);
           } catch (calcErr) {
             console.error('Calculation post-scan error:', calcErr);
+            toast.error(errorMessage(calcErr));
           } finally {
             setLoading(false);
           }
         } else {
-          alert(resData.message || 'Không thể đọc chỉ số từ phiếu InBody. Vui lòng kiểm tra lại file ảnh/PDF!');
+          toast.error(resData.message || 'Không thể đọc chỉ số từ phiếu InBody. Vui lòng kiểm tra lại file ảnh/PDF!');
         }
       } catch (err) {
         console.error('InBody scan upload error:', err);
-        alert('Lỗi kết nối khi quét phiếu InBody. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại!');
+        toast.error('Lỗi kết nối khi quét phiếu InBody. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại!');
       } finally {
         setScanningInbody(false);
       }

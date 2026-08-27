@@ -9,9 +9,9 @@ import type { DataColumn } from '../ui/DataList';
 import FilterBar from '../ui/FilterBar';
 import Pagination from '../ui/Pagination';
 import PtPackageManagerModal from '../ui/PtPackageManagerModal';
-import PtFormModal from '../ui/PtFormModal';
 import StatusBadge from '../ui/StatusBadge';
 import TransferFormModal from '../ui/TransferFormModal';
+import PtManagementView from '../admin/PtManagementView';
 import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
 import type { PaginationMeta } from '../../types';
@@ -28,49 +28,7 @@ function SectionHeader({ title, description, action }: SectionHeaderProps) {
 }
 
 export function AdminView() {
-  const toast = useToast();
-  const [items, setItems] = useState<PortalItem[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0 });
-  const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState('');
-  const [formPt, setFormPt] = useState<PortalItem | null>(null);
-  const [deletePt, setDeletePt] = useState<PortalItem | null>(null);
-  const load = useCallback(async (page = 1) => {
-    try {
-      const result = await api.get<PortalItem[]>(`/api/users?page=${page}&limit=20&role=PT&keyword=${encodeURIComponent(keyword)}${status ? `&status=${status}` : ''}`);
-      setItems(result.data); if (result.meta) setMeta(result.meta);
-    } catch (error) { toast.error(errorMessage(error)); }
-  }, [keyword, status, toast]);
-  useEffect(() => { load(); }, [load]);
-  const deleteSelectedPt = async () => {
-    if (!deletePt) return;
-    try { const result = await api.delete(`/api/users/${deletePt._id}`); toast.success(result.message); setDeletePt(null); load(); }
-    catch (error) { toast.error(errorMessage(error)); }
-  };
-  return <>
-    <SectionHeader title="Quản lý tài khoản PT" description="Tạo và theo dõi tài khoản huấn luyện viên trong hệ thống." action={<button className="button button-primary" onClick={() => setFormPt({})}><Plus size={18} /> Tạo PT</button>} />
-    <div className="panel">
-      <FilterBar keyword={keyword} onKeywordChange={setKeyword} placeholder="Tìm PT theo tên, email, số điện thoại, username...">
-        <select aria-label="Lọc trạng thái PT" className="filter-select" value={status} onChange={(event) => setStatus(event.target.value)}>
-          <option value="">Tất cả trạng thái</option>
-          <option value="ACTIVE">Đang hoạt động</option>
-          <option value="INACTIVE">Ngừng hoạt động</option>
-        </select>
-        <button className="button button-secondary" onClick={() => load()}>
-          <RefreshCw size={15} /> Tải lại
-        </button>
-        {(keyword || status) && (
-          <button className="button-filter-reset" onClick={() => { setKeyword(''); setStatus(''); }}>
-            <RotateCcw size={13} /> Xóa lọc
-          </button>
-        )}
-      </FilterBar>
-      <DataList items={items} columns={[{ key: 'fullName', label: 'Họ tên' }, { key: 'username', label: 'Tên đăng nhập' }, { key: 'phone', label: 'Số điện thoại' }, { key: 'email', label: 'Email' }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }]} renderActions={(item) => <div className="inline-actions"><button className="text-button" onClick={() => setFormPt(item)}><Pencil size={16} /> Sửa</button><button className="text-button text-danger" onClick={() => setDeletePt(item)}>Xóa</button></div>} />
-      <Pagination page={meta.page || 1} totalPages={meta.totalPages || 0} onPageChange={load} />
-    </div>
-    <PtFormModal open={Boolean(formPt)} pt={formPt?._id ? formPt : null} onClose={() => setFormPt(null)} onSaved={() => { setFormPt(null); load(); }} />
-    <ConfirmModal open={Boolean(deletePt)} title="Xóa PT vĩnh viễn?" description="PT chỉ được xóa sau khi đã chuyển hết khách sang PT khác." danger confirmLabel="Xóa vĩnh viễn" onClose={() => setDeletePt(null)} onConfirm={deleteSelectedPt} />
-  </>;
+  return <PtManagementView />;
 }
 
 type PtTab = 'customers' | 'transfers' | Resource;

@@ -1,5 +1,5 @@
-import { useCallback, useState, type FormEvent } from 'react';
-import { RefreshCw, Users, UserCheck, AlertTriangle, Package, Database, RotateCcw, Calendar, User, X } from 'lucide-react';
+import { useCallback } from 'react';
+import { RefreshCw, Users, UserCheck, AlertTriangle, Package, Database } from 'lucide-react';
 import { useAsyncResource } from '../../hooks/useAsyncResource';
 import { api } from '../../services/api';
 
@@ -12,230 +12,94 @@ interface AdminDashboard {
   sourcePaths: string[];
 }
 
-interface DashboardFilters {
-  ptId: string;
-  customerStatus: string;
-  fromDate: string;
-  toDate: string;
-}
-
-const emptyFilters: DashboardFilters = { ptId: '', customerStatus: '', fromDate: '', toDate: '' };
-
-function dashboardPath(filters: DashboardFilters): string {
-  const query = new URLSearchParams();
-  if (filters.ptId) query.set('ptId', filters.ptId);
-  if (filters.customerStatus) query.set('customerStatus', filters.customerStatus);
-  if (filters.fromDate) query.set('fromDate', filters.fromDate);
-  if (filters.toDate) query.set('toDate', filters.toDate);
-  const suffix = query.toString();
-  return `/api/dashboard/admin${suffix ? `?${suffix}` : ''}`;
-}
-
 export default function AdminDashboardPage() {
-  const [filters, setFilters] = useState<DashboardFilters>(emptyFilters);
-  const [appliedFilters, setAppliedFilters] = useState<DashboardFilters>(emptyFilters);
-  const loader = useCallback(() => api.get<AdminDashboard>(dashboardPath(appliedFilters)).then(({ data }) => data), [appliedFilters]);
+  const loader = useCallback(() => api.get<AdminDashboard>('/api/dashboard/admin').then(({ data }) => data), []);
   const resource = useAsyncResource(loader);
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    setAppliedFilters({ ...filters });
-  };
-
-  const handleReset = () => {
-    setFilters(emptyFilters);
-    setAppliedFilters(emptyFilters);
-  };
-
-  const hasActiveFilters = Boolean(
-    filters.ptId || filters.customerStatus || filters.fromDate || filters.toDate ||
-    appliedFilters.ptId || appliedFilters.customerStatus || appliedFilters.fromDate || appliedFilters.toDate
-  );
-
-  const activeFilterCount = [
-    appliedFilters.ptId,
-    appliedFilters.customerStatus,
-    appliedFilters.fromDate,
-    appliedFilters.toDate,
-  ].filter(Boolean).length;
-
   const metricCards = resource.data ? [
-    { label: 'PT đang hoạt động', value: resource.data.totalPts, icon: Users, iconClass: 'pts' },
-    { label: 'Khách hàng', value: resource.data.totalCustomers, icon: UserCheck, iconClass: 'customers' },
-    { label: 'Cảnh báo đang mở', value: resource.data.openAlerts, icon: AlertTriangle, iconClass: 'alerts' },
-    { label: 'Gói tập đang hoạt động', value: resource.data.activePackages, icon: Package, iconClass: 'packages' },
+    { 
+      label: 'PT đang hoạt động', 
+      value: resource.data.totalPts, 
+      icon: Users, 
+      color: 'from-blue-600 to-cyan-500', 
+      lightBg: 'bg-blue-50/50', 
+      iconColor: 'text-blue-600',
+      shadow: 'shadow-blue-500/20'
+    },
+    { 
+      label: 'Khách hàng', 
+      value: resource.data.totalCustomers, 
+      icon: UserCheck, 
+      color: 'from-emerald-500 to-teal-400', 
+      lightBg: 'bg-emerald-50/50', 
+      iconColor: 'text-emerald-600',
+      shadow: 'shadow-emerald-500/20'
+    },
+    { 
+      label: 'Cảnh báo đang mở', 
+      value: resource.data.openAlerts, 
+      icon: AlertTriangle, 
+      color: 'from-rose-500 to-orange-400', 
+      lightBg: 'bg-rose-50/50', 
+      iconColor: 'text-rose-600',
+      shadow: 'shadow-rose-500/20'
+    },
+    { 
+      label: 'Gói tập đang hoạt động', 
+      value: resource.data.activePackages, 
+      icon: Package, 
+      color: 'from-indigo-600 to-purple-500', 
+      lightBg: 'bg-indigo-50/50', 
+      iconColor: 'text-indigo-600',
+      shadow: 'shadow-indigo-500/20'
+    },
   ] as const : [];
 
   return (
-    <section aria-labelledby="admin-dashboard-title">
-      <div className="flex items-center justify-between mb-3.5">
+    <section aria-labelledby="admin-dashboard-title" className="p-4 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 ease-out">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 id="admin-dashboard-title" className="text-lg font-bold text-[#003b70] m-0 tracking-tight">
-            Dashboard quản trị
+          <h1 id="admin-dashboard-title" className="text-xl font-extrabold text-slate-900 tracking-tight">
+            Tổng quan hệ thống
           </h1>
-          <p className="text-xs text-slate-500 m-0 mt-0.5">
-            Tổng hợp dữ liệu vận hành theo bộ lọc thời gian và huấn luyện viên.
+          <p className="text-xs text-slate-500 mt-1 font-medium">
+            Theo dõi số liệu vận hành và trạng thái trực tiếp của nền tảng.
           </p>
         </div>
+        <button
+          className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80 shadow-sm transition-all active:scale-95"
+          onClick={() => void resource.refresh()}
+          type="button"
+          aria-label="Làm mới dữ liệu"
+          title="Làm mới dữ liệu"
+        >
+          <RefreshCw size={14} className={resource.status === 'loading' ? 'animate-spin text-blue-600' : ''} />
+        </button>
       </div>
 
-      {/* Modern Compact Filter Bar */}
-      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs mb-3.5">
-        <form onSubmit={submit} className="flex flex-wrap items-center gap-2.5">
-          {/* Mã PT */}
-          <div className="flex-1 min-w-[150px] relative">
-            <label className="sr-only">Mã PT</label>
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus-within:border-cyan-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-cyan-500/20 transition-all">
-              <User size={14} className="text-slate-400 mr-2 shrink-0" aria-hidden="true" />
-              <input
-                aria-label="Mã PT"
-                placeholder="Nhập mã PT..."
-                value={filters.ptId}
-                onChange={(event) => setFilters((current) => ({ ...current, ptId: event.target.value }))}
-                className="w-full bg-transparent text-xs font-medium text-slate-800 outline-none placeholder:text-slate-400"
-              />
-              {filters.ptId && (
-                <button
-                  type="button"
-                  onClick={() => setFilters((current) => ({ ...current, ptId: '' }))}
-                  className="text-slate-400 hover:text-slate-600 ml-1"
-                  aria-label="Xóa mã PT"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Trạng thái khách hàng */}
-          <div className="min-w-[160px]">
-            <label className="sr-only">Trạng thái khách hàng</label>
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus-within:border-cyan-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-cyan-500/20 transition-all">
-              <Users size={14} className="text-slate-400 mr-2 shrink-0" aria-hidden="true" />
-              <select
-                aria-label="Trạng thái khách hàng"
-                value={filters.customerStatus}
-                onChange={(event) => setFilters((current) => ({ ...current, customerStatus: event.target.value }))}
-                className="w-full bg-transparent text-xs font-medium text-slate-700 outline-none cursor-pointer"
-              >
-                <option value="">Tất cả trạng thái</option>
-                <option value="ACTIVE">Đang hoạt động</option>
-                <option value="INACTIVE">Ngừng hoạt động</option>
-                <option value="LEAD">Tiềm năng</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Khoảng ngày (Từ ngày → Đến ngày) */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus-within:border-cyan-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-cyan-500/20 transition-all">
-            <Calendar size={14} className="text-slate-400 shrink-0" aria-hidden="true" />
-            <label className="sr-only">Từ ngày</label>
-            <input
-              aria-label="Từ ngày"
-              type="date"
-              value={filters.fromDate}
-              onChange={(event) => setFilters((current) => ({ ...current, fromDate: event.target.value }))}
-              className="bg-transparent text-xs font-medium text-slate-700 outline-none w-[112px]"
-              title="Từ ngày"
-            />
-            <span className="text-slate-400 text-xs">→</span>
-            <label className="sr-only">Đến ngày</label>
-            <input
-              aria-label="Đến ngày"
-              type="date"
-              value={filters.toDate}
-              onChange={(event) => setFilters((current) => ({ ...current, toDate: event.target.value }))}
-              className="bg-transparent text-xs font-medium text-slate-700 outline-none w-[112px]"
-              title="Đến ngày"
-            />
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-1.5 ml-auto">
-            <button
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-[#003b70] to-[#00a4e4] text-white text-xs font-semibold hover:opacity-95 shadow-xs transition-all cursor-pointer h-[34px]"
-              type="submit"
-            >
-              <RefreshCw size={13} className="shrink-0" />
-              <span>Áp dụng bộ lọc</span>
-            </button>
-
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={handleReset}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 text-xs font-medium transition-all cursor-pointer h-[34px]"
-                title="Đặt lại toàn bộ lọc"
-              >
-                <RotateCcw size={12} />
-                <span>Đặt lại</span>
-              </button>
-            )}
-          </div>
-        </form>
-
-        {/* Quick presets row */}
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Lọc nhanh:</span>
-          <button
-            type="button"
-            onClick={() => {
-              const today = new Date().toISOString().slice(0, 10);
-              setFilters((current) => ({ ...current, fromDate: today, toDate: today }));
-            }}
-            className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium transition-colors cursor-pointer"
-          >
-            Hôm nay
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const now = new Date();
-              const to = new Date().toISOString().slice(0, 10);
-              now.setDate(now.getDate() - 7);
-              const from = now.toISOString().slice(0, 10);
-              setFilters((current) => ({ ...current, fromDate: from, toDate: to }));
-            }}
-            className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium transition-colors cursor-pointer"
-          >
-            7 ngày qua
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const now = new Date();
-              const to = new Date().toISOString().slice(0, 10);
-              now.setDate(now.getDate() - 30);
-              const from = now.toISOString().slice(0, 10);
-              setFilters((current) => ({ ...current, fromDate: from, toDate: to }));
-            }}
-            className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium transition-colors cursor-pointer"
-          >
-            30 ngày qua
-          </button>
-          {activeFilterCount > 0 && (
-            <span className="ml-auto text-[11px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200/50">
-              {activeFilterCount} bộ lọc đang áp dụng
-            </span>
-          )}
-        </div>
-      </div>
-
-      {resource.status === 'loading' && (
-        <div className="panel flex items-center justify-center p-6 text-slate-500 text-xs" role="status">
-          <RefreshCw size={16} className="animate-spin mr-2 text-cyan-600" />
-          <span>Đang tải số liệu dashboard...</span>
+      {/* Loading State */}
+      {resource.status === 'loading' && !resource.data && (
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-12 flex flex-col items-center justify-center text-slate-500">
+          <RefreshCw size={24} className="animate-spin text-blue-500 mb-3" />
+          <span className="text-xs font-semibold tracking-wide">Đang đồng bộ số liệu...</span>
         </div>
       )}
 
+      {/* Error State */}
       {resource.status === 'error' && (
-        <div className="flex items-center justify-between p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-amber-900 mb-3.5 text-xs shadow-2xs" role="alert">
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={15} className="text-amber-600 shrink-0" />
-            <span>Không thể tải dữ liệu dashboard (chưa có kết nối hoặc phiên đăng nhập hết hạn).</span>
+        <div className="bg-rose-50 border border-rose-200/80 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-rose-800">
+            <div className="bg-white p-2 rounded-lg shadow-sm border border-rose-100 shrink-0">
+              <AlertTriangle size={18} className="text-rose-500" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold">Mất kết nối dữ liệu</h3>
+              <p className="text-[11px] font-medium text-rose-700/80 mt-0.5">Không thể tải số liệu thống kê. Vui lòng thử lại sau.</p>
+            </div>
           </div>
           <button
-            className="px-3 py-1 bg-amber-200/70 hover:bg-amber-200 text-amber-900 rounded-lg font-semibold text-xs transition-all cursor-pointer"
+            className="px-4 py-2 bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 rounded-lg font-bold text-xs transition-all shadow-sm shrink-0 active:scale-95"
             type="button"
             onClick={() => void resource.refresh()}
           >
@@ -244,37 +108,35 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
+      {/* Metrics Grid */}
       {resource.data && (
-        <>
-          <div className="admin-metrics-grid">
-            {metricCards.map(({ label, value, icon: Icon, iconClass }) => (
-              <article className="admin-stat-card" key={label}>
-                <div className={`admin-stat-icon ${iconClass}`}>
-                  <Icon size={24} aria-hidden="true" />
-                </div>
-                <div className="admin-stat-info">
-                  <span className="admin-stat-label">{label}</span>
-                  <strong className="admin-stat-value">{value}</strong>
-                </div>
-              </article>
-            ))}
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {metricCards.map(({ label, value, icon: Icon, color, lightBg, iconColor }) => (
+            <div 
+              key={label}
+              className="relative bg-white rounded-2xl p-4 lg:p-5 border border-slate-200/60 hover:border-slate-300 shadow-[0_2px_12px_rgb(0,0,0,0.01)] hover:shadow-[0_8px_24px_rgb(0,0,0,0.04)] transition-all duration-300 group overflow-hidden flex items-center gap-4"
+            >
+              {/* Decorative Background Blob */}
+              <div className={`absolute -right-6 -bottom-6 w-20 h-20 rounded-full ${color} opacity-[0.03] group-hover:scale-150 transition-transform duration-700 ease-out`} />
+              
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${lightBg} border border-white/60 shadow-inner group-hover:scale-110 transition-transform duration-300 ease-out shrink-0`}>
+                <Icon size={22} className={iconColor} strokeWidth={2.5} />
+              </div>
 
-          <section className="panel">
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem' }}>
-              <Database size={16} color="var(--secondary-color)" /> Nguồn dữ liệu backend
-            </h2>
-            <ul style={{ display: 'grid', gap: '6px', paddingLeft: '1.2rem', color: '#475569', fontSize: '0.82rem' }}>
-              {resource.data.sourcePaths.map((path) => (
-                <li key={path}>
-                  <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', color: '#003b70', fontSize: '0.78rem' }}>
-                    {path}
-                  </code>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </>
+              <div className="relative z-10 flex-1 min-w-0">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider truncate">
+                  {label}
+                </p>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight mt-0.5 leading-none">
+                  {value}
+                </h3>
+              </div>
+
+              {/* Bottom decorative line */}
+              <div className={`absolute bottom-0 left-0 h-[3px] w-0 bg-gradient-to-r ${color} group-hover:w-full transition-all duration-500 ease-out`} />
+            </div>
+          ))}
+        </div>
       )}
     </section>
   );
