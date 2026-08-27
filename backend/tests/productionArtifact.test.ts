@@ -9,6 +9,10 @@ it('builds a native Node ESM backend artifact without tsx imports', () => {
     cwd: path.resolve('.'), stdio: 'pipe', timeout: 60_000,
   });
   const bootstrap = path.resolve('dist/backend/bootstrap.js');
+  const frontendService = path.resolve('dist/backend/services/frontendService.js');
   expect(fs.existsSync(bootstrap)).toBe(true);
   expect(fs.readFileSync(bootstrap, 'utf8')).not.toContain("from 'tsx'");
+  const frontendArtifact = fs.readFileSync(frontendService, 'utf8');
+  expect(frontendArtifact).not.toContain("from 'vite'");
+  expect(frontendArtifact).toContain("import('vite')");
 });
