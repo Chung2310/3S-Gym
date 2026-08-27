@@ -10,6 +10,7 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { createNotificationOnce } from './notificationService.js';
+import { recordAudit } from './auditService.js';
 
 async function upsertOpen(customerId: Types.ObjectId, ptId: Types.ObjectId, ruleKey: string, title: string, reason: string, dueAt: Date) {
   const alert = await CareAlert.findOneAndUpdate({ customerId, ruleKey, status: 'OPEN' }, { $setOnInsert: { customerId, ptId, ruleKey, title, reason, dueAt, status: 'OPEN' } }, { upsert: true, returnDocument: 'after' });
@@ -51,6 +52,7 @@ async function createTask(user: AuthenticatedUser, payload: { customerId: string
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
   if (user.role === 'PT' && String(customer.assignedPtId) !== user.id) throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền quản lý khách hàng này.' });
   const task = await CareTask.create({ ...payload, assignedPtId: customer.assignedPtId, status: 'OPEN' });
+  await recordAudit({ actor: user, action: 'CARE_TASK_CREATED', resourceType: 'careTask', resourceId: task.id, customerId: task.customerId });
   await createNotificationOnce({ userId: customer.assignedPtId, type: 'CARE_TASK_CREATED', title: 'Nhiệm vụ chăm sóc mới', message: task.title, resourceType: 'careTasks', resourceId: task.id });
   return task;
 }
@@ -58,6 +60,7 @@ async function completeTask(user: AuthenticatedUser, id: string, result: string)
   const task = await CareTask.findOne({ _id: id, status: 'OPEN', ...(user.role === 'PT' ? { assignedPtId: user.id } : {}) });
   if (!task) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy nhiệm vụ đang mở.' });
   task.status = 'DONE'; task.result = result; await task.save();
+  await recordAudit({ actor: user, action: 'CARE_TASK_COMPLETED', resourceType: 'careTask', resourceId: task.id, customerId: task.customerId });
   await CareLog.create({ customerId: task.customerId, ptId: task.assignedPtId, kind: 'TASK_COMPLETED', referenceId: task._id, note: result });
   return task;
 }
@@ -79,11 +82,14 @@ async function updateTask(user: AuthenticatedUser, id: string, payload: { title?
   if (!task) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy nhiệm vụ đang mở.' });
   if (payload.title !== undefined) task.title = payload.title;
   if (payload.dueAt !== undefined) task.dueAt = new Date(payload.dueAt);
-  return task.save();
+  await task.save();
+  await recordAudit({ actor: user, action: 'CARE_TASK_UPDATED', resourceType: 'careTask', resourceId: task.id, customerId: task.customerId });
+  return task;
 }
 async function deleteTask(user: AuthenticatedUser, id: string) {
   const task = await CareTask.findOneAndDelete({ _id: id, status: 'OPEN', ...(user.role === 'PT' ? { assignedPtId: user.id } : {}) });
   if (!task) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy nhiệm vụ đang mở.' });
+  await recordAudit({ actor: user, action: 'CARE_TASK_DELETED', resourceType: 'careTask', resourceId: task.id, customerId: task.customerId });
   return task;
 }
 async function listLogs(user: AuthenticatedUser, query: Record<string, unknown>) {
