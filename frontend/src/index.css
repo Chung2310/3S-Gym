@@ -426,6 +426,19 @@ a {
 .portal-sidebar nav { display: grid; gap: 8px; }
 .portal-sidebar nav a { padding: 11px 12px; border-radius: 9px; color: #d8eff8; font-weight: 650; }
 .portal-sidebar nav a:hover { background: rgba(255,255,255,.1); color: #fff; }
+.portal-navigation { overflow-y: auto; padding-right: 3px; }
+.portal-nav-section { display: grid; gap: 6px; margin-bottom: 16px; }
+.portal-nav-heading { padding: 0 12px; color: #7ec8e8; font-size: .7rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.portal-sidebar nav a { display: flex; align-items: center; gap: 10px; border-left: 3px solid transparent; }
+.portal-sidebar nav a.active { color: #fff; background: rgba(0,164,228,.22); border-left-color: #31c4ff; box-shadow: inset 0 0 0 1px rgba(126,220,255,.12); }
+.portal-breadcrumb { display: flex; min-width: 0; align-items: center; gap: 6px; color: #64748b; white-space: nowrap; overflow: hidden; }
+.portal-breadcrumb strong { color: #003b70; overflow: hidden; text-overflow: ellipsis; }
+.portal-header-user { display: grid; margin-left: auto; text-align: right; }
+.portal-not-found { min-height: 55vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: #475569; }
+.portal-not-found > svg { color: #00a4e4; }
+.portal-not-found h1 { margin: 0; color: #003b70; }
+.portal-not-found p { margin: 0 0 8px; }
+.portal-not-found .button { display: inline-flex; align-items: center; gap: 8px; }
 .portal-user { margin-top: auto; gap: 4px; padding: 14px 12px; border-radius: 12px; background: rgba(255,255,255,.08); }
 .portal-user button { display: flex; align-items: center; gap: 7px; margin-top: 10px; padding: 8px 0 0; border: 0; border-top: 1px solid rgba(255,255,255,.15); color: #fff; background: transparent; cursor: pointer; }
 .portal-main { min-width: 0; }
@@ -465,9 +478,15 @@ a {
 .status-published, .status-active, .status-accepted { color: #166534; background: #dcfce7; }
 .status-locked, .status-rejected { color: #991b1b; background: #fee2e2; }
 .status-pending, .status-draft { color: #92400e; background: #fef3c7; }
-.tab-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 18px; padding-bottom: 4px; }
-.tab-bar button { flex: 0 0 auto; padding: 9px 13px; border: 1px solid #cbdce8; border-radius: 999px; color: #415b70; background: #fff; cursor: pointer; }
-.tab-bar button.active { border-color: var(--primary-color); color: #fff; background: var(--primary-color); }
+.customer-browser-tabs { display: flex; align-items: end; gap: 4px; overflow-x: auto; padding: 0 5px; scrollbar-width: thin; }
+.customer-browser-tabs button { position: relative; z-index: 0; display: inline-flex; flex: 0 0 auto; align-items: center; gap: 7px; padding: 11px 16px; border: 1px solid #bfd0dc; border-bottom-color: #afc3d1; border-radius: 12px 12px 0 0; color: #526b7e; background: #eaf1f5; font: inherit; font-weight: 700; white-space: nowrap; cursor: pointer; transition: color .16s ease, background .16s ease, border-color .16s ease; }
+.customer-browser-tabs button:hover { color: var(--primary-color); background: #f5f9fb; }
+.customer-browser-tabs button.active { z-index: 2; margin-bottom: -1px; padding-top: 13px; border-color: #b8ccd9; border-bottom-color: #fff; color: var(--primary-color); background: #fff; box-shadow: 0 -4px 12px rgba(15,57,92,.06); }
+.customer-browser-tabs button.active::before { position: absolute; top: 0; right: 9px; left: 9px; height: 3px; border-radius: 0 0 3px 3px; background: var(--primary-color); content: ''; }
+.customer-browser-tabs button:focus-visible { z-index: 3; }
+.customer-tab-panel { position: relative; z-index: 1; padding: 18px; border: 1px solid #b8ccd9; border-radius: 0 14px 14px; background: #fff; box-shadow: 0 10px 30px rgba(15,57,92,.06); }
+.customer-tab-panel > .panel:first-child { margin-top: 0; }
+.customer-tab-panel > .panel:last-child { margin-bottom: 0; }
 .customer-content-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
 .published-card { margin-top: 12px; padding: 14px; border: 1px solid #dce8f0; border-radius: 10px; background: #f9fcfe; }
 .published-card h3 { margin: 9px 0; font-size: 1rem; }
@@ -517,6 +536,10 @@ a {
   .mobile-close { display: inline-flex; margin-left: auto; border: 0; color: #fff; background: transparent; }
   .portal-header { padding: 10px 16px; }
   .portal-content { padding: 18px 14px; }
+  .customer-browser-tabs { margin-right: -14px; padding-right: 14px; padding-left: 2px; }
+  .customer-browser-tabs button { padding: 10px 13px; }
+  .customer-browser-tabs button.active { padding-top: 12px; }
+  .customer-tab-panel { padding: 12px; border-radius: 0 12px 12px; }
   .section-header { align-items: stretch; flex-direction: column; }
   .section-header .button { width: 100%; }
   .form-grid, .customer-content-grid { grid-template-columns: 1fr; }

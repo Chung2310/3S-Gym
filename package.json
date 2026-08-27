@@ -4,9 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch backend/bootstrap.ts",
-    "dev:frontend": "vite",
-    "dev:backend": "tsx watch backend/bootstrap.ts",
+    "dev": "tsx watch backend/dev.ts",
+    "dev:backend": "tsx watch backend/dev.ts",
     "start": "tsx backend/bootstrap.ts",
     "start:production": "node dist/backend/bootstrap.js",
     "build": "npm run typecheck && vite build",

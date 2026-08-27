@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AppShell from '../components/AppShell';
+import PortalNotFound from '../components/PortalNotFound';
 import FeatureRoute from '../components/FeatureRoute';
 import AdminRoutes from '../features/admin/AdminRoutes';
 import PtRoutes from '../features/customers/PtRoutes';
@@ -26,6 +27,7 @@ const roleDestinations = {
   PT: '/portal/pt/customers',
   CUSTOMER: '/portal/me',
 } as const;
+const roleLabels = { ADMIN: 'ADMIN', PT: 'PT', CUSTOMER: 'khách hàng' } as const;
 
 function PortalRoutes({ user }: { user: User }) {
   const { features } = useFeatures();
@@ -34,23 +36,23 @@ function PortalRoutes({ user }: { user: User }) {
 
   return <AppShell user={user} features={features}>
     <Routes>
-      <Route path="/portal/notifications" element={<NotificationCenter />} />
-      <Route path="/portal/calendar" element={<FeatureRoute user={user} roles={['ADMIN', 'PT']}><InternalCalendar role={user.role} /></FeatureRoute>} />
-      <Route path="/portal/admin/knowledge" element={<FeatureRoute user={user} roles={['ADMIN']} feature="KNOWLEDGE_BASE"><KnowledgeBase /></FeatureRoute>} />
-      <Route path="/portal/pt/knowledge-search" element={<FeatureRoute user={user} roles={['PT']} feature="KNOWLEDGE_BASE"><KnowledgeSearch /></FeatureRoute>} />
-      <Route path="/portal/pt/assistant" element={<FeatureRoute user={user} roles={['PT']} feature="PT_ASSISTANT"><PtAssistant /></FeatureRoute>} />
-      <Route path="/portal/admin/*" element={<FeatureRoute user={user} roles={['ADMIN']}><AdminRoutes /></FeatureRoute>} />
-      <Route path="/portal/pt/inbody" element={<FeatureRoute user={user} roles={['PT']} feature="OCR_INBODY"><InBodyWorkspace /></FeatureRoute>} />
-      <Route path="/portal/pt/roadmaps" element={<FeatureRoute user={user} roles={['PT']} feature="ROADMAP"><RoadmapWorkspace /></FeatureRoute>} />
-      <Route path="/portal/pt/exercises" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><ExerciseLibrary /></FeatureRoute>} />
-      <Route path="/portal/pt/workouts" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><WorkoutWorkspace /></FeatureRoute>} />
-      <Route path="/portal/pt/progress" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><ProgressWorkspace /></FeatureRoute>} />
-      <Route path="/portal/pt/nutrition" element={<FeatureRoute user={user} roles={['PT']} feature="NUTRITION_AI"><NutritionWorkspace /></FeatureRoute>} />
-      <Route path="/portal/pt/care" element={<FeatureRoute user={user} roles={['PT']} feature="CARE"><CareWorkspace /></FeatureRoute>} />
-      <Route path="/portal/pt/dashboard" element={<FeatureRoute user={user} roles={['PT']} feature="DASHBOARD"><PtDashboard /></FeatureRoute>} />
-      <Route path="/portal/pt/*" element={<FeatureRoute user={user} roles={['PT']}><PtRoutes /></FeatureRoute>} />
-      <Route path="/portal/me/*" element={<FeatureRoute user={user} roles={['CUSTOMER']}><CustomerRoutes /></FeatureRoute>} />
-      <Route path="*" element={isPortalRoot ? <Navigate to={roleDestinations[user.role]} replace /> : <Navigate to="/portal" replace />} />
+      <Route path="notifications" element={<NotificationCenter />} />
+      <Route path="calendar" element={<FeatureRoute user={user} roles={['ADMIN', 'PT']}><InternalCalendar role={user.role} /></FeatureRoute>} />
+      <Route path="admin/knowledge" element={<FeatureRoute user={user} roles={['ADMIN']} feature="KNOWLEDGE_BASE"><KnowledgeBase /></FeatureRoute>} />
+      <Route path="pt/knowledge-search" element={<FeatureRoute user={user} roles={['PT']} feature="KNOWLEDGE_BASE"><KnowledgeSearch /></FeatureRoute>} />
+      <Route path="pt/assistant" element={<FeatureRoute user={user} roles={['PT']} feature="PT_ASSISTANT"><PtAssistant /></FeatureRoute>} />
+      <Route path="admin/*" element={<FeatureRoute user={user} roles={['ADMIN']}><AdminRoutes /></FeatureRoute>} />
+      <Route path="pt/inbody" element={<FeatureRoute user={user} roles={['PT']} feature="OCR_INBODY"><InBodyWorkspace /></FeatureRoute>} />
+      <Route path="pt/roadmaps" element={<FeatureRoute user={user} roles={['PT']} feature="ROADMAP"><RoadmapWorkspace /></FeatureRoute>} />
+      <Route path="pt/exercises" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><ExerciseLibrary /></FeatureRoute>} />
+      <Route path="pt/workouts" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><WorkoutWorkspace /></FeatureRoute>} />
+      <Route path="pt/progress" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><ProgressWorkspace /></FeatureRoute>} />
+      <Route path="pt/nutrition" element={<FeatureRoute user={user} roles={['PT']} feature="NUTRITION_AI"><NutritionWorkspace /></FeatureRoute>} />
+      <Route path="pt/care" element={<FeatureRoute user={user} roles={['PT']} feature="CARE"><CareWorkspace /></FeatureRoute>} />
+      <Route path="pt/dashboard" element={<FeatureRoute user={user} roles={['PT']} feature="DASHBOARD"><PtDashboard /></FeatureRoute>} />
+      <Route path="pt/*" element={<FeatureRoute user={user} roles={['PT']}><PtRoutes /></FeatureRoute>} />
+      <Route path="me/*" element={<FeatureRoute user={user} roles={['CUSTOMER']}><CustomerRoutes /></FeatureRoute>} />
+      <Route path="*" element={isPortalRoot ? <Navigate to={roleDestinations[user.role]} replace /> : <PortalNotFound destination={roleDestinations[user.role]} roleLabel={roleLabels[user.role]} />} />
     </Routes>
   </AppShell>;
 }

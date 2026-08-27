@@ -2,12 +2,20 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter as RouterMemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
-import PortalPage from './PortalPage';
+import RawPortalPage from './PortalPage';
 import { ToastProvider } from '../components/ToastProvider';
 import { api } from '../services/api';
 import type { UserRole } from '../types';
+
+function MemoryRouter({ children, initialEntries = ['/portal'] }: React.ComponentProps<typeof RouterMemoryRouter>) {
+  return <RouterMemoryRouter initialEntries={initialEntries}>{children}</RouterMemoryRouter>;
+}
+
+function PortalPage(props: React.ComponentProps<typeof RawPortalPage>) {
+  return <Routes><Route path="/portal/*" element={<RawPortalPage {...props} />} /></Routes>;
+}
 
 vi.mock('../services/api', () => ({
   api: { get: vi.fn().mockImplementation(async (path: string) => path.startsWith('/api/dashboard/admin')
@@ -104,6 +112,21 @@ describe('PortalPage', () => {
     expect(screen.getByRole('dialog', { name: 'Thêm khách hàng' })).toBeInTheDocument();
   });
 
+  it('hiển thị nhóm chức năng khách hàng như tab trình duyệt', async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
+
+    expect(screen.getByRole('tablist', { name: 'Nội dung khách hàng' })).toBeVisible();
+    expect(screen.getAllByRole('tab')).toHaveLength(6);
+    expect(screen.getByRole('tab', { name: 'Khách hàng' })).toHaveAttribute('aria-selected', 'true');
+
+    await user.click(screen.getByRole('tab', { name: 'InBody' }));
+
+    expect(screen.getByRole('tab', { name: 'InBody' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Khách hàng' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'customer-tab-inbody');
+  });
+
   it('PT sửa khách bằng popup và vẫn có thao tác cấp tài khoản riêng', async () => {
     const user = userEvent.setup();
     vi.mocked(api.get).mockResolvedValueOnce({ data: [{ _id: 'customer-edit-1', fullName: 'Khách A', phone: '0901234567', status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' });
@@ -130,7 +153,7 @@ describe('PortalPage', () => {
   it('PT mở được form tạo yêu cầu chuyển khách', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
-    await user.click(screen.getByRole('button', { name: 'Chuyển PT' }));
+    await user.click(screen.getByRole('tab', { name: 'Chuyển PT' }));
     await user.click(screen.getByRole('button', { name: 'Tạo mới' }));
     expect(screen.getByRole('dialog', { name: 'Tạo yêu cầu chuyển PT' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Mã khách hàng' })).toBeInTheDocument();
@@ -140,7 +163,7 @@ describe('PortalPage', () => {
   it('PT lọc danh sách nội dung theo trạng thái và khách hàng', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
-    await user.click(screen.getByRole('button', { name: 'Mục tiêu' }));
+    await user.click(screen.getByRole('tab', { name: 'Mục tiêu' }));
     await user.selectOptions(screen.getByLabelText('Lọc theo trạng thái'), 'DRAFT');
     await user.type(screen.getByLabelText('Lọc theo mã khách hàng'), '507f1f77bcf86cd799439011');
     await user.click(screen.getByRole('button', { name: 'Lọc' }));
@@ -151,7 +174,7 @@ describe('PortalPage', () => {
   it('PT tạo nội dung bằng popup', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
-    await user.click(screen.getByRole('button', { name: 'InBody' }));
+    await user.click(screen.getByRole('tab', { name: 'InBody' }));
     await user.click(screen.getByRole('button', { name: 'Tạo mới' }));
     expect(screen.getByRole('dialog', { name: 'Tạo InBody' })).toBeInTheDocument();
   });
@@ -159,7 +182,7 @@ describe('PortalPage', () => {
   it('PT thêm buổi và bài tập trực tiếp trong popup giáo án', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
-    await user.click(screen.getByRole('button', { name: 'Giáo án' }));
+    await user.click(screen.getByRole('tab', { name: 'Giáo án' }));
     await user.click(screen.getByRole('button', { name: 'Tạo mới' }));
     await user.click(screen.getByRole('button', { name: 'Thêm buổi tập' }));
     await user.click(screen.getByRole('button', { name: 'Thêm bài tập' }));
@@ -168,10 +191,26 @@ describe('PortalPage', () => {
     expect(screen.queryByLabelText(/JSON/)).not.toBeInTheDocument();
   });
 
+  it('route portal không tồn tại hiển thị trang khôi phục đúng vai trò', async () => {
+    function Location() { return <span data-testid="invalid-route">{useLocation().pathname}</span>; }
+    render(<MemoryRouter initialEntries={['/portal/khong-ton-tai']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /><Location /></ToastProvider></MemoryRouter>);
+
+    expect(await screen.findByRole('heading', { name: 'Không tìm thấy trang' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Quay về trang dành cho PT' })).toHaveAttribute('href', '/portal/pt/customers');
+    expect(screen.getByTestId('invalid-route')).toHaveTextContent('/portal/khong-ton-tai');
+  });
+
+  it('điều hướng đúng khi PortalPage nằm dưới route cha /portal/* như ứng dụng thật', async () => {
+    render(<MemoryRouter initialEntries={['/portal/pt/customers']}><ToastProvider><Routes><Route path="/portal/*" element={<RawPortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} />} /></Routes></ToastProvider></MemoryRouter>);
+
+    expect(await screen.findByRole('heading', { name: 'Khách hàng của tôi' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Không tìm thấy trang' })).not.toBeInTheDocument();
+  });
+
   it('PT thêm bữa ăn trực tiếp trong popup dinh dưỡng', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
-    await user.click(screen.getByRole('button', { name: 'Dinh dưỡng' }));
+    await user.click(screen.getByRole('tab', { name: 'Dinh dưỡng' }));
     await user.click(screen.getByRole('button', { name: 'Tạo mới' }));
     await user.click(screen.getByRole('button', { name: 'Thêm bữa ăn' }));
     expect(screen.getByLabelText('Tên bữa')).toBeInTheDocument();

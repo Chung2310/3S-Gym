@@ -41,6 +41,11 @@ View your app in AI Studio: https://ai.studio/apps/c9f16f0c-380d-4f8a-bd87-6bcf8
 3. Run the app:
    `npm run dev`
 
+   The command starts the complete development application at
+   `http://localhost:3008`: Express serves `/api/*` and embeds Vite in
+   middleware mode for the frontend and hot module replacement. Do not start
+   a separate Vite server on port `5173`.
+
 ---
 
 ## 🚀 Hướng dẫn cấu hình CI/CD (GitHub Actions)
