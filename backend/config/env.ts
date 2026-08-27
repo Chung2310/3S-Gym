@@ -1,5 +1,24 @@
 export type NodeEnvironment = 'development' | 'test' | 'production';
 
+export const APP_POLICY = Object.freeze({
+  JWT_ISSUER: '3s-gym',
+  JWT_AUDIENCE: '3s-gym-api',
+  JWT_ALGORITHM: 'HS256' as const,
+  TRUST_PROXY: false as const,
+  JSON_BODY_LIMIT: '1mb',
+  PROVIDER_TIMEOUT_MS: 15_000,
+  AUTH_RATE_LIMIT_PER_15M: 20,
+  AI_RATE_LIMIT_PER_MINUTE: 10,
+  OCR_MAX_FILE_BYTES: 8_388_608,
+  SHUTDOWN_TIMEOUT_MS: 10_000,
+  AI_MODEL: 'google/gemini-2.5-flash',
+  VECTOR_SEARCH_INDEX: 'knowledge-vector',
+  LOG_MAX_DEPTH: 4,
+  LOG_MAX_COLLECTION_ITEMS: 25,
+  LOG_MAX_STRING_LENGTH: 2_000,
+  ERROR_DEBUG: false as const,
+});
+
 export interface AppEnv {
   NODE_ENV: NodeEnvironment;
   MONGODB_URI: string;
@@ -41,17 +60,17 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     NODE_ENV: nodeEnvironment,
     MONGODB_URI: source.MONGODB_URI?.trim() || 'mongodb://127.0.0.1:27017/3s-gym-test',
     JWT_SECRET: jwtSecret,
-    JWT_ISSUER: source.JWT_ISSUER?.trim() || '3s-gym',
-    JWT_AUDIENCE: source.JWT_AUDIENCE?.trim() || '3s-gym-api',
-    JWT_ALGORITHM: 'HS256',
+    JWT_ISSUER: APP_POLICY.JWT_ISSUER,
+    JWT_AUDIENCE: APP_POLICY.JWT_AUDIENCE,
+    JWT_ALGORITHM: APP_POLICY.JWT_ALGORITHM,
     PORT: port,
     CORS_ORIGINS: (source.CORS_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean),
-    TRUST_PROXY: source.TRUST_PROXY === 'true' ? true : source.TRUST_PROXY === 'false' || !source.TRUST_PROXY ? false : source.TRUST_PROXY,
-    JSON_BODY_LIMIT: source.JSON_BODY_LIMIT?.trim() || '1mb',
-    PROVIDER_TIMEOUT_MS: Number(source.PROVIDER_TIMEOUT_MS || 15_000),
-    AUTH_RATE_LIMIT_PER_15M: Number(source.AUTH_RATE_LIMIT_PER_15M || 20),
-    AI_RATE_LIMIT_PER_MINUTE: Number(source.AI_RATE_LIMIT_PER_MINUTE || 10),
-    OCR_MAX_FILE_BYTES: Number(source.OCR_MAX_FILE_BYTES || 8_388_608),
+    TRUST_PROXY: APP_POLICY.TRUST_PROXY,
+    JSON_BODY_LIMIT: APP_POLICY.JSON_BODY_LIMIT,
+    PROVIDER_TIMEOUT_MS: APP_POLICY.PROVIDER_TIMEOUT_MS,
+    AUTH_RATE_LIMIT_PER_15M: APP_POLICY.AUTH_RATE_LIMIT_PER_15M,
+    AI_RATE_LIMIT_PER_MINUTE: APP_POLICY.AI_RATE_LIMIT_PER_MINUTE,
+    OCR_MAX_FILE_BYTES: APP_POLICY.OCR_MAX_FILE_BYTES,
   };
   return currentEnvironment;
 }

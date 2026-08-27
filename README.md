@@ -73,3 +73,30 @@ Khi mã nguồn được merge thành công vào các nhánh chỉ định, CD s
 * **Nhánh `develop`**: Triển khai lên môi trường **Staging** trên VPS (đường dẫn `/opt/igen-erp/staging`).
 * **Nhánh `production`**: Triển khai lên môi trường **Production** trên VPS (đường dẫn `/opt/igen-erp/production`).
 * Cả hai môi trường đều tự động cập nhật Firebase Cloud Functions, Firestore & Storage Security Rules.
+# 3S Gym
+
+## Cấu hình môi trường
+
+`.env` chỉ dùng cho secret và thông tin phụ thuộc môi trường triển khai: Node environment, port, MongoDB, JWT secret, CORS, tài khoản bootstrap admin, OpenRouter, URL ứng dụng và Cloudinary. Các timeout, rate limit, JWT policy, model AI/OCR, vector index, giới hạn upload/body, log level và shutdown timeout là policy cố định trong `backend/config/env.ts`.
+
+Sau khi triển khai, phải thay ngay `ADMIN_PASSWORD` tạm bằng mật khẩu mạnh. Không commit `.env`; `.env.example` luôn để trống password và API credential.
+
+## Log hệ thống và API
+
+Backend ghi log UTF-8 dễ đọc trong cả development và production:
+
+```text
+[2026-08-27 09:54:11.541] [info]: [REQUEST] POST /api/customers - IP: 172.18.0.1
+[2026-08-27 09:54:11.612] [info]: [RESPONSE] POST /api/customers - 201 - Duration: 71 ms
+```
+
+Mỗi API có `REQUEST` và `RESPONSE` dùng chung request ID. Query, JSON request/response body và lỗi được ghi có giới hạn; password, token, cookie, authorization, API key, secret, base64 và dữ liệu nhị phân luôn được che hoặc tóm tắt. Không ghi prefix của API key.
+
+Log level và các giới hạn metadata được chọn tự động theo policy trong code, không cấu hình qua `.env`.
+
+Nếu PowerShell host cũ vẫn hiển thị sai tiếng Việt, chuyển terminal sang UTF-8 trước khi chạy ứng dụng:
+
+```powershell
+chcp 65001
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+```
