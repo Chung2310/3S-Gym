@@ -17,6 +17,8 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/portal/pt/workouts', label: 'Giáo án & buổi tập', roles: ['PT'], feature: 'PROGRESS' },
   { path: '/portal/pt/progress', label: 'Tiến độ', roles: ['PT'], feature: 'PROGRESS' },
   { path: '/portal/pt/nutrition', label: 'Dinh dưỡng', roles: ['PT'], feature: 'NUTRITION_AI' },
+  { path: '/portal/pt/care', label: 'Chăm sóc', roles: ['PT'], feature: 'CARE' },
+  { path: '/portal/pt/dashboard', label: 'Dashboard PT', roles: ['PT'], feature: 'DASHBOARD' },
   { path: '/consultation', label: 'Trợ lý dinh dưỡng', roles: ['PT'] },
   { path: '/portal/pt/assistant', label: 'PT Assistant', roles: ['PT'], feature: 'PT_ASSISTANT' },
   { path: '/portal/me', label: 'Hành trình của tôi', roles: ['CUSTOMER'] },
