@@ -10,6 +10,7 @@ import NutritionPlan from '../models/NutritionPlan.js';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import MigrationRecord from '../models/MigrationRecord.js';
 import mongoose, { type Model } from 'mongoose';
+import { randomUUID } from 'node:crypto';
 
 interface VersionedContent { version?: number; status?: string }
 
@@ -17,6 +18,19 @@ const featureKeys = ['OCR_INBODY', 'ROADMAP', 'EXERCISE_LIBRARY', 'PROGRESS', 'C
 
 interface MigrationChange { model: string; versionIds: string[]; statusIds: string[] }
 const MIGRATION_VERSION = '001-content-defaults';
+const MIGRATION_NAME = 'Add version and status defaults to legacy content';
+const LOCK_DURATION_MS = 60_000;
+
+function isDuplicateKey(error: unknown) {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 11000;
+}
+
+function sanitizedError(error: unknown) {
+  return {
+    name: error instanceof Error && error.name ? error.name : 'Error',
+    message: 'Migration failed.',
+  };
+}
 
 async function applyContentDefaults() {
   const contentModels: Model<VersionedContent>[] = [KnowledgeDocument, Roadmap, InBodyRecord, Goal, WorkoutPlan, NutritionPlan].map((model) => model as unknown as Model<VersionedContent>);
@@ -36,11 +50,52 @@ async function applyContentDefaults() {
 }
 
 async function runMigrations() {
-  const existing = await MigrationRecord.findOne({ version: MIGRATION_VERSION, status: 'APPLIED' }).lean();
-  if (existing) return { applied: [] as string[] };
-  const metadata = await applyContentDefaults();
-  await MigrationRecord.findOneAndUpdate({ version: MIGRATION_VERSION }, { $set: { name: 'Add version and status defaults to legacy content', status: 'APPLIED', appliedAt: new Date(), metadata }, $unset: { rolledBackAt: 1 } }, { upsert: true, returnDocument: 'after' });
-  return { applied: [MIGRATION_VERSION] };
+  const ownerId = randomUUID();
+  const lockedAt = new Date();
+  const expiresAt = new Date(lockedAt.getTime() + LOCK_DURATION_MS);
+  let lock;
+  try {
+    lock = await MigrationRecord.findOneAndUpdate(
+      {
+        version: MIGRATION_VERSION,
+        $or: [
+          { status: { $in: ['FAILED', 'ROLLED_BACK'] } },
+          { status: 'RUNNING', expiresAt: { $lte: lockedAt } },
+        ],
+      },
+      {
+        $set: { name: MIGRATION_NAME, status: 'RUNNING', ownerId, lockedAt, expiresAt, metadata: {} },
+        $unset: { appliedAt: 1, rolledBackAt: 1, error: 1 },
+      },
+      { upsert: true, returnDocument: 'after' },
+    );
+  } catch (error) {
+    if (isDuplicateKey(error)) return { applied: [] as string[] };
+    throw error;
+  }
+  if (!lock || lock.ownerId !== ownerId) return { applied: [] as string[] };
+
+  try {
+    const metadata = await applyContentDefaults();
+    const applied = await MigrationRecord.findOneAndUpdate(
+      { version: MIGRATION_VERSION, status: 'RUNNING', ownerId },
+      {
+        $set: { status: 'APPLIED', appliedAt: new Date(), metadata },
+        $unset: { ownerId: 1, lockedAt: 1, expiresAt: 1, rolledBackAt: 1, error: 1 },
+      },
+      { returnDocument: 'after' },
+    );
+    return { applied: applied ? [MIGRATION_VERSION] : [] as string[] };
+  } catch (error) {
+    await MigrationRecord.updateOne(
+      { version: MIGRATION_VERSION, status: 'RUNNING', ownerId },
+      {
+        $set: { status: 'FAILED', error: sanitizedError(error) },
+        $unset: { ownerId: 1, lockedAt: 1, expiresAt: 1 },
+      },
+    );
+    throw error;
+  }
 }
 
 async function migrateDown() {
@@ -57,7 +112,7 @@ async function migrateDown() {
 }
 
 async function migrationStatus() {
-  return MigrationRecord.find().sort({ version: 1 }).select({ _id: 0, version: 1, name: 1, status: 1, appliedAt: 1, rolledBackAt: 1 }).lean();
+  return MigrationRecord.find().sort({ version: 1 }).select({ _id: 0, version: 1, name: 1, status: 1, appliedAt: 1, rolledBackAt: 1, error: 1 }).lean();
 }
 
 async function seedReferenceData() {

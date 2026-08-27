@@ -1,9 +1,9 @@
-import bcrypt from 'bcryptjs'; import jwt from 'jsonwebtoken'; import mongoose from 'mongoose'; import { MongoMemoryServer } from 'mongodb-memory-server'; import request from 'supertest';
+import bcrypt from 'bcryptjs'; import jwt from 'jsonwebtoken'; import mongoose from 'mongoose'; import { MongoMemoryReplSet } from 'mongodb-memory-server'; import request from 'supertest';
 import app from '../app.js'; import User, { type UserDocument } from '../models/User.js'; import CustomerProfile from '../models/CustomerProfile.js'; import FeatureFlag from '../models/FeatureFlag.js';
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
-let mongo: MongoMemoryServer; let adminToken: string; let ptToken: string; let customerToken: string; let customerId: string;
+let mongo: MongoMemoryReplSet; let adminToken: string; let ptToken: string; let customerToken: string; let customerId: string;
 beforeAll(async () => {
-  mongo = await MongoMemoryServer.create(); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10);
+  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } }); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10);
   const admin = await User.create({ username: 'admin-ops', password, role: 'ADMIN' }); const pt = await User.create({ username: 'pt-ops', password, role: 'PT' }); const customerUser = await User.create({ username: 'customer-ops', password, role: 'CUSTOMER' });
   const customer = await CustomerProfile.create({ userId: customerUser.id, fullName: 'Khách Ops', phone: '0907000006', assignedPtId: pt.id });
   await FeatureFlag.create({ key: 'PROGRESS', enabled: true, roles: ['PT'] }); await FeatureFlag.create({ key: 'DASHBOARD', enabled: true, roles: ['ADMIN', 'PT'] });

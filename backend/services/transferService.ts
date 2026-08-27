@@ -1,4 +1,4 @@
-import { Types, type QueryFilter } from 'mongoose';
+import { Types, type ClientSession, type QueryFilter } from 'mongoose';
 import TransferRequest, { type ITransferRequest, type TransferStatus } from '../models/TransferRequest.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import User from '../models/User.js';
@@ -8,11 +8,12 @@ import type { AuthenticatedUser } from '../types/express.js';
 import { recordAudit } from './auditService.js';
 import CareAlert from '../models/CareAlert.js';
 import CareTask from '../models/CareTask.js';
+import { withTransaction } from './transactionService.js';
 
-async function reassignOpenCare(customerId: Types.ObjectId, toPtId: Types.ObjectId) {
+async function reassignOpenCare(customerId: Types.ObjectId, toPtId: Types.ObjectId, session: ClientSession) {
   await Promise.all([
-    CareAlert.updateMany({ customerId, status: 'OPEN' }, { $set: { ptId: toPtId } }),
-    CareTask.updateMany({ customerId, status: 'OPEN' }, { $set: { assignedPtId: toPtId } }),
+    CareAlert.updateMany({ customerId, status: 'OPEN' }, { $set: { ptId: toPtId } }, { session }),
+    CareTask.updateMany({ customerId, status: 'OPEN' }, { $set: { assignedPtId: toPtId } }, { session }),
   ]);
 }
 
@@ -64,40 +65,36 @@ async function deleteTransfer(user: AuthenticatedUser, id: string) {
 }
 
 async function resolveTransfer(user: AuthenticatedUser, id: string, action: 'accept' | 'reject') {
-  const transfer = await TransferRequest.findOne({ _id: id, toPtId: user.id, status: 'PENDING' });
-  if (!transfer) throw businessError('Không tìm thấy yêu cầu chuyển PT đang chờ xử lý.', 404);
-  transfer.status = action === 'accept' ? 'ACCEPTED' : 'REJECTED';
-  transfer.resolvedById = new Types.ObjectId(user.id);
-  const resolver = await User.findById(user.id);
-  transfer.resolvedByName = resolver?.fullName || resolver?.username || '';
-  transfer.resolvedAt = new Date();
-  await transfer.save();
-  if (action === 'accept') {
-    await CustomerProfile.updateOne({ _id: transfer.customerId, assignedPtId: transfer.fromPtId }, { assignedPtId: transfer.toPtId });
-    await reassignOpenCare(transfer.customerId, transfer.toPtId);
-  }
-  await recordAudit({ actor: user, action: action === 'accept' ? 'TRANSFER_ACCEPTED' : 'TRANSFER_REJECTED', resourceType: 'transfers', resourceId: transfer.id, customerId: transfer.customerId, metadata: { fromPtId: String(transfer.fromPtId), toPtId: String(transfer.toPtId) } });
-  return transfer;
+  return withTransaction(async (session) => {
+    const transfer = await TransferRequest.findOne({ _id: id, toPtId: user.id, status: 'PENDING' }).session(session);
+    if (!transfer) throw businessError('Không tìm thấy yêu cầu chuyển PT đang chờ xử lý.', 404);
+    transfer.status = action === 'accept' ? 'ACCEPTED' : 'REJECTED'; transfer.resolvedById = new Types.ObjectId(user.id);
+    const resolver = await User.findById(user.id).session(session); transfer.resolvedByName = resolver?.fullName || resolver?.username || ''; transfer.resolvedAt = new Date();
+    await transfer.save({ session });
+    if (action === 'accept') {
+      await CustomerProfile.updateOne({ _id: transfer.customerId, assignedPtId: transfer.fromPtId }, { assignedPtId: transfer.toPtId }, { session });
+      await reassignOpenCare(transfer.customerId, transfer.toPtId, session);
+    }
+    await recordAudit({ actor: user, action: action === 'accept' ? 'TRANSFER_ACCEPTED' : 'TRANSFER_REJECTED', resourceType: 'transfers', resourceId: transfer.id, customerId: transfer.customerId, metadata: { fromPtId: String(transfer.fromPtId), toPtId: String(transfer.toPtId) } }, session);
+    return transfer;
+  });
 }
 
 async function forceTransfer(user: AuthenticatedUser, requestId: string, payload: TransferPayload) {
-  const customer = await CustomerProfile.findById(payload.customerId);
-  if (!customer) throw businessError('Không tìm thấy khách hàng.', 404);
   const toPt = await assertActivePt(payload.toPtId);
-  const existing = await TransferRequest.findOne({ _id: requestId, status: 'PENDING' });
-  const transfer = existing || new TransferRequest({ _id: requestId, customerId: customer._id, fromPtId: customer.assignedPtId, toPtId: payload.toPtId, reason: payload.reason });
-  transfer.toPtId = new Types.ObjectId(payload.toPtId);
-  transfer.toPtName = toPt.fullName || toPt.username;
-  transfer.reason = payload.reason;
-  transfer.status = 'ADMIN_FORCED';
-  transfer.resolvedById = new Types.ObjectId(user.id);
-  transfer.resolvedByName = user.fullName || user.username || '';
-  transfer.resolvedAt = new Date();
-  await transfer.save();
-  await CustomerProfile.updateOne({ _id: customer._id }, { assignedPtId: transfer.toPtId });
-  await reassignOpenCare(customer._id, transfer.toPtId);
-  await recordAudit({ actor: user, action: 'TRANSFER_ADMIN_FORCED', resourceType: 'transfers', resourceId: transfer.id, customerId: customer._id, metadata: { fromPtId: String(transfer.fromPtId), toPtId: String(transfer.toPtId), reason: transfer.reason } });
-  return transfer;
+  return withTransaction(async (session) => {
+    const customer = await CustomerProfile.findById(payload.customerId).session(session);
+    if (!customer) throw businessError('Không tìm thấy khách hàng.', 404);
+    const existing = await TransferRequest.findOne({ _id: requestId, status: 'PENDING' }).session(session);
+    const transfer = existing || new TransferRequest({ _id: requestId, customerId: customer._id, fromPtId: customer.assignedPtId, toPtId: payload.toPtId, reason: payload.reason });
+    transfer.toPtId = new Types.ObjectId(payload.toPtId); transfer.toPtName = toPt.fullName || toPt.username; transfer.reason = payload.reason;
+    transfer.status = 'ADMIN_FORCED'; transfer.resolvedById = new Types.ObjectId(user.id); transfer.resolvedByName = user.fullName || user.username || ''; transfer.resolvedAt = new Date();
+    await transfer.save({ session });
+    await CustomerProfile.updateOne({ _id: customer._id }, { assignedPtId: transfer.toPtId }, { session });
+    await reassignOpenCare(customer._id, transfer.toPtId, session);
+    await recordAudit({ actor: user, action: 'TRANSFER_ADMIN_FORCED', resourceType: 'transfers', resourceId: transfer.id, customerId: customer._id, metadata: { fromPtId: String(transfer.fromPtId), toPtId: String(transfer.toPtId), reason: transfer.reason } }, session);
+    return transfer;
+  });
 }
 
 async function listTransfers(user: AuthenticatedUser, query: TransferQuery) {

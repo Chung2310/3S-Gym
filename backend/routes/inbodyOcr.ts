@@ -5,9 +5,12 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 import { requireFeature } from '../middlewares/requireFeature.js';
 import { validate, type ValidationIssue } from '../middlewares/validate.js';
 import * as controller from '../controllers/inbodyOcrController.js';
+import { getEnv } from '../config/env.js';
+import { createRateLimiter } from '../middlewares/rateLimit.js';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const env = getEnv();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: env.OCR_MAX_FILE_BYTES } });
 const validator = (req: Request): ValidationIssue[] => {
   const errors: ValidationIssue[] = [];
   if (!mongoose.isValidObjectId(req.body.customerId)) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' });
@@ -17,5 +20,5 @@ const validator = (req: Request): ValidationIssue[] => {
   return errors;
 };
 
-router.post('/', authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), upload.single('image'), validate(validator), controller.create);
+router.post('/', createRateLimiter({ limit: env.AI_RATE_LIMIT_PER_MINUTE, windowMs: 60_000 }), authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), upload.single('image'), validate(validator), controller.create);
 export default router;
