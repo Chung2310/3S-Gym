@@ -1,0 +1,9 @@
+import CustomerProfile from '../models/CustomerProfile.js'; import NutritionPlan from '../models/NutritionPlan.js'; import WorkoutPlan from '../models/WorkoutPlan.js'; import { generateText } from './aiProvider.js'; import { AppError } from '../errors/AppError.js'; import { ERROR_CODES } from '../errors/errorCodes.js'; import type { AuthenticatedUser } from '../types/express.js';
+function parseJson(text: string): Record<string, unknown> { const match = text.match(/\{[\s\S]*\}/); if (!match) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả nội dung có cấu trúc hợp lệ.' }); try { return JSON.parse(match[0]) as Record<string, unknown>; } catch (cause) { throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả nội dung có cấu trúc hợp lệ.', cause }); } }
+export async function createDraft(user: AuthenticatedUser, kind: 'nutrition' | 'workout', customerId: string, request: string) {
+  const customer = await CustomerProfile.findById(customerId).lean(); if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' }); if (String(customer.assignedPtId) !== user.id) throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền quản lý khách hàng này.' });
+  const prompt = kind === 'nutrition' ? `Tạo kế hoạch dinh dưỡng JSON cho ${customer.fullName}. Yêu cầu: ${request}. Trả title,targetCalories,macros,menu.` : `Tạo giáo án JSON cho ${customer.fullName}. Yêu cầu: ${request}. Trả title,sessions.`;
+  const generated = parseJson(await generateText(prompt));
+  const common = { ...generated, customerId: customer._id, ptId: user.id, createdByAi: true, reviewStatus: 'PT_REVIEW_REQUIRED' as const, status: 'DRAFT' as const, publishedAt: null, version: 1 };
+  return kind === 'nutrition' ? NutritionPlan.create(common) : WorkoutPlan.create(common);
+}

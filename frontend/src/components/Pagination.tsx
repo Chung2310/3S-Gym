@@ -1,0 +1,2 @@
+interface PaginationProps { page: number; totalPages: number; onPageChange: (page: number) => void | Promise<void> }
+export default function Pagination({ page, totalPages, onPageChange }: PaginationProps) { if (totalPages <= 1) return null; return <nav className="pagination" aria-label="Phân trang"><button type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Trang trước</button><span>Trang {page}/{totalPages}</span><button type="button" aria-label="Trang sau" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Trang sau</button></nav>; }
