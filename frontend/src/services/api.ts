@@ -1,11 +1,14 @@
 import { API_BASE_URL } from '../config';
 import type { ApiErrorBody, ApiResult } from '../types';
+import { clearSession } from './session';
 
 export class ApiError extends Error {
   errors: Array<{ field: string; message: string }>;
   status: number;
-  constructor(message: string, status: number, errors: Array<{ field: string; message: string }> = []) {
-    super(message); this.name = 'ApiError'; this.errors = errors; this.status = status;
+  code: string;
+  requestId: string;
+  constructor(message: string, status: number, code = 'UNKNOWN_ERROR', requestId = '', errors: Array<{ field: string; message: string }> = []) {
+    super(message); this.name = 'ApiError'; this.errors = errors; this.status = status; this.code = code; this.requestId = requestId;
   }
 }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null; }
@@ -19,10 +22,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<ApiR
   const payload = isRecord(rawPayload) ? rawPayload : {};
   if (!response.ok || payload.success === false) {
     const errorBody = payload as ApiErrorBody;
-    throw new ApiError(errorBody.message || 'Không thể thực hiện yêu cầu.', response.status, errorBody.errors || []);
+    if (response.status === 401) clearSession();
+    throw new ApiError(errorBody.message || 'Không thể thực hiện yêu cầu.', response.status, errorBody.code, errorBody.requestId, errorBody.errors || []);
   }
   if (!('data' in payload)) throw new ApiError('Phản hồi từ máy chủ không hợp lệ.', response.status);
-  return { data: payload.data as T, meta: payload.meta as ApiResult<T>['meta'], message: typeof payload.message === 'string' ? payload.message : '' };
+  return { data: payload.data as T, meta: payload.meta as ApiResult<T>['meta'], message: typeof payload.message === 'string' ? payload.message : '', ...('summary' in payload ? { summary: payload.summary } : {}) };
 }
 export const api = {
   get: <T = unknown>(path: string) => request<T>(path),

@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
 import PortalPage from './PortalPage';
 import { ToastProvider } from '../components/ToastProvider';
@@ -10,10 +10,19 @@ import { api } from '../services/api';
 import type { UserRole } from '../types';
 
 vi.mock('../services/api', () => ({
-  api: { get: vi.fn().mockResolvedValue({ data: [], meta: { page: 1, totalPages: 0 } }), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+  api: { get: vi.fn().mockImplementation(async (path: string) => path.startsWith('/api/dashboard/admin')
+    ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
+    : { data: [], meta: { page: 1, totalPages: 0 }, message: '' }), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+const defaultGet = async (path: string) => path.startsWith('/api/dashboard/admin')
+  ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
+  : { data: [], meta: { page: 1, totalPages: 0 }, message: '' };
+
 describe('PortalPage', () => {
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset().mockImplementation(defaultGet);
+  });
   it('Admin thêm PT bằng popup có đầy đủ thông tin', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'admin', role: 'ADMIN' } }} /></ToastProvider></MemoryRouter>);
@@ -38,7 +47,9 @@ describe('PortalPage', () => {
 
   it('Admin sửa PT trong popup với dữ liệu điền sẵn', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.get).mockResolvedValueOnce({ data: [{ _id: 'pt-1', username: 'pt-lan', fullName: 'PT Lan', phone: '0901234567', email: 'lan@example.com', specialization: 'Yoga', certificates: ['RYT 200'], status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' });
+    vi.mocked(api.get).mockImplementation(async (path: string) => path.startsWith('/api/dashboard/admin')
+      ? { data: { totalPts: 1, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers'] }, message: '' }
+      : { data: [{ _id: 'pt-1', username: 'pt-lan', fullName: 'PT Lan', phone: '0901234567', email: 'lan@example.com', specialization: 'Yoga', certificates: ['RYT 200'], status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' });
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'admin', role: 'ADMIN' } }} /></ToastProvider></MemoryRouter>);
 
     const editButtons = await screen.findAllByRole('button', { name: 'Sửa' });
@@ -59,6 +70,19 @@ describe('PortalPage', () => {
   ])('hiển thị màn hình phù hợp vai trò %s', async (role, heading) => {
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: role.toLowerCase(), role } }} /></ToastProvider></MemoryRouter>);
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+  });
+
+  it.each<[UserRole, string]>([
+    ['ADMIN', '/portal/admin'],
+    ['PT', '/portal/pt/customers'],
+    ['CUSTOMER', '/portal/me'],
+  ])('điều hướng vai trò %s tới route riêng', async (role, expectedPath) => {
+    function Location() {
+      const { pathname } = useLocation();
+      return <span data-testid="route-path">{pathname}</span>;
+    }
+    render(<MemoryRouter initialEntries={['/portal']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: role.toLowerCase(), role } }} /><Location /></ToastProvider></MemoryRouter>);
+    expect(await screen.findByTestId('route-path')).toHaveTextContent(expectedPath);
   });
 
   it('PT có thao tác cấp tài khoản cho khách chưa có user', async () => {
