@@ -2,12 +2,20 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter as RouterMemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
-import PortalPage from './PortalPage';
+import RawPortalPage from './PortalPage';
 import { ToastProvider } from '../components/ToastProvider';
 import { api } from '../services/api';
 import type { UserRole } from '../types';
+
+function MemoryRouter({ children, initialEntries = ['/portal'] }: React.ComponentProps<typeof RouterMemoryRouter>) {
+  return <RouterMemoryRouter initialEntries={initialEntries}>{children}</RouterMemoryRouter>;
+}
+
+function PortalPage(props: React.ComponentProps<typeof RawPortalPage>) {
+  return <Routes><Route path="/portal/*" element={<RawPortalPage {...props} />} /></Routes>;
+}
 
 vi.mock('../services/api', () => ({
   api: { get: vi.fn().mockImplementation(async (path: string) => path.startsWith('/api/dashboard/admin')
@@ -166,6 +174,22 @@ describe('PortalPage', () => {
     expect(screen.getByLabelText('Tên buổi 1')).toBeInTheDocument();
     expect(screen.getByLabelText('Tên bài tập')).toBeInTheDocument();
     expect(screen.queryByLabelText(/JSON/)).not.toBeInTheDocument();
+  });
+
+  it('route portal không tồn tại hiển thị trang khôi phục đúng vai trò', async () => {
+    function Location() { return <span data-testid="invalid-route">{useLocation().pathname}</span>; }
+    render(<MemoryRouter initialEntries={['/portal/khong-ton-tai']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /><Location /></ToastProvider></MemoryRouter>);
+
+    expect(await screen.findByRole('heading', { name: 'Không tìm thấy trang' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Quay về trang dành cho PT' })).toHaveAttribute('href', '/portal/pt/customers');
+    expect(screen.getByTestId('invalid-route')).toHaveTextContent('/portal/khong-ton-tai');
+  });
+
+  it('điều hướng đúng khi PortalPage nằm dưới route cha /portal/* như ứng dụng thật', async () => {
+    render(<MemoryRouter initialEntries={['/portal/pt/customers']}><ToastProvider><Routes><Route path="/portal/*" element={<RawPortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} />} /></Routes></ToastProvider></MemoryRouter>);
+
+    expect(await screen.findByRole('heading', { name: 'Khách hàng của tôi' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Không tìm thấy trang' })).not.toBeInTheDocument();
   });
 
   it('PT thêm bữa ăn trực tiếp trong popup dinh dưỡng', async () => {
