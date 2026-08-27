@@ -12,6 +12,8 @@ import ProgressWorkspace from '../features/progress/ProgressWorkspace';
 import NutritionWorkspace from '../features/nutrition/NutritionWorkspace';
 import CareWorkspace from '../features/care/CareWorkspace';
 import PtDashboard from '../features/dashboard/PtDashboard';
+import NotificationCenter from '../features/notifications/NotificationCenter';
+import InternalCalendar from '../features/calendar/InternalCalendar';
 import { FeaturesProvider, useFeatures } from '../services/features';
 import { getSession } from '../services/session';
 import type { Session, User } from '../types';
@@ -29,6 +31,8 @@ function PortalRoutes({ user }: { user: User }) {
 
   return <AppShell user={user} features={features}>
     <Routes>
+      <Route path="/portal/notifications" element={<NotificationCenter />} />
+      <Route path="/portal/calendar" element={<FeatureRoute user={user} roles={['ADMIN', 'PT']}><InternalCalendar role={user.role} /></FeatureRoute>} />
       <Route path="/portal/admin/*" element={<FeatureRoute user={user} roles={['ADMIN']}><AdminRoutes /></FeatureRoute>} />
       <Route path="/portal/pt/inbody" element={<FeatureRoute user={user} roles={['PT']} feature="OCR_INBODY"><InBodyWorkspace /></FeatureRoute>} />
       <Route path="/portal/pt/roadmaps" element={<FeatureRoute user={user} roles={['PT']} feature="ROADMAP"><RoadmapWorkspace /></FeatureRoute>} />

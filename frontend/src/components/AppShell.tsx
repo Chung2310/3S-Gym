@@ -9,6 +9,8 @@ export interface NavigationItem { path: string; label: string; roles: UserRole[]
 interface AppShellProps { user: User; children: ReactNode; features?: FeatureState }
 
 export const portalNavigation: NavigationItem[] = [
+  { path: '/portal/notifications', label: 'Thông báo', roles: ['ADMIN', 'PT', 'CUSTOMER'] },
+  { path: '/portal/calendar', label: 'Lịch nội bộ', roles: ['ADMIN', 'PT'] },
   { path: '/portal/admin', label: 'Quản lý PT', roles: ['ADMIN'] },
   { path: '/portal/pt/customers', label: 'Khách hàng', roles: ['PT'] },
   { path: '/portal/pt/inbody', label: 'InBody OCR', roles: ['PT'], feature: 'OCR_INBODY' },
