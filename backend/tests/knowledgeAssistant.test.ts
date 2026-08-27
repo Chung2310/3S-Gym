@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import request from 'supertest';
 import { vi } from 'vitest';
 vi.mock('../services/aiProvider.js', () => ({ generateText: vi.fn().mockResolvedValue('Đề xuất tư vấn an toàn dựa trên nguồn 3S.') }));
@@ -11,9 +11,9 @@ import CustomerProfile from '../models/CustomerProfile.js';
 import FeatureFlag from '../models/FeatureFlag.js';
 import AuditLog from '../models/AuditLog.js';
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
-let mongo: MongoMemoryServer; let adminToken: string; let ptToken: string; let customerId: string;
+let mongo: MongoMemoryReplSet; let adminToken: string; let ptToken: string; let customerId: string;
 beforeAll(async () => {
-  mongo = await MongoMemoryServer.create(); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10);
+  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } }); await mongoose.connect(mongo.getUri()); const password = await bcrypt.hash('MatKhau123!', 10);
   const admin = await User.create({ username: 'admin-kb', password, role: 'ADMIN' }); const pt = await User.create({ username: 'pt-assistant', password, role: 'PT' });
   const customer = await CustomerProfile.create({ fullName: 'Khách AI', phone: '0907000005', assignedPtId: pt.id });
   await FeatureFlag.create({ key: 'KNOWLEDGE_BASE', enabled: true, roles: ['ADMIN', 'PT'] }); await FeatureFlag.create({ key: 'PT_ASSISTANT', enabled: true, roles: ['PT'] });

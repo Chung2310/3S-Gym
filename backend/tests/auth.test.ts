@@ -11,6 +11,8 @@ let mongo: MongoMemoryReplSet;
 let adminToken: string;
 let ptToken: string;
 let ptId: string;
+const testSecret = process.env.JWT_SECRET || 'secret_key';
+const jwtOptions = { algorithm: 'HS256' as const, issuer: '3s-gym', audience: '3s-gym-api' };
 
 beforeAll(async () => {
   mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
@@ -19,8 +21,8 @@ beforeAll(async () => {
   const admin = await User.create({ username: 'admin', password, role: 'ADMIN' });
   const pt = await User.create({ username: 'pt', password, role: 'PT' });
   ptId = pt.id;
-  adminToken = jwt.sign({ id: admin.id, role: admin.role }, process.env.JWT_SECRET || 'secret_key');
-  ptToken = jwt.sign({ id: pt.id, role: pt.role }, process.env.JWT_SECRET || 'secret_key');
+  adminToken = jwt.sign({ id: admin.id, role: admin.role }, testSecret, jwtOptions);
+  ptToken = jwt.sign({ id: pt.id, role: pt.role }, testSecret, jwtOptions);
 });
 
 describe('PATCH /api/users/:id', () => {
@@ -109,6 +111,18 @@ describe('POST /api/auth/login', () => {
     expect(response.body.message).toBe('Đăng nhập thành công.');
     expect(response.body.data.user).toMatchObject({ username: 'pt', role: 'PT' });
     expect(response.body.data.token).toEqual(expect.any(String));
+    expect(jwt.verify(response.body.data.token, testSecret, {
+      algorithms: ['HS256'], issuer: '3s-gym', audience: '3s-gym-api',
+    })).toMatchObject({ id: ptId, role: 'PT' });
+  });
+
+  it('rejects an issued token after the account is locked', async () => {
+    await User.updateOne({ _id: ptId }, { status: 'LOCKED' });
+    const response = await request(app).get('/api/users').set('Authorization', `Bearer ${ptToken}`);
+    await User.updateOne({ _id: ptId }, { status: 'ACTIVE' });
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toBe('Tài khoản đã bị khóa.');
   });
 
   it('từ chối tài khoản bị khóa', async () => {

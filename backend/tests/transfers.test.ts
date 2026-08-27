@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import request from 'supertest';
 import app from '../app.js';
 import User from '../models/User.js';
@@ -11,7 +11,7 @@ import type { CustomerProfileDocument } from '../models/CustomerProfile.js';
 import AuditLog from '../models/AuditLog.js';
 import CareAlert from '../models/CareAlert.js';
 import CareTask from '../models/CareTask.js';
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 let admin: UserDocument;
 let ptA: UserDocument;
 let ptB: UserDocument;
@@ -23,7 +23,7 @@ let ptBToken: string;
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
 
 beforeAll(async () => {
-  mongo = await MongoMemoryServer.create();
+  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongo.getUri());
   const password = await bcrypt.hash('MatKhau123!', 10);
   [admin, ptA, ptB] = await User.create([

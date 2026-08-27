@@ -45,6 +45,8 @@ async function resolve(user: AuthenticatedUser, id: string, result: string) {
   if (!alert) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy cảnh báo đang mở.' });
   alert.status = 'RESOLVED'; alert.result = result; alert.resolvedAt = new Date(); alert.resolvedById = new Types.ObjectId(user.id); await alert.save();
   await CareLog.create({ customerId: alert.customerId, ptId: alert.ptId, kind: 'ALERT_RESOLVED', referenceId: alert._id, note: result });
+  await recordAudit({ actor: user, action: 'CARE_ALERT_RESOLVED', resourceType: 'careAlert', resourceId: alert.id, customerId: alert.customerId });
+  await createNotificationOnce({ userId: alert.ptId, type: 'CARE_ALERT_RESOLVED', title: 'Cảnh báo đã được xử lý', message: alert.title, resourceType: 'careAlerts', resourceId: alert.id });
   return alert;
 }
 async function createTask(user: AuthenticatedUser, payload: { customerId: string; title: string; dueAt: string }) {

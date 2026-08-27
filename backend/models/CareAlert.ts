@@ -7,4 +7,5 @@ const schema = new Schema<ICareAlert>({
   resolvedAt: Date, resolvedById: { type: Schema.Types.ObjectId, ref: 'User' }, result: { type: String, default: '' },
 }, { timestamps: true });
 schema.index({ customerId: 1, ruleKey: 1 }, { unique: true, partialFilterExpression: { status: 'OPEN' } });
+schema.index({ ptId: 1, status: 1, dueAt: 1 });
 export default mongoose.model<ICareAlert>('CareAlert', schema);

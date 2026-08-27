@@ -3,11 +3,14 @@ import Exercise, { type IExercise } from '../models/Exercise.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { recordAudit } from './auditService.js';
 
 async function create(user: AuthenticatedUser, payload: Partial<IExercise>) {
   const scope = user.role === 'ADMIN' ? (payload.scope || 'GLOBAL') : 'PRIVATE';
   if (user.role === 'PT' && payload.scope === 'GLOBAL') throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'PT không được tạo bài tập dùng chung.' });
-  return Exercise.create({ ...payload, scope, ownerPtId: scope === 'PRIVATE' ? user.id : undefined });
+  const exercise = await Exercise.create({ ...payload, scope, ownerPtId: scope === 'PRIVATE' ? user.id : undefined });
+  await recordAudit({ actor: user, action: 'EXERCISE_CREATED', resourceType: 'exercise', resourceId: exercise.id });
+  return exercise;
 }
 async function list(user: AuthenticatedUser, query: Record<string, unknown>) {
   const page = Number(query.page || 1); const limit = Number(query.limit || 20);
@@ -29,7 +32,9 @@ async function update(user: AuthenticatedUser, id: string, payload: Partial<IExe
   }
   const protectedFields = new Set(['_id', 'ownerPtId', 'scope', 'createdAt', 'updatedAt']);
   for (const [field, value] of Object.entries(payload)) if (!protectedFields.has(field)) exercise.set(field, value);
-  return exercise.save();
+  const saved = await exercise.save();
+  await recordAudit({ actor: user, action: 'EXERCISE_UPDATED', resourceType: 'exercise', resourceId: exercise.id });
+  return saved;
 }
 async function getOwned(user: AuthenticatedUser, id: string) {
   const exercise = await Exercise.findById(id);
@@ -42,5 +47,6 @@ async function remove(user: AuthenticatedUser, id: string) {
   const exercise = await getOwned(user, id);
   if (user.role === 'PT' && exercise.scope === 'GLOBAL') throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'PT không được xóa bài tập dùng chung.' });
   await exercise.deleteOne();
+  await recordAudit({ actor: user, action: 'EXERCISE_DELETED', resourceType: 'exercise', resourceId: exercise.id });
 }
 export { create, list, get, update, remove };

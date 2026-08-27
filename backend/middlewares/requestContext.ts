@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import pinoHttp from 'pino-http';
+import { pinoHttp } from 'pino-http';
 import type { NextFunction, Request, Response } from 'express';
 import { logger } from '../config/logger.js';
 const isSafeRequestId = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9._-]{8,100}$/.test(value);

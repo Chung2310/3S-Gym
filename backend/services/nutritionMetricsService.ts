@@ -1,5 +1,6 @@
 import ActivityCalorie from '../models/ActivityCalorie.js';
 import NutritionFormula from '../models/NutritionFormula.js';
+import { withTransaction } from './transactionService.js';
 interface MetricsInput { sex: 'MALE' | 'FEMALE'; weightKg: number; heightCm: number; age: number; activityFactor: number; goal: 'FAT_LOSS' | 'MAINTAIN' | 'MUSCLE_GAIN' }
 export async function calculateMetrics(input: MetricsInput) {
   const configured = await NutritionFormula.findOne({ name: 'MIFFLIN_ST_JEOR', active: true }).sort({ version: -1 }).lean();
@@ -13,4 +14,12 @@ export async function createActivity(payload: { name: string; category: string; 
 export async function listActivities(query: Record<string, unknown>, includeInactive: boolean) { const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = includeInactive ? {} : { active: true }; if (typeof query.category === 'string') filter.category = query.category; const [items, total] = await Promise.all([ActivityCalorie.find(filter).sort({ name: 1 }).skip((page - 1) * limit).limit(limit).lean(), ActivityCalorie.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
 export async function updateActivity(id: string, payload: { name?: string; category?: string; met?: number; active?: boolean }) { return ActivityCalorie.findByIdAndUpdate(id, { $set: payload }, { returnDocument: 'after', runValidators: true }); }
 export async function estimateActivity(id: string, weightKg: number, durationMinutes: number) { const activity = await ActivityCalorie.findById(id); if (!activity) return null; return { activityId: activity._id, name: activity.name, calories: Math.round(activity.met * 3.5 * weightKg / 200 * durationMinutes), met: activity.met, weightKg, durationMinutes }; }
-export async function createFormula(payload: { name: string; fatLossFactor: number; muscleGainFactor: number; proteinPerKg: number; fatPerKg: number }) { const latest = await NutritionFormula.findOne({ name: payload.name }).sort({ version: -1 }).lean(); const version = (latest?.version || 0) + 1; await NutritionFormula.updateMany({ name: payload.name, active: true }, { $set: { active: false } }); return NutritionFormula.create({ ...payload, version, active: true }); }
+export async function createFormula(payload: { name: string; fatLossFactor: number; muscleGainFactor: number; proteinPerKg: number; fatPerKg: number }) {
+  return withTransaction(async (session) => {
+    const latest = await NutritionFormula.findOne({ name: payload.name }).sort({ version: -1 }).session(session).lean();
+    const version = (latest?.version || 0) + 1;
+    await NutritionFormula.updateMany({ name: payload.name, active: true }, { $set: { active: false } }, { session });
+    const [formula] = await NutritionFormula.create([{ ...payload, version, active: true }], { session });
+    return formula;
+  });
+}

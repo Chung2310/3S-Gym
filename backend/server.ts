@@ -1,12 +1,11 @@
-import dotenv from 'dotenv';
-dotenv.config();
 import app from './app.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { ensureBootstrapAdmin } from './services/userService.js';
 import { initTelemetry, flushTelemetry } from './services/telemetryService.js';
 import { createShutdown } from './services/lifecycleService.js';
 import { logger } from './config/logger.js';
-const PORT = process.env.PORT || 5000;
+import { getEnv } from './config/env.js';
+const PORT = getEnv().PORT;
 
 async function startServer() {
     try {
@@ -22,6 +21,9 @@ async function startServer() {
         const shutdown = createShutdown({ server, disconnect: disconnectDatabase, flush: flushTelemetry, exit: (code: number) => { process.exitCode = code; }, logger, timeoutMs: Number(process.env.SHUTDOWN_TIMEOUT_MS || 10000) });
         process.once('SIGTERM', () => shutdown('SIGTERM', 0));
         process.once('SIGINT', () => shutdown('SIGINT', 0));
+        process.once('message', (message) => {
+            if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'shutdown') void shutdown('IPC', 0);
+        });
         process.once('unhandledRejection', (error) => { logger.fatal({ err: error }, 'Unhandled rejection'); shutdown('unhandledRejection', 1); });
         process.once('uncaughtException', (error) => { logger.fatal({ err: error }, 'Uncaught exception'); shutdown('uncaughtException', 1); });
     } catch (error) {
