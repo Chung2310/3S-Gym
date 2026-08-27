@@ -6,6 +6,11 @@ beforeEach(() => {
 });
 
 describe('api client', () => {
+  it('giữ summary top-level của list response', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true, data: [], summary: { netCalories: 420 } }) });
+    await expect(api.get('/api/nutrition/logs')).resolves.toMatchObject({ summary: { netCalories: 420 } });
+  });
+
   it('giải mã data và meta từ response chuẩn', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

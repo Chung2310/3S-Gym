@@ -26,7 +26,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<ApiR
     throw new ApiError(errorBody.message || 'Không thể thực hiện yêu cầu.', response.status, errorBody.code, errorBody.requestId, errorBody.errors || []);
   }
   if (!('data' in payload)) throw new ApiError('Phản hồi từ máy chủ không hợp lệ.', response.status);
-  return { data: payload.data as T, meta: payload.meta as ApiResult<T>['meta'], message: typeof payload.message === 'string' ? payload.message : '' };
+  return { data: payload.data as T, meta: payload.meta as ApiResult<T>['meta'], message: typeof payload.message === 'string' ? payload.message : '', ...('summary' in payload ? { summary: payload.summary } : {}) };
 }
 export const api = {
   get: <T = unknown>(path: string) => request<T>(path),
