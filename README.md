@@ -75,6 +75,12 @@ Khi mã nguồn được merge thành công vào các nhánh chỉ định, CD s
 * Cả hai môi trường đều tự động cập nhật Firebase Cloud Functions, Firestore & Storage Security Rules.
 # 3S Gym
 
+## Cấu hình môi trường
+
+`.env` chỉ dùng cho secret và thông tin phụ thuộc môi trường triển khai: Node environment, port, MongoDB, JWT secret, CORS, tài khoản bootstrap admin, OpenRouter, URL ứng dụng và Cloudinary. Các timeout, rate limit, JWT policy, model AI/OCR, vector index, giới hạn upload/body, log level và shutdown timeout là policy cố định trong `backend/config/env.ts`.
+
+Sau khi triển khai, phải thay ngay `ADMIN_PASSWORD` tạm bằng mật khẩu mạnh. Không commit `.env`; `.env.example` luôn để trống password và API credential.
+
 ## Log hệ thống và API
 
 Backend ghi log UTF-8 dễ đọc trong cả development và production:
@@ -86,12 +92,7 @@ Backend ghi log UTF-8 dễ đọc trong cả development và production:
 
 Mỗi API có `REQUEST` và `RESPONSE` dùng chung request ID. Query, JSON request/response body và lỗi được ghi có giới hạn; password, token, cookie, authorization, API key, secret, base64 và dữ liệu nhị phân luôn được che hoặc tóm tắt. Không ghi prefix của API key.
 
-Các biến cấu hình:
-
-- `LOG_LEVEL`: level tối thiểu, mặc định `debug` ở development và `info` ở production.
-- `LOG_MAX_STRING_LENGTH`: số ký tự tối đa mỗi chuỗi, mặc định `2000`.
-- `LOG_MAX_DEPTH`: độ sâu object tối đa, mặc định `4`.
-- `LOG_MAX_COLLECTION_ITEMS`: số field/item tối đa, mặc định `25`.
+Log level và các giới hạn metadata được chọn tự động theo policy trong code, không cấu hình qua `.env`.
 
 Nếu PowerShell host cũ vẫn hiển thị sai tiếng Việt, chuyển terminal sang UTF-8 trước khi chạy ứng dụng:
 

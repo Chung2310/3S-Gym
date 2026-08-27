@@ -5,7 +5,7 @@ import { extractInBody } from '../services/ocrProvider.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 
 beforeEach(() => { process.env.OPENROUTER_API_KEY = 'test-provider-key'; });
-afterEach(() => { vi.unstubAllGlobals(); delete process.env.OPENROUTER_API_KEY; });
+afterEach(() => { vi.unstubAllGlobals(); delete process.env.OPENROUTER_API_KEY; delete process.env.AI_MODEL; delete process.env.OCR_MODEL; });
 
 const file = (): Express.Multer.File => {
   const buffer = Buffer.from('image-bytes');
@@ -13,8 +13,11 @@ const file = (): Express.Multer.File => {
 };
 
 it('parses a complete AI response', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: 'Safe answer' } }] }), { status: 200 })));
+  process.env.AI_MODEL = 'attacker/model';
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: 'Safe answer' } }] }), { status: 200 }));
+  vi.stubGlobal('fetch', fetchMock);
   await expect(generateText('prompt')).resolves.toBe('Safe answer');
+  expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({ model: 'google/gemini-2.5-flash' });
 });
 
 it('normalizes AI throttling and empty responses', async () => {
@@ -25,9 +28,12 @@ it('normalizes AI throttling and empty responses', async () => {
 });
 
 it('parses OCR JSON and rejects malformed provider output', async () => {
+  process.env.OCR_MODEL = 'attacker/model';
   const valid = { weight: 62.5, confidence: 0.9, warnings: [] };
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(valid) } }] }), { status: 200 })));
+  const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(valid) } }] }), { status: 200 }));
+  vi.stubGlobal('fetch', fetchMock);
   await expect(extractInBody(file())).resolves.toMatchObject(valid);
+  expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({ model: 'google/gemini-2.5-flash' });
   vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: 'not-json' } }] }), { status: 200 })));
   await expect(extractInBody(file())).rejects.toMatchObject({ status: 502, code: ERROR_CODES.EXTERNAL });
 });

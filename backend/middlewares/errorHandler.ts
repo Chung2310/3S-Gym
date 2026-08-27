@@ -8,7 +8,6 @@ interface ErrorBody {
   code: string;
   requestId: string;
   errors?: unknown;
-  debug?: { stack?: string };
 }
 
 const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
@@ -23,7 +22,6 @@ const errorHandler: ErrorRequestHandler = (error, req, res, next) => {
   captureError(normalized, req);
   const body: ErrorBody = { success: false, message: normalized.message, code: normalized.code, requestId: req.requestId || 'unknown' };
   if (normalized.errors?.length) body.errors = normalized.errors;
-  if (process.env.ERROR_DEBUG === 'true' && process.env.NODE_ENV !== 'production') body.debug = { stack: error.stack };
   return res.status(normalized.status).json(body);
 };
 
