@@ -6,6 +6,28 @@
 
 This contains everything you need to run your app locally.
 
+## MongoDB configuration
+
+The backend reads its MongoDB connection settings from these four environment variables:
+
+```env
+MONGODB_URI=mongodb://localhost:27017/igen-erp
+MONGODB_USER=
+MONGODB_PASSWORD=
+MONGODB_AUTH_SOURCE=admin
+```
+
+Leave `MONGODB_USER` and `MONGODB_PASSWORD` empty when the local MongoDB instance does not require authentication.
+
+## Validation commands
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
 View your app in AI Studio: https://ai.studio/apps/c9f16f0c-380d-4f8a-bd87-6bcf8a623f13
 
 ## Run Locally

@@ -15,11 +15,11 @@ ENV PORT=3008
 
 # Copy dependencies and source
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 COPY backend/ ./backend/
 
 # Copy built frontend assets (dist) to backend/public
 COPY --from=frontend-builder /app/dist ./backend/public
 
 EXPOSE 3008
-CMD ["node", "backend/server.js"]
+CMD ["npm", "start"]
