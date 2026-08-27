@@ -56,3 +56,13 @@ it('PT updates only a private exercise owned by that PT', async () => {
   expect(updated.status).toBe(200);
   expect(updated.body.data).toMatchObject({ name: 'Private Row Updated', scope: 'PRIVATE' });
 });
+
+it('supports exercise detail and owner-controlled deletion', async () => {
+  const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({ name: 'Private Press', muscleGroup: 'CHEST', level: 'BEGINNER', scope: 'PRIVATE', equipment: [] });
+  const id = created.body.data._id;
+  const detail = await request(app).get(`/api/exercises/${id}`).set('Authorization', `Bearer ${ptToken}`);
+  expect(detail.status).toBe(200);
+  expect(detail.body.data._id).toBe(id);
+  expect((await request(app).delete(`/api/exercises/${id}`).set('Authorization', `Bearer ${otherPtToken}`)).status).toBe(403);
+  expect((await request(app).delete(`/api/exercises/${id}`).set('Authorization', `Bearer ${ptToken}`)).status).toBe(200);
+});

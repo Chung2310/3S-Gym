@@ -45,6 +45,9 @@ async function updateTemplate(user: AuthenticatedUser, id: string, payload: Part
   template.version += 1;
   return template.save();
 }
+async function getTemplate(user: AuthenticatedUser, id: string) { const template = await WorkoutTemplate.findOne({ _id: id, ...(user.role === 'PT' ? { ownerPtId: user.id } : {}) }); if (!template) throw fail('Không tìm thấy giáo án mẫu.', 404); return template; }
+async function archiveTemplate(user: AuthenticatedUser, id: string) { const template = await getTemplate(user, id); template.status = 'ARCHIVED'; return template.save(); }
+async function deleteTemplate(user: AuthenticatedUser, id: string) { const template = await getTemplate(user, id); if (template.status !== 'ARCHIVED') throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Hãy lưu trữ giáo án trước khi xóa.' }); if (await WorkoutSession.exists({ templateId: template._id })) throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Không thể xóa giáo án đã có lịch sử tập.' }); await template.deleteOne(); }
 async function createSession(user: AuthenticatedUser, payload: SessionPayload) {
   const ptId = new Types.ObjectId(user.id);
   const customerId = new Types.ObjectId(payload.customerId);
@@ -73,6 +76,9 @@ async function createMeasurement(user: AuthenticatedUser, payload: MeasurementPa
   await customerFor(user, String(payload.customerId));
   return BodyMeasurement.create({ ...payload, ptId: user.id });
 }
+async function listSessions(user: AuthenticatedUser, query: Record<string, unknown>) { const customerId = String(query.customerId); await customerFor(user, customerId); const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = { customerId: new Types.ObjectId(customerId) }; if (query.attendance && ['PRESENT', 'ABSENT', 'LATE'].includes(String(query.attendance))) filter.attendance = query.attendance; const [items, total] = await Promise.all([WorkoutSession.find(filter).sort({ performedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), WorkoutSession.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
+async function updateMeasurement(user: AuthenticatedUser, id: string, payload: Partial<MeasurementPayload> & { notes?: string }) { const item = await BodyMeasurement.findById(id); if (!item) throw fail('Không tìm thấy số đo.', 404); await customerFor(user, String(item.customerId)); for (const field of ['measuredAt', 'weight', 'bodyFatPercentage', 'muscleMass', 'measurements'] as const) if (payload[field] !== undefined) item.set(field, payload[field]); return item.save(); }
+async function deleteMeasurement(user: AuthenticatedUser, id: string) { const item = await BodyMeasurement.findById(id); if (!item) throw fail('Không tìm thấy số đo.', 404); await customerFor(user, String(item.customerId)); await item.deleteOne(); }
 async function getProgress(user: AuthenticatedUser, customerId: string) {
   await customerFor(user, customerId);
   const [measurements, sessions] = await Promise.all([
@@ -81,4 +87,4 @@ async function getProgress(user: AuthenticatedUser, customerId: string) {
   ]);
   return { customerId: new Types.ObjectId(customerId), measurements, sessions };
 }
-export { createTemplate, listTemplates, updateTemplate, createSession, createMeasurement, getProgress };
+export { createTemplate, listTemplates, getTemplate, updateTemplate, archiveTemplate, deleteTemplate, createSession, listSessions, createMeasurement, updateMeasurement, deleteMeasurement, getProgress };

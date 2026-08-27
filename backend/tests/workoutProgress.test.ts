@@ -65,3 +65,24 @@ it('lists templates with pagination and creates a new version when updated', asy
   expect(list.body.meta).toMatchObject({ page: 1, limit: 10 });
   expect(list.body.data.some((item: { _id: string; version: number }) => item._id === created.body.data._id && item.version === 2)).toBe(true);
 });
+
+it('supports template detail, archive and deletion of an unused template', async () => {
+  const created = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({ title: 'Temporary Template', goal: 'MOBILITY', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [{ name: 'Mobility' }] }] });
+  const id = created.body.data._id;
+  expect((await request(app).get(`/api/workout-templates/${id}`).set('Authorization', `Bearer ${token}`)).body.data._id).toBe(id);
+  const archived = await request(app).patch(`/api/workout-templates/${id}/archive`).set('Authorization', `Bearer ${token}`);
+  expect(archived.body.data.status).toBe('ARCHIVED');
+  expect((await request(app).delete(`/api/workout-templates/${id}`).set('Authorization', `Bearer ${token}`)).status).toBe(200);
+});
+
+it('lists workout sessions and allows correcting or deleting body measurements', async () => {
+  const sessions = await request(app).get(`/api/workout-sessions?customerId=${customerId}&page=1&limit=20`).set('Authorization', `Bearer ${token}`);
+  expect(sessions.status).toBe(200);
+  expect(sessions.body.data.length).toBeGreaterThan(0);
+  const created = await request(app).post('/api/body-measurements').set('Authorization', `Bearer ${token}`).send({ customerId, measuredAt: '2026-09-10', weight: 69 });
+  const id = created.body.data._id;
+  const updated = await request(app).patch(`/api/body-measurements/${id}`).set('Authorization', `Bearer ${token}`).send({ weight: 68.8, notes: 'corrected' });
+  expect(updated.status).toBe(200);
+  expect(updated.body.data.weight).toBe(68.8);
+  expect((await request(app).delete(`/api/body-measurements/${id}`).set('Authorization', `Bearer ${token}`)).status).toBe(200);
+});

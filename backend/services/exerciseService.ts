@@ -31,4 +31,16 @@ async function update(user: AuthenticatedUser, id: string, payload: Partial<IExe
   for (const [field, value] of Object.entries(payload)) if (!protectedFields.has(field)) exercise.set(field, value);
   return exercise.save();
 }
-export { create, list, update };
+async function getOwned(user: AuthenticatedUser, id: string) {
+  const exercise = await Exercise.findById(id);
+  if (!exercise) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy bài tập.' });
+  if (user.role === 'PT' && exercise.scope !== 'GLOBAL' && String(exercise.ownerPtId) !== user.id) throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền truy cập bài tập này.' });
+  return exercise;
+}
+async function get(user: AuthenticatedUser, id: string) { return getOwned(user, id); }
+async function remove(user: AuthenticatedUser, id: string) {
+  const exercise = await getOwned(user, id);
+  if (user.role === 'PT' && exercise.scope === 'GLOBAL') throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'PT không được xóa bài tập dùng chung.' });
+  await exercise.deleteOne();
+}
+export { create, list, get, update, remove };

@@ -21,6 +21,7 @@ const queryValidator = (req: Request): ValidationIssue[] => {
   return errors;
 };
 router.get('/', ...base, validate(queryValidator), controller.list);
+router.get('/:id', ...base, validate((req) => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã bài tập không hợp lệ.' }]), controller.get);
 router.post('/', ...base, validate(bodyValidator), controller.create);
 router.patch('/:id', ...base, validate((req) => {
   const errors: ValidationIssue[] = mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'MÃ£ bÃ i táº­p khÃ´ng há»£p lá»‡.' }];
@@ -29,4 +30,5 @@ router.patch('/:id', ...base, validate((req) => {
   for (const field of ['scope', 'ownerPtId']) if (Object.prototype.hasOwnProperty.call(req.body, field)) errors.push({ field, message: `KhÃ´ng Ä‘Æ°á»£c phÃ©p cáº­p nháº­t ${field}.` });
   return errors;
 }), controller.update);
+router.delete('/:id', ...base, validate((req) => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã bài tập không hợp lệ.' }]), controller.remove);
 export default router;
