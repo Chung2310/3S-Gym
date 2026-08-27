@@ -11,6 +11,8 @@ interface AppShellProps { user: User; children: ReactNode; features?: FeatureSta
 export const portalNavigation: NavigationItem[] = [
   { path: '/portal/admin', label: 'Quản lý PT', roles: ['ADMIN'] },
   { path: '/portal/pt/customers', label: 'Khách hàng', roles: ['PT'] },
+  { path: '/portal/pt/inbody', label: 'InBody OCR', roles: ['PT'], feature: 'OCR_INBODY' },
+  { path: '/portal/pt/roadmaps', label: 'Roadmap', roles: ['PT'], feature: 'ROADMAP' },
   { path: '/consultation', label: 'Trợ lý dinh dưỡng', roles: ['PT'] },
   { path: '/portal/pt/assistant', label: 'PT Assistant', roles: ['PT'], feature: 'PT_ASSISTANT' },
   { path: '/portal/me', label: 'Hành trình của tôi', roles: ['CUSTOMER'] },

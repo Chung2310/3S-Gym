@@ -17,4 +17,10 @@ describe('AppShell', () => {
     expect(screen.queryByRole('link', { name: 'PT Assistant' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Quản lý PT' })).not.toBeInTheDocument();
   });
+
+  it('hiển thị workspace InBody và Roadmap cho PT theo feature flags', () => {
+    render(<MemoryRouter><AppShell user={{ username: 'pt-a', role: 'PT' }} features={{ OCR_INBODY: true, ROADMAP: true }}><div>Portal</div></AppShell></MemoryRouter>);
+    expect(screen.getByRole('link', { name: 'InBody OCR' })).toHaveAttribute('href', '/portal/pt/inbody');
+    expect(screen.getByRole('link', { name: 'Roadmap' })).toHaveAttribute('href', '/portal/pt/roadmaps');
+  });
 });
