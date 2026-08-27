@@ -1,5 +1,5 @@
 import type { JwtPayload } from 'jsonwebtoken';
-import type { Logger } from 'pino';
+import type { AppLogger } from '../config/logger.js';
 
 export interface AuthenticatedUser extends JwtPayload {
   id: string;
@@ -13,7 +13,7 @@ declare global {
     interface Request {
       user?: AuthenticatedUser;
       requestId?: string;
-      log?: Logger;
+      log?: AppLogger;
     }
     interface Application {
       frontendReady: Promise<unknown>;
