@@ -2,7 +2,12 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const root = path.resolve(import.meta.dirname, '../..');
-const run = (script: string, args: string[]) => spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-File', path.join(root, 'scripts', script), ...args], { cwd: root, encoding: 'utf8' });
+const powershell = process.platform === 'win32' ? 'powershell.exe' : 'pwsh';
+const run = (script: string, args: string[]) => {
+  const result = spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-File', path.join(root, 'scripts', script), ...args], { cwd: root, encoding: 'utf8' });
+  if (result.error) throw result.error;
+  return result;
+};
 
 it('backup supports staging dry-run without contacting MongoDB', () => {
   const result = run('backup-mongodb.ps1', ['-Environment', 'staging', '-OutputPath', 'backups/test-backup', '-MongoUri', 'mongodb://localhost:27017/test', '-DryRun']);
