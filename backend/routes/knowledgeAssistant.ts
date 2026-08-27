@@ -29,4 +29,9 @@ router.post('/assistant/suggestions', ...assistantBase, validate(suggestionBody)
 router.patch('/assistant/suggestions/:id/approve', ...assistantBase, validate(idValidator), controller.approveSuggestion);
 router.patch('/assistant/suggestions/:id/reject', ...assistantBase, validate(idValidator), controller.rejectSuggestion);
 
+router.get('/assistant/conversations/:id', ...assistantBase, validate(idValidator), controller.getConversation);
+router.get('/assistant/suggestions', ...assistantBase, validate((req) => { const errors = listValidator(req); if (req.query.customerId && !mongoose.isValidObjectId(String(req.query.customerId))) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' }); if (req.query.reviewStatus && !['PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED'].includes(String(req.query.reviewStatus))) errors.push({ field: 'reviewStatus', message: 'Trạng thái duyệt không hợp lệ.' }); return errors; }), controller.listSuggestions);
+router.get('/assistant/suggestions/:id', ...assistantBase, validate(idValidator), controller.getSuggestion);
+router.patch('/assistant/suggestions/:id/apply', ...assistantBase, validate(idValidator), controller.applySuggestion);
+
 export default router;

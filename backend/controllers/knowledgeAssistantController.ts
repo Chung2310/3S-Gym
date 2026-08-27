@@ -2,6 +2,10 @@ import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { success } from '../middlewares/response.js';
 import * as knowledge from '../services/knowledgeService.js';
 import * as assistant from '../services/assistantService.js';
+const getConversation = asyncHandler(async (req, res) => success(res, { message: 'Lấy hội thoại thành công.', data: await assistant.getConversation(req.user!, String(req.params.id)) }));
+const listSuggestions = asyncHandler(async (req, res) => { const result = await assistant.listSuggestions(req.user!, req.query); return success(res, { message: 'Lấy danh sách đề xuất thành công.', data: result.items, meta: result.meta }); });
+const getSuggestion = asyncHandler(async (req, res) => success(res, { message: 'Lấy đề xuất thành công.', data: await assistant.getSuggestion(req.user!, String(req.params.id)) }));
+const applySuggestion = asyncHandler(async (req, res) => success(res, { message: 'Ghi nhận sử dụng đề xuất thành công.', data: await assistant.applySuggestion(req.user!, String(req.params.id)) }));
 
 const createKnowledge = asyncHandler(async (req, res) => success(res, { status: 201, message: 'Tạo tài liệu thành công.', data: await knowledge.createDocument(req.body) }));
 const listKnowledge = asyncHandler(async (req, res) => { const result = await knowledge.listDocuments(req.query); return success(res, { message: 'Lấy danh sách tài liệu thành công.', data: result.items, meta: result.meta }); });
@@ -18,4 +22,4 @@ const createConversation = asyncHandler(async (req, res) => success(res, { statu
 const listConversations = asyncHandler(async (req, res) => { const result = await assistant.listConversations(req.user!, req.query); return success(res, { message: 'Lấy lịch sử hội thoại thành công.', data: result.items, meta: result.meta }); });
 const addConversationMessage = asyncHandler(async (req, res) => success(res, { message: 'Gửi tin nhắn thành công.', data: await assistant.addConversationMessage(req.user!, String(req.params.id), req.body) }));
 
-export { createKnowledge, listKnowledge, updateKnowledge, deleteKnowledge, publishKnowledge, unpublishKnowledge, indexKnowledge, searchKnowledge, createSuggestion, approveSuggestion, rejectSuggestion, createConversation, listConversations, addConversationMessage };
+export { createKnowledge, listKnowledge, updateKnowledge, deleteKnowledge, publishKnowledge, unpublishKnowledge, indexKnowledge, searchKnowledge, createSuggestion, listSuggestions, getSuggestion, approveSuggestion, rejectSuggestion, applySuggestion, createConversation, listConversations, getConversation, addConversationMessage };

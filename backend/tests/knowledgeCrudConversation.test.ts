@@ -53,3 +53,25 @@ it('stores PT Assistant conversation and message history', async () => {
   expect(history.status).toBe(200);
   expect(history.body.data[0]._id).toBe(id);
 });
+
+it('reads conversation detail and tracks reviewed suggestions through explicit use', async () => {
+  const conversation = await request(app).post('/api/assistant/conversations').set('Authorization', `Bearer ${ptToken}`).send({ customerId, title: 'Suggestion workflow' });
+  const conversationId = conversation.body.data._id;
+  const messaged = await request(app).post(`/api/assistant/conversations/${conversationId}/messages`).set('Authorization', `Bearer ${ptToken}`).send({ content: 'Prepare a safe follow-up.', requestType: 'CONSULTATION' });
+  const suggestionId = messaged.body.data.messages[1].suggestionId;
+
+  const detail = await request(app).get(`/api/assistant/conversations/${conversationId}`).set('Authorization', `Bearer ${ptToken}`);
+  expect(detail.status).toBe(200);
+  expect(detail.body.data.messages).toHaveLength(2);
+
+  const suggestions = await request(app).get(`/api/assistant/suggestions?customerId=${customerId}&reviewStatus=PT_REVIEW_REQUIRED&page=1&limit=20`).set('Authorization', `Bearer ${ptToken}`);
+  expect(suggestions.status).toBe(200);
+  expect(suggestions.body.data).toEqual(expect.arrayContaining([expect.objectContaining({ _id: suggestionId })]));
+  expect((await request(app).get(`/api/assistant/suggestions/${suggestionId}`).set('Authorization', `Bearer ${ptToken}`)).status).toBe(200);
+
+  await request(app).patch(`/api/assistant/suggestions/${suggestionId}/approve`).set('Authorization', `Bearer ${ptToken}`).send({ editedContent: 'PT reviewed content.' });
+  const applied = await request(app).patch(`/api/assistant/suggestions/${suggestionId}/apply`).set('Authorization', `Bearer ${ptToken}`);
+  expect(applied.status).toBe(200);
+  expect(applied.body.data.appliedAt).not.toBeNull();
+  expect(await AuditLog.countDocuments({ action: 'ASSISTANT_SUGGESTION_APPLIED', resourceId: suggestionId })).toBe(1);
+});
