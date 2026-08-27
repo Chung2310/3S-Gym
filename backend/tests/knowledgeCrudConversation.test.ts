@@ -9,6 +9,7 @@ import app from '../app.js';
 import User, { type UserDocument } from '../models/User.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import FeatureFlag from '../models/FeatureFlag.js';
+import AuditLog from '../models/AuditLog.js';
 
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
 let mongo: MongoMemoryServer; let adminToken: string; let ptToken: string; let customerId: string;
@@ -31,6 +32,7 @@ it('supports knowledge CRUD, versioning, explicit indexing and unpublish', async
   expect(list.status).toBe(200);
   expect(list.body.data.some((item: { _id: string }) => item._id === id)).toBe(true);
   await request(app).patch(`/api/knowledge/${id}/publish`).set('Authorization', `Bearer ${adminToken}`);
+  expect(await AuditLog.countDocuments({ action: 'KNOWLEDGE_PUBLISHED', resourceId: id })).toBe(1);
   const indexed = await request(app).post(`/api/knowledge/${id}/index`).set('Authorization', `Bearer ${adminToken}`);
   expect(indexed.status).toBe(200);
   expect(indexed.body.data.chunkCount).toBeGreaterThan(0);
@@ -46,7 +48,7 @@ it('stores PT Assistant conversation and message history', async () => {
   const messaged = await request(app).post(`/api/assistant/conversations/${id}/messages`).set('Authorization', `Bearer ${ptToken}`).send({ content: 'Customer reports back discomfort during squat.', requestType: 'CONSULTATION' });
   expect(messaged.status).toBe(200);
   expect(messaged.body.data.messages).toHaveLength(2);
-  expect(messaged.body.data.messages.map((message: { role: string }) => message.role).toEqual(['USER', 'ASSISTANT']);
+  expect(messaged.body.data.messages.map((message: { role: string }) => message.role)).toEqual(['USER', 'ASSISTANT']);
   const history = await request(app).get('/api/assistant/conversations?page=1&limit=20').set('Authorization', `Bearer ${ptToken}`);
   expect(history.status).toBe(200);
   expect(history.body.data[0]._id).toBe(id);

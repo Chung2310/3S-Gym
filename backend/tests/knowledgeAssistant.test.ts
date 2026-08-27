@@ -9,6 +9,7 @@ import app from '../app.js';
 import User, { type UserDocument } from '../models/User.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import FeatureFlag from '../models/FeatureFlag.js';
+import AuditLog from '../models/AuditLog.js';
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
 let mongo: MongoMemoryServer; let adminToken: string; let ptToken: string; let customerId: string;
 beforeAll(async () => {
@@ -39,4 +40,5 @@ it('PT Assistant tạo suggestion chờ duyệt, có citation và không tự á
   const approved = await request(app).patch(`/api/assistant/suggestions/${response.body.data._id}/approve`).set('Authorization', `Bearer ${ptToken}`).send({ editedContent: 'Nội dung PT đã kiểm tra.' });
   expect(approved.status).toBe(200);
   expect(approved.body.data.reviewStatus).toBe('APPROVED');
+  expect(await AuditLog.countDocuments({ action: 'ASSISTANT_SUGGESTION_APPROVED', resourceId: response.body.data._id })).toBe(1);
 });
