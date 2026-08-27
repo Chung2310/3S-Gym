@@ -37,22 +37,23 @@ describe('PortalPage', () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'admin', role: 'ADMIN' } }} /></ToastProvider></MemoryRouter>);
 
-    await user.click(await screen.findByRole('button', { name: 'Tạo PT' }));
+    await user.click(await screen.findByRole('tab', { name: 'Huấn luyện viên (PT)' }));
+    await user.click(await screen.findByRole('button', { name: 'Thêm Huấn luyện viên' }));
 
-    expect(screen.getByRole('dialog', { name: 'Thêm PT' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Tải ảnh lên')).toBeInTheDocument();
-    expect(screen.getByLabelText('Họ tên')).toBeRequired();
+    expect(screen.getByRole('dialog', { name: 'Thêm Huấn luyện viên mới' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Chọn ảnh tải lên')).toBeInTheDocument();
+    expect(screen.getByLabelText('Họ và tên')).toBeRequired();
     expect(screen.getByLabelText('Ngày sinh')).toBeInTheDocument();
     expect(screen.getByLabelText('Giới tính')).toBeInTheDocument();
     expect(screen.getByLabelText('Số điện thoại')).toBeRequired();
     expect(screen.getByLabelText('Địa chỉ')).toBeInTheDocument();
-    expect(screen.getByLabelText('Chuyên môn')).toBeInTheDocument();
+    expect(screen.getByLabelText('Chuyên môn huấn luyện')).toBeInTheDocument();
     expect(screen.getByLabelText('Số năm kinh nghiệm')).toBeInTheDocument();
-    expect(screen.getByLabelText('Chứng chỉ')).toBeInTheDocument();
-    expect(screen.getByLabelText('Giới thiệu')).toBeInTheDocument();
+    expect(screen.getByLabelText('Chứng chỉ & Bằng cấp (mỗi dòng một chứng chỉ)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Giới thiệu bản thân & Triết lý huấn luyện')).toBeInTheDocument();
     expect(screen.getByLabelText('Tên đăng nhập')).toBeRequired();
     expect(screen.getByLabelText('Mật khẩu ban đầu')).toBeRequired();
-    expect(screen.getByLabelText('Trạng thái')).toBeInTheDocument();
+    expect(screen.getByLabelText('Trạng thái tài khoản')).toBeInTheDocument();
   });
 
   it('Admin sửa PT trong popup với dữ liệu điền sẵn', async () => {
@@ -62,19 +63,20 @@ describe('PortalPage', () => {
       : { data: [{ _id: 'pt-1', username: 'pt-lan', fullName: 'PT Lan', phone: '0901234567', email: 'lan@example.com', specialization: 'Yoga', certificates: ['RYT 200'], status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' });
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'admin', role: 'ADMIN' } }} /></ToastProvider></MemoryRouter>);
 
+    await user.click(await screen.findByRole('tab', { name: 'Huấn luyện viên (PT)' }));
     const editButtons = await screen.findAllByRole('button', { name: 'Sửa' });
     await user.click(editButtons[0]);
 
-    expect(screen.getByRole('dialog', { name: 'Sửa PT' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Họ tên')).toHaveValue('PT Lan');
+    expect(screen.getByRole('dialog', { name: 'Cập nhật hồ sơ Huấn luyện viên' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Họ và tên')).toHaveValue('PT Lan');
     expect(screen.getByLabelText('Tên đăng nhập')).toHaveValue('pt-lan');
     expect(screen.getByLabelText('Tên đăng nhập')).toHaveAttribute('readonly');
-    expect(screen.getByLabelText('Mật khẩu mới')).not.toBeRequired();
-    expect(screen.getByLabelText('Chứng chỉ')).toHaveValue('RYT 200');
+    expect(screen.getByLabelText('Mật khẩu mới (để trống nếu không đổi)')).not.toBeRequired();
+    expect(screen.getByLabelText('Chứng chỉ & Bằng cấp (mỗi dòng một chứng chỉ)')).toHaveValue('RYT 200');
   });
 
   it.each<[UserRole, string]>([
-    ['ADMIN', 'Quản lý tài khoản PT'],
+    ['ADMIN', 'Tổng quan hệ thống'],
     ['PT', 'Khách hàng của tôi'],
     ['CUSTOMER', 'Hành trình của tôi'],
   ])('hiển thị màn hình phù hợp vai trò %s', async (role, heading) => {
