@@ -18,7 +18,7 @@ function MainContent() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/consultation" element={<ConsultationTool />} />
+          <Route path="/consultation" element={<ProtectedRoute><ConsultationTool /></ProtectedRoute>} />
           <Route path="/portal" element={<ProtectedRoute><PortalPage /></ProtectedRoute>} />
         </Routes>
       </main>
