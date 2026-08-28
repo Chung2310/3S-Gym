@@ -41,7 +41,6 @@ const ptTabs: PtTabItem[] = [
   { value: 'goals', label: 'Mục tiêu', icon: Target },
   { value: 'workout-plans', label: 'Giáo án', icon: Dumbbell },
   { value: 'nutrition-plans', label: 'Dinh dưỡng', icon: Salad },
-  { value: 'transfers', label: 'Chuyển PT', icon: ArrowRightLeft },
 ];
 
 export function PtView() {
