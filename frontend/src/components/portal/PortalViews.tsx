@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowRightLeft, Check, Dumbbell, Pencil, Plus, RefreshCw, Ruler, Salad, Send, Target, Users, X, Search, RotateCcw, type LucideIcon } from 'lucide-react';
+import { ArrowRightLeft, Check, Dumbbell, Pencil, Phone, Plus, RefreshCw, Ruler, Salad, Send, Target, Users, X, Search, RotateCcw, type LucideIcon } from 'lucide-react';
 import ConfirmModal from '../ui/ConfirmModal';
 import ContentFormModal from '../ui/ContentFormModal';
 import CustomerAccountModal from '../ui/CustomerAccountModal';
@@ -11,6 +11,7 @@ import Pagination from '../ui/Pagination';
 import PtPackageManagerModal from '../ui/PtPackageManagerModal';
 import StatusBadge from '../ui/StatusBadge';
 import TransferFormModal from '../ui/TransferFormModal';
+import CustomerSelect from '../ui/CustomerSelect';
 import PtManagementView from '../admin/PtManagementView';
 import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
@@ -60,6 +61,7 @@ export function PtView() {
   const [accountCustomer, setAccountCustomer] = useState<PortalItem | null>(null);
   const [packageCustomer, setPackageCustomer] = useState<PortalItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PortalItem | null>(null);
+
   const load = useCallback(async (page = 1) => { try { const params = new URLSearchParams({ page: String(page), limit: '20' }); if (tab === 'customers' && keyword) params.set('keyword', keyword); if (tab === 'customers' && customerStatus) params.set('status', customerStatus); if (tab !== 'customers' && statusFilter) params.set('status', statusFilter); if (tab !== 'customers' && customerFilter) params.set('customerId', customerFilter); const result = await api.get<PortalItem[]>(`/api/${tab}?${params}`); setItems(result.data); if (result.meta) setMeta(result.meta); } catch (error) { toast.error(errorMessage(error)); } }, [tab, keyword, customerStatus, statusFilter, customerFilter, toast]);
   useEffect(() => { load(); }, [load]);
   const publish = async () => { if (!confirm) return; try { const result = await api.patch(`/api/${tab}/${confirm._id}/${confirm.status === 'PUBLISHED' ? 'unpublish' : 'publish'}`); toast.success(result.message); setConfirm(null); load(); } catch (error) { toast.error(errorMessage(error)); } };
@@ -77,10 +79,31 @@ export function PtView() {
     try { const path = tab === 'customers' ? `/api/customers/${deleteTarget._id}` : `/api/${tab}/${deleteTarget._id}`; const result = await api.delete(path); toast.success(result.message); setDeleteTarget(null); load(); }
     catch (error) { toast.error(errorMessage(error)); }
   };
+
+  const renderCustomerCell = (item: PortalItem) => {
+    const raw = item.customerId;
+    if (raw && typeof raw === 'object' && 'fullName' in (raw as object)) {
+      const c = raw as { _id?: string; fullName?: string; phone?: string };
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <strong style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.88rem' }}>{c.fullName || '—'}</strong>
+          {c.phone && (
+            <span style={{ fontSize: '0.76rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Phone size={11} style={{ color: '#0284c7' }} />
+              <span>{c.phone}</span>
+            </span>
+          )}
+        </div>
+      );
+    }
+    const idStr = String(raw || '—');
+    return <span style={{ color: '#334155', fontWeight: 500 }}>{idStr}</span>;
+  };
+
   const columns = useMemo<DataColumn<PortalItem>[]>(() => {
     if (tab === 'customers') return [{ key: 'fullName', label: 'Họ tên' }, { key: 'phone', label: 'Số điện thoại' }, { key: 'initialGoal', label: 'Mục tiêu' }, { key: 'packages', label: 'Gói tập', render: (item) => <button className="text-button" onClick={() => setPackageCustomer(item)}>Gói PT</button> }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];
-    if (tab === 'transfers') return [{ key: 'customerId', label: 'Khách hàng' }, { key: 'fromPtId', label: 'PT chuyển' }, { key: 'toPtId', label: 'PT nhận' }, { key: 'reason', label: 'Lý do' }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];
-    return [{ key: 'title', label: tab === 'inbody' ? 'Ngày đo' : 'Tên nội dung', render: (item) => item.title || (item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : '—') }, { key: 'customerId', label: 'Khách hàng' }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];
+    if (tab === 'transfers') return [{ key: 'customerId', label: 'Khách hàng', render: renderCustomerCell }, { key: 'fromPtId', label: 'PT chuyển' }, { key: 'toPtId', label: 'PT nhận' }, { key: 'reason', label: 'Lý do' }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];
+    return [{ key: 'title', label: tab === 'inbody' ? 'Ngày đo' : 'Tên nội dung', render: (item) => item.title || (item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : '—') }, { key: 'customerId', label: 'Khách hàng', render: renderCustomerCell }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];
   }, [tab]);
   const openCreateForm = () => {
     if (tab === 'customers') setCustomerForm({ open: true, customer: null });
@@ -120,22 +143,17 @@ export function PtView() {
             )}
           </FilterBar>
         ) : (
-          <div className="filter-bar">
-            <div className="search-field" style={{ maxWidth: '300px' }}>
-              <Search size={16} className="search-icon" aria-hidden="true" />
-              <input
-                aria-label="Lọc theo mã khách hàng"
+          <div className="filter-bar" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ minWidth: '280px', flex: '1 1 280px' }}>
+              <CustomerSelect
+                label=""
+                name="customerFilter"
                 value={customerFilter}
-                onChange={(event) => setCustomerFilter(event.target.value)}
-                placeholder="Nhập mã khách hàng..."
+                onChange={(val) => setCustomerFilter(val)}
+                placeholder="Lọc theo học viên (tên hoặc SĐT)..."
               />
-              {customerFilter && (
-                <button type="button" className="search-clear-btn" onClick={() => setCustomerFilter('')} aria-label="Xóa mã khách hàng">
-                  <X size={12} />
-                </button>
-              )}
             </div>
-            <select aria-label="Lọc theo trạng thái" className="filter-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <select aria-label="Lọc theo trạng thái" className="filter-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} style={{ minHeight: '44px' }}>
               <option value="">Tất cả trạng thái</option>
               {tab === 'transfers' ? <>
                 <option value="PENDING">Chờ xác nhận</option>
@@ -147,11 +165,11 @@ export function PtView() {
                 <option value="PUBLISHED">Đã công bố</option>
               </>}
             </select>
-            <button className="button button-secondary" onClick={() => load()}>
+            <button className="button button-secondary" onClick={() => load()} style={{ minHeight: '44px' }}>
               <RefreshCw size={15} /> Lọc
             </button>
             {(customerFilter || statusFilter) && (
-              <button className="button-filter-reset" onClick={() => { setCustomerFilter(''); setStatusFilter(''); }}>
+              <button className="button-filter-reset" onClick={() => { setCustomerFilter(''); setStatusFilter(''); }} style={{ minHeight: '44px' }}>
                 <RotateCcw size={13} /> Xóa lọc
               </button>
             )}

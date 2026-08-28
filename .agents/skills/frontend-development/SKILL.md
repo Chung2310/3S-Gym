@@ -138,11 +138,27 @@ try {
 
 ---
 
-## 5. Quy Tắc Kiểm Thử (Testing Guidelines)
+---
+
+## 5. Quy Tắc Bỏ Qua Kiểm Thử (Test Bypass Policy)
 
 > [!IMPORTANT]
-> **Chỉ viết file test khi người dùng yêu cầu cụ thể.**
-> Khi viết test:
-> - **KHÔNG** đặt file `.test.ts` / `.test.tsx` chung thư mục với mã nguồn `src/`.
-> - **TẤT CẢ** file test phải đặt trong thư mục `frontend/tests/` theo đúng cấu trúc phân cấp tương ứng.
-> - Khai báo môi trường `// @vitest-environment jsdom` và `import '@testing-library/jest-dom/vitest';` ở đầu file test.
+> **BỎ QUA TOÀN BỘ VIỆC CHẠY TEST TỰ ĐỘNG**:
+> - **TUYỆT ĐỐI KHÔNG tự động chạy test (`npm test`, `vitest`, `npx vitest`)** sau các bước code/sửa code trừ khi người dùng yêu cầu cụ thể bằng lời.
+> - Ưu tiên kiểm tra nhanh cú pháp / kiểu dữ liệu bằng `npm run typecheck` nếu cần xác thực tính hợp lệ TypeScript.
+> - **Chỉ viết thêm file test mới khi người dùng yêu cầu trực tiếp.**
+> - Khi viết test:
+>   - **KHÔNG** đặt file `.test.ts` / `.test.tsx` chung thư mục với mã nguồn `src/`.
+>   - **TẤT CẢ** file test phải đặt trong thư mục `frontend/tests/` theo đúng cấu trúc phân cấp tương ứng.
+>   - Khai báo môi trường `// @vitest-environment jsdom` và `import '@testing-library/jest-dom/vitest';` ở đầu file test.
+
+---
+
+## 6. Quy Chuẩn Chọn & Hiển Thị Học Viên (Customer Selection & Display)
+
+1. **Hiển thị học viên trong bảng / danh sách dữ liệu**:
+   - **BẮT BUỘC hiển thị Họ tên và Số điện thoại (SĐT)** của học viên (ví dụ: `Nguyễn Văn A` kèm SĐT `0901 234 567`).
+   - **TUYỆT ĐỐI KHÔNG hiển thị chuỗi mã ID thô** (như `6a90fa9a406b88dacfa89f8d`) ở các cột bảng cho người dùng nhìn thấy.
+2. **Form / Modal chọn học viên**:
+   - Sử dụng component `CustomerSelect` từ `components/ui/CustomerSelect` để người dùng tìm kiếm và chọn theo Tên hoặc Số điện thoại.
+   - Không bắt người dùng phải nhớ hay gõ mã Customer ID bằng tay.

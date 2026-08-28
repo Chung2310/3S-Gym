@@ -2,6 +2,7 @@ export { default as ConfirmModal } from './ConfirmModal';
 export { default as ContentFormModal } from './ContentFormModal';
 export { default as CustomerAccountModal } from './CustomerAccountModal';
 export { default as CustomerFormModal } from './CustomerFormModal';
+export { default as CustomerSelect, type CustomerSelectProps } from './CustomerSelect';
 export { default as DataList, type DataColumn, type DataItem } from './DataList';
 export { default as FeatureFlagModal, type FeatureFlagItem } from './FeatureFlagModal';
 export { default as FilterBar } from './FilterBar';

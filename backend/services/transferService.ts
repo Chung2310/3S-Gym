@@ -105,7 +105,8 @@ async function listTransfers(user: AuthenticatedUser, query: TransferQuery) {
   if (typeof query.status === 'string' && statuses.includes(query.status as TransferStatus)) filter.status = query.status as TransferStatus;
   if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId);
   const [items, total] = await Promise.all([
-    TransferRequest.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), TransferRequest.countDocuments(filter),
+    TransferRequest.find(filter).populate('customerId', 'fullName phone').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    TransferRequest.countDocuments(filter),
   ]);
   return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }

@@ -85,7 +85,7 @@ async function listContent(resource: ContentResource, user: AuthenticatedUser, q
       : { $in: ids };
   }
   const [items, total] = await Promise.all([
-    Model.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Model.find(filter).populate('customerId', 'fullName phone').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
     Model.countDocuments(filter),
   ]);
   return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
