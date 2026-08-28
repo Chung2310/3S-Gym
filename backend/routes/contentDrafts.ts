@@ -1,5 +1,5 @@
-import express, { type Request } from 'express'; import mongoose from 'mongoose'; import { authenticate, authorize } from '../middlewares/auth.js'; import { requireFeature } from '../middlewares/requireFeature.js'; import { validate, type ValidationIssue } from '../middlewares/validate.js'; import * as c from '../controllers/contentDraftController.js';
-const router = express.Router(); const validator = (req: Request): ValidationIssue[] => { const e: ValidationIssue[] = []; if (!mongoose.isValidObjectId(req.body.customerId)) e.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' }); if (typeof req.body.request !== 'string' || req.body.request.trim().length < 10) e.push({ field: 'request', message: 'Yêu cầu phải có ít nhất 10 ký tự.' }); return e; };
-router.post('/nutrition', authenticate, authorize('PT'), requireFeature('NUTRITION_AI'), validate(validator), c.nutrition);
-router.post('/workout', authenticate, authorize('PT'), requireFeature('PT_ASSISTANT'), validate(validator), c.workout);
+import express from 'express'; import { authenticate, authorize } from '../middlewares/auth.js'; import { requireFeature } from '../middlewares/requireFeature.js'; import { validate } from '../middlewares/validate.js'; import * as c from '../controllers/contentDraftController.js'; import { contentDraftSchema } from '../validators/knowledgeValidator.js';
+const router = express.Router();
+router.post('/nutrition', authenticate, authorize('PT'), requireFeature('NUTRITION_AI'), validate(contentDraftSchema), c.nutrition);
+router.post('/workout', authenticate, authorize('PT'), requireFeature('PT_ASSISTANT'), validate(contentDraftSchema), c.workout);
 export default router;

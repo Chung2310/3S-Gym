@@ -12,30 +12,62 @@ import {
   Ruler,
   ChevronRight,
   RefreshCw,
+  Trophy,
+  Flame,
+  HelpCircle,
+  Clock,
+  ArrowUpRight,
+  ArrowDownRight,
+  Sparkles,
+  ShieldAlert,
+  Dumbbell,
+  Utensils,
+  Moon,
+  ClipboardCheck,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
 
+interface MeasurementItem {
+  measuredAt?: string;
+  weight?: number;
+  bodyFatPercentage?: number;
+  muscleMass?: number;
+}
+
 interface CustomerRow {
   customerId: string;
   fullName: string;
-  dataStatus: 'READY' | 'INSUFFICIENT_DATA' | string;
+  phone?: string;
+  initialGoal?: string;
+  initialWeight?: number | null;
+  dataStatus: 'READY' | 'INSUFFICIENT_DATA';
   rank: number | null;
   score: number | null;
   scoreBreakdown: { measurementTrend: number; careRisk: number } | null;
+  progressCategory: 'GOOD' | 'SLOW' | 'POOR' | 'INSUFFICIENT_DATA';
   sourcePath: string;
-  latestMeasurement?: {
-    measuredAt?: string;
-    weight?: number;
-    bodyFatPercentage?: number;
-    muscleMass?: number;
+  measurementCount: number;
+  firstMeasurement?: MeasurementItem | null;
+  latestMeasurement?: MeasurementItem | null;
+  changes?: {
+    bodyFatChange: number; // positive is fat loss
+    muscleChange: number; // positive is muscle gain
+    weightChange: number;
+    daysBetween: number;
   } | null;
+  openAlerts?: number;
+  riskFactors?: string[];
+  improvementTips?: string[];
 }
 
 interface PtDashboardData {
   totalCustomers: number;
   openAlerts: number;
+  goodProgressCount: number;
+  slowProgressCount: number;
+  poorProgressCount: number;
   customers: CustomerRow[];
 }
 
@@ -44,7 +76,7 @@ export default function PtDashboard() {
   const [data, setData] = useState<PtDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'READY' | 'INSUFFICIENT_DATA'>('ALL');
+  const [filterCategory, setFilterCategory] = useState<'ALL' | 'GOOD' | 'SLOW' | 'POOR' | 'INSUFFICIENT_DATA'>('ALL');
 
   const loadDashboard = async () => {
     try {
@@ -62,6 +94,7 @@ export default function PtDashboard() {
     void loadDashboard();
   }, []);
 
+  // Filtered customer list for Section 1
   const filteredCustomers = useMemo(() => {
     if (!data?.customers) return [];
     return data.customers.filter((c) => {
@@ -69,271 +102,634 @@ export default function PtDashboard() {
         !search.trim() ||
         c.fullName.toLowerCase().includes(search.toLowerCase()) ||
         c.customerId.toLowerCase().includes(search.toLowerCase());
-      const matchStatus =
-        statusFilter === 'ALL' || c.dataStatus === statusFilter;
-      return matchSearch && matchStatus;
+      const matchCategory =
+        filterCategory === 'ALL' || c.progressCategory === filterCategory;
+      return matchSearch && matchCategory;
     });
-  }, [data, search, statusFilter]);
+  }, [data, search, filterCategory]);
 
-  const readyCount = useMemo(
-    () => data?.customers.filter((c) => c.dataStatus === 'READY').length || 0,
-    [data],
-  );
+  // Section 2: Top 3-5 Transformers (best progress score & changes)
+  const topTransformers = useMemo(() => {
+    if (!data?.customers) return [];
+    return data.customers
+      .filter((c) => c.dataStatus === 'READY' && (c.score ?? 0) >= 65 && c.changes)
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 4);
+  }, [data]);
+
+  // Section 3: Attention Needed Customers (Slow or Poor progress, or open alerts)
+  const attentionCustomers = useMemo(() => {
+    if (!data?.customers) return [];
+    return data.customers.filter(
+      (c) =>
+        c.progressCategory === 'POOR' ||
+        c.progressCategory === 'SLOW' ||
+        (c.openAlerts && c.openAlerts > 0) ||
+        (c.changes && (c.changes.bodyFatChange < 0 || c.changes.muscleChange < 0)),
+    );
+  }, [data]);
+
+  const getRankBadgeInfo = (index: number) => {
+    switch (index) {
+      case 0:
+        return {
+          title: 'Top 1 Biến đổi ngoạn mục',
+          icon: '🥇',
+          bg: '#fef9c3',
+          border: '#fde047',
+          color: '#854d0e',
+        };
+      case 1:
+        return {
+          title: 'Top 2 Tăng cơ giảm mỡ',
+          icon: '🥈',
+          bg: '#f1f5f9',
+          border: '#cbd5e1',
+          color: '#334155',
+        };
+      case 2:
+        return {
+          title: 'Top 3 Bứt phá thể lực',
+          icon: '🥉',
+          bg: '#ffedd5',
+          border: '#fdba74',
+          color: '#9a3412',
+        };
+      default:
+        return {
+          title: `Top ${index + 1} Phong độ cao`,
+          icon: '⭐',
+          bg: '#f0f9ff',
+          border: '#bae6fd',
+          color: '#0369a1',
+        };
+    }
+  };
 
   return (
-    <div className="pt-dashboard-workspace max-w-7xl mx-auto space-y-5">
+    <div className="pt-dash-container">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-[#003b70] m-0 tracking-tight flex items-center gap-2">
-            <Activity size={22} className="text-sky-500" />
-            Bảng điều khiển Huấn luyện viên (PT)
+      <div className="pt-dash-header">
+        <div className="pt-dash-title-wrap">
+          <h1 className="pt-dash-title">
+            <Activity size={24} className="text-sky-500" />
+            <span>Bảng điều khiển Huấn luyện viên (PT)</span>
           </h1>
-          <p className="text-xs text-slate-500 m-0 mt-0.5">
-            Theo dõi điểm tiến độ InBody, cảnh báo chăm sóc và hiệu suất tập luyện của học viên.
+          <p className="pt-dash-subtitle">
+            Theo dõi tiến độ InBody (BF-AT), tôn vinh học viên bứt phá và xử lý cảnh báo chăm sóc kịp thời.
           </p>
         </div>
         <button
           type="button"
           onClick={loadDashboard}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+          className="button button-secondary"
+          style={{ minHeight: '38px', height: '38px', padding: '0 16px', fontSize: '0.82rem' }}
         >
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          <span>Làm mới</span>
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <span>Làm mới số liệu</span>
         </button>
       </div>
 
-      {/* Metrics Banner */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        {/* Total Customers */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Học viên phụ trách</span>
-            <div className="text-2xl font-bold text-[#003b70] mt-1 font-['Oswald']">
-              {data?.totalCustomers ?? '—'} <span className="text-xs font-normal text-slate-400">người</span>
-            </div>
+      {/* ========================================================================= */}
+      {/* PHẦN 1: KHÁCH HÀNG CỦA TÔI (MY CUSTOMERS & BF-AT STATUS) */}
+      {/* ========================================================================= */}
+      <section className="pt-dash-section">
+        <div className="pt-section-header">
+          <div className="pt-section-title-wrap">
+            <h2 className="pt-section-title">
+              <Users size={20} className="text-[#003b70]" />
+              <span>KHÁCH HÀNG CỦA TÔI</span>
+            </h2>
+            <span className="pt-section-badge" style={{ background: '#e0f2fe', color: '#0369a1' }}>
+              Dữ liệu InBody Trước - Sau (BF-AT)
+            </span>
           </div>
-          <div className="w-11 h-11 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
-            <Users size={22} />
+          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+            Tổng hợp từ các lần đo InBody định kỳ
+          </span>
+        </div>
+
+        {/* 4 Metrics Cards */}
+        <div className="pt-dash-metrics-4">
+          {/* Total Customers */}
+          <div className="pt-dash-metric-card">
+            <div className="pt-dash-metric-info">
+              <span className="pt-dash-metric-label">👥 Tổng khách quản lý</span>
+              <div className="pt-dash-metric-val" style={{ color: '#003b70' }}>
+                {data?.totalCustomers ?? '—'}
+                <span className="pt-dash-metric-unit">học viên</span>
+              </div>
+            </div>
+            <div className="pt-dash-metric-icon" style={{ background: '#f0f9ff', color: '#0284c7' }}>
+              <Users size={24} />
+            </div>
+            <div className="pt-dash-metric-stripe" style={{ background: '#0284c7' }} />
+          </div>
+
+          {/* Good Progress */}
+          <div className="pt-dash-metric-card">
+            <div className="pt-dash-metric-info">
+              <span className="pt-dash-metric-label">🟢 Tiến bộ tốt</span>
+              <div className="pt-dash-metric-val" style={{ color: '#16a34a' }}>
+                {data?.goodProgressCount ?? 0}
+                <span className="pt-dash-metric-unit">khách</span>
+              </div>
+            </div>
+            <div className="pt-dash-metric-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+              <TrendingUp size={24} />
+            </div>
+            <div className="pt-dash-metric-stripe" style={{ background: '#16a34a' }} />
+          </div>
+
+          {/* Slow Progress */}
+          <div className="pt-dash-metric-card">
+            <div className="pt-dash-metric-info">
+              <span className="pt-dash-metric-label">🟡 Tiến bộ chậm</span>
+              <div className="pt-dash-metric-val" style={{ color: '#d97706' }}>
+                {data?.slowProgressCount ?? 0}
+                <span className="pt-dash-metric-unit">khách</span>
+              </div>
+            </div>
+            <div className="pt-dash-metric-icon" style={{ background: '#fffbeb', color: '#d97706' }}>
+              <Clock size={24} />
+            </div>
+            <div className="pt-dash-metric-stripe" style={{ background: '#d97706' }} />
+          </div>
+
+          {/* Poor Progress / Risk */}
+          <div className="pt-dash-metric-card">
+            <div className="pt-dash-metric-info">
+              <span className="pt-dash-metric-label">🔴 Kết quả không tốt</span>
+              <div className="pt-dash-metric-val" style={{ color: '#dc2626' }}>
+                {data?.poorProgressCount ?? 0}
+                <span className="pt-dash-metric-unit">cần xử lý</span>
+              </div>
+            </div>
+            <div className="pt-dash-metric-icon" style={{ background: '#fef2f2', color: '#dc2626' }}>
+              <AlertTriangle size={24} />
+            </div>
+            <div className="pt-dash-metric-stripe" style={{ background: '#dc2626' }} />
           </div>
         </div>
 
-        {/* Open Care Alerts */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cảnh báo chăm sóc</span>
-            <div className="text-2xl font-bold mt-1 font-['Oswald'] text-amber-600">
-              {data?.openAlerts ?? '—'} <span className="text-xs font-normal text-slate-400">cần xử lý</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-            <AlertTriangle size={22} />
-          </div>
-        </div>
-
-        {/* Ready Data Count */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Đủ dữ liệu phân tích</span>
-            <div className="text-2xl font-bold text-emerald-600 mt-1 font-['Oswald']">
-              {readyCount} <span className="text-xs font-normal text-slate-400">/ {data?.totalCustomers || 0}</span>
-            </div>
-          </div>
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <CheckCircle2 size={22} />
-          </div>
-        </div>
-      </div>
-
-      {/* Main Customer Progress Table Card */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 space-y-4">
-        {/* Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex flex-wrap items-center gap-2 flex-1">
-            {/* Search Input */}
-            <div className="relative min-w-[220px] max-w-sm flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        {/* Customer Table Container */}
+        <div className="pt-dash-main-card">
+          {/* Toolbar */}
+          <div className="pt-dash-toolbar">
+            <div className="pt-dash-search-box">
+              <Search size={15} className="pt-dash-search-icon" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm học viên theo tên hoặc mã..."
-                className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-cyan-500 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500/15 transition-all text-slate-800"
+                placeholder="Tìm theo tên học viên hoặc mã..."
+                className="pt-dash-search-input"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="pt-dash-search-clear"
                   aria-label="Xóa tìm kiếm"
                 >
-                  <X size={13} />
+                  <X size={14} />
                 </button>
               )}
             </div>
 
-            {/* Status Filter */}
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+            {/* Filter Chips */}
+            <div className="pt-dash-filter-chips">
               <button
                 type="button"
-                className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
-                  statusFilter === 'ALL'
-                    ? 'bg-white text-[#003b70] shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                onClick={() => setStatusFilter('ALL')}
+                className={`pt-dash-filter-btn ${filterCategory === 'ALL' ? 'active' : ''}`}
+                onClick={() => setFilterCategory('ALL')}
               >
                 Tất cả ({data?.customers?.length || 0})
               </button>
               <button
                 type="button"
-                className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
-                  statusFilter === 'READY'
-                    ? 'bg-white text-emerald-700 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                onClick={() => setStatusFilter('READY')}
+                className={`pt-dash-filter-btn ${filterCategory === 'GOOD' ? 'active filter-good' : ''}`}
+                onClick={() => setFilterCategory('GOOD')}
               >
-                Đủ dữ liệu ({readyCount})
+                🟢 Tiến bộ tốt ({data?.goodProgressCount || 0})
               </button>
               <button
                 type="button"
-                className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
-                  statusFilter === 'INSUFFICIENT_DATA'
-                    ? 'bg-white text-amber-700 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                onClick={() => setStatusFilter('INSUFFICIENT_DATA')}
+                className={`pt-dash-filter-btn ${filterCategory === 'SLOW' ? 'active filter-slow' : ''}`}
+                onClick={() => setFilterCategory('SLOW')}
               >
-                Cần đo thêm InBody
+                🟡 Tiến bộ chậm ({data?.slowProgressCount || 0})
+              </button>
+              <button
+                type="button"
+                className={`pt-dash-filter-btn ${filterCategory === 'POOR' ? 'active filter-poor' : ''}`}
+                onClick={() => setFilterCategory('POOR')}
+              >
+                🔴 Cần quan tâm ({data?.poorProgressCount || 0})
+              </button>
+              <button
+                type="button"
+                className={`pt-dash-filter-btn ${filterCategory === 'INSUFFICIENT_DATA' ? 'active filter-insufficient' : ''}`}
+                onClick={() => setFilterCategory('INSUFFICIENT_DATA')}
+              >
+                ⚪ Chưa đủ dữ liệu InBody
               </button>
             </div>
           </div>
+
+          {/* Table Content */}
+          {loading ? (
+            <div className="pt-dash-empty-state">
+              <RefreshCw size={26} className="animate-spin text-sky-600" />
+              <p className="pt-dash-empty-title">Đang tải dữ liệu học viên...</p>
+              <p className="pt-dash-empty-desc">Vui lòng chờ trong giây lát</p>
+            </div>
+          ) : filteredCustomers.length === 0 ? (
+            <div className="pt-dash-empty-state">
+              <div className="pt-dash-empty-icon">
+                <Users size={26} />
+              </div>
+              <h3 className="pt-dash-empty-title">Chưa có dữ liệu học viên phù hợp</h3>
+              <p className="pt-dash-empty-desc">
+                {search || filterCategory !== 'ALL'
+                  ? 'Không tìm thấy học viên nào khớp với bộ lọc hiện tại.'
+                  : 'Bạn hiện chưa có học viên nào được phân công trong hệ thống.'}
+              </p>
+            </div>
+          ) : (
+            <div className="pt-dash-table-wrap">
+              <table className="pt-dash-table">
+                <thead>
+                  <tr>
+                    <th>Học viên &amp; Mục tiêu</th>
+                    <th>Trạng thái BF-AT</th>
+                    <th>Biến đổi Cơ / Mỡ (Δ)</th>
+                    <th>Điểm tiến độ</th>
+                    <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCustomers.map((c) => (
+                    <tr key={c.customerId}>
+                      {/* Customer & Goal */}
+                      <td>
+                        <div style={{ fontWeight: 700, color: '#003b70', fontSize: '0.88rem' }}>
+                          {c.fullName}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+                          🎯 Mục tiêu: {c.initialGoal || 'Cải thiện thể lực'}
+                        </div>
+                      </td>
+
+                      {/* Data Status */}
+                      <td>
+                        {c.progressCategory === 'GOOD' && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: 700, fontSize: '0.72rem' }}>
+                            🟢 Tiến bộ tốt
+                          </span>
+                        )}
+                        {c.progressCategory === 'SLOW' && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700, fontSize: '0.72rem' }}>
+                            🟡 Tiến bộ chậm
+                          </span>
+                        )}
+                        {c.progressCategory === 'POOR' && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 700, fontSize: '0.72rem' }}>
+                            🔴 Cần quan tâm
+                          </span>
+                        )}
+                        {c.progressCategory === 'INSUFFICIENT_DATA' && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', fontWeight: 700, fontSize: '0.72rem' }}>
+                            ⚪ Cần đo thêm InBody ({c.measurementCount}/2)
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Changes (Delta Body Fat / Muscle) */}
+                      <td>
+                        {c.changes ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '0.74rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ color: '#64748b' }}>Mỡ:</span>
+                              <strong style={{ color: c.changes.bodyFatChange > 0 ? '#16a34a' : c.changes.bodyFatChange < 0 ? '#dc2626' : '#64748b' }}>
+                                {c.changes.bodyFatChange > 0 ? `-${c.changes.bodyFatChange}%` : c.changes.bodyFatChange < 0 ? `+${Math.abs(c.changes.bodyFatChange)}%` : '0%'}
+                              </strong>
+                              <span style={{ color: '#64748b', marginLeft: '6px' }}>Cơ:</span>
+                              <strong style={{ color: c.changes.muscleChange > 0 ? '#16a34a' : c.changes.muscleChange < 0 ? '#dc2626' : '#64748b' }}>
+                                {c.changes.muscleChange > 0 ? `+${c.changes.muscleChange} kg` : `${c.changes.muscleChange} kg`}
+                              </strong>
+                            </div>
+                            <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>
+                              ({c.changes.daysBetween} ngày · {c.measurementCount} lần đo)
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.74rem' }}>
+                            Chưa có dữ liệu đối chiếu
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Progress Score */}
+                      <td>
+                        {c.score !== null ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '65px', background: '#f1f5f9', borderRadius: '999px', height: '8px', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                              <div
+                                style={{
+                                  width: `${Math.min(100, Math.max(0, c.score))}%`,
+                                  height: '100%',
+                                  borderRadius: '999px',
+                                  background: c.score >= 70 ? '#22c55e' : c.score >= 50 ? '#0ea5e9' : '#ef4444',
+                                }}
+                              />
+                            </div>
+                            <span style={{ fontWeight: 800, color: '#1e293b', fontSize: '0.78rem', fontFamily: 'Oswald, sans-serif' }}>
+                              {c.score}/100
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.78rem' }}>—</span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+                          <Link
+                            to="/portal/pt/inbody"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#003b70', background: '#f0f9ff', border: '1px solid #bae6fd', textDecoration: 'none' }}
+                            title="Xem kết quả InBody"
+                          >
+                            <Ruler size={12} />
+                            <span>InBody</span>
+                          </Link>
+                          <Link
+                            to="/portal/pt/care"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#9a3412', background: '#fff7ed', border: '1px solid #fed7aa', textDecoration: 'none' }}
+                            title="Mở hồ sơ chăm sóc"
+                          >
+                            <HeartPulse size={12} />
+                            <span>Chăm sóc</span>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* PHẦN 2: KẾT QUẢ NỔI BẬT - TOP THAY ĐỔI (TOP TRANSFORMERS) */}
+      {/* ========================================================================= */}
+      <section className="pt-dash-section">
+        <div className="pt-section-header">
+          <div className="pt-section-title-wrap">
+            <h2 className="pt-section-title">
+              <Trophy size={20} className="text-amber-500" />
+              <span>KẾT QUẢ NỔI BẬT - TOP THAY ĐỔI THEO MỤC TIÊU</span>
+            </h2>
+            <span className="pt-section-badge" style={{ background: '#fef3c7', color: '#92400e' }}>
+              🏆 Bảng vàng bứt phá InBody
+            </span>
+          </div>
+          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+            Xếp hạng học viên giảm mỡ, tăng cơ &amp; chuyển biến hình thể nhanh nhất
+          </span>
         </div>
 
-        {/* Table Content */}
-        {loading ? (
-          <div className="py-12 text-center text-xs text-slate-400">
-            <RefreshCw size={20} className="animate-spin mx-auto mb-2 text-sky-500" />
-            Đang tải dữ liệu học viên...
-          </div>
-        ) : filteredCustomers.length === 0 ? (
-          <div className="py-12 text-center text-slate-500 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-            <Users size={28} className="text-slate-400 mx-auto mb-2" />
-            <p className="text-xs font-semibold">Chưa có dữ liệu học viên phù hợp</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Vui lòng kiểm tra lại bộ lọc tìm kiếm.</p>
+        {topTransformers.length === 0 ? (
+          <div className="pt-dash-main-card" style={{ padding: '36px 24px', textAlign: 'center' }}>
+            <Sparkles size={32} style={{ color: '#f59e0b', margin: '0 auto 8px' }} />
+            <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1e293b', margin: '0 0 4px' }}>
+              Chưa có học viên nào lọt vào Top nổi bật
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+              Cập nhật thêm dữ liệu đo InBody các lần tiếp theo để hệ thống tự động tính toán và vinh danh.
+            </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
-                  <th className="py-2.5 px-3">Học viên</th>
-                  <th className="py-2.5 px-3">Trạng thái dữ liệu</th>
-                  <th className="py-2.5 px-3">Điểm tổng hợp</th>
-                  <th className="py-2.5 px-3">Chi tiết thành phần</th>
-                  <th className="py-2.5 px-3 text-right">Hành động nhanh</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filteredCustomers.map((c) => (
-                  <tr key={c.customerId} className="hover:bg-slate-50/80 transition-colors">
-                    {/* Customer */}
-                    <td className="py-3 px-3">
-                      <div className="font-bold text-[#003b70] text-sm">{c.fullName}</div>
-                      <div className="text-[11px] text-slate-400 font-mono">Mã: {c.customerId.slice(-6).toUpperCase()}</div>
-                    </td>
+          <div className="pt-top-grid">
+            {topTransformers.map((c, index) => {
+              const badge = getRankBadgeInfo(index);
+              return (
+                <div key={c.customerId} className="pt-top-card">
+                  {/* Top Header */}
+                  <div className="pt-top-header">
+                    <span
+                      className="pt-top-rank-badge"
+                      style={{ background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color }}
+                    >
+                      <span>{badge.icon}</span>
+                      <span>{badge.title}</span>
+                    </span>
+                    <span style={{ fontWeight: 800, color: '#003b70', fontFamily: 'Oswald, sans-serif', fontSize: '1.1rem' }}>
+                      {c.score}/100 điểm
+                    </span>
+                  </div>
 
-                    {/* Data Status */}
-                    <td className="py-3 px-3">
-                      {c.dataStatus === 'READY' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-[11px]">
-                          <CheckCircle2 size={12} /> Đã sẵn sàng
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-semibold text-[11px]">
-                          <AlertTriangle size={12} /> Cần ≥ 2 lần InBody
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Progress Score */}
-                    <td className="py-3 px-3">
-                      {c.score !== null ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 bg-slate-100 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                c.score >= 70
-                                  ? 'bg-emerald-500'
-                                  : c.score >= 50
-                                  ? 'bg-sky-500'
-                                  : 'bg-amber-500'
-                              }`}
-                              style={{ width: `${Math.min(100, Math.max(0, c.score))}%` }}
-                            />
-                          </div>
-                          <span className="font-bold text-slate-800 text-xs font-['Oswald']">{c.score}/100</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 text-xs italic">—</span>
-                      )}
-                    </td>
-
-                    {/* Score Breakdown */}
-                    <td className="py-3 px-3">
-                      {c.scoreBreakdown ? (
-                        <div className="flex items-center gap-3 text-[11px]">
-                          <span className="inline-flex items-center gap-1 text-slate-600">
-                            <TrendingUp size={12} className="text-sky-500" />
-                            Xu hướng: <strong className="text-[#003b70]">{c.scoreBreakdown.measurementTrend}</strong>
-                          </span>
-                          <span className="inline-flex items-center gap-1 text-slate-600">
-                            <HeartPulse size={12} className="text-rose-500" />
-                            Chăm sóc: <strong className="text-rose-600">{c.scoreBreakdown.careRisk}</strong>
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 text-[11px] italic">Chưa đủ dữ liệu InBody đối chiếu</span>
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-3 px-3 text-right">
-                      <div className="inline-flex items-center gap-1.5 justify-end">
-                        <Link
-                          to="/portal/pt/inbody"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-[#003b70] hover:bg-sky-50 border border-slate-200 transition-colors"
-                          title="Xem kết quả InBody"
-                        >
-                          <Ruler size={13} />
-                          <span>InBody</span>
-                        </Link>
-                        <Link
-                          to="/portal/pt/care"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-amber-700 hover:bg-amber-50 border border-slate-200 transition-colors"
-                          title="Mở hồ sơ chăm sóc"
-                        >
-                          <HeartPulse size={13} />
-                          <span>Chăm sóc</span>
-                        </Link>
-                        <Link
-                          to="/portal/pt/customers"
-                          className="inline-flex items-center p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                          title="Hồ sơ chi tiết"
-                        >
-                          <ChevronRight size={15} />
-                        </Link>
+                  {/* Top Body */}
+                  <div className="pt-top-body">
+                    <div>
+                      <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#003b70', margin: '0 0 4px' }}>
+                        {c.fullName}
+                      </h3>
+                      <div style={{ fontSize: '0.76rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🎯 Mục tiêu ban đầu:</span>
+                        <strong style={{ color: '#0284c7' }}>{c.initialGoal || 'Tăng cơ giảm mỡ'}</strong>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+
+                    {/* Stats Comparison Grid */}
+                    <div className="pt-top-stats-grid">
+                      {/* Body Fat Delta */}
+                      <div className="pt-stat-item">
+                        <span className="pt-stat-label">Body Fat</span>
+                        <span className="pt-stat-val" style={{ color: '#16a34a' }}>
+                          {c.changes && c.changes.bodyFatChange > 0 ? `-${c.changes.bodyFatChange}%` : '0%'}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                          {c.firstMeasurement?.bodyFatPercentage}% → {c.latestMeasurement?.bodyFatPercentage}%
+                        </span>
+                      </div>
+
+                      {/* Muscle Mass Delta */}
+                      <div className="pt-stat-item">
+                        <span className="pt-stat-label">Khối lượng cơ</span>
+                        <span className="pt-stat-val" style={{ color: '#0284c7' }}>
+                          {c.changes && c.changes.muscleChange > 0 ? `+${c.changes.muscleChange}kg` : '0kg'}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                          {c.firstMeasurement?.muscleMass}kg → {c.latestMeasurement?.muscleMass}kg
+                        </span>
+                      </div>
+
+                      {/* Weight Delta */}
+                      <div className="pt-stat-item">
+                        <span className="pt-stat-label">Cân nặng</span>
+                        <span className="pt-stat-val" style={{ color: '#003b70' }}>
+                          {c.changes && c.changes.weightChange !== 0 ? `${c.changes.weightChange > 0 ? '+' : ''}${c.changes.weightChange}kg` : '0kg'}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                          {c.firstMeasurement?.weight}kg → {c.latestMeasurement?.weight}kg
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top Footer */}
+                  <div className="pt-top-footer">
+                    <span>
+                      ⏱️ Thời gian: <strong>{c.changes?.daysBetween} ngày</strong> ({c.measurementCount} lần đo)
+                    </span>
+                    <Link
+                      to="/portal/pt/inbody"
+                      style={{ color: '#0284c7', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                    >
+                      <span>Xem lộ trình</span>
+                      <ArrowUpRight size={13} />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
-      </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* PHẦN 3: CẢNH BÁO: CẦN QUAN TÂM (ATTENTION & RECOVERY CHECKLIST) */}
+      {/* ========================================================================= */}
+      <section className="pt-dash-section">
+        <div className="pt-section-header">
+          <div className="pt-section-title-wrap">
+            <h2 className="pt-section-title">
+              <ShieldAlert size={20} className="text-rose-600" />
+              <span>CẢNH BÁO: HỌC VIÊN CẦN QUAN TÂM &amp; KHÔNG THAY ĐỔI</span>
+            </h2>
+            <span className="pt-section-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
+              🚨 Cần can thiệp chăm sóc
+            </span>
+          </div>
+          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
+            Phát hiện học viên bị chững tiến độ, tăng mỡ, giảm cơ hoặc vi phạm tần suất tập
+          </span>
+        </div>
+
+        {attentionCustomers.length === 0 ? (
+          <div className="pt-dash-main-card" style={{ padding: '36px 24px', textAlign: 'center' }}>
+            <CheckCircle2 size={32} style={{ color: '#16a34a', margin: '0 auto 8px' }} />
+            <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1e293b', margin: '0 0 4px' }}>
+              Tuyệt vời! Không có học viên nào bị cảnh báo nghiêm trọng
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+              Toàn bộ học viên đang theo đúng phác đồ tập luyện và dinh dưỡng.
+            </p>
+          </div>
+        ) : (
+          <div className="pt-alert-grid">
+            {attentionCustomers.map((c) => (
+              <div key={c.customerId} className="pt-alert-card">
+                {/* Alert Header */}
+                <div className="pt-alert-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <AlertTriangle size={16} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#991b1b', margin: 0 }}>
+                        {c.fullName}
+                      </h3>
+                      <span style={{ fontSize: '0.72rem', color: '#b45309' }}>
+                        🎯 Mục tiêu: {c.initialGoal || 'Cải thiện vóc dáng'}
+                      </span>
+                    </div>
+                  </div>
+                  <span style={{ padding: '3px 8px', borderRadius: '8px', background: '#fef2f2', color: '#dc2626', fontWeight: 800, fontSize: '0.72rem', border: '1px solid #fecaca' }}>
+                    {c.progressCategory === 'POOR' ? 'Kết quả tệ' : 'Tiến bộ chậm'}
+                  </span>
+                </div>
+
+                {/* Alert Body */}
+                <div className="pt-alert-body">
+                  {/* Checklist of Root Causes */}
+                  <div className="pt-checklist-box">
+                    <div className="pt-checklist-title">
+                      <HelpCircle size={14} />
+                      <span>Nguyên nhân PT cần kiểm tra ngay:</span>
+                    </div>
+                    <div className="pt-checklist-item">
+                      <Clock size={12} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
+                      <span><strong>Tần suất tập:</strong> Kiểm tra học viên có nghỉ tập nhiều hoặc ngắt quãng?</span>
+                    </div>
+                    <div className="pt-checklist-item">
+                      <Utensils size={12} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
+                      <span><strong>Chế độ ăn:</strong> Lượng Calorie nạp vào, đồ ngọt, rượu bia, thiếu Protein?</span>
+                    </div>
+                    <div className="pt-checklist-item">
+                      <Moon size={12} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
+                      <span><strong>Ngủ nghỉ:</strong> Thời gian ngủ &lt; 7h hoặc stress cao làm tăng tích mỡ?</span>
+                    </div>
+                    <div className="pt-checklist-item">
+                      <ClipboardCheck size={12} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
+                      <span><strong>Tuân thủ giáo án:</strong> Tập đúng form, đủ hiệp và cường độ tạ không?</span>
+                    </div>
+                  </div>
+
+                  {/* Suggested Improvements */}
+                  <div className="pt-tips-box">
+                    <div className="pt-tips-title">
+                      <Sparkles size={14} />
+                      <span>Gợi ý hướng xử lý cho Huấn luyện viên:</span>
+                    </div>
+                    {c.improvementTips && c.improvementTips.length > 0 ? (
+                      c.improvementTips.map((tip, idx) => (
+                        <div key={idx} className="pt-tips-item">
+                          <span>👉</span>
+                          <span>{tip}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="pt-tips-item">
+                        <span>👉</span>
+                        <span>Hẹn gặp 1-1 kiểm tra nhật ký ăn uống và điều chỉnh giáo án tuần tới.</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Alert Footer Actions */}
+                <div className="pt-alert-footer">
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                    {c.openAlerts ? `⚠️ Đang có ${c.openAlerts} cảnh báo mở` : 'ℹ️ Cần theo dõi thêm'}
+                  </span>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <Link
+                      to="/portal/pt/care"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#fff', background: '#dc2626', textDecoration: 'none', border: '0' }}
+                    >
+                      <HeartPulse size={12} />
+                      <span>Mở Chăm sóc</span>
+                    </Link>
+                    <Link
+                      to="/portal/pt/inbody"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#003b70', background: '#f0f9ff', border: '1px solid #bae6fd', textDecoration: 'none' }}
+                    >
+                      <Ruler size={12} />
+                      <span>Đo InBody mới</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

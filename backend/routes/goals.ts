@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import createRouter from './contentRouteFactory.js';
-export default createRouter('goals', (req) => {
+import { goalSchemas } from '../validators/contentValidator.js';
+import type { Request } from 'express';
+export default createRouter('goals', goalSchemas);
+void ((req: Request) => {
   const errors = [];
   if (!mongoose.isValidObjectId(req.body.customerId)) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' });
   if (!['WEIGHT_LOSS', 'FAT_LOSS', 'WEIGHT_GAIN', 'MUSCLE_GAIN', 'RECOMPOSITION', 'FITNESS'].includes(req.body.type)) errors.push({ field: 'type', message: 'Loại mục tiêu không hợp lệ.' });

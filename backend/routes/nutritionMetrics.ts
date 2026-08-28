@@ -1,11 +1,12 @@
-import express, { type Request } from 'express';
-import mongoose from 'mongoose';
+import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
-import { validate, listValidator, type ValidationIssue } from '../middlewares/validate.js';
+import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/nutritionMetricsController.js';
 import * as logController from '../controllers/nutritionLogController.js';
+import { createActivitySchema, createFormulaSchema, createNutritionLogSchema, estimateActivitySchema, listActivitiesSchema, listNutritionLogsSchema, nutritionLogIdSchema, nutritionMetricsSchema, updateActivitySchema, updateNutritionLogSchema } from '../validators/nutritionValidator.js';
 
 const router = express.Router();
+/* legacy manual validators
 const idValidator = (req: Request): ValidationIssue[] => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã hoạt động không hợp lệ.' }];
 const metricsValidator = (req: Request): ValidationIssue[] => { const errors: ValidationIssue[] = []; if (!['MALE', 'FEMALE'].includes(req.body.sex)) errors.push({ field: 'sex', message: 'Giới tính không hợp lệ.' }); for (const [field, min, max] of [['weightKg', 20, 400], ['heightCm', 80, 250], ['age', 12, 100], ['activityFactor', 1, 3]] as const) { const value = Number(req.body[field]); if (!Number.isFinite(value) || value < min || value > max) errors.push({ field, message: `${field} phải từ ${min} đến ${max}.` }); } if (!['FAT_LOSS', 'MAINTAIN', 'MUSCLE_GAIN'].includes(req.body.goal)) errors.push({ field: 'goal', message: 'Mục tiêu không hợp lệ.' }); return errors; };
 const activityCreateValidator = (req: Request): ValidationIssue[] => { const errors: ValidationIssue[] = []; if (typeof req.body.name !== 'string' || !req.body.name.trim()) errors.push({ field: 'name', message: 'Vui lòng nhập tên hoạt động.' }); if (typeof req.body.category !== 'string' || !req.body.category.trim()) errors.push({ field: 'category', message: 'Vui lòng nhập nhóm hoạt động.' }); if (!Number.isFinite(req.body.met) || req.body.met <= 0 || req.body.met > 30) errors.push({ field: 'met', message: 'MET phải lớn hơn 0 và không vượt quá 30.' }); return errors; };
@@ -15,15 +16,16 @@ const logCreateValidator = (req: Request): ValidationIssue[] => { const errors: 
 const logListValidator = (req: Request): ValidationIssue[] => { const errors = listValidator(req); if (!mongoose.isValidObjectId(String(req.query.customerId))) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' }); for (const field of ['from', 'to'] as const) if (req.query[field] !== undefined && Number.isNaN(Date.parse(String(req.query[field])))) errors.push({ field, message: `Ngày ${field} không hợp lệ.` }); if (req.query.type && !['FOOD', 'ACTIVITY'].includes(String(req.query.type))) errors.push({ field: 'type', message: 'Loại nhật ký không hợp lệ.' }); return errors; };
 const logUpdateValidator = (req: Request): ValidationIssue[] => { const errors: ValidationIssue[] = mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã nhật ký không hợp lệ.' }]; if (req.body.loggedAt !== undefined && Number.isNaN(Date.parse(req.body.loggedAt))) errors.push({ field: 'loggedAt', message: 'Ngày ghi nhận không hợp lệ.' }); if (req.body.type !== undefined && !['FOOD', 'ACTIVITY'].includes(req.body.type)) errors.push({ field: 'type', message: 'Loại nhật ký không hợp lệ.' }); if (req.body.calories !== undefined && (!Number.isFinite(req.body.calories) || req.body.calories < 0 || req.body.calories > 10000)) errors.push({ field: 'calories', message: 'Calories phải từ 0 đến 10.000.' }); for (const field of ['customerId', 'ptId']) if (Object.prototype.hasOwnProperty.call(req.body, field)) errors.push({ field, message: `Không được phép cập nhật ${field}.` }); return errors; };
 
-router.post('/nutrition/metrics', authenticate, authorize('ADMIN', 'PT'), validate(metricsValidator), controller.metrics);
-router.post('/nutrition/formulas', authenticate, authorize('ADMIN'), validate(formulaValidator), controller.createFormula);
-router.get('/nutrition/logs', authenticate, authorize('ADMIN', 'PT'), validate(logListValidator), logController.list);
-router.post('/nutrition/logs', authenticate, authorize('ADMIN', 'PT'), validate(logCreateValidator), logController.create);
-router.patch('/nutrition/logs/:id', authenticate, authorize('ADMIN', 'PT'), validate(logUpdateValidator), logController.update);
-router.delete('/nutrition/logs/:id', authenticate, authorize('ADMIN', 'PT'), validate((req) => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã nhật ký không hợp lệ.' }]), logController.remove);
-router.get('/activities', authenticate, authorize('ADMIN', 'PT'), validate(listValidator), controller.listActivities);
-router.post('/activities', authenticate, authorize('ADMIN'), validate(activityCreateValidator), controller.createActivity);
-router.patch('/activities/:id', authenticate, authorize('ADMIN'), validate(activityUpdateValidator), controller.updateActivity);
-router.post('/activities/:id/estimate', authenticate, authorize('ADMIN', 'PT'), validate((req) => { const errors = idValidator(req); for (const [field, min, max] of [['weightKg', 20, 400], ['durationMinutes', 1, 1440]] as const) { const value = Number(req.body[field]); if (!Number.isFinite(value) || value < min || value > max) errors.push({ field, message: `${field} phải từ ${min} đến ${max}.` }); } return errors; }), controller.estimate);
+*/
+router.post('/nutrition/metrics', authenticate, authorize('ADMIN', 'PT'), validate(nutritionMetricsSchema), controller.metrics);
+router.post('/nutrition/formulas', authenticate, authorize('ADMIN'), validate(createFormulaSchema), controller.createFormula);
+router.get('/nutrition/logs', authenticate, authorize('ADMIN', 'PT'), validate(listNutritionLogsSchema), logController.list);
+router.post('/nutrition/logs', authenticate, authorize('ADMIN', 'PT'), validate(createNutritionLogSchema), logController.create);
+router.patch('/nutrition/logs/:id', authenticate, authorize('ADMIN', 'PT'), validate(updateNutritionLogSchema), logController.update);
+router.delete('/nutrition/logs/:id', authenticate, authorize('ADMIN', 'PT'), validate(nutritionLogIdSchema), logController.remove);
+router.get('/activities', authenticate, authorize('ADMIN', 'PT'), validate(listActivitiesSchema), controller.listActivities);
+router.post('/activities', authenticate, authorize('ADMIN'), validate(createActivitySchema), controller.createActivity);
+router.patch('/activities/:id', authenticate, authorize('ADMIN'), validate(updateActivitySchema), controller.updateActivity);
+router.post('/activities/:id/estimate', authenticate, authorize('ADMIN', 'PT'), validate(estimateActivitySchema), controller.estimate);
 
 export default router;

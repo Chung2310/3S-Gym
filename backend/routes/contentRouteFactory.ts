@@ -1,14 +1,16 @@
-import express, { type Request } from 'express';
-import mongoose from 'mongoose';
+import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
-import { validate, listValidator, type ValidationIssue, type ValidationSchema } from '../middlewares/validate.js';
+import { validate, type RequestValidationSchema } from '../middlewares/validate.js';
+import { contentIdSchema, contentListSchema } from '../validators/contentValidator.js';
 import { createController } from '../controllers/publicationController.js';
 
 export type ContentResource = 'inbody' | 'goals' | 'workoutPlans' | 'nutritionPlans';
 
-function createContentRouter(resource: ContentResource, bodyValidator: ValidationSchema) {
+function createContentRouter(resource: ContentResource, schemas: { create: RequestValidationSchema; update: RequestValidationSchema }) {
   const router = express.Router();
   const controller = createController(resource);
+  /* legacy manual validators
+  const bodyValidator = (_req: Request): ValidationIssue[] => [];
   const idValidator = (req: Request): ValidationIssue[] => mongoose.isValidObjectId(req.params.id)
     ? []
     : [{ field: 'id', message: 'Mã nội dung không hợp lệ.' }];
@@ -27,12 +29,13 @@ function createContentRouter(resource: ContentResource, bodyValidator: Validatio
     if (customerId && !mongoose.isValidObjectId(customerId)) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' });
     return errors;
   };
-  router.get('/', authenticate, authorize('ADMIN', 'PT'), validate(contentListValidator), controller.list);
-  router.post('/', authenticate, authorize('ADMIN', 'PT'), validate(bodyValidator), controller.create);
-  router.patch('/:id', authenticate, authorize('ADMIN', 'PT'), validate(updateValidator), controller.update);
-  router.delete('/:id', authenticate, authorize('ADMIN', 'PT'), validate(idValidator), controller.remove);
-  router.patch('/:id/publish', authenticate, authorize('ADMIN', 'PT'), validate(idValidator), controller.publish);
-  router.patch('/:id/unpublish', authenticate, authorize('ADMIN', 'PT'), validate(idValidator), controller.unpublish);
+  */
+  router.get('/', authenticate, authorize('ADMIN', 'PT'), validate(contentListSchema), controller.list);
+  router.post('/', authenticate, authorize('ADMIN', 'PT'), validate(schemas.create), controller.create);
+  router.patch('/:id', authenticate, authorize('ADMIN', 'PT'), validate({ ...schemas.update, params: contentIdSchema.params }), controller.update);
+  router.delete('/:id', authenticate, authorize('ADMIN', 'PT'), validate(contentIdSchema), controller.remove);
+  router.patch('/:id/publish', authenticate, authorize('ADMIN', 'PT'), validate(contentIdSchema), controller.publish);
+  router.patch('/:id/unpublish', authenticate, authorize('ADMIN', 'PT'), validate(contentIdSchema), controller.unpublish);
   return router;
 }
 

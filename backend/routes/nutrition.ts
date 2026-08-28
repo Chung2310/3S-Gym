@@ -1,10 +1,12 @@
-import express, { type Request } from 'express';
+import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
 import { requireFeature } from '../middlewares/requireFeature.js';
-import { validate, type ValidationIssue } from '../middlewares/validate.js';
+import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/legacyNutritionController.js';
+import { calculateNutritionSchema, mealImageSchema, scanInbodySchema } from '../validators/nutritionValidator.js';
 
 const router = express.Router();
+/* legacy manual validators
 
 const calculateValidator = (req: Request): ValidationIssue[] => {
   const errors: ValidationIssue[] = [];
@@ -30,8 +32,9 @@ const mealImageValidator = (req: Request): ValidationIssue[] => {
 const scanValidator = (req: Request): ValidationIssue[] => typeof req.body.imageBase64 === 'string' && req.body.imageBase64.length >= 100
   ? [] : [{ field: 'imageBase64', message: 'Vui lòng cung cấp ảnh InBody hợp lệ.' }];
 
-router.post('/calculate', authenticate, authorize('ADMIN', 'PT'), requireFeature('NUTRITION_AI'), validate(calculateValidator), controller.calculate);
-router.get('/meal-image', authenticate, authorize('ADMIN', 'PT'), requireFeature('NUTRITION_AI'), validate(mealImageValidator), controller.mealImage);
-router.post('/scan-inbody', authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), validate(scanValidator), controller.scanInBody);
+*/
+router.post('/calculate', authenticate, authorize('ADMIN', 'PT'), requireFeature('NUTRITION_AI'), validate(calculateNutritionSchema), controller.calculate);
+router.get('/meal-image', authenticate, authorize('ADMIN', 'PT'), requireFeature('NUTRITION_AI'), validate(mealImageSchema), controller.mealImage);
+router.post('/scan-inbody', authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), validate(scanInbodySchema), controller.scanInBody);
 
 export default router;

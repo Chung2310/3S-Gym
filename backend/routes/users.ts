@@ -1,10 +1,11 @@
-import express, { type Request } from 'express';
-import mongoose from 'mongoose';
+import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
-import { validate, createUserValidator, updateUserValidator, listValidator, type ValidationIssue } from '../middlewares/validate.js';
+import { validate } from '../middlewares/validate.js';
 import * as userController from '../controllers/userController.js';
+import { createUserSchema, deleteUserSchema, listUsersSchema, updateUserSchema } from '../validators/userValidator.js';
 
 const router = express.Router();
+/* legacy manual validators
 const idValidator = (req: Request): ValidationIssue[] => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã PT không hợp lệ.' }];
 const userListValidator = (req: Request): ValidationIssue[] => {
   const errors = listValidator(req);
@@ -13,9 +14,10 @@ const userListValidator = (req: Request): ValidationIssue[] => {
   return errors;
 };
 
-router.get('/', authenticate, authorize('ADMIN'), validate(userListValidator), userController.list);
-router.post('/', authenticate, authorize('ADMIN'), validate(createUserValidator), userController.create);
-router.patch('/:id', authenticate, authorize('ADMIN'), validate(updateUserValidator), userController.update);
-router.delete('/:id', authenticate, authorize('ADMIN'), validate(idValidator), userController.remove);
+*/
+router.get('/', authenticate, authorize('ADMIN'), validate(listUsersSchema), userController.list);
+router.post('/', authenticate, authorize('ADMIN'), validate(createUserSchema), userController.create);
+router.patch('/:id', authenticate, authorize('ADMIN'), validate(updateUserSchema), userController.update);
+router.delete('/:id', authenticate, authorize('ADMIN'), validate(deleteUserSchema), userController.remove);
 
 export default router;

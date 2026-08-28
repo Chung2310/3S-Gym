@@ -1,12 +1,11 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import { authenticate, authorize } from '../middlewares/auth.js';
-import { validate, listValidator } from '../middlewares/validate.js';
+import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/customerController.js';
-import type { Request } from 'express';
-import type { ValidationIssue } from '../middlewares/validate.js';
+import { createCustomerAccountSchema, createCustomerSchema, createPackageSchema, customerIdSchema, deletePackageSchema, listCustomersSchema, listPackagesSchema, updateCustomerSchema, updatePackageSchema } from '../validators/customerValidator.js';
 const router = express.Router();
 const allowStaff = [authenticate, authorize('ADMIN', 'PT')];
+/* legacy manual validators
 const CUSTOMER_MUTABLE_FIELDS = [
   'fullName', 'phone', 'email', 'dateOfBirth', 'gender', 'height',
   'initialWeight', 'medicalNotes', 'initialGoal', 'internalNotes', 'status',
@@ -81,15 +80,16 @@ function accountValidator(req: Request): ValidationIssue[] {
   return errors;
 }
 
-router.get('/', ...allowStaff, validate(customerListValidator), controller.list);
-router.post('/', ...allowStaff, validate(createCustomerValidator), controller.create);
-router.get('/:id', ...allowStaff, validate(idValidator), controller.get);
-router.patch('/:id', ...allowStaff, validate(updateCustomerValidator), controller.update);
-router.delete('/:id', ...allowStaff, validate(idValidator), controller.remove);
-router.post('/:id/account', ...allowStaff, validate(accountValidator), controller.createAccount);
-router.get('/:id/packages', ...allowStaff, validate(packageListValidator), controller.listPackages);
-router.post('/:id/packages', ...allowStaff, validate(packageValidator), controller.createPackage);
-router.patch('/:id/packages/:packageId', ...allowStaff, validate(packageUpdateValidator), controller.updatePackage);
-router.delete('/:id/packages/:packageId', ...allowStaff, validate(packageIdValidator), controller.deletePackage);
+*/
+router.get('/', ...allowStaff, validate(listCustomersSchema), controller.list);
+router.post('/', ...allowStaff, validate(createCustomerSchema), controller.create);
+router.get('/:id', ...allowStaff, validate(customerIdSchema), controller.get);
+router.patch('/:id', ...allowStaff, validate(updateCustomerSchema), controller.update);
+router.delete('/:id', ...allowStaff, validate(customerIdSchema), controller.remove);
+router.post('/:id/account', ...allowStaff, validate(createCustomerAccountSchema), controller.createAccount);
+router.get('/:id/packages', ...allowStaff, validate(listPackagesSchema), controller.listPackages);
+router.post('/:id/packages', ...allowStaff, validate(createPackageSchema), controller.createPackage);
+router.patch('/:id/packages/:packageId', ...allowStaff, validate(updatePackageSchema), controller.updatePackage);
+router.delete('/:id/packages/:packageId', ...allowStaff, validate(deletePackageSchema), controller.deletePackage);
 
 export default router;

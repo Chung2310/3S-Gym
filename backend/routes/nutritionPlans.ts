@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import createRouter from './contentRouteFactory.js';
-export default createRouter('nutritionPlans', (req) => {
+import { nutritionPlanSchemas } from '../validators/contentValidator.js';
+import type { Request } from 'express';
+export default createRouter('nutritionPlans', nutritionPlanSchemas);
+void ((req: Request) => {
   const errors = [];
   if (!mongoose.isValidObjectId(req.body.customerId)) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' });
   if (typeof req.body.title !== 'string' || !req.body.title.trim()) errors.push({ field: 'title', message: 'Vui lòng nhập tên thực đơn.' });

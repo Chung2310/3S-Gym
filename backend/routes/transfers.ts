@@ -1,10 +1,11 @@
-import express, { type Request } from 'express';
-import mongoose from 'mongoose';
+import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
-import { validate, listValidator, type ValidationIssue } from '../middlewares/validate.js';
+import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/transferController.js';
+import { createTransferSchema, forceTransferSchema, listTransfersSchema, transferIdSchema, updateTransferSchema } from '../validators/transferValidator.js';
 
 const router = express.Router();
+/* legacy manual validators
 const objectIdError = (field: string): ValidationIssue => ({ field, message: `${field === 'customerId' ? 'Mã khách hàng' : 'Mã PT'} không hợp lệ.` });
 const idValidator = (req: Request): ValidationIssue[] => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã yêu cầu không hợp lệ.' }];
 function createValidator(req: Request): ValidationIssue[] {
@@ -28,12 +29,13 @@ const transferListValidator = (req: Request): ValidationIssue[] => {
   return errors;
 };
 
-router.get('/', authenticate, authorize('ADMIN', 'PT'), validate(transferListValidator), controller.list);
-router.post('/', authenticate, authorize('PT'), validate(createValidator), controller.create);
-router.patch('/:id', authenticate, authorize('PT'), validate(updateValidator), controller.update);
-router.delete('/:id', authenticate, authorize('PT'), validate(idValidator), controller.remove);
-router.patch('/:id/accept', authenticate, authorize('PT'), validate(idValidator), controller.accept);
-router.patch('/:id/reject', authenticate, authorize('PT'), validate(idValidator), controller.reject);
-router.patch('/:id/admin-force', authenticate, authorize('ADMIN'), validate(forceValidator), controller.force);
+*/
+router.get('/', authenticate, authorize('ADMIN', 'PT'), validate(listTransfersSchema), controller.list);
+router.post('/', authenticate, authorize('PT'), validate(createTransferSchema), controller.create);
+router.patch('/:id', authenticate, authorize('PT'), validate(updateTransferSchema), controller.update);
+router.delete('/:id', authenticate, authorize('PT'), validate(transferIdSchema), controller.remove);
+router.patch('/:id/accept', authenticate, authorize('PT'), validate(transferIdSchema), controller.accept);
+router.patch('/:id/reject', authenticate, authorize('PT'), validate(transferIdSchema), controller.reject);
+router.patch('/:id/admin-force', authenticate, authorize('ADMIN'), validate(forceTransferSchema), controller.force);
 
 export default router;
