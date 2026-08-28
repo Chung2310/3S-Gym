@@ -48,7 +48,18 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
           return <Link key={item.path} to={item.path} aria-label={item.label} title={collapsed ? item.label : undefined} aria-current={active ? 'page' : undefined} className={active ? 'active' : undefined} onClick={() => setOpen(false)}><Icon size={18} aria-hidden="true" /><span>{item.label}</span></Link>;
         })}</div>;
       })}</nav>
-      <div className="portal-user"><strong>{user.fullName || user.username}</strong><span>{roleNames[user.role]}</span><button type="button" aria-label="Đăng xuất" title={collapsed ? 'Đăng xuất' : undefined} onClick={logout}><LogOut size={17} aria-hidden="true" /><span>Đăng xuất</span></button></div>
+      <div className="portal-logout-wrap">
+        <button
+          type="button"
+          className="portal-logout-btn"
+          aria-label="Đăng xuất"
+          title={collapsed ? 'Đăng xuất' : undefined}
+          onClick={logout}
+        >
+          <LogOut size={18} aria-hidden="true" />
+          <span>Đăng xuất</span>
+        </button>
+      </div>
     </aside>
     {open && <button className="sidebar-overlay" aria-label="Đóng menu" onClick={() => setOpen(false)} />}
     <div className="portal-main"><header className="portal-header"><button className="mobile-menu" type="button" onClick={() => setOpen(true)}><Menu /> Menu</button><nav className="portal-breadcrumb" aria-label="Điều hướng trang"><span>Portal</span>{current && <><ChevronRight size={15} /><span>{current.section}</span><ChevronRight size={15} /><strong>{current.label}</strong></>}</nav><div className="portal-header-user"><strong>{user.fullName || user.username}</strong><span>{roleNames[user.role]}</span></div></header><main className="portal-content">{children}</main></div>

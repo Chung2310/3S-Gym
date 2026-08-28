@@ -6,6 +6,14 @@ description: >-
   quản lý modal CRUD, tích hợp API và quy tắc tổ chức thư mục kiểm thử.
 ---
 
+## 0. Tailwind-first styling policy
+
+1. Tailwind CSS v4 is the required styling system for every new or modified frontend UI. The project uses `@tailwindcss/vite`; do not add another CSS framework.
+2. Do not add component-level global CSS, CSS modules, styled-components, or `style={{ ... }}` inline styles. Keep untouched legacy global CSS only until it is explicitly migrated.
+3. Reuse theme tokens from `frontend/src/index.css` through utilities such as `bg-primary`, `text-primary`, `font-oswald`, and `font-montserrat`. Add a shared token in `@theme` before introducing a new repeated value.
+4. Use complete, statically discoverable Tailwind class strings. Conditional classes must resolve to complete strings so Tailwind can scan them.
+5. Include responsive, hover, active, disabled, focus-visible, and motion-reduce states in Tailwind classes for interactive UI.
+6. Reusable UI primitives still belong in `frontend/src/components/ui/`; their styling follows the same Tailwind-first rule.
 # 3S Gym Frontend Development Skill & Best Practices
 
 Tài liệu này định nghĩa cấu trúc chuẩn, quy tắc tái sử dụng UI và phong cách lập trình cho phần Frontend của dự án 3S Gym.

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-export interface DataItem { _id?: string; id?: string; [key: string]: unknown }
+export interface DataItem { _id?: string; id?: string;[key: string]: unknown }
 export interface DataColumn<T extends DataItem = DataItem> { key: string; label: string; render?: (item: T) => ReactNode }
 interface DataListProps<T extends DataItem> { columns: DataColumn<T>[]; items: T[]; emptyMessage?: string; renderActions?: (item: T) => ReactNode }
 function display(value: unknown): ReactNode { return typeof value === 'string' || typeof value === 'number' ? value : value == null || value === '' ? '—' : String(value); }
