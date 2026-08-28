@@ -19,13 +19,17 @@ function PortalPage(props: React.ComponentProps<typeof RawPortalRoutes>) {
 
 vi.mock('../../src/services/api', () => ({
   api: {
-    get: vi.fn().mockImplementation(async (path: string) => path.startsWith('/api/dashboard/admin')
+    get: vi.fn().mockImplementation(async (path: string) => path === '/api/features/me'
+      ? { data: { EXERCISE_LIBRARY: true }, message: '' }
+      : path.startsWith('/api/dashboard/admin')
       ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
       : { data: [], meta: { page: 1, totalPages: 0 }, message: '' }), post: vi.fn(), patch: vi.fn(), delete: vi.fn()
   },
 }));
 
-const defaultGet = async (path: string) => path.startsWith('/api/dashboard/admin')
+const defaultGet = async (path: string) => path === '/api/features/me'
+  ? { data: { EXERCISE_LIBRARY: true }, message: '' }
+  : path.startsWith('/api/dashboard/admin')
   ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
   : { data: [], meta: { page: 1, totalPages: 0 }, message: '' };
 
@@ -123,7 +127,7 @@ describe('PortalPage', () => {
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
 
     expect(screen.getByRole('tablist', { name: 'Nội dung khách hàng' })).toBeVisible();
-    expect(screen.getAllByRole('tab')).toHaveLength(5);
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
     expect(screen.getByRole('tab', { name: 'Khách hàng' })).toHaveAttribute('aria-selected', 'true');
 
     await user.click(screen.getByRole('tab', { name: 'InBody' }));
@@ -188,16 +192,9 @@ describe('PortalPage', () => {
     expect(screen.getByRole('dialog', { name: 'Tạo InBody' })).toBeInTheDocument();
   });
 
-  it('PT thêm buổi và bài tập trực tiếp trong popup giáo án', async () => {
-    const user = userEvent.setup();
+  it('PT không còn thấy tab giáo án cũ ở menu khách hàng', async () => {
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
-    await user.click(screen.getByRole('tab', { name: 'Giáo án' }));
-    await user.click(screen.getByRole('button', { name: 'Tạo mới' }));
-    await user.click(screen.getByRole('button', { name: 'Thêm buổi tập' }));
-    await user.click(screen.getByRole('button', { name: 'Thêm bài tập' }));
-    expect(screen.getByLabelText('Tên buổi 1')).toBeInTheDocument();
-    expect(screen.getByLabelText('Tên bài tập')).toBeInTheDocument();
-    expect(screen.queryByLabelText(/JSON/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Giáo án' })).not.toBeInTheDocument();
   });
 
   it('route portal không tồn tại hiển thị trang khôi phục đúng vai trò', async () => {
@@ -224,5 +221,33 @@ describe('PortalPage', () => {
     await user.click(screen.getByRole('button', { name: 'Thêm bữa ăn' }));
     expect(screen.getByLabelText('Tên bữa')).toBeInTheDocument();
     expect(screen.getByLabelText('Món ăn')).toBeInTheDocument();
+  });
+
+  it('route module giáo án khách hàng cũ chuyển về khách hàng', async () => {
+    const { unmount } = render(<MemoryRouter initialEntries={['/pt/my-workout-plans']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
+    expect(await screen.findByRole('heading', { name: 'Giáo án của tôi' })).toBeVisible();
+    unmount();
+
+    render(<MemoryRouter initialEntries={['/pt/customer-workout-plans']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
+    expect(await screen.findByRole('heading', { name: /Khách hàng/i })).toBeVisible();
+  });
+
+  it.each(['/pt/workout-plans', '/pt/workouts'])('chuyển route giáo án cũ %s sang Giáo án của tôi', async (legacyPath) => {
+    function Location() { return <output data-testid="workout-route">{useLocation().pathname}</output>; }
+    render(<MemoryRouter initialEntries={[legacyPath]}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /><Location /></ToastProvider></MemoryRouter>);
+
+    expect(await screen.findByTestId('workout-route')).toHaveTextContent('/pt/my-workout-plans');
+    expect(await screen.findByRole('heading', { name: 'Giáo án của tôi' })).toBeVisible();
+  });
+
+  it('chuyển route thư viện bài tập cũ sang tab trong Giáo án của tôi', async () => {
+    function Location() {
+      const location = useLocation();
+      return <output data-testid="exercise-route">{`${location.pathname}${location.search}`}</output>;
+    }
+
+    render(<MemoryRouter initialEntries={['/pt/exercises']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /><Location /></ToastProvider></MemoryRouter>);
+
+    expect(await screen.findByTestId('exercise-route')).toHaveTextContent('/pt/my-workout-plans?tab=exercises');
   });
 });

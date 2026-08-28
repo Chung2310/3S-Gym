@@ -19,6 +19,10 @@ const defaultFeatureDefinitions: Record<string, { name: string; description: str
     name: 'Lộ trình Huấn luyện (Roadmap)',
     description: 'Thiết kế các giai đoạn tập luyện mục tiêu có cấu trúc tuần tự.',
   },
+  EXERCISE_LIBRARY: {
+    name: 'Thư viện bài tập & Giáo án',
+    description: 'Quản lý thư viện bài tập, giáo án riêng của PT và giáo án cá nhân hóa cho khách hàng.',
+  },
   CARE: {
     name: 'Chăm sóc & Cảnh báo (Care)',
     description: 'Quản lý tác vụ chăm sóc khách hàng, nhắc nhở và hàng đợi Today.',

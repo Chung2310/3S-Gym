@@ -75,7 +75,12 @@ export const listRoadmapsSchema: RequestValidationSchema = { query: Joi.object({
 const roadmapBaseline = Joi.object().pattern(Joi.string(), Joi.number()).messages(commonMessages);
 export const createRoadmapSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), title: Joi.string().trim().required(), baseline: roadmapBaseline, phases: phases.required() }).messages(commonMessages) };
 export const updateRoadmapSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ title: Joi.string().trim(), baseline: roadmapBaseline, phases, customerId: Joi.forbidden(), ...systemFields }) };
-const exerciseFields = { name: Joi.string().trim(), muscleGroup: Joi.string().trim(), level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED'), equipment: Joi.array().items(Joi.string()), scope: Joi.string().valid('GLOBAL', 'PRIVATE'), description: Joi.string().allow(''), videoUrl: Joi.string().uri().allow('', null), technique: Joi.string().allow(''), commonMistakes: Joi.array().items(Joi.string()), contraindications: Joi.array().items(Joi.string()), variants: Joi.array().items(Joi.string()) };
+const exerciseVideo = Joi.object({
+  title: Joi.string().trim().max(120).required(),
+  url: Joi.string().trim().uri({ scheme: ['http', 'https'] }).max(2048).required(),
+  source: Joi.string().valid('UPLOAD', 'LINK').required(),
+}).messages(commonMessages);
+const exerciseFields = { name: Joi.string().trim(), muscleGroup: Joi.string().trim(), level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED'), equipment: Joi.array().items(Joi.string()), scope: Joi.string().valid('GLOBAL', 'PRIVATE'), description: Joi.string().allow(''), videoUrl: Joi.string().uri().allow('', null), videos: Joi.array().items(exerciseVideo).max(20), technique: Joi.string().allow(''), commonMistakes: Joi.array().items(Joi.string()), contraindications: Joi.array().items(Joi.string()), variants: Joi.array().items(Joi.string()) };
 export const listExercisesSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, level: exerciseFields.level, muscleGroup: Joi.string(), keyword: Joi.string().allow('') }).messages(commonMessages) };
 export const createExerciseSchema: RequestValidationSchema = { body: Joi.object({ ...exerciseFields, name: exerciseFields.name.required(), muscleGroup: exerciseFields.muscleGroup.required(), level: exerciseFields.level.required() }).messages(commonMessages) };
 export const updateExerciseSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...exerciseFields, scope: Joi.forbidden(), ownerPtId: Joi.forbidden() }) };

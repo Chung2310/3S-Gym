@@ -93,7 +93,7 @@ export default function CustomerWorkoutPlanPanel({ initialDraft = null, onDraftC
     <section className="panel">
       <div className="section-header">
         <div>
-          <h2>Giáo án khách hàng</h2>
+          <h2>Danh sách giáo án khách hàng</h2>
           <p>Tạo bản nháp, cá nhân hóa và công bố cho từng khách hàng.</p>
         </div>
         <button className="button button-primary" onClick={openCreate}>Tạo giáo án khách hàng</button>

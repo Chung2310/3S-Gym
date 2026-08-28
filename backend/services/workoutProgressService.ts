@@ -9,7 +9,7 @@ import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { withTransaction } from './transactionService.js';
 
-interface TemplatePayload { title: string; goal: string; level: string; sessions: Array<Record<string, unknown>> }
+interface TemplatePayload { title: string; goal: string; level: string; durationDays?: number; muscleGroups?: string[]; defaultSets?: number; defaultReps?: string; defaultWeight?: string; defaultTempo?: string; technicalNotes?: string; scheduledExercises?: Array<Record<string, unknown>>; unscheduledExercises?: Array<Record<string, unknown>>; sessions?: Array<Record<string, unknown>> }
 interface SessionPayload {
   customerId: string; templateId: string; sessionIndex: number; performedAt: string; attendance: 'PRESENT' | 'ABSENT' | 'LATE';
   idempotencyKey: string; exerciseLogs?: Array<Record<string, unknown>>; absenceReason?: string; feeling?: string; notes?: string;
@@ -24,7 +24,13 @@ async function customerFor(user: AuthenticatedUser, id: string, session?: Client
   return customer;
 }
 async function createTemplate(user: AuthenticatedUser, payload: TemplatePayload) {
-  return WorkoutTemplate.create({ ...payload, ownerPtId: user.id, version: 1, status: 'ACTIVE' });
+  const sessions = payload.scheduledExercises?.length ? sessionsFromSchedule(payload.scheduledExercises) : payload.sessions;
+  return WorkoutTemplate.create({ ...payload, sessions, ownerPtId: user.id, version: 1, status: 'ACTIVE' });
+}
+function sessionsFromSchedule(items: Array<Record<string, unknown>>) {
+  const days = new Map<number, Array<Record<string, unknown>>>();
+  for (const item of [...items].sort((a, b) => Number(a.dayNumber) - Number(b.dayNumber) || Number(a.startMinute) - Number(b.startMinute))) { const day = Number(item.dayNumber); const exercise = { ...item }; delete exercise.dayNumber; delete exercise.startMinute; delete exercise.durationMinutes; days.set(day, [...(days.get(day) || []), exercise]); }
+  return [...days.entries()].map(([day, exercises]) => ({ name: `Ngày ${day}`, exercises }));
 }
 async function listTemplates(user: AuthenticatedUser, query: Record<string, unknown>) {
   const page = Number(query.page || 1); const limit = Number(query.limit || 20);
@@ -42,7 +48,8 @@ async function updateTemplate(user: AuthenticatedUser, id: string, payload: Part
   const filter = { _id: id, ...(user.role === 'PT' ? { ownerPtId: new Types.ObjectId(user.id) } : {}) };
   const template = await WorkoutTemplate.findOne(filter);
   if (!template) throw fail('Workout template not found.', 404);
-  for (const field of ['title', 'goal', 'level', 'sessions'] as const) if (payload[field] !== undefined) template.set(field, payload[field]);
+  for (const field of ['title', 'goal', 'level', 'durationDays', 'muscleGroups', 'defaultSets', 'defaultReps', 'defaultWeight', 'defaultTempo', 'technicalNotes', 'scheduledExercises', 'unscheduledExercises', 'sessions'] as const) if (payload[field] !== undefined) template.set(field, payload[field]);
+  if (payload.scheduledExercises) template.set('sessions', sessionsFromSchedule(payload.scheduledExercises));
   template.version += 1;
   return template.save();
 }

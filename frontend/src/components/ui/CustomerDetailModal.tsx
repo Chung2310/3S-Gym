@@ -37,6 +37,7 @@ import PtPackageManagerModal from './PtPackageManagerModal';
 import InBodyDetailModal from '../inbody/InBodyDetailModal';
 import InBodyManualModal from '../inbody/InBodyManualModal';
 import type { InBodyRecordData } from '../../types/inbody';
+import CustomerWorkoutPlanTab from '../customers/CustomerWorkoutPlanTab';
 
 export interface CustomerFullDetail {
   _id: string;
@@ -65,7 +66,7 @@ interface CustomerDetailModalProps {
   onGrantAccount?: (customer: CustomerFullDetail) => void;
 }
 
-type DetailTab = 'overview' | 'packages' | 'consultations' | 'photos' | 'workouts' | 'inbody';
+type DetailTab = 'overview' | 'packages' | 'consultations' | 'photos' | 'plans' | 'workouts' | 'inbody';
 
 export default function CustomerDetailModal({
   open,
@@ -420,6 +421,7 @@ export default function CustomerDetailModal({
                   { id: 'packages', label: 'Gói tập PT', icon: Package, count: packages.length },
                   { id: 'consultations', label: 'Lịch sử tư vấn', icon: MessageSquare, count: consultations.length },
                   { id: 'photos', label: 'Ảnh Before / After', icon: Camera, count: photos.length },
+                  { id: 'plans', label: 'Giáo án', icon: ClipboardList, count: null },
                   { id: 'workouts', label: 'Lịch sử tập luyện', icon: Dumbbell, count: sessions.length },
                   { id: 'inbody', label: 'InBody & Số đo', icon: Ruler, count: inbodies.length },
                 ].map((tab) => {
@@ -717,6 +719,10 @@ export default function CustomerDetailModal({
                   </div>
                 )}
               </div>
+            )}
+
+            {activeTab === 'plans' && customer?._id && (
+              <CustomerWorkoutPlanTab customerId={customer._id} customerName={detail?.fullName || customer.fullName || 'Khách hàng'} />
             )}
 
             {/* TAB 5: WORKOUTS */}

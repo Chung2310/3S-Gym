@@ -42,6 +42,7 @@ export default function ExerciseLibraryPage() {
     { key: 'muscleGroup', label: 'Nhóm cơ' },
     { key: 'level', label: 'Cấp độ' },
     { key: 'scope', label: 'Phạm vi' },
+    { key: 'videos', label: 'Video', render: (item) => item.videos?.length ? <div className="exercise-video-links"><span>{item.videos.length} video</span>{item.videos.map((video, index) => <a key={`${video.url}-${index}`} href={video.url} target="_blank" rel="noopener noreferrer">{video.title}</a>)}</div> : <span>Chưa có</span> },
   ];
 
   // === LẮP RÁP COMPONENTS ===

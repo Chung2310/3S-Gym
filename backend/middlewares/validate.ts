@@ -15,6 +15,7 @@ export interface RequestValidationSchema {
   params?: Joi.ObjectSchema;
   query?: Joi.ObjectSchema;
   file?: Joi.AnySchema;
+  fileField?: string;
 }
 
 const validationOptions: Joi.ValidationOptions = {
@@ -36,10 +37,10 @@ function validate(schema: ValidationSchema | RequestValidationSchema): RequestHa
         const source = segment === 'file' ? req.file : req[segment];
         const result = segmentSchema.validate(source, validationOptions);
         if (result.error) {
-          errors.push(...result.error.details.map((detail) => validationIssue(
-            detail,
-            segment === 'file' ? 'image' : segment,
-          )));
+          errors.push(...result.error.details.map((detail) => {
+            const issue = validationIssue(detail, segment);
+            return segment === 'file' ? { ...issue, field: schema.fileField || 'image' } : issue;
+          }));
           continue;
         }
         if (segment === 'file') {
