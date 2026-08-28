@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { ArrowRight, Calendar, Camera, Check, Image as ImageIcon, Plus, Sliders, Trash2, Upload, Weight, X, ZoomIn } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import FormField from './FormField';
@@ -77,6 +77,66 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
   const [compareViewType, setCompareViewType] = useState<'sideBySide' | 'slider' | 'multiAngle' | 'timeline'>('sideBySide');
   const [sliderPos, setSliderPos] = useState<number>(50);
   const [zoomPhoto, setZoomPhoto] = useState<ProgressPhotoItem | null>(null);
+
+  // Direct Drag Handler for Split Slider
+  const sliderContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
+
+  const handleSliderMove = (clientX: number) => {
+    if (!sliderContainerRef.current) return;
+    const rect = sliderContainerRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const x = clientX - rect.left;
+    const percent = Math.min(100, Math.max(0, (x / rect.width) * 100));
+    setSliderPos(Math.round(percent * 10) / 10);
+  };
+
+  const handleSliderMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingSlider(true);
+    handleSliderMove(e.clientX);
+  };
+
+  const handleSliderTouchStart = (e: React.TouchEvent) => {
+    setIsDraggingSlider(true);
+    if (e.touches[0]) {
+      handleSliderMove(e.touches[0].clientX);
+    }
+  };
+
+  useEffect(() => {
+    if (!isDraggingSlider) return;
+
+    const onMouseMove = (e: MouseEvent) => {
+      handleSliderMove(e.clientX);
+    };
+
+    const onMouseUp = () => {
+      setIsDraggingSlider(false);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches[0]) {
+        handleSliderMove(e.touches[0].clientX);
+      }
+    };
+
+    const onTouchEnd = () => {
+      setIsDraggingSlider(false);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchmove', onTouchMove);
+    window.addEventListener('touchend', onTouchEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [isDraggingSlider]);
 
   const autoPairPhotos = (angle = compareAngle) => {
     const pool = angle === 'ALL' ? items : items.filter((p) => p.angle === angle);
@@ -1001,10 +1061,11 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                 <div>
                   {selectedBefore && selectedAfter ? (
                     <div>
-                      {/* Interactive Handle Notice */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#003b70' }}>
-                          Kéo thanh trượt ngang để đối chiếu sự thay đổi (Trước: {sliderPos}% / Sau: {100 - sliderPos}%):
+                      {/* Interactive Drag Notice / Tooltip */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                        <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#003b70', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7' }}></span>
+                          Kéo trực tiếp thanh trượt trên ảnh để đối chiếu (Trước: {Math.round(sliderPos)}% / Sau: {Math.round(100 - sliderPos)}%):
                         </span>
                         <input
                           type="range"
@@ -1016,8 +1077,11 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                         />
                       </div>
 
-                      {/* Slider Container */}
+                      {/* Slider Container with Direct Mouse/Touch Drag */}
                       <div
+                        ref={sliderContainerRef}
+                        onMouseDown={handleSliderMouseDown}
+                        onTouchStart={handleSliderTouchStart}
                         style={{
                           position: 'relative',
                           width: '100%',
@@ -1025,14 +1089,17 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                           background: '#0f172a',
                           borderRadius: '14px',
                           overflow: 'hidden',
-                          border: '2px solid #0284c7',
+                          border: isDraggingSlider ? '3px solid #005696' : '2px solid #0284c7',
                           userSelect: 'none',
+                          cursor: 'ew-resize',
+                          touchAction: 'none',
                         }}
                       >
                         {/* After Image (Full background) */}
                         <img
                           src={selectedAfter.photoUrl}
                           alt="After"
+                          draggable={false}
                           style={{
                             position: 'absolute',
                             top: 0,
@@ -1040,6 +1107,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                             width: '100%',
                             height: '100%',
                             objectFit: 'contain',
+                            pointerEvents: 'none',
                           }}
                         />
 
@@ -1053,15 +1121,18 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                             height: '100%',
                             overflow: 'hidden',
                             clipPath: `polygon(0 0, ${sliderPos}% 0, ${sliderPos}% 100%, 0 100%)`,
+                            pointerEvents: 'none',
                           }}
                         >
                           <img
                             src={selectedBefore.photoUrl}
                             alt="Before"
+                            draggable={false}
                             style={{
                               width: '100%',
                               height: '100%',
                               objectFit: 'contain',
+                              pointerEvents: 'none',
                             }}
                           />
                         </div>
@@ -1075,7 +1146,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                             left: `${sliderPos}%`,
                             width: '4px',
                             background: '#ffffff',
-                            boxShadow: '0 0 10px rgba(0,0,0,0.6)',
+                            boxShadow: '0 0 12px rgba(0,0,0,0.8)',
                             transform: 'translateX(-50%)',
                             pointerEvents: 'none',
                           }}
@@ -1085,18 +1156,21 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                               position: 'absolute',
                               top: '50%',
                               left: '50%',
-                              transform: 'translate(-50%, -50%)',
-                              width: '36px',
-                              height: '36px',
+                              transform: `translate(-50%, -50%) scale(${isDraggingSlider ? 1.25 : 1})`,
+                              width: '40px',
+                              height: '40px',
                               borderRadius: '50%',
                               background: '#ffffff',
                               color: '#003b70',
+                              border: '3px solid #0284c7',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
-                              fontWeight: 800,
-                              fontSize: '0.8rem',
+                              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                              fontWeight: 900,
+                              fontSize: '1rem',
+                              cursor: 'ew-resize',
+                              transition: 'transform 0.1s ease',
                             }}
                           >
                             ⇄
