@@ -2,9 +2,11 @@ import mongoose from 'mongoose';
 import Joi from 'joi';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
+import { joiMessages, validationIssue } from '../validators/validationMessages.js';
+import type { ValidationIssue } from '../validators/validationMessages.js';
 import type { Request, RequestHandler } from 'express';
 
-export interface ValidationIssue { field: string; message: string }
+export type { ValidationIssue } from '../validators/validationMessages.js';
 type BodyRequest = Pick<Request, 'body'>;
 export type ValidationSchema = (req: Request) => ValidationIssue[];
 
@@ -20,6 +22,7 @@ const validationOptions: Joi.ValidationOptions = {
   allowUnknown: false,
   stripUnknown: false,
   convert: true,
+  messages: joiMessages,
 };
 
 function validate(schema: ValidationSchema | RequestValidationSchema): RequestHandler {
@@ -33,10 +36,10 @@ function validate(schema: ValidationSchema | RequestValidationSchema): RequestHa
         const source = segment === 'file' ? req.file : req[segment];
         const result = segmentSchema.validate(source, validationOptions);
         if (result.error) {
-          errors.push(...result.error.details.map((detail) => ({
-            field: detail.path.length > 0 ? detail.path.join('.') : (segment === 'file' ? 'image' : segment),
-            message: detail.message,
-          })));
+          errors.push(...result.error.details.map((detail) => validationIssue(
+            detail,
+            segment === 'file' ? 'image' : segment,
+          )));
           continue;
         }
         if (segment === 'file') {
@@ -102,4 +105,4 @@ function listValidator(req: Request): ValidationIssue[] {
   return errors;
 }
 
-export { validate, createUserValidator, updateUserValidator, loginValidator, listValidator };
+export { validate, validationIssue, createUserValidator, updateUserValidator, loginValidator, listValidator };
