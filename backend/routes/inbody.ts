@@ -4,8 +4,11 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 import { requireFeature } from '../middlewares/requireFeature.js';
 import { validate } from '../middlewares/validate.js';
 import { confirm } from '../controllers/inbodyOcrController.js';
+import { confirmInbodyOcrSchema, inbodySchemas } from '../validators/contentValidator.js';
+import type { Request } from 'express';
 
-const router = createRouter('inbody', (req) => {
+const router = createRouter('inbody', inbodySchemas);
+/* legacy validator retained temporarily for behavioral reference */ void ((req: Request) => {
   const errors = [];
   if (!mongoose.isValidObjectId(req.body.customerId)) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' });
   if (!req.body.measurementDate || Number.isNaN(Date.parse(req.body.measurementDate))) errors.push({ field: 'measurementDate', message: 'Ngày đo không hợp lệ.' });
@@ -17,12 +20,13 @@ const router = createRouter('inbody', (req) => {
   return errors;
 });
 
-router.patch('/:id/confirm-ocr', authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), validate((req) => {
+router.patch('/:id/confirm-ocr', authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), validate(confirmInbodyOcrSchema), confirm);
+/* legacy validator retained temporarily */ void ((req: Request) => {
   const errors = [];
   if (!mongoose.isValidObjectId(req.params.id)) errors.push({ field: 'id', message: 'MÃ£ InBody khÃ´ng há»£p lá»‡.' });
   if (req.body.weight != null && (typeof req.body.weight !== 'number' || req.body.weight <= 0)) errors.push({ field: 'weight', message: 'CÃ¢n náº·ng pháº£i lá»›n hÆ¡n 0.' });
   if (req.body.bodyFatPercentage != null && (typeof req.body.bodyFatPercentage !== 'number' || req.body.bodyFatPercentage < 0 || req.body.bodyFatPercentage > 100)) errors.push({ field: 'bodyFatPercentage', message: 'Pháº§n trÄƒm má»¡ pháº£i tá»« 0 Ä‘áº¿n 100.' });
   return errors;
-}), confirm);
+});
 
 export default router;

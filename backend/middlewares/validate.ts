@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import Joi from 'joi';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { Request, RequestHandler } from 'express';
@@ -7,8 +8,50 @@ export interface ValidationIssue { field: string; message: string }
 type BodyRequest = Pick<Request, 'body'>;
 export type ValidationSchema = (req: Request) => ValidationIssue[];
 
-function validate(schema: ValidationSchema): RequestHandler {
+export interface RequestValidationSchema {
+  body?: Joi.ObjectSchema;
+  params?: Joi.ObjectSchema;
+  query?: Joi.ObjectSchema;
+  file?: Joi.AnySchema;
+}
+
+const validationOptions: Joi.ValidationOptions = {
+  abortEarly: false,
+  allowUnknown: false,
+  stripUnknown: false,
+  convert: true,
+};
+
+function validate(schema: ValidationSchema | RequestValidationSchema): RequestHandler {
   return (req, res, next) => {
+    if (typeof schema !== 'function') {
+      const errors: ValidationIssue[] = [];
+      const segments = ['body', 'params', 'query', 'file'] as const;
+      for (const segment of segments) {
+        const segmentSchema = schema[segment];
+        if (!segmentSchema) continue;
+        const source = segment === 'file' ? req.file : req[segment];
+        const result = segmentSchema.validate(source, validationOptions);
+        if (result.error) {
+          errors.push(...result.error.details.map((detail) => ({
+            field: detail.path.length > 0 ? detail.path.join('.') : (segment === 'file' ? 'image' : segment),
+            message: detail.message,
+          })));
+          continue;
+        }
+        if (segment === 'file') {
+          req.file = result.value as Express.Multer.File;
+        } else if (segment === 'query') {
+          Object.defineProperty(req, 'query', { configurable: true, enumerable: true, value: result.value });
+        } else {
+          req[segment] = result.value;
+        }
+      }
+      if (errors.length > 0) {
+        return next(new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Dữ liệu gửi lên không hợp lệ.', errors }));
+      }
+      return next();
+    }
     const errors = schema(req);
     if (errors.length > 0) {
       return next(new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Dữ liệu gửi lên không hợp lệ.', errors }));

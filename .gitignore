@@ -21,6 +21,7 @@ build/
 dist-server/
 coverage/
 logs/
+.runlogs/
 scratch/
 uploads/
 tmp/
@@ -32,6 +33,7 @@ temp/
 .DS_Store
 Thumbs.db
 *.log
+~$*
 
 # Local databases & dumps
 *.sqlite

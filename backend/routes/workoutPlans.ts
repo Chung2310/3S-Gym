@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
 import createRouter from './contentRouteFactory.js';
+import { workoutPlanSchemas } from '../validators/contentValidator.js';
+import type { Request } from 'express';
 
 interface ExerciseInput { name?: unknown; sets?: unknown }
 interface SessionInput { name?: unknown; exercises?: ExerciseInput[] }
 
-export default createRouter('workoutPlans', (req) => {
+export default createRouter('workoutPlans', workoutPlanSchemas);
+void ((req: Request) => {
   const errors: Array<{ field: string; message: string }> = [];
   if (!mongoose.isValidObjectId(req.body.customerId)) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' });
   if (typeof req.body.title !== 'string' || !req.body.title.trim()) errors.push({ field: 'title', message: 'Vui lòng nhập tên giáo án.' });

@@ -1,11 +1,12 @@
-import express, { type Request } from 'express';
-import mongoose from 'mongoose';
+import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
 import { requireFeature } from '../middlewares/requireFeature.js';
-import { validate, listValidator, type ValidationIssue } from '../middlewares/validate.js';
+import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/workoutProgressController.js';
+import { bodyMeasurementIdSchema, createBodyMeasurementSchema, createWorkoutSessionSchema, createWorkoutTemplateSchema, customerProgressSchema, listWorkoutSessionsSchema, listWorkoutTemplatesSchema, updateBodyMeasurementSchema, updateWorkoutTemplateSchema, workoutTemplateIdSchema } from '../validators/workoutValidator.js';
 const router = express.Router();
 const auth = [authenticate, authorize('ADMIN', 'PT')] as const;
+/* legacy manual validators
 const templateValidator = (req: Request): ValidationIssue[] => {
   const errors: ValidationIssue[] = [];
   if (typeof req.body.title !== 'string' || !req.body.title.trim()) errors.push({ field: 'title', message: 'Vui lòng nhập tên giáo án.' });
@@ -25,25 +26,26 @@ const measurementValidator = (req: Request): ValidationIssue[] => {
   if (!req.body.measuredAt || Number.isNaN(Date.parse(req.body.measuredAt))) errors.push({ field: 'measuredAt', message: 'Ngày đo không hợp lệ.' });
   return errors;
 };
-router.post('/workout-templates', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(templateValidator), controller.createTemplate);
-router.get('/workout-templates', ...auth, requireFeature('EXERCISE_LIBRARY'), validate((req) => {
+*/
+router.post('/workout-templates', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(createWorkoutTemplateSchema), controller.createTemplate);
+router.get('/workout-templates', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(listWorkoutTemplatesSchema), controller.listTemplates); /*
   const errors = listValidator(req);
   if (req.query.status && !['ACTIVE', 'ARCHIVED'].includes(String(req.query.status))) errors.push({ field: 'status', message: 'Tráº¡ng thÃ¡i giÃ¡o Ã¡n khÃ´ng há»£p lá»‡.' });
   return errors;
-}), controller.listTemplates);
-router.get('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate((req) => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã giáo án không hợp lệ.' }]), controller.getTemplate);
-router.patch('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate((req) => {
+*/
+router.get('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(workoutTemplateIdSchema), controller.getTemplate);
+router.patch('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(updateWorkoutTemplateSchema), controller.updateTemplate); /*
   const errors: ValidationIssue[] = mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'MÃ£ giÃ¡o Ã¡n khÃ´ng há»£p lá»‡.' }];
   if (req.body.title !== undefined && (typeof req.body.title !== 'string' || !req.body.title.trim())) errors.push({ field: 'title', message: 'TÃªn giÃ¡o Ã¡n khÃ´ng há»£p lá»‡.' });
   if (req.body.sessions !== undefined && (!Array.isArray(req.body.sessions) || req.body.sessions.length === 0)) errors.push({ field: 'sessions', message: 'GiÃ¡o Ã¡n pháº£i cÃ³ Ã­t nháº¥t má»™t buá»•i.' });
   return errors;
-}), controller.updateTemplate);
-router.patch('/workout-templates/:id/archive', ...auth, requireFeature('EXERCISE_LIBRARY'), validate((req) => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã giáo án không hợp lệ.' }]), controller.archiveTemplate);
-router.delete('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate((req) => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã giáo án không hợp lệ.' }]), controller.deleteTemplate);
-router.post('/workout-sessions', ...auth, requireFeature('PROGRESS'), validate(sessionValidator), controller.createSession);
-router.get('/workout-sessions', ...auth, requireFeature('PROGRESS'), validate((req) => { const errors = listValidator(req); if (!mongoose.isValidObjectId(String(req.query.customerId))) errors.push({ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' }); if (req.query.attendance && !['PRESENT', 'ABSENT', 'LATE'].includes(String(req.query.attendance))) errors.push({ field: 'attendance', message: 'Trạng thái điểm danh không hợp lệ.' }); return errors; }), controller.listSessions);
-router.post('/body-measurements', ...auth, requireFeature('PROGRESS'), validate(measurementValidator), controller.createMeasurement);
-router.patch('/body-measurements/:id', ...auth, requireFeature('PROGRESS'), validate((req) => { const errors: ValidationIssue[] = mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã số đo không hợp lệ.' }]; if (req.body.weight !== undefined && (!Number.isFinite(req.body.weight) || req.body.weight <= 0)) errors.push({ field: 'weight', message: 'Cân nặng không hợp lệ.' }); if (Object.prototype.hasOwnProperty.call(req.body, 'customerId')) errors.push({ field: 'customerId', message: 'Không được đổi khách hàng.' }); return errors; }), controller.updateMeasurement);
-router.delete('/body-measurements/:id', ...auth, requireFeature('PROGRESS'), validate((req) => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã số đo không hợp lệ.' }]), controller.deleteMeasurement);
-router.get('/progress/:customerId', ...auth, requireFeature('PROGRESS'), validate((req) => mongoose.isValidObjectId(req.params.customerId) ? [] : [{ field: 'customerId', message: 'Mã khách hàng không hợp lệ.' }]), controller.getProgress);
+*/
+router.patch('/workout-templates/:id/archive', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(workoutTemplateIdSchema), controller.archiveTemplate);
+router.delete('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(workoutTemplateIdSchema), controller.deleteTemplate);
+router.post('/workout-sessions', ...auth, requireFeature('PROGRESS'), validate(createWorkoutSessionSchema), controller.createSession);
+router.get('/workout-sessions', ...auth, requireFeature('PROGRESS'), validate(listWorkoutSessionsSchema), controller.listSessions);
+router.post('/body-measurements', ...auth, requireFeature('PROGRESS'), validate(createBodyMeasurementSchema), controller.createMeasurement);
+router.patch('/body-measurements/:id', ...auth, requireFeature('PROGRESS'), validate(updateBodyMeasurementSchema), controller.updateMeasurement);
+router.delete('/body-measurements/:id', ...auth, requireFeature('PROGRESS'), validate(bodyMeasurementIdSchema), controller.deleteMeasurement);
+router.get('/progress/:customerId', ...auth, requireFeature('PROGRESS'), validate(customerProgressSchema), controller.getProgress);
 export default router;

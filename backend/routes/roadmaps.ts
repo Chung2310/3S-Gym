@@ -1,12 +1,13 @@
-import express, { type Request } from 'express';
-import mongoose from 'mongoose';
+import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
 import { requireFeature } from '../middlewares/requireFeature.js';
-import { validate, listValidator, type ValidationIssue } from '../middlewares/validate.js';
+import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/roadmapController.js';
+import { contentIdSchema, createRoadmapSchema, listRoadmapsSchema, updateRoadmapSchema } from '../validators/contentValidator.js';
 
 const router = express.Router();
 const base = [authenticate, authorize('ADMIN', 'PT'), requireFeature('ROADMAP')] as const;
+/* legacy manual validators
 const idValidator = (req: Request): ValidationIssue[] => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã roadmap không hợp lệ.' }];
 const phasesValidator = (phases: unknown): ValidationIssue[] => {
   if (!Array.isArray(phases) || phases.length === 0) return [{ field: 'phases', message: 'Roadmap phải có ít nhất một phase.' }];
@@ -32,11 +33,12 @@ const queryValidator = (req: Request): ValidationIssue[] => {
   return errors;
 };
 
-router.get('/', ...base, validate(queryValidator), controller.list);
-router.get('/:id', ...base, validate(idValidator), controller.get);
-router.post('/', ...base, validate(createValidator), controller.create);
-router.patch('/:id', ...base, validate(updateValidator), controller.update);
-router.delete('/:id', ...base, validate(idValidator), controller.remove);
-router.patch('/:id/publish', ...base, validate(idValidator), controller.publish);
-router.patch('/:id/unpublish', ...base, validate(idValidator), controller.unpublish);
+*/
+router.get('/', ...base, validate(listRoadmapsSchema), controller.list);
+router.get('/:id', ...base, validate(contentIdSchema), controller.get);
+router.post('/', ...base, validate(createRoadmapSchema), controller.create);
+router.patch('/:id', ...base, validate(updateRoadmapSchema), controller.update);
+router.delete('/:id', ...base, validate(contentIdSchema), controller.remove);
+router.patch('/:id/publish', ...base, validate(contentIdSchema), controller.publish);
+router.patch('/:id/unpublish', ...base, validate(contentIdSchema), controller.unpublish);
 export default router;
