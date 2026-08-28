@@ -157,7 +157,7 @@ export default function PtManagementView() {
   return (
     <div className="pt-management-view">
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h2 className="text-xl font-bold text-[#003b70] m-0 tracking-tight flex items-center gap-2">
             <Users size={22} className="text-sky-500" />
@@ -168,16 +168,16 @@ export default function PtManagementView() {
           </p>
         </div>
         <button
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#003b70] to-[#00a4e4] text-white text-xs font-bold hover:opacity-95 shadow-sm transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#003b70] to-[#00a4e4] text-white text-sm font-bold hover:opacity-95 shadow-sm transition-all cursor-pointer"
           type="button"
           onClick={() => setFormPt({ username: '', fullName: '', status: 'ACTIVE' })}
         >
-          <Plus size={16} /> Thêm Huấn luyện viên
+          <Plus size={18} /> Thêm Huấn luyện viên
         </button>
       </div>
 
       {/* Metrics Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
             <Users size={20} />
@@ -220,9 +220,9 @@ export default function PtManagementView() {
       </div>
 
       {/* Main Panel */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-2xs">
         {/* Compact Filter Toolbar & View Switcher */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 mb-4 pb-3 border-b border-slate-100">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 mb-6 pb-4 border-b border-slate-100">
           <div className="flex flex-wrap items-center gap-2 flex-1">
             {/* Search Input */}
             <div className="relative min-w-[220px] max-w-[340px] flex-1">
@@ -284,30 +284,28 @@ export default function PtManagementView() {
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
             <button
               type="button"
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${viewMode === 'grid'
+              className={`inline-flex items-center justify-center p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'grid'
                 ? 'bg-white text-[#003b70] shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
                 }`}
               onClick={() => setViewMode('grid')}
               title="Xem dạng thẻ huấn luyện viên"
             >
-              <LayoutGrid size={14} />
-              <span>Dạng thẻ</span>
+              <LayoutGrid size={15} />
             </button>
             <button
               type="button"
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${viewMode === 'table'
+              className={`inline-flex items-center justify-center p-1.5 rounded-md transition-all cursor-pointer ${viewMode === 'table'
                 ? 'bg-white text-[#003b70] shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
                 }`}
               onClick={() => setViewMode('table')}
               title="Xem dạng danh sách bảng"
             >
-              <List size={14} />
-              <span>Dạng bảng</span>
+              <List size={15} />
             </button>
           </div>
         </div>
@@ -344,7 +342,7 @@ export default function PtManagementView() {
           </div>
         ) : viewMode === 'grid' ? (
           /* Bento Cards Grid View */
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {pts.map((pt) => {
               const certificatesList = Array.isArray(pt.certificates)
                 ? pt.certificates
