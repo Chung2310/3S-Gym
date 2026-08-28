@@ -24,6 +24,15 @@ const empty: ContentFormState = { customerId: '', title: '', measurementDate: ''
 const labels = { inbody: 'InBody', goals: 'mục tiêu', 'workout-plans': 'giáo án', 'nutrition-plans': 'dinh dưỡng' };
 const date = (value?: string): string => value?.slice(0, 10) || '';
 const numberOrNull = (value: string | number | null | undefined): number | null => value === '' || value == null ? null : Number(value);
+const extractCustomerId = (raw: unknown): string => {
+  if (!raw) return '';
+  if (typeof raw === 'string') return raw;
+  if (typeof raw === 'object' && raw !== null) {
+    if ('_id' in raw) return String((raw as { _id: string })._id);
+    if ('id' in raw) return String((raw as { id: string }).id);
+  }
+  return '';
+};
 
 export default function ContentFormModal({ open, resource, item, onClose, onSaved }: ContentFormModalProps) {
   const toast = useToast();
@@ -31,10 +40,32 @@ export default function ContentFormModal({ open, resource, item, onClose, onSave
   const [initial, setInitial] = useState(empty);
   const [loading, setLoading] = useState(false);
   const editing = Boolean(item?._id);
+
+  const initialCustomers = useMemo(() => {
+    if (item?.customerId && typeof item.customerId === 'object' && item.customerId !== null && ('_id' in item.customerId || 'id' in item.customerId)) {
+      return [item.customerId as any];
+    }
+    return undefined;
+  }, [item?.customerId]);
+
   useEffect(() => {
     if (!open) return;
-    const next = { ...empty, ...item, measurementDate: date(item?.measurementDate), deadline: date(item?.deadline), startDate: date(item?.startDate), endDate: date(item?.endDate), protein: item?.macros?.protein ?? '', carbs: item?.macros?.carbs ?? '', fat: item?.macros?.fat ?? '', sessions: item?.sessions || [], menu: item?.menu || [] };
-    setForm(next); setInitial(next);
+    const next = {
+      ...empty,
+      ...item,
+      customerId: extractCustomerId(item?.customerId),
+      measurementDate: date(item?.measurementDate),
+      deadline: date(item?.deadline),
+      startDate: date(item?.startDate),
+      endDate: date(item?.endDate),
+      protein: item?.macros?.protein ?? '',
+      carbs: item?.macros?.carbs ?? '',
+      fat: item?.macros?.fat ?? '',
+      sessions: item?.sessions || [],
+      menu: item?.menu || [],
+    };
+    setForm(next);
+    setInitial(next);
   }, [open, item, resource]);
   const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(initial), [form, initial]);
   const set = (key: keyof ContentFormState) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setForm((value) => ({ ...value, [key]: event.target.value }));
@@ -73,6 +104,7 @@ export default function ContentFormModal({ open, resource, item, onClose, onSave
         label="Mã khách hàng"
         name="customerId"
         value={form.customerId}
+        customers={initialCustomers}
         onChange={(selectedId) => setForm((val) => ({ ...val, customerId: selectedId }))}
         required
         placeholder="Tìm và chọn học viên (theo tên hoặc SĐT)..."

@@ -89,7 +89,7 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }: 
   return <ProfileFormModal
     open={open}
     title={editing ? 'Sửa khách hàng' : 'Thêm khách hàng'}
-    description="Nhập thông tin hồ sơ và mục tiêu tập luyện của khách hàng."
+    description="Nhập thông tin hồ sơ và chỉ số ban đầu của khách hàng."
     dirty={dirty}
     loading={loading}
     submitLabel={editing ? 'Lưu thay đổi' : 'Tạo khách hàng'}
@@ -126,9 +126,6 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }: 
     <section className="profile-form-section">
       <h3>Quản lý</h3>
       <div className="profile-form-grid">
-        <div className="grid-full-width">
-          <FormField label="Mục tiêu ban đầu" name="customerInitialGoal" as="textarea" rows={3} maxLength={1000} placeholder="Nhập mục tiêu tập luyện (ví dụ: Giảm 5kg mỡ, tăng cơ săn chắc trong 3 tháng)..." value={form.initialGoal} onChange={change('initialGoal')} />
-        </div>
         <div className="grid-full-width">
           <FormField label="Ghi chú nội bộ" name="customerInternalNotes" as="textarea" rows={3} maxLength={2000} placeholder="Nhập ghi chú nội bộ của PT dành cho học viên..." value={form.internalNotes} onChange={change('internalNotes')} />
         </div>

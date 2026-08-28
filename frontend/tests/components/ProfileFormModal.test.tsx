@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -43,16 +43,12 @@ describe('ProfileFormModal', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('yêu cầu xác nhận trước khi bỏ form đã thay đổi', async () => {
+  it('đóng ngay khi bấm Hủy kể cả khi form có thay đổi', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     render(<ProfileFormModal open title="Thêm hồ sơ" dirty onClose={onClose}><input aria-label="Họ tên" /></ProfileFormModal>);
 
     await user.click(screen.getByRole('button', { name: 'Hủy' }));
-    expect(screen.getByRole('dialog', { name: 'Bỏ các thay đổi?' })).toBeInTheDocument();
-    expect(onClose).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole('button', { name: 'Bỏ thay đổi' }));
     expect(onClose).toHaveBeenCalledOnce();
   });
 });

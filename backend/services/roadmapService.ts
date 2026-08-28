@@ -29,7 +29,7 @@ async function getOwned(user: AuthenticatedUser, id: string) {
 
 async function update(user: AuthenticatedUser, id: string, payload: Partial<IRoadmap>) {
   const roadmap = await getOwned(user, id);
-  for (const field of ['title', 'baseline', 'phases'] as const) if (payload[field] !== undefined) roadmap.set(field, payload[field]);
+  for (const field of ['title', 'baseline', 'strategy', 'phases'] as const) if (payload[field] !== undefined) roadmap.set(field, payload[field]);
   if (roadmap.status === 'PUBLISHED') { roadmap.status = 'DRAFT'; roadmap.publishedAt = null; roadmap.version += 1; }
   return roadmap.save();
 }

@@ -34,7 +34,7 @@ const schema = new mongoose.Schema({
   recommendation: { type: String, default: '' },
   source: { type: String, enum: ['MANUAL', 'AI_SCAN'], default: 'MANUAL' },
   ocrStatus: { type: String, enum: ['NOT_APPLICABLE', 'REVIEW_REQUIRED', 'CONFIRMED'], default: 'NOT_APPLICABLE' },
-  confidence: { type: Number, min: 0, max: 1, default: null },
+  confidence: { type: Number, min: 0, max: 1, default: null, set: (v: number | null) => (v != null && v > 1 && v <= 100 ? v / 100 : v) },
   ocrWarnings: { type: [String], default: [] },
   sourceImage: {
     fileName: { type: String, default: '' }, mimeType: { type: String, default: '' }, data: { type: Buffer, default: null },

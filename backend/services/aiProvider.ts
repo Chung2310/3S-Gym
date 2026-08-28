@@ -6,7 +6,26 @@ export async function generateText(prompt: string): Promise<string> {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'PT Assistant chưa được cấu hình.' });
   try {
-    const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: APP_POLICY.AI_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.2 }) }, getEnv().PROVIDER_TIMEOUT_MS);
+    const model = process.env.OPENROUTER_MODEL || APP_POLICY.AI_MODEL;
+    const response = await fetchWithTimeout(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.APP_URL || 'http://3s.igentechsolutions.com',
+          'X-Title': '3S Gym & Wellness Fitness',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.2,
+          max_tokens: 8192,
+        }),
+      },
+      getEnv().PROVIDER_TIMEOUT_MS
+    );
     const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error('AI provider không trả nội dung');

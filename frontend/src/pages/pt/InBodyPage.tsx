@@ -137,28 +137,56 @@ export default function InBodyPage() {
     return sameCustomerRecords.find((r) => new Date(r.measurementDate).getTime() < targetTime) || sameCustomerRecords[0] || null;
   }, [detailItem, items]);
 
+  // Find all records for the active customer in detail modal
+  const customerHistoryForDetail = useMemo(() => {
+    if (!detailItem) return [];
+    const cId =
+      typeof detailItem.customerId === 'object' && detailItem.customerId !== null
+        ? detailItem.customerId._id
+        : String(detailItem.customerId || '');
+    return items.filter((i) => {
+      const itemCId =
+        typeof i.customerId === 'object' && i.customerId !== null ? i.customerId._id : String(i.customerId || '');
+      return itemCId === cId;
+    });
+  }, [detailItem, items]);
+
   // If a single customer is filtered, calculate overall progress delta
   const customerProgressSummary = useMemo(() => {
     if (!selectedCustomerId || items.length < 2) return null;
     const sorted = [...items].sort((a, b) => new Date(b.measurementDate).getTime() - new Date(a.measurementDate).getTime());
     const latest = sorted[0];
     const previous = sorted[1];
-    return analyzeInBody(latest, previous);
+    return {
+      ...analyzeInBody(latest, previous),
+      latest,
+      previous,
+    };
   }, [selectedCustomerId, items]);
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* 1. Header & Main Action Buttons */}
-      <div className="section-header" style={{ marginBottom: 0 }}>
-        <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Activity color="#0284c7" size={28} /> InBody & Quét Chỉ Số AI
+      <div
+        className="section-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          marginBottom: 0,
+        }}
+      >
+        <div style={{ flex: '1 1 420px', minWidth: 0 }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>
+            <Activity color="#0284c7" size={26} style={{ flexShrink: 0 }} /> Theo Dõi & Phân Tích InBody
           </h1>
-          <p>
-            Đọc dữ liệu InBody tự động (AI OCR) hoặc nhập thủ công, tự động phân tích điểm mạnh/yếu, so sánh tiến độ và sinh kịch bản tư vấn cho PT.
+          <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: '0.86rem', lineHeight: 1.5 }}>
+            Tự động nhận diện phiếu đo hoặc nhập tay, theo dõi tiến độ thể trạng và gợi ý định hướng tập luyện cho hội viên.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
           <button
             type="button"
             className="button button-secondary"
@@ -166,7 +194,7 @@ export default function InBodyPage() {
               setEditingItem(null);
               setOpenManualModal(true);
             }}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 700 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 700, whiteSpace: 'nowrap' }}
           >
             <Plus size={18} /> Nhập Thủ Công
           </button>
@@ -174,9 +202,9 @@ export default function InBodyPage() {
             type="button"
             className="button button-primary"
             onClick={() => setOpenScanModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontWeight: 700 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontWeight: 700, whiteSpace: 'nowrap' }}
           >
-            <Sparkles size={18} /> Quét Phiếu InBody (AI)
+            <Sparkles size={18} /> Quét Phiếu InBody
           </button>
         </div>
       </div>
@@ -272,7 +300,7 @@ export default function InBodyPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <TrendingUp size={20} color="#0284c7" />
                   <strong style={{ color: '#003b70', fontSize: '0.96rem' }}>
-                    Tiến độ so với lần đo trước (cách {customerProgressSummary.comparison.daysBetween} ngày):
+                    Tiến độ so với lần đo ngày {customerProgressSummary.previous?.measurementDate ? new Date(customerProgressSummary.previous.measurementDate).toLocaleDateString('vi-VN') : 'trước'} (cách {customerProgressSummary.comparison.daysBetween} ngày):
                   </strong>
                 </div>
                 <p style={{ margin: 0, fontSize: '0.9rem', color: '#1e293b', fontWeight: 600 }}>
@@ -284,41 +312,82 @@ export default function InBodyPage() {
                 <span
                   style={{
                     fontSize: '0.82rem',
-                    fontWeight: 700,
-                    padding: '5px 12px',
+                    fontWeight: 600,
+                    padding: '6px 12px',
                     borderRadius: '8px',
                     background: '#ffffff',
                     border: '1px solid #cbd5e1',
-                    color: customerProgressSummary.comparison.deltaWeight > 0 ? '#b45309' : '#15803d',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
                   }}
                 >
-                  Δ Cân: {customerProgressSummary.comparison.deltaWeight > 0 ? `+${customerProgressSummary.comparison.deltaWeight}` : customerProgressSummary.comparison.deltaWeight} kg
+                  <span style={{ color: '#64748b' }}>Cân nặng:</span>
+                  <strong style={{ color: '#0f172a' }}>
+                    {customerProgressSummary.previous?.weight != null ? `${customerProgressSummary.previous.weight}` : '—'} ➔ {customerProgressSummary.latest.weight} kg
+                  </strong>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      color: customerProgressSummary.comparison.deltaWeight > 0 ? '#b45309' : customerProgressSummary.comparison.deltaWeight < 0 ? '#15803d' : '#64748b',
+                    }}
+                  >
+                    ({customerProgressSummary.comparison.deltaWeight > 0 ? `+${customerProgressSummary.comparison.deltaWeight} kg` : customerProgressSummary.comparison.deltaWeight < 0 ? `${customerProgressSummary.comparison.deltaWeight} kg` : 'Không đổi'})
+                  </span>
                 </span>
+
                 <span
                   style={{
                     fontSize: '0.82rem',
-                    fontWeight: 700,
-                    padding: '5px 12px',
+                    fontWeight: 600,
+                    padding: '6px 12px',
                     borderRadius: '8px',
                     background: '#ffffff',
                     border: '1px solid #cbd5e1',
-                    color: customerProgressSummary.comparison.deltaFatPercentage < 0 ? '#15803d' : '#e11d48',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
                   }}
                 >
-                  Δ % Mỡ: {customerProgressSummary.comparison.deltaFatPercentage > 0 ? `+${customerProgressSummary.comparison.deltaFatPercentage}` : customerProgressSummary.comparison.deltaFatPercentage}%
+                  <span style={{ color: '#64748b' }}>% Mỡ:</span>
+                  <strong style={{ color: '#0f172a' }}>
+                    {customerProgressSummary.previous?.bodyFatPercentage != null ? `${customerProgressSummary.previous.bodyFatPercentage}%` : '—'} ➔ {customerProgressSummary.latest.bodyFatPercentage != null ? `${customerProgressSummary.latest.bodyFatPercentage}%` : '—'}
+                  </strong>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      color: customerProgressSummary.comparison.deltaFatPercentage < 0 ? '#15803d' : customerProgressSummary.comparison.deltaFatPercentage > 0 ? '#e11d48' : '#64748b',
+                    }}
+                  >
+                    ({customerProgressSummary.comparison.deltaFatPercentage > 0 ? `+${customerProgressSummary.comparison.deltaFatPercentage}%` : customerProgressSummary.comparison.deltaFatPercentage < 0 ? `${customerProgressSummary.comparison.deltaFatPercentage}%` : 'Không đổi'})
+                  </span>
                 </span>
+
                 <span
                   style={{
                     fontSize: '0.82rem',
-                    fontWeight: 700,
-                    padding: '5px 12px',
+                    fontWeight: 600,
+                    padding: '6px 12px',
                     borderRadius: '8px',
                     background: '#ffffff',
                     border: '1px solid #cbd5e1',
-                    color: customerProgressSummary.comparison.deltaMuscleMass > 0 ? '#15803d' : '#b45309',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
                   }}
                 >
-                  Δ Cơ: {customerProgressSummary.comparison.deltaMuscleMass > 0 ? `+${customerProgressSummary.comparison.deltaMuscleMass}` : customerProgressSummary.comparison.deltaMuscleMass} kg
+                  <span style={{ color: '#64748b' }}>Khối lượng cơ:</span>
+                  <strong style={{ color: '#0f172a' }}>
+                    {customerProgressSummary.previous?.muscleMass != null ? `${customerProgressSummary.previous.muscleMass} kg` : '—'} ➔ {customerProgressSummary.latest.muscleMass != null ? `${customerProgressSummary.latest.muscleMass} kg` : '—'}
+                  </strong>
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      color: customerProgressSummary.comparison.deltaMuscleMass > 0 ? '#15803d' : customerProgressSummary.comparison.deltaMuscleMass < 0 ? '#b45309' : '#64748b',
+                    }}
+                  >
+                    ({customerProgressSummary.comparison.deltaMuscleMass > 0 ? `+${customerProgressSummary.comparison.deltaMuscleMass} kg` : customerProgressSummary.comparison.deltaMuscleMass < 0 ? `${customerProgressSummary.comparison.deltaMuscleMass} kg` : 'Không đổi'})
+                  </span>
                 </span>
               </div>
             </div>
@@ -350,7 +419,7 @@ export default function InBodyPage() {
             <p style={{ margin: '0 0 18px', color: '#64748b', fontSize: '0.88rem' }}>
               {selectedCustomerId
                 ? 'Học viên này chưa có kết quả đo InBody nào.'
-                : 'Bấm nút bên dưới để quét phiếu bằng AI hoặc nhập thủ công!'}
+                : 'Bấm nút bên dưới để quét phiếu tự động hoặc nhập chỉ số thủ công!'}
             </p>
             <div style={{ display: 'inline-flex', gap: '10px' }}>
               <button
@@ -370,7 +439,7 @@ export default function InBodyPage() {
                 onClick={() => setOpenScanModal(true)}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
               >
-                <Sparkles size={16} /> Quét Phiếu InBody (AI)
+                <Sparkles size={16} /> Quét Phiếu InBody
               </button>
             </div>
           </div>
@@ -413,7 +482,7 @@ export default function InBodyPage() {
                     >
                       {/* Customer Info */}
                       <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '200px' }}>
                           <div
                             style={{
                               width: '36px',
@@ -431,9 +500,34 @@ export default function InBodyPage() {
                           >
                             {customerName.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <strong style={{ color: '#0f172a', display: 'block', fontSize: '0.9rem' }}>{customerName}</strong>
-                            {customerPhone && <span style={{ fontSize: '0.76rem', color: '#64748b' }}>{customerPhone}</span>}
+                          <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
+                            <strong
+                              title={customerName}
+                              style={{
+                                color: '#0f172a',
+                                display: 'block',
+                                fontSize: '0.9rem',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {customerName}
+                            </strong>
+                            {customerPhone && (
+                              <span
+                                style={{
+                                  fontSize: '0.76rem',
+                                  color: '#64748b',
+                                  display: 'block',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {customerPhone}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -542,7 +636,7 @@ export default function InBodyPage() {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            <Sparkles size={11} /> AI OCR
+                            <Sparkles size={11} /> Quét tự động
                           </span>
                         ) : (
                           <span
@@ -767,6 +861,7 @@ export default function InBodyPage() {
         open={Boolean(detailItem)}
         record={detailItem}
         previousRecord={previousRecordForDetail}
+        historyRecords={customerHistoryForDetail}
         onClose={() => setDetailItem(null)}
         onEdit={(rec) => {
           setDetailItem(null);

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
-import { Bell, ChevronRight, Dumbbell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
+import { Bell, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { clearSession } from '../services/session';
 import { api } from '../services/api';
 import { navigationForPath, visibleNavigation, type NavigationSection } from '../config/portalNavigation';
@@ -89,12 +89,38 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
   return (
     <div className={`portal-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className={`portal-sidebar ${open ? 'mobile-open' : ''} ${collapsed ? 'sidebar-collapsed' : ''}`}>
-        <div className="portal-brand">
-          <Dumbbell size={28} />
-          <div>
-            <strong>3S Wellness</strong>
-            <span>PT Portal</span>
-          </div>
+        <div
+          className="portal-brand"
+          style={{
+            padding: collapsed ? '0 0 16px' : '0 4px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+          }}
+        >
+          <Link
+            to="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              textDecoration: 'none',
+              width: '100%',
+            }}
+            title="3S Wellness Fitness & Yoga"
+          >
+            <img
+              src="/images/logo-white.png"
+              alt="3S Wellness Logo"
+              style={{
+                height: collapsed ? '34px' : '52px',
+                width: 'auto',
+                maxWidth: collapsed ? '44px' : '180px',
+                objectFit: 'contain',
+                transition: 'all 0.2s ease',
+              }}
+            />
+          </Link>
           <button type="button" className="mobile-close" aria-label="Đóng menu" onClick={() => setOpen(false)}>
             <X />
           </button>

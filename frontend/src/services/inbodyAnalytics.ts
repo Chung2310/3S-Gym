@@ -1,7 +1,9 @@
 import type {
+  CustomerGoalData,
   HealthAlert,
   InBodyAnalysisResult,
   InBodyComparison,
+  InBodyGoalAlignment,
   InBodyRecordData,
   MetricClassification,
 } from '../types/inbody';
@@ -86,7 +88,8 @@ export function classifyInbodyScore(score: number | null | undefined): MetricCla
 export function analyzeInBody(
   current: InBodyRecordData,
   previous?: InBodyRecordData | null,
-  customerMeta?: { fullName?: string; gender?: string; height?: number; phone?: string }
+  customerMeta?: { fullName?: string; gender?: string; height?: number; phone?: string },
+  customerGoal?: CustomerGoalData | null
 ): InBodyAnalysisResult {
   const gender = customerMeta?.gender || (typeof current.customerId === 'object' && current.customerId?.gender) || 'MALE';
   const fullName = customerMeta?.fullName || (typeof current.customerId === 'object' && current.customerId?.fullName) || 'Học viên';
@@ -236,15 +239,71 @@ export function analyzeInBody(
   const waterLiters = weight > 0 ? (weight * 0.04).toFixed(1) : '2.5';
   const waterRecommendation = `Uống tối thiểu ${waterLiters} lít nước lọc mỗi ngày để hỗ trợ trao đổi chất.`;
 
+  // 4.5. Phân tích đối chiếu Mục tiêu học viên (nếu có)
+  let goalAlignment: InBodyGoalAlignment | null = null;
+  if (customerGoal && customerGoal.title) {
+    const goalType = customerGoal.type || 'WEIGHT_LOSS';
+    const goalTypeLabel =
+      goalType === 'FAT_LOSS'
+        ? 'Giảm mỡ'
+        : goalType === 'MUSCLE_GAIN'
+        ? 'Tăng cơ'
+        : goalType === 'WEIGHT_GAIN'
+        ? 'Tăng cân'
+        : goalType === 'RECOMPOSITION'
+        ? 'Tái cấu trúc cơ thể (Tăng cơ & Giảm mỡ)'
+        : goalType === 'FITNESS'
+        ? 'Thể lực & Sức bền'
+        : 'Giảm cân';
+
+    let progressStatus: InBodyGoalAlignment['progressStatus'] = 'ON_TRACK';
+    let statusSummary = `Mục tiêu "${customerGoal.title}" đang được theo dõi sát sao.`;
+    let recommendation = `Duy trì lịch tập ${customerGoal.sessionsPerWeek || 3} buổi/tuần theo kế hoạch.`;
+
+    if (goalType === 'WEIGHT_LOSS' || goalType === 'FAT_LOSS') {
+      if (previous && (current.weight < previous.weight || (current.bodyFatPercentage != null && previous.bodyFatPercentage != null && current.bodyFatPercentage < previous.bodyFatPercentage))) {
+        progressStatus = 'ON_TRACK';
+        statusSummary = `Tiến độ rất tích cực! Cơ thể đang giảm mỡ/giảm cân đúng hướng mục tiêu "${customerGoal.title}".`;
+      } else if (bodyFatClass?.status === 'OVER') {
+        progressStatus = 'NEEDS_FOCUS';
+        statusSummary = `Tỷ lệ mỡ hiện tại (${current.bodyFatPercentage}%) cần tập trung siết chặt thâm hụt calo để đạt mốc mục tiêu.`;
+      }
+      recommendation = `Ưu tiên thâm hụt calo (${fatLossCal} kcal/ngày), kết hợp ${customerGoal.sessionsPerWeek || 3} buổi tập và ${customerGoal.cardioNotes || 'Cardio Zone 2 20-30p'}.`;
+    } else if (goalType === 'MUSCLE_GAIN') {
+      if (previous && current.muscleMass != null && previous.muscleMass != null && current.muscleMass > previous.muscleMass) {
+        progressStatus = 'ON_TRACK';
+        statusSummary = `Khối lượng cơ nạc đang tăng trưởng (+${(current.muscleMass - previous.muscleMass).toFixed(1)} kg), bám sát mục tiêu "${customerGoal.title}".`;
+      } else {
+        progressStatus = 'NEEDS_FOCUS';
+        statusSummary = `Cần kích thích cơ bắp mạnh hơn và tăng cường nạp protein để tối ưu hóa việc tăng cơ.`;
+      }
+      recommendation = `Thặng dư calo nhẹ (${muscleGainCal} kcal/ngày), nạp tối thiểu ${proteinGramMax}g protein mỗi ngày.`;
+    }
+
+    goalAlignment = {
+      goal: customerGoal,
+      goalTypeLabel,
+      progressStatus,
+      statusSummary,
+      recommendation,
+    };
+
+    // Đưa vào ưu tiên số 1
+    priorities.unshift(`🎯 Bám sát mục tiêu "${customerGoal.title}": ${goalAlignment.recommendation}`);
+  }
+
   // Kịch bản tư vấn cho PT (Talking Points)
   const talkingPoints = [
     `Chào ${fullName}, hôm nay chúng ta vừa có kết quả đo InBody ngày ${new Date(current.measurementDate).toLocaleDateString('vi-VN')}.`,
+    customerGoal?.title
+      ? `🎯 Đối chiếu với mục tiêu "${customerGoal.title}" (Hạn chót: ${customerGoal.deadline ? new Date(customerGoal.deadline).toLocaleDateString('vi-VN') : 'Sắp tới'}): ${goalAlignment?.statusSummary || 'Đang bám sát lộ trình.'}`
+      : null,
     `Điểm mạnh nổi bật nhất của ${fullName} là: ${strengths.slice(0, 2).join('; ') || 'Cơ thể có nền tảng thể lực sẵn sàng để tập luyện'}.`,
     improvements.length > 0
       ? `Điểm chúng ta cần tập trung cải thiện trong giai đoạn này: ${improvements.slice(0, 2).join('; ')}.`
       : `Thể trạng của bạn đang rất tốt, mục tiêu tiếp theo là duy trì và nâng cao hiệu suất vận động.`,
     `Chiến lược số 1 tôi thiết kế riêng cho bạn là: ${priorities[0]}.`,
-  ];
+  ].filter(Boolean) as string[];
 
   const nutritionAdvice = `Mục tiêu Calo: ${
     bodyFatClass?.status === 'OVER'
@@ -254,7 +313,7 @@ export function analyzeInBody(
       : `${maintenanceCal} kcal/ngày (Duy trì cân bằng)`
   }. Nạp đủ ${proteinRecommendation}. Uống đủ ${waterRecommendation}.`;
 
-  const workoutAdvice = `Lịch tập: 3-4 buổi kháng lực/tuần kết hợp ${
+  const workoutAdvice = `Lịch tập: ${customerGoal?.sessionsPerWeek || '3-4'} buổi kháng lực/tuần kết hợp ${
     current.visceralFatLevel && current.visceralFatLevel >= 8
       ? '2 buổi Cardio Zone 2 (20-30 phút sau tập tạ) để đốt mỡ nội tạng'
       : 'Cardio phục hồi và các bài tập Compound đa khớp'
@@ -303,7 +362,7 @@ export function analyzeInBody(
 
   // Tin nhắn mẫu gửi nhanh qua Zalo/SMS
   const quickMessage = `📋 [3S GYM] TỔNG HỢP KẾT QUẢ ĐO INBODY (${new Date(current.measurementDate).toLocaleDateString('vi-VN')})
-Học viên: ${fullName}
+Học viên: ${fullName}${customerGoal?.title ? `\n🎯 MỤC TIÊU: ${customerGoal.title} (Hạn chót: ${customerGoal.deadline ? new Date(customerGoal.deadline).toLocaleDateString('vi-VN') : '—'})\n• Đánh giá: ${goalAlignment?.statusSummary || 'Đang bám sát'}` : ''}
 -------------------------------
 📊 CÁC CHỈ SỐ CHÍNH:
 • Cân nặng: ${current.weight} kg (${bmiClass?.label || 'Chuẩn'})
@@ -354,5 +413,6 @@ PT sẽ đồng hành và theo dõi sát sao tiến độ cùng bạn trong các
     },
     quickMessage,
     comparison,
+    goalAlignment,
   };
 }

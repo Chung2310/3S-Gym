@@ -10,7 +10,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/calendar', label: 'Lịch nội bộ', section: 'Tổng quan', icon: CalendarDays, roles: ['ADMIN', 'PT'] },
   { path: '/admin', label: 'Quản lý PT', section: 'Vận hành', icon: Users, roles: ['ADMIN'], matchChildren: true },
   { path: '/pt/customers', label: 'Khách hàng', section: 'Vận hành', icon: Users, roles: ['PT'], matchChildren: true },
-  { path: '/pt/inbody', label: 'InBody OCR', section: 'Vận hành', icon: Ruler, roles: ['PT'], feature: 'OCR_INBODY', matchChildren: true },
+  { path: '/pt/inbody', label: 'Chỉ số InBody', section: 'Vận hành', icon: Ruler, roles: ['PT'], feature: 'OCR_INBODY', matchChildren: true },
   { path: '/pt/roadmaps', label: 'Roadmap', section: 'Vận hành', icon: Map, roles: ['PT'], feature: 'ROADMAP', matchChildren: true },
   { path: '/pt/exercises', label: 'Thư viện bài tập', section: 'Vận hành', icon: Dumbbell, roles: ['PT'], feature: 'EXERCISE_LIBRARY', matchChildren: true },
   { path: '/pt/workout-plans', label: 'Giáo án', section: 'Vận hành', icon: ClipboardList, roles: ['PT'], feature: 'EXERCISE_LIBRARY', matchChildren: true },

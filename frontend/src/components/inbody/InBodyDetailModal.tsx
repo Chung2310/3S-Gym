@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -26,6 +26,7 @@ import {
   Salad,
   Scale,
   Sparkles,
+  Target,
   TrendingDown,
   TrendingUp,
   User,
@@ -35,13 +36,15 @@ import {
 import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
 import { errorMessage } from '../../types';
-import type { InBodyRecordData } from '../../types/inbody';
+import type { CustomerGoalData, InBodyRecordData } from '../../types/inbody';
 import { analyzeInBody } from '../../services/inbodyAnalytics';
+import InBodyEvolutionChart from './InBodyEvolutionChart';
 
 interface InBodyDetailModalProps {
   open: boolean;
   record: InBodyRecordData | null;
   previousRecord?: InBodyRecordData | null;
+  historyRecords?: InBodyRecordData[];
   customerMeta?: { fullName?: string; gender?: string; height?: number; phone?: string };
   onClose: () => void;
   onEdit?: (record: InBodyRecordData) => void;
@@ -52,6 +55,7 @@ export default function InBodyDetailModal({
   open,
   record,
   previousRecord,
+  historyRecords,
   customerMeta,
   onClose,
   onEdit,
@@ -60,11 +64,35 @@ export default function InBodyDetailModal({
   const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [customerGoal, setCustomerGoal] = useState<CustomerGoalData | null>(null);
+
+  useEffect(() => {
+    if (!open || !record) {
+      setCustomerGoal(null);
+      return;
+    }
+    const cId =
+      typeof record.customerId === 'object' && record.customerId !== null
+        ? record.customerId._id
+        : String(record.customerId || '');
+    if (!cId) return;
+
+    api
+      .get<CustomerGoalData[]>(`/api/goals?customerId=${cId}&limit=1`)
+      .then((res) => {
+        if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+          setCustomerGoal(res.data[0]);
+        } else {
+          setCustomerGoal(null);
+        }
+      })
+      .catch(() => setCustomerGoal(null));
+  }, [open, record]);
 
   const analysis = useMemo(() => {
     if (!record) return null;
-    return analyzeInBody(record, previousRecord, customerMeta);
-  }, [record, previousRecord, customerMeta]);
+    return analyzeInBody(record, previousRecord, customerMeta, customerGoal);
+  }, [record, previousRecord, customerMeta, customerGoal]);
 
   if (!open || !record || !analysis) return null;
 
@@ -150,76 +178,62 @@ export default function InBodyDetailModal({
         <div
           style={{
             background: 'linear-gradient(135deg, #003b70 0%, #0369a1 100%)',
-            padding: '20px 24px',
+            padding: '12px 20px',
             color: '#ffffff',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             gap: '16px',
           }}
         >
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h2
+                title={customerName}
+                style={{
+                  margin: 0,
+                  fontSize: '1.25rem',
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  lineHeight: 1.2,
+                  maxWidth: '320px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {customerName}
+              </h2>
               <span
                 style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  backdropFilter: 'blur(4px)',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
+                  background: 'rgba(255, 255, 255, 0.18)',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#e0f2fe',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
+                  gap: '4px',
                 }}
               >
-                <Sparkles size={13} /> Phân Tích InBody & Tư Vấn PT
-              </span>
-              {record.source === 'AI_SCAN' && (
-                <span
-                  style={{
-                    background: '#ede9fe',
-                    color: '#6d28d9',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                  }}
-                >
-                  AI OCR
-                </span>
-              )}
-              <span
-                style={{
-                  background: isPublished ? '#dcfce7' : '#fef3c7',
-                  color: isPublished ? '#15803d' : '#b45309',
-                  padding: '3px 9px',
-                  borderRadius: '12px',
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                }}
-              >
-                {isPublished ? '✓ Đã công bố học viên' : '📝 Bản nháp nội bộ'}
+                <Sparkles size={12} /> Phân Tích InBody & Tư Vấn PT
               </span>
             </div>
-            <h2 style={{ margin: '8px 0 2px', fontSize: '1.45rem', fontWeight: 800, color: '#ffffff' }}>
-              {customerName}
-            </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.86rem', color: '#e0f2fe', marginTop: '4px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Calendar size={14} /> Ngày đo: {new Date(record.measurementDate).toLocaleDateString('vi-VN')}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: '#bae6fd', marginTop: '3px', flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Calendar size={13} /> Ngày đo: {new Date(record.measurementDate).toLocaleDateString('vi-VN')}
               </span>
               {customerPhone && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Phone size={13} /> {customerPhone}
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Phone size={12} /> {customerPhone}
                 </span>
               )}
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <button
               type="button"
               onClick={handleCopyMessage}
@@ -227,19 +241,19 @@ export default function InBodyDetailModal({
                 background: copied ? '#10b981' : 'rgba(255, 255, 255, 0.2)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
                 color: '#ffffff',
-                padding: '8px 14px',
+                padding: '6px 12px',
                 borderRadius: '8px',
-                fontSize: '0.84rem',
+                fontSize: '0.82rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '5px',
                 transition: 'all 0.15s ease',
               }}
-              title="Sao chép kịch bản tư vấn gửi khách qua Zalo/SMS"
+              title="Sao chép gợi ý tư vấn gửi khách qua Zalo/SMS"
             >
-              {copied ? <Check size={15} /> : <Copy size={15} />}
+              {copied ? <Check size={14} /> : <Copy size={14} />}
               <span>{copied ? 'Đã chép' : 'Sao chép'}</span>
             </button>
 
@@ -250,18 +264,24 @@ export default function InBodyDetailModal({
                 background: 'rgba(255, 255, 255, 0.15)',
                 border: 'none',
                 color: '#ffffff',
-                width: '36px',
-                height: '36px',
+                width: '32px',
+                height: '32px',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                padding: 0,
+                transition: 'background 0.15s ease',
               }}
-              aria-label="Đóng"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              }}
+              title="Đóng cửa sổ"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
         </div>
@@ -344,66 +364,125 @@ export default function InBodyDetailModal({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                     <TrendingUp size={18} color={analysis.comparison.trendType === 'NEEDS_ADJUSTMENT' ? '#e11d48' : '#0284c7'} />
                     <strong style={{ fontSize: '0.94rem', color: '#0f172a' }}>
-                      So sánh với lần đo trước (cách {analysis.comparison.daysBetween} ngày):
+                      So sánh với lần đo ngày {previousRecord?.measurementDate ? new Date(previousRecord.measurementDate).toLocaleDateString('vi-VN') : 'trước'} (cách {analysis.comparison.daysBetween} ngày):
                     </strong>
                   </div>
                   <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#334155', fontWeight: 600 }}>
                     {analysis.comparison.trendSummary}
                   </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                    <span
+                    {/* Cân nặng */}
+                    <div
                       style={{
                         fontSize: '0.82rem',
-                        fontWeight: 700,
-                        padding: '4px 10px',
-                        borderRadius: '6px',
+                        fontWeight: 600,
+                        padding: '6px 12px',
+                        borderRadius: '8px',
                         background: '#ffffff',
                         border: '1px solid #cbd5e1',
-                        color: analysis.comparison.deltaWeight > 0 ? '#b45309' : '#15803d',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
                       }}
                     >
-                      Cân nặng: {analysis.comparison.deltaWeight > 0 ? `+${analysis.comparison.deltaWeight}` : analysis.comparison.deltaWeight} kg
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: analysis.comparison.deltaFatPercentage < 0 ? '#15803d' : '#e11d48',
-                      }}
-                    >
-                      % Mỡ: {analysis.comparison.deltaFatPercentage > 0 ? `+${analysis.comparison.deltaFatPercentage}` : analysis.comparison.deltaFatPercentage}%
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        color: analysis.comparison.deltaMuscleMass > 0 ? '#15803d' : '#b45309',
-                      }}
-                    >
-                      Khối lượng cơ: {analysis.comparison.deltaMuscleMass > 0 ? `+${analysis.comparison.deltaMuscleMass}` : analysis.comparison.deltaMuscleMass} kg
-                    </span>
-                    {analysis.comparison.deltaVisceralFat !== 0 && (
+                      <span style={{ color: '#64748b' }}>Cân nặng:</span>
+                      <strong style={{ color: '#0f172a' }}>
+                        {previousRecord?.weight != null ? `${previousRecord.weight} kg` : '—'} ➔ {record.weight} kg
+                      </strong>
                       <span
                         style={{
-                          fontSize: '0.82rem',
                           fontWeight: 700,
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          color: analysis.comparison.deltaVisceralFat < 0 ? '#15803d' : '#e11d48',
+                          color: analysis.comparison.deltaWeight > 0 ? '#b45309' : analysis.comparison.deltaWeight < 0 ? '#15803d' : '#64748b',
                         }}
                       >
-                        Mỡ nội tạng: {analysis.comparison.deltaVisceralFat > 0 ? `+${analysis.comparison.deltaVisceralFat}` : analysis.comparison.deltaVisceralFat} Lv
+                        ({analysis.comparison.deltaWeight > 0 ? `+${analysis.comparison.deltaWeight} kg` : analysis.comparison.deltaWeight < 0 ? `${analysis.comparison.deltaWeight} kg` : 'Không đổi'})
                       </span>
+                    </div>
+
+                    {/* % Mỡ */}
+                    <div
+                      style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span style={{ color: '#64748b' }}>% Mỡ:</span>
+                      <strong style={{ color: '#0f172a' }}>
+                        {previousRecord?.bodyFatPercentage != null ? `${previousRecord.bodyFatPercentage}%` : '—'} ➔ {record.bodyFatPercentage != null ? `${record.bodyFatPercentage}%` : '—'}
+                      </strong>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          color: analysis.comparison.deltaFatPercentage < 0 ? '#15803d' : analysis.comparison.deltaFatPercentage > 0 ? '#e11d48' : '#64748b',
+                        }}
+                      >
+                        ({analysis.comparison.deltaFatPercentage > 0 ? `+${analysis.comparison.deltaFatPercentage}%` : analysis.comparison.deltaFatPercentage < 0 ? `${analysis.comparison.deltaFatPercentage}%` : 'Không đổi'})
+                      </span>
+                    </div>
+
+                    {/* Khối lượng cơ */}
+                    <div
+                      style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span style={{ color: '#64748b' }}>Khối lượng cơ:</span>
+                      <strong style={{ color: '#0f172a' }}>
+                        {previousRecord?.muscleMass != null ? `${previousRecord.muscleMass} kg` : '—'} ➔ {record.muscleMass != null ? `${record.muscleMass} kg` : '—'}
+                      </strong>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          color: analysis.comparison.deltaMuscleMass > 0 ? '#15803d' : analysis.comparison.deltaMuscleMass < 0 ? '#b45309' : '#64748b',
+                        }}
+                      >
+                        ({analysis.comparison.deltaMuscleMass > 0 ? `+${analysis.comparison.deltaMuscleMass} kg` : analysis.comparison.deltaMuscleMass < 0 ? `${analysis.comparison.deltaMuscleMass} kg` : 'Không đổi'})
+                      </span>
+                    </div>
+
+                    {/* Mỡ nội tạng */}
+                    {previousRecord?.visceralFatLevel != null && record.visceralFatLevel != null && (
+                      <div
+                        style={{
+                          fontSize: '0.82rem',
+                          fontWeight: 600,
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span style={{ color: '#64748b' }}>Mỡ nội tạng:</span>
+                        <strong style={{ color: '#0f172a' }}>
+                          Lv {previousRecord.visceralFatLevel} ➔ Lv {record.visceralFatLevel}
+                        </strong>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: analysis.comparison.deltaVisceralFat < 0 ? '#15803d' : analysis.comparison.deltaVisceralFat > 0 ? '#e11d48' : '#64748b',
+                          }}
+                        >
+                          ({analysis.comparison.deltaVisceralFat > 0 ? `+${analysis.comparison.deltaVisceralFat} Lv` : analysis.comparison.deltaVisceralFat < 0 ? `${analysis.comparison.deltaVisceralFat} Lv` : 'Không đổi'})
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -422,6 +501,79 @@ export default function InBodyDetailModal({
               )}
             </div>
           </div>
+
+          {/* Section 1.5: Active Customer Goal Alignment Card */}
+          {analysis.goalAlignment && (
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                border: '1px solid #bae6fd',
+                borderRadius: '14px',
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '14px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', minWidth: '280px', flex: '1 1 300px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginTop: '2px',
+                  }}
+                >
+                  <Target size={20} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: '0.96rem', color: '#003b70' }}>
+                      Mục tiêu đang theo đuổi: {analysis.goalAlignment.goal.title}
+                    </strong>
+                    <span
+                      style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        background: '#0284c7',
+                        color: '#ffffff',
+                      }}
+                    >
+                      {analysis.goalAlignment.goalTypeLabel}
+                    </span>
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.86rem', color: '#0369a1', fontWeight: 600 }}>
+                    {analysis.goalAlignment.statusSummary}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: '#334155' }}>
+                {analysis.goalAlignment.goal.deadline && (
+                  <div style={{ background: '#ffffff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '0.72rem' }}>HẠN CHÓT</span>
+                    <strong style={{ color: '#0f172a' }}>{new Date(analysis.goalAlignment.goal.deadline).toLocaleDateString('vi-VN')}</strong>
+                  </div>
+                )}
+                {analysis.goalAlignment.goal.sessionsPerWeek && (
+                  <div style={{ background: '#ffffff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                    <span style={{ color: '#64748b', display: 'block', fontSize: '0.72rem' }}>LỊCH TẬP</span>
+                    <strong style={{ color: '#0f172a' }}>{analysis.goalAlignment.goal.sessionsPerWeek} buổi/tuần</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Section 2: Core Body Composition Metrics Grid */}
           <div>
@@ -649,6 +801,11 @@ export default function InBodyDetailModal({
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Section 5.5: History Evolution Chart if multiple records exist */}
+          {historyRecords && historyRecords.length >= 2 && (
+            <InBodyEvolutionChart records={historyRecords} title="Biểu Đồ Xu Hướng Thay Đổi Thể Chất Qua Các Lần Đo" />
           )}
 
           {/* Section 6: PT Consultation Script & Actionable Advice */}

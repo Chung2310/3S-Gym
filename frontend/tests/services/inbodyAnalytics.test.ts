@@ -119,5 +119,29 @@ describe('inbodyAnalytics service', () => {
       expect(result.comparison?.trendType).toBe('EXCELLENT');
       expect(result.comparison?.trendSummary).toContain('Tăng 1 kg cơ và giảm 2.5% mỡ');
     });
+
+    it('tự động tích hợp mục tiêu học viên (Customer Goal) vào đề xuất và kịch bản tư vấn', () => {
+      const goal = {
+        _id: 'goal-1',
+        title: 'Giảm 5kg mỡ đón hè',
+        type: 'FAT_LOSS',
+        targetValue: 5,
+        targetUnit: 'kg',
+        deadline: '2026-09-30',
+        sessionsPerWeek: 4,
+        cardioNotes: '25 phút Zone 2',
+      };
+
+      const result = analyzeInBody(currentScan, previousScan, { fullName: 'Nguyễn Văn A', gender: 'MALE' }, goal);
+
+      expect(result.goalAlignment).toBeDefined();
+      expect(result.goalAlignment?.goal.title).toBe('Giảm 5kg mỡ đón hè');
+      expect(result.goalAlignment?.goalTypeLabel).toBe('Giảm mỡ');
+      expect(result.goalAlignment?.progressStatus).toBe('ON_TRACK');
+      expect(result.priorities[0]).toContain('Giảm 5kg mỡ đón hè');
+      expect(result.consultationGuide.talkingPoints.some((tp) => tp.includes('Giảm 5kg mỡ đón hè'))).toBe(true);
+      expect(result.consultationGuide.workoutAdvice).toContain('4 buổi kháng lực/tuần');
+      expect(result.quickMessage).toContain('Giảm 5kg mỡ đón hè');
+    });
   });
 });

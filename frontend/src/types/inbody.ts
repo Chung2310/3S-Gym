@@ -64,6 +64,27 @@ export interface InBodyComparison {
   trendType: 'EXCELLENT' | 'GOOD' | 'NEUTRAL' | 'NEEDS_ADJUSTMENT';
 }
 
+export interface CustomerGoalData {
+  _id?: string;
+  type?: string;
+  title?: string;
+  targetValue?: number | null;
+  targetUnit?: string;
+  deadline?: string;
+  sessionsPerWeek?: number;
+  cardioNotes?: string;
+  evaluationNotes?: string;
+  status?: string;
+}
+
+export interface InBodyGoalAlignment {
+  goal: CustomerGoalData;
+  goalTypeLabel: string;
+  progressStatus: 'ON_TRACK' | 'AHEAD' | 'NEEDS_FOCUS';
+  statusSummary: string;
+  recommendation: string;
+}
+
 export interface InBodyAnalysisResult {
   classifications: {
     bmi?: MetricClassification;
@@ -95,6 +116,7 @@ export interface InBodyAnalysisResult {
   };
   quickMessage: string;
   comparison?: InBodyComparison | null;
+  goalAlignment?: InBodyGoalAlignment | null;
 }
 
 export interface InBodyOcrDraft {
