@@ -240,6 +240,31 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
     return items.filter((p) => p.angle === compareAngle);
   }, [items, compareAngle]);
 
+  // Dedicated options for Before and After dropdowns
+  const beforeOptions = useMemo(() => {
+    const pool = compareAngle === 'ALL' ? items : items.filter((p) => p.angle === compareAngle);
+    const befores = pool.filter((p) => p.stage === 'BEFORE');
+    return befores.length > 0 ? befores : pool;
+  }, [items, compareAngle]);
+
+  const afterOptions = useMemo(() => {
+    const pool = compareAngle === 'ALL' ? items : items.filter((p) => p.angle === compareAngle);
+    const afters = pool.filter((p) => p.stage === 'AFTER' || p.stage === 'PROGRESS');
+    return afters.length > 0 ? afters : pool;
+  }, [items, compareAngle]);
+
+  useEffect(() => {
+    if (beforeOptions.length > 0 && !beforeOptions.some((p) => p._id === beforePhotoId)) {
+      setBeforePhotoId(beforeOptions[0]._id);
+    }
+  }, [beforeOptions, beforePhotoId]);
+
+  useEffect(() => {
+    if (afterOptions.length > 0 && !afterOptions.some((p) => p._id === afterPhotoId)) {
+      setAfterPhotoId(afterOptions[afterOptions.length - 1]._id);
+    }
+  }, [afterOptions, afterPhotoId]);
+
   const selectedBefore = useMemo(() => items.find((i) => i._id === beforePhotoId), [items, beforePhotoId]);
   const selectedAfter = useMemo(() => items.find((i) => i._id === afterPhotoId), [items, afterPhotoId]);
 
@@ -822,59 +847,63 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                 )}
               </div>
 
+              {/* Selectors Bar for both Side-by-Side and Slider views */}
+              {(compareViewType === 'sideBySide' || compareViewType === 'slider') && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '16px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  <div style={{ background: '#f0f9ff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
+                      <span>1. Ảnh Trước (Before):</span>
+                      <span style={{ fontSize: '0.74rem', opacity: 0.85 }}>({beforeOptions.length} ảnh)</span>
+                    </label>
+                    <select
+                      className="filter-select"
+                      style={{ width: '100%', fontSize: '0.84rem' }}
+                      value={beforePhotoId}
+                      onChange={(e) => setBeforePhotoId(e.target.value)}
+                      aria-label="Chọn ảnh Before"
+                    >
+                      <option value="">-- Chọn ảnh Trước (Before) --</option>
+                      {beforeOptions.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {new Date(p.takenDate).toLocaleDateString('vi-VN')} ({STAGE_LABELS[p.stage]?.label || p.stage}) - {ANGLE_LABELS[p.angle] || p.angle} {p.weight ? `• ${p.weight}kg` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ background: '#f0fdf4', padding: '10px 14px', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, color: '#15803d', marginBottom: '4px' }}>
+                      <span>2. Ảnh Sau (After):</span>
+                      <span style={{ fontSize: '0.74rem', opacity: 0.85 }}>({afterOptions.length} ảnh)</span>
+                    </label>
+                    <select
+                      className="filter-select"
+                      style={{ width: '100%', fontSize: '0.84rem' }}
+                      value={afterPhotoId}
+                      onChange={(e) => setAfterPhotoId(e.target.value)}
+                      aria-label="Chọn ảnh After"
+                    >
+                      <option value="">-- Chọn ảnh Sau (After) --</option>
+                      {afterOptions.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {new Date(p.takenDate).toLocaleDateString('vi-VN')} ({STAGE_LABELS[p.stage]?.label || p.stage}) - {ANGLE_LABELS[p.angle] || p.angle} {p.weight ? `• ${p.weight}kg` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
               {/* VIEW 1: SIDE BY SIDE */}
               {compareViewType === 'sideBySide' && (
                 <div>
-                  {/* Selectors Bar */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: '16px',
-                      marginBottom: '16px',
-                    }}
-                  >
-                    <div style={{ background: '#f0f9ff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #bae6fd' }}>
-                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
-                        1. Ảnh Trước (Before):
-                      </label>
-                      <select
-                        className="filter-select"
-                        style={{ width: '100%', fontSize: '0.84rem' }}
-                        value={beforePhotoId}
-                        onChange={(e) => setBeforePhotoId(e.target.value)}
-                        aria-label="Chọn ảnh Before"
-                      >
-                        <option value="">-- Chọn ảnh Trước --</option>
-                        {filteredCompareItems.map((p) => (
-                          <option key={p._id} value={p._id}>
-                            {new Date(p.takenDate).toLocaleDateString('vi-VN')} ({STAGE_LABELS[p.stage]?.label || p.stage}) - {ANGLE_LABELS[p.angle] || p.angle} {p.weight ? `• ${p.weight}kg` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div style={{ background: '#f0fdf4', padding: '10px 14px', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
-                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#15803d', marginBottom: '4px' }}>
-                        2. Ảnh Sau (After):
-                      </label>
-                      <select
-                        className="filter-select"
-                        style={{ width: '100%', fontSize: '0.84rem' }}
-                        value={afterPhotoId}
-                        onChange={(e) => setAfterPhotoId(e.target.value)}
-                        aria-label="Chọn ảnh After"
-                      >
-                        <option value="">-- Chọn ảnh Sau --</option>
-                        {filteredCompareItems.map((p) => (
-                          <option key={p._id} value={p._id}>
-                            {new Date(p.takenDate).toLocaleDateString('vi-VN')} ({STAGE_LABELS[p.stage]?.label || p.stage}) - {ANGLE_LABELS[p.angle] || p.angle} {p.weight ? `• ${p.weight}kg` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
                   {/* Side-by-Side Comparison Container */}
                   {selectedBefore && selectedAfter ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
