@@ -4,6 +4,8 @@ import { ChevronRight, Dumbbell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X 
 import { clearSession } from '../services/session';
 import { navigationForPath, visibleNavigation, type NavigationSection } from '../config/portalNavigation';
 import type { FeatureState, User, UserRole } from '../types';
+import NotificationBell from './notifications/NotificationBell';
+import { ToastProvider } from './ui/ToastProvider';
 
 const roleNames: Record<UserRole, string> = { ADMIN: 'Quản lý hệ thống', PT: 'Huấn luyện viên', CUSTOMER: 'Khách hàng' };
 const sectionOrder: NavigationSection[] = ['Tổng quan', 'Vận hành', 'Tri thức & trợ lý', 'Tài khoản'];
@@ -62,6 +64,6 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
       </div>
     </aside>
     {open && <button className="sidebar-overlay" aria-label="Đóng menu" onClick={() => setOpen(false)} />}
-    <div className="portal-main"><header className="portal-header"><button className="mobile-menu" type="button" onClick={() => setOpen(true)}><Menu /> Menu</button><nav className="portal-breadcrumb" aria-label="Điều hướng trang"><span>Portal</span>{current && <><ChevronRight size={15} /><span>{current.section}</span><ChevronRight size={15} /><strong>{current.label}</strong></>}</nav><div className="portal-header-user"><strong>{user.fullName || user.username}</strong><span>{roleNames[user.role]}</span></div></header><main className="portal-content">{children}</main></div>
+    <div className="portal-main"><header className="portal-header"><button className="mobile-menu" type="button" onClick={() => setOpen(true)}><Menu /> Menu</button><nav className="portal-breadcrumb" aria-label="Điều hướng trang"><span>Portal</span>{current && <><ChevronRight size={15} /><span>{current.section}</span><ChevronRight size={15} /><strong>{current.label}</strong></>}</nav><ToastProvider><NotificationBell /></ToastProvider><div className="portal-header-user"><strong>{user.fullName || user.username}</strong><span>{roleNames[user.role]}</span></div></header><main className="portal-content">{children}</main></div>
   </div>;
 }

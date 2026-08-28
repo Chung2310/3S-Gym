@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Bell, BookOpen, Bot, CalendarDays, ChartNoAxesCombined, ClipboardList, Dumbbell, HeartPulse, LayoutDashboard, Map, Ruler, Salad, Search, Users } from 'lucide-react';
+import { BookOpen, Bot, CalendarDays, ChartNoAxesCombined, ClipboardList, Dumbbell, HeartPulse, LayoutDashboard, Map, Ruler, Salad, Search, Users } from 'lucide-react';
 import type { FeatureKey, FeatureState, User, UserRole } from '../types';
 
 export type NavigationSection = 'Tổng quan' | 'Vận hành' | 'Tri thức & trợ lý' | 'Tài khoản';
@@ -7,7 +7,6 @@ export interface NavigationItem { path: string; label: string; section: Navigati
 
 export const portalNavigation: NavigationItem[] = [
   { path: '/pt/dashboard', label: 'Dashboard PT', section: 'Tổng quan', icon: LayoutDashboard, roles: ['PT'], feature: 'DASHBOARD' },
-  { path: '/notifications', label: 'Thông báo', section: 'Tổng quan', icon: Bell, roles: ['ADMIN', 'PT', 'CUSTOMER'] },
   { path: '/calendar', label: 'Lịch nội bộ', section: 'Tổng quan', icon: CalendarDays, roles: ['ADMIN', 'PT'] },
   { path: '/admin', label: 'Quản lý PT', section: 'Vận hành', icon: Users, roles: ['ADMIN'], matchChildren: true },
   { path: '/pt/customers', label: 'Khách hàng', section: 'Vận hành', icon: Users, roles: ['PT'], matchChildren: true },
