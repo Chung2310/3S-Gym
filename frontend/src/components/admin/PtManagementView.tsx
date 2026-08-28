@@ -19,6 +19,7 @@ import {
   Clock,
   CheckCircle2,
   ShieldAlert,
+  Filter,
 } from 'lucide-react';
 import DataList, { type DataColumn } from '../ui/DataList';
 import Pagination from '../ui/Pagination';
@@ -36,6 +37,8 @@ export default function PtManagementView() {
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0 });
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [appliedKeyword, setAppliedKeyword] = useState('');
+  const [appliedStatus, setAppliedStatus] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [formPt, setFormPt] = useState<PtRecord | null | undefined>(undefined);
   const [detailPt, setDetailPt] = useState<PtRecord | null>(null);
@@ -43,7 +46,7 @@ export default function PtManagementView() {
   const [loading, setLoading] = useState(false);
 
   const loadPts = useCallback(
-    async (page = 1) => {
+    async (page = 1, kw = appliedKeyword, st = appliedStatus) => {
       try {
         setLoading(true);
         const params = new URLSearchParams({
@@ -51,8 +54,8 @@ export default function PtManagementView() {
           limit: '18',
           role: 'PT',
         });
-        if (keyword.trim()) params.set('keyword', keyword.trim());
-        if (statusFilter) params.set('status', statusFilter);
+        if (kw.trim()) params.set('keyword', kw.trim());
+        if (st) params.set('status', st);
 
         const result = await api.get<PtRecord[]>(`/api/users?${params.toString()}`);
         setPts(result.data || []);
@@ -63,12 +66,19 @@ export default function PtManagementView() {
         setLoading(false);
       }
     },
-    [keyword, statusFilter, toast],
+    [appliedKeyword, appliedStatus, toast],
   );
 
   useEffect(() => {
-    void loadPts();
-  }, [loadPts]);
+    void loadPts(1, '', '');
+  }, []);
+
+  const handleApplyFilters = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAppliedKeyword(keyword);
+    setAppliedStatus(statusFilter);
+    void loadPts(1, keyword, statusFilter);
+  };
 
   const handleDeletePt = async () => {
     if (!deletePt) return;
@@ -86,9 +96,12 @@ export default function PtManagementView() {
   const handleResetFilters = () => {
     setKeyword('');
     setStatusFilter('');
+    setAppliedKeyword('');
+    setAppliedStatus('');
+    void loadPts(1, '', '');
   };
 
-  const hasActiveFilters = Boolean(keyword || statusFilter);
+  const hasActiveFilters = Boolean(appliedKeyword || appliedStatus || keyword || statusFilter);
 
   // Quick stats calculation
   const stats = useMemo(() => {
@@ -155,93 +168,108 @@ export default function PtManagementView() {
   ];
 
   return (
-    <div className="pt-management-view">
+    <div className="pt-view-container">
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div className="pt-view-header">
         <div>
-          <h2 className="text-xl font-bold text-[#003b70] m-0 tracking-tight flex items-center gap-2">
-            <Users size={22} className="text-sky-500" />
-            Quản lý Huấn luyện viên (PT)
+          <h2 className="text-xl font-bold text-[#003b70] m-0 tracking-tight flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+              <Users size={20} className="shrink-0" />
+            </div>
+            <span>Quản lý Huấn luyện viên (PT)</span>
           </h2>
-          <p className="text-xs text-slate-500 m-0 mt-0.5">
+          <p className="text-xs text-slate-500 m-0 mt-1 leading-relaxed">
             Hồ sơ chuyên môn, chứng chỉ đào tạo và trạng thái hoạt động của đội ngũ PT 3S Gym.
           </p>
         </div>
         <button
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#003b70] to-[#00a4e4] text-white text-xs font-bold hover:opacity-95 shadow-sm transition-all cursor-pointer"
+          className="button button-primary"
           type="button"
           onClick={() => setFormPt({ username: '', fullName: '', status: 'ACTIVE' })}
         >
-          <Plus size={16} /> Thêm Huấn luyện viên
+          <Plus size={18} /> Thêm Huấn luyện viên
         </button>
       </div>
 
       {/* Metrics Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+      <div className="pt-metrics-banner">
+        <div className="pt-metric-card">
+          <div>
+            <div className="pt-metric-label">Tổng số PT</div>
+            <div className="pt-metric-val text-[#003b70]">{stats.total}</div>
+            <div className="pt-metric-sub text-sky-600">Biên chế 3S Gym</div>
+          </div>
+          <div className="pt-metric-icon bg-sky-50 text-sky-600">
             <Users size={20} />
           </div>
-          <div>
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tổng số PT</div>
-            <div className="text-lg font-extrabold text-[#003b70] leading-none mt-1 font-['Oswald']">{stats.total}</div>
-          </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+        <div className="pt-metric-card">
+          <div>
+            <div className="pt-metric-label">Đang hoạt động</div>
+            <div className="pt-metric-val text-emerald-600">{stats.active}</div>
+            <div className="pt-metric-sub text-emerald-600">Sẵn sàng nhận khách</div>
+          </div>
+          <div className="pt-metric-icon bg-emerald-50 text-emerald-600">
             <CheckCircle2 size={20} />
           </div>
-          <div>
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Đang hoạt động</div>
-            <div className="text-lg font-extrabold text-emerald-600 leading-none mt-1 font-['Oswald']">{stats.active}</div>
-          </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+        <div className="pt-metric-card">
+          <div>
+            <div className="pt-metric-label">Đã tạm khóa</div>
+            <div className="pt-metric-val text-rose-600">{stats.locked}</div>
+            <div className="pt-metric-sub text-rose-500">{stats.locked > 0 ? 'Cần kiểm tra' : 'Hồ sơ chuẩn'}</div>
+          </div>
+          <div className="pt-metric-icon bg-rose-50 text-rose-600">
             <ShieldAlert size={20} />
           </div>
-          <div>
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Đã tạm khóa</div>
-            <div className="text-lg font-extrabold text-rose-600 leading-none mt-1 font-['Oswald']">{stats.locked}</div>
-          </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <Clock size={20} />
-          </div>
+        <div className="pt-metric-card">
           <div>
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Kinh nghiệm TB</div>
-            <div className="text-lg font-extrabold text-[#003b70] leading-none mt-1 font-['Oswald']">{stats.avgExp} <span className="text-xs font-normal text-slate-500">năm</span></div>
+            <div className="pt-metric-label">Kinh nghiệm TB</div>
+            <div className="pt-metric-val text-[#003b70]">
+              {stats.avgExp} <span className="text-xs font-semibold text-slate-400">năm</span>
+            </div>
+            <div className="pt-metric-sub text-amber-600">Chuyên môn cao</div>
+          </div>
+          <div className="pt-metric-icon bg-amber-50 text-amber-600">
+            <Clock size={20} />
           </div>
         </div>
       </div>
 
-      {/* Main Panel */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-        {/* Compact Filter Toolbar & View Switcher */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 mb-4 pb-3 border-b border-slate-100">
-          <div className="flex flex-wrap items-center gap-2 flex-1">
+      {/* Main Content Area */}
+      <div className="flex flex-col gap-4">
+        {/* Filter Toolbar & View Switcher */}
+        <div className="pt-toolbar">
+          <form
+            onSubmit={handleApplyFilters}
+            className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[260px]"
+          >
             {/* Search Input */}
-            <div className="relative min-w-[220px] max-w-[340px] flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <div className="relative min-w-[220px] max-w-[360px] flex-1">
+              <Search
+                size={15}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
+              />
               <input
                 aria-label="Tìm kiếm PT"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="Tìm theo tên, SĐT, email, chuyên môn..."
-                className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-cyan-500 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500/15 transition-all text-slate-800"
+                style={{ paddingLeft: '38px' }}
+                className="w-full h-10 pr-9 text-xs bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-sky-500 rounded-xl outline-none focus:ring-2 focus:ring-sky-500/15 transition-all text-slate-800 placeholder:text-slate-400 font-medium"
               />
               {keyword && (
                 <button
                   type="button"
                   onClick={() => setKeyword('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full z-10"
                   aria-label="Xóa từ khóa tìm kiếm"
                 >
-                  <X size={13} />
+                  <X size={14} />
                 </button>
               )}
             </div>
@@ -251,7 +279,7 @@ export default function PtManagementView() {
               aria-label="Lọc trạng thái PT"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-700 outline-none cursor-pointer focus:border-cyan-500 focus:bg-white transition-all"
+              className="h-10 px-3.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-700 outline-none cursor-pointer focus:border-sky-500 focus:bg-white transition-all font-medium shrink-0"
             >
               <option value="">Tất cả trạng thái</option>
               <option value="ACTIVE">Đang hoạt động</option>
@@ -260,65 +288,69 @@ export default function PtManagementView() {
             </select>
 
             <button
-              className="h-9 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-              type="button"
-              onClick={() => loadPts(1)}
+              className="shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-[#003b70] hover:bg-[#00264d] text-white text-xs font-bold transition-all cursor-pointer shadow-2xs min-w-[88px]"
+              type="submit"
               disabled={loading}
+              title="Thực hiện lọc"
             >
-              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-              <span>{loading ? 'Đang tải...' : 'Lọc'}</span>
+              {loading ? (
+                <RefreshCw size={14} className="animate-spin shrink-0" />
+              ) : (
+                <Filter size={14} className="shrink-0" />
+              )}
+              <span>{loading ? 'Đang lọc...' : 'Lọc'}</span>
             </button>
 
             {hasActiveFilters && (
               <button
                 type="button"
-                className="h-9 px-2.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 text-xs inline-flex items-center gap-1 hover:bg-slate-50 transition-colors cursor-pointer"
+                className="shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl border border-slate-200 text-slate-700 hover:text-slate-900 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer min-w-[90px]"
                 onClick={handleResetFilters}
                 title="Xóa toàn bộ bộ lọc"
               >
-                <RotateCcw size={12} />
+                <RotateCcw size={13} className="shrink-0" />
                 <span>Đặt lại</span>
               </button>
             )}
-          </div>
+          </form>
 
-          {/* View Mode Toggle */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+          {/* View Mode Toggle - Icon Only with Tooltips */}
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80 gap-1 h-10 shrink-0">
             <button
               type="button"
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${viewMode === 'grid'
+              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all cursor-pointer ${viewMode === 'grid'
                 ? 'bg-white text-[#003b70] shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
                 }`}
               onClick={() => setViewMode('grid')}
-              title="Xem dạng thẻ huấn luyện viên"
+              title="Dạng thẻ"
+              aria-label="Dạng thẻ"
             >
-              <LayoutGrid size={14} />
-              <span>Dạng thẻ</span>
+              <LayoutGrid size={16} />
             </button>
             <button
               type="button"
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${viewMode === 'table'
+              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all cursor-pointer ${viewMode === 'table'
                 ? 'bg-white text-[#003b70] shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
                 }`}
               onClick={() => setViewMode('table')}
-              title="Xem dạng danh sách bảng"
+              title="Dạng bảng"
+              aria-label="Dạng bảng"
             >
-              <List size={14} />
-              <span>Dạng bảng</span>
+              <List size={16} />
             </button>
           </div>
         </div>
 
         {/* Content Display */}
         {pts.length === 0 && !loading ? (
-          <div className="py-12 px-4 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-            <div className="w-12 h-12 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center mx-auto mb-3">
+          <div className="py-14 px-4 text-center border border-dashed border-slate-200 rounded-2xl bg-white">
+            <div className="w-13 h-13 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center mx-auto mb-3 shadow-2xs">
               <Users size={24} />
             </div>
             <h3 className="text-sm font-bold text-slate-800 mb-1">Chưa tìm thấy Huấn luyện viên nào</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">
+            <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4 leading-relaxed">
               {hasActiveFilters
                 ? 'Không có PT nào khớp với điều kiện lọc hiện tại. Hãy thử tìm kiếm với từ khóa khác.'
                 : 'Hệ thống chưa có hồ sơ Huấn luyện viên nào. Hãy thêm PT mới ngay bây giờ.'}
@@ -326,24 +358,26 @@ export default function PtManagementView() {
             {hasActiveFilters ? (
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 px-4.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
                 onClick={handleResetFilters}
               >
-                <RotateCcw size={13} /> Xóa bộ lọc
+                <RotateCcw size={14} />
+                <span>Xóa bộ lọc</span>
               </button>
             ) : (
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-colors"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
                 onClick={() => setFormPt({ username: '', fullName: '', status: 'ACTIVE' })}
               >
-                <Plus size={15} /> Thêm PT đầu tiên
+                <Plus size={16} />
+                <span>Thêm PT đầu tiên</span>
               </button>
             )}
           </div>
         ) : viewMode === 'grid' ? (
           /* Bento Cards Grid View */
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="pt-grid">
             {pts.map((pt) => {
               const certificatesList = Array.isArray(pt.certificates)
                 ? pt.certificates
@@ -352,46 +386,45 @@ export default function PtManagementView() {
                   : [];
 
               return (
-                <article
-                  key={pt._id || pt.id}
-                  className="bg-white rounded-xl border border-slate-200 hover:border-sky-300 shadow-2xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between overflow-hidden group"
-                >
+                <article key={pt._id || pt.id} className="pt-card group">
                   {/* Card Header & Avatar */}
-                  <div className="p-4 pb-3.5 space-y-3">
+                  <div className="pt-card-body">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center">
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/90 shrink-0 flex items-center justify-center shadow-2xs">
                           {pt.avatarUrl ? (
                             <img src={pt.avatarUrl} alt={pt.fullName} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-[#003b70] to-[#00a4e4] text-white font-bold flex items-center justify-center text-base font-['Oswald']">
+                            <div className="w-full h-full bg-gradient-to-br from-[#003b70] to-[#00a4e4] text-white font-bold flex items-center justify-center text-sm font-['Oswald']">
                               {(pt.fullName || pt.username || 'PT').slice(0, 2).toUpperCase()}
                             </div>
                           )}
                           <span
-                            className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${pt.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'
+                            className={`absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full border-2 border-white ${pt.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-rose-500'
                               }`}
                             title={pt.status === 'ACTIVE' ? 'Đang hoạt động' : 'Đã khóa'}
                           />
                         </div>
-                        <div>
-                          <h3 className="font-bold text-[#003b70] text-[15px] group-hover:text-sky-600 transition-colors leading-tight">
+                        <div className="min-w-0">
+                          <h3 className="font-bold text-[#003b70] text-sm group-hover:text-sky-600 transition-colors leading-snug truncate">
                             {pt.fullName || 'Chưa đặt tên'}
                           </h3>
-                          <div className="text-xs text-slate-500 font-mono mt-0.5">{pt.username}</div>
+                          <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">@{pt.username}</div>
                         </div>
                       </div>
-                      <StatusBadge status={pt.status} />
+                      <div className="shrink-0">
+                        <StatusBadge status={pt.status} />
+                      </div>
                     </div>
 
                     {/* Specialization & Experience Tags */}
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-100 text-sky-800 text-xs font-semibold">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 border border-sky-200/60 text-sky-800 text-[11px] font-bold">
                         <Award size={13} className="shrink-0 text-sky-600" />
                         <span>{pt.specialization || 'Huấn luyện tổng quát'}</span>
                       </span>
                       {pt.yearsOfExperience !== undefined && Number(pt.yearsOfExperience) > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-100 text-amber-800 text-xs font-semibold">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/60 text-amber-800 text-[11px] font-bold">
                           <Clock size={12} className="shrink-0 text-amber-600" />
                           <span>{pt.yearsOfExperience} năm KN</span>
                         </span>
@@ -400,7 +433,7 @@ export default function PtManagementView() {
 
                     {/* Bio Snippet */}
                     {pt.bio && (
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed bg-slate-50/60 p-2.5 rounded-lg border border-slate-100">
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed bg-slate-50/80 p-2.5 rounded-xl border border-slate-100">
                         {pt.bio}
                       </p>
                     )}
@@ -411,14 +444,14 @@ export default function PtManagementView() {
                         {certificatesList.slice(0, 2).map((cert, idx) => (
                           <span
                             key={idx}
-                            className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium truncate max-w-[170px]"
+                            className="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-semibold truncate max-w-[170px]"
                             title={cert}
                           >
                             {cert}
                           </span>
                         ))}
                         {certificatesList.length > 2 && (
-                          <span className="text-xs font-semibold text-slate-400">
+                          <span className="text-[11px] font-bold text-slate-400 pl-0.5">
                             +{certificatesList.length - 2}
                           </span>
                         )}
@@ -430,7 +463,7 @@ export default function PtManagementView() {
                       {pt.phone && (
                         <div className="flex items-center gap-2">
                           <Phone size={13} className="text-slate-400 shrink-0" />
-                          <a href={`tel:${pt.phone}`} className="hover:text-sky-600 font-medium transition-colors truncate">
+                          <a href={`tel:${pt.phone}`} className="hover:text-sky-600 font-semibold transition-colors truncate">
                             {pt.phone}
                           </a>
                         </div>
@@ -438,7 +471,7 @@ export default function PtManagementView() {
                       {pt.email && (
                         <div className="flex items-center gap-2">
                           <Mail size={13} className="text-slate-400 shrink-0" />
-                          <a href={`mailto:${pt.email}`} className="hover:text-sky-600 transition-colors truncate text-slate-500">
+                          <a href={`mailto:${pt.email}`} className="hover:text-sky-600 transition-colors truncate text-slate-500 font-medium">
                             {pt.email}
                           </a>
                         </div>
@@ -447,30 +480,30 @@ export default function PtManagementView() {
                   </div>
 
                   {/* Card Footer Actions */}
-                  <div className="bg-slate-50/80 px-4 py-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div className="pt-card-footer">
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-sky-600 transition-colors cursor-pointer"
+                      className="h-9 px-4 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-all cursor-pointer shadow-2xs inline-flex items-center justify-center gap-2 shrink-0 whitespace-nowrap min-w-[120px]"
                       onClick={() => setDetailPt(pt)}
                     >
-                      <Eye size={13} />
-                      <span>Chi tiết</span>
+                      <Eye size={14} className="text-slate-500 shrink-0" />
+                      <span>Xem chi tiết</span>
                     </button>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold text-[#003b70] hover:bg-sky-50 transition-colors cursor-pointer"
+                        className="h-9 px-3.5 rounded-xl text-xs font-bold text-sky-800 bg-sky-50 border border-sky-200/80 hover:bg-sky-100 hover:border-sky-300 transition-all cursor-pointer shadow-2xs inline-flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap min-w-[66px]"
                         onClick={() => setFormPt(pt)}
                       >
-                        <Pencil size={13} />
+                        <Pencil size={13} className="shrink-0" />
                         <span>Sửa</span>
                       </button>
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        className="h-9 px-3.5 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200/80 hover:bg-rose-100 hover:border-rose-300 transition-all cursor-pointer shadow-2xs inline-flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap min-w-[66px]"
                         onClick={() => setDeletePt(pt)}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={13} className="shrink-0" />
                         <span>Xóa</span>
                       </button>
                     </div>
@@ -481,37 +514,37 @@ export default function PtManagementView() {
           </div>
         ) : (
           /* High-Density Table View */
-          <>
+          <div className="bg-white rounded-xl border border-slate-200/90 overflow-hidden shadow-2xs p-4">
             <DataList<PtRecord>
               items={pts}
               columns={columns}
               renderActions={(item) => (
-                <div className="inline-actions">
+                <div className="flex items-center gap-2 justify-end">
                   <button
-                    className="text-button"
+                    className="h-8 px-3.5 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                     type="button"
                     onClick={() => setDetailPt(item)}
                   >
-                    <Eye size={15} /> Chi tiết
+                    <Eye size={13} className="shrink-0" /> <span>Chi tiết</span>
                   </button>
                   <button
-                    className="text-button"
+                    className="h-8 px-3 inline-flex items-center justify-center gap-1 text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors cursor-pointer border border-sky-200/60 shrink-0 whitespace-nowrap min-w-[58px]"
                     type="button"
                     onClick={() => setFormPt(item)}
                   >
-                    <Pencil size={15} /> Sửa
+                    <Pencil size={12} className="shrink-0" /> <span>Sửa</span>
                   </button>
                   <button
-                    className="text-button text-danger"
+                    className="h-8 px-3 inline-flex items-center justify-center gap-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer border border-rose-200/60 shrink-0 whitespace-nowrap min-w-[58px]"
                     type="button"
                     onClick={() => setDeletePt(item)}
                   >
-                    <Trash2 size={15} /> Xóa
+                    <Trash2 size={12} className="shrink-0" /> <span>Xóa</span>
                   </button>
                 </div>
               )}
             />
-          </>
+          </div>
         )}
 
         <Pagination
@@ -536,137 +569,166 @@ export default function PtManagementView() {
       {detailPt && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setDetailPt(null)}>
           <div
-            className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            className="pt-detail-modal"
             role="dialog"
             aria-modal="true"
             onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="relative bg-gradient-to-r from-[#003b70] to-[#00a4e4] p-5 text-white">
-              <button
-                type="button"
-                className="absolute top-4 right-4 text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
-                onClick={() => setDetailPt(null)}
-                aria-label="Đóng"
-              >
-                <X size={18} />
-              </button>
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white/20 border-2 border-white/40 shrink-0 flex items-center justify-center">
+            <div className="pt-detail-header">
+              <div className="flex items-center gap-4 min-w-0 flex-1">
+                <div className="w-15 h-15 rounded-2xl overflow-hidden bg-white/15 border-2 border-white/40 shrink-0 flex items-center justify-center shadow-md">
                   {detailPt.avatarUrl ? (
                     <img src={detailPt.avatarUrl} alt={detailPt.fullName} className="w-full h-full object-cover" />
                   ) : (
-                    <Users size={28} className="text-white" />
+                    <div className="w-full h-full bg-white/20 text-white font-bold flex items-center justify-center text-xl font-['Oswald']">
+                      {(detailPt.fullName || detailPt.username || 'PT').slice(0, 2).toUpperCase()}
+                    </div>
                   )}
                 </div>
-                <div>
-                  <h2 className="text-lg font-bold m-0 leading-tight">{detailPt.fullName || 'Huấn luyện viên'}</h2>
-                  <div className="text-xs text-white/80 mt-0.5">@{detailPt.username}</div>
-                  <div className="inline-block mt-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-xl font-bold m-0 leading-tight truncate text-white">
+                      {detailPt.fullName || 'Huấn luyện viên'}
+                    </h2>
                     <StatusBadge status={detailPt.status} />
                   </div>
+                  <div className="text-xs text-sky-100 font-mono mt-1">@{detailPt.username}</div>
                 </div>
               </div>
+              <button
+                type="button"
+                className="w-8 h-8 rounded-full bg-black/15 hover:bg-black/25 text-white/90 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0"
+                onClick={() => setDetailPt(null)}
+                aria-label="Đóng"
+              >
+                <X size={17} />
+              </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto text-xs">
-              {/* Specialization */}
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-                <div className="font-bold text-[#003b70] text-sm mb-1 flex items-center gap-1.5">
-                  <Award size={15} className="text-sky-600" />
-                  <span>{detailPt.specialization || 'Chưa cập nhật chuyên môn'}</span>
+            <div className="pt-detail-body">
+              {/* Specialization Hero Card */}
+              <div className="pt-detail-hero-card">
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-sky-700 flex items-center gap-1.5 mb-1">
+                    <Award size={14} className="text-sky-600 shrink-0" />
+                    <span>Chuyên môn đào tạo</span>
+                  </div>
+                  <div className="font-bold text-[#003b70] text-sm leading-snug">
+                    {detailPt.specialization || 'Huấn luyện viên thể hình tổng quát'}
+                  </div>
                 </div>
-                <div className="text-slate-500">
-                  {detailPt.yearsOfExperience ? `${detailPt.yearsOfExperience} năm kinh nghiệm thực chiến` : 'Huấn luyện viên mới'}
-                </div>
+                {detailPt.yearsOfExperience !== undefined && Number(detailPt.yearsOfExperience) > 0 && (
+                  <div className="shrink-0 bg-white border border-sky-200/80 px-3.5 py-1.5 rounded-xl shadow-2xs text-center min-w-[76px]">
+                    <div className="text-sm font-extrabold text-[#003b70] font-['Oswald'] leading-tight">
+                      {detailPt.yearsOfExperience} Năm
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-semibold mt-0.5">Kinh nghiệm</div>
+                  </div>
+                )}
               </div>
 
-              {/* Bio */}
+              {/* Bio Section */}
               {detailPt.bio && (
                 <div>
-                  <h4 className="font-bold text-slate-800 text-xs mb-1.5 uppercase tracking-wider">Giới thiệu bản thân</h4>
-                  <p className="text-slate-600 leading-relaxed bg-slate-50/50 p-3 rounded-lg border border-slate-100">
+                  <div className="pt-detail-section-title">
+                    <Users size={14} className="text-slate-500 shrink-0" />
+                    <span>Giới thiệu bản thân</span>
+                  </div>
+                  <div className="pt-detail-bio-box">
                     {detailPt.bio}
-                  </p>
+                  </div>
                 </div>
               )}
 
-              {/* Certificates */}
+              {/* Certificates Section */}
               <div>
-                <h4 className="font-bold text-slate-800 text-xs mb-1.5 uppercase tracking-wider">Bằng cấp & Chứng chỉ</h4>
+                <div className="pt-detail-section-title">
+                  <Award size={14} className="text-slate-500 shrink-0" />
+                  <span>Bằng cấp & Chứng chỉ đào tạo</span>
+                </div>
                 {detailPt.certificates && (Array.isArray(detailPt.certificates) ? detailPt.certificates.length > 0 : Boolean(detailPt.certificates)) ? (
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="pt-detail-chips">
                     {(Array.isArray(detailPt.certificates) ? detailPt.certificates : String(detailPt.certificates).split('\n')).map(
                       (cert, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2.5 py-1 rounded-md bg-sky-50 text-sky-800 border border-sky-200 font-medium"
-                        >
-                          {cert}
-                        </span>
+                        <div key={idx} className="pt-detail-chip">
+                          <Award size={12} className="text-sky-600 shrink-0" />
+                          <span>{cert}</span>
+                        </div>
                       ),
                     )}
                   </div>
                 ) : (
-                  <div className="text-slate-400 italic">Chưa có chứng chỉ được thêm.</div>
+                  <div className="text-slate-400 italic bg-slate-50 p-3.5 rounded-xl border border-dashed border-slate-200 text-xs">
+                    Chưa cập nhật chứng chỉ chuyên môn.
+                  </div>
                 )}
               </div>
 
-              {/* Contact & Personal Info */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                <div>
-                  <div className="text-[11px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
-                    <Phone size={12} /> SỐ ĐIỆN THOẠI
-                  </div>
-                  <div className="text-slate-700 font-medium">{detailPt.phone || '—'}</div>
+              {/* Contact & Personal Info Grid */}
+              <div>
+                <div className="pt-detail-section-title">
+                  <Phone size={14} className="text-slate-500 shrink-0" />
+                  <span>Thông tin liên hệ & Hồ sơ cá nhân</span>
                 </div>
-                <div>
-                  <div className="text-[11px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
-                    <Mail size={12} /> EMAIL
+                <div className="pt-detail-grid">
+                  <div className="pt-detail-info-card">
+                    <div className="text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5">
+                      <Phone size={12} className="text-sky-600" /> SỐ ĐIỆN THOẠI
+                    </div>
+                    <div className="text-slate-800 font-semibold text-xs">{detailPt.phone || '—'}</div>
                   </div>
-                  <div className="text-slate-700 font-medium truncate">{detailPt.email || '—'}</div>
+                  <div className="pt-detail-info-card">
+                    <div className="text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5">
+                      <Mail size={12} className="text-sky-600" /> EMAIL
+                    </div>
+                    <div className="text-slate-800 font-semibold text-xs truncate" title={detailPt.email || ''}>
+                      {detailPt.email || '—'}
+                    </div>
+                  </div>
+                  {detailPt.address && (
+                    <div className="pt-detail-info-card col-span-2">
+                      <div className="text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5">
+                        <MapPin size={12} className="text-sky-600" /> ĐỊA CHỈ LIÊN HỆ
+                      </div>
+                      <div className="text-slate-800 font-semibold text-xs">{detailPt.address}</div>
+                    </div>
+                  )}
+                  {detailPt.dateOfBirth && (
+                    <div className="pt-detail-info-card">
+                      <div className="text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1.5">
+                        <Calendar size={12} className="text-sky-600" /> NGÀY SINH
+                      </div>
+                      <div className="text-slate-800 font-semibold text-xs">
+                        {new Date(detailPt.dateOfBirth).toLocaleDateString('vi-VN')}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {detailPt.address && (
-                  <div className="col-span-2">
-                    <div className="text-[11px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
-                      <MapPin size={12} /> ĐỊA CHỈ
-                    </div>
-                    <div className="text-slate-700">{detailPt.address}</div>
-                  </div>
-                )}
-                {detailPt.dateOfBirth && (
-                  <div>
-                    <div className="text-[11px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
-                      <Calendar size={12} /> NGÀY SINH
-                    </div>
-                    <div className="text-slate-700">
-                      {new Date(detailPt.dateOfBirth).toLocaleDateString('vi-VN')}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+            <div className="pt-detail-footer">
               <button
                 type="button"
-                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors"
+                className="h-10 px-5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer min-w-[84px]"
                 onClick={() => setDetailPt(null)}
               >
                 Đóng
               </button>
               <button
                 type="button"
-                className="px-3.5 py-1.5 rounded-lg bg-[#003b70] hover:bg-sky-900 text-white text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
+                className="h-10 px-5 rounded-xl bg-[#003b70] hover:bg-[#00264d] text-white text-xs font-bold transition-all inline-flex items-center justify-center gap-2 shadow-2xs cursor-pointer min-w-[145px]"
                 onClick={() => {
                   const pt = detailPt;
                   setDetailPt(null);
                   setFormPt(pt);
                 }}
               >
-                <Pencil size={13} /> Chỉnh sửa hồ sơ
+                <Pencil size={13} className="shrink-0" />
+                <span>Chỉnh sửa hồ sơ</span>
               </button>
             </div>
           </div>
@@ -686,3 +748,4 @@ export default function PtManagementView() {
     </div>
   );
 }
+

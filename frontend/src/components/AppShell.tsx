@@ -33,3 +33,4 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
     <div className="portal-main"><header className="portal-header"><button className="mobile-menu" type="button" onClick={() => setOpen(true)}><Menu /> Menu</button><nav className="portal-breadcrumb" aria-label="Điều hướng trang"><span>Portal</span>{current && <><ChevronRight size={15} /><span>{current.section}</span><ChevronRight size={15} /><strong>{current.label}</strong></>}</nav><div className="portal-header-user"><strong>{user.fullName || user.username}</strong><span>{roleNames[user.role]}</span></div></header><main className="portal-content">{children}</main></div>
   </div>;
 }
+

@@ -17,39 +17,39 @@ export default function AdminDashboardPage() {
   const resource = useAsyncResource(loader);
 
   const metricCards = resource.data ? [
-    { 
-      label: 'PT đang hoạt động', 
-      value: resource.data.totalPts, 
-      icon: Users, 
-      color: 'from-blue-600 to-cyan-500', 
-      lightBg: 'bg-blue-50/50', 
+    {
+      label: 'PT đang hoạt động',
+      value: resource.data.totalPts,
+      icon: Users,
+      color: 'from-blue-600 to-cyan-500',
+      lightBg: 'bg-blue-50/50',
       iconColor: 'text-blue-600',
       shadow: 'shadow-blue-500/20'
     },
-    { 
-      label: 'Khách hàng', 
-      value: resource.data.totalCustomers, 
-      icon: UserCheck, 
-      color: 'from-emerald-500 to-teal-400', 
-      lightBg: 'bg-emerald-50/50', 
+    {
+      label: 'Khách hàng',
+      value: resource.data.totalCustomers,
+      icon: UserCheck,
+      color: 'from-emerald-500 to-teal-400',
+      lightBg: 'bg-emerald-50/50',
       iconColor: 'text-emerald-600',
       shadow: 'shadow-emerald-500/20'
     },
-    { 
-      label: 'Cảnh báo đang mở', 
-      value: resource.data.openAlerts, 
-      icon: AlertTriangle, 
-      color: 'from-rose-500 to-orange-400', 
-      lightBg: 'bg-rose-50/50', 
+    {
+      label: 'Cảnh báo đang mở',
+      value: resource.data.openAlerts,
+      icon: AlertTriangle,
+      color: 'from-rose-500 to-orange-400',
+      lightBg: 'bg-rose-50/50',
       iconColor: 'text-rose-600',
       shadow: 'shadow-rose-500/20'
     },
-    { 
-      label: 'Gói tập đang hoạt động', 
-      value: resource.data.activePackages, 
-      icon: Package, 
-      color: 'from-indigo-600 to-purple-500', 
-      lightBg: 'bg-indigo-50/50', 
+    {
+      label: 'Gói tập đang hoạt động',
+      value: resource.data.activePackages,
+      icon: Package,
+      color: 'from-indigo-600 to-purple-500',
+      lightBg: 'bg-indigo-50/50',
       iconColor: 'text-indigo-600',
       shadow: 'shadow-indigo-500/20'
     },
@@ -112,13 +112,13 @@ export default function AdminDashboardPage() {
       {resource.data && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {metricCards.map(({ label, value, icon: Icon, color, lightBg, iconColor }) => (
-            <div 
+            <div
               key={label}
               className="relative bg-white rounded-2xl p-4 lg:p-5 border border-slate-200/60 hover:border-slate-300 shadow-[0_2px_12px_rgb(0,0,0,0.01)] hover:shadow-[0_8px_24px_rgb(0,0,0,0.04)] transition-all duration-300 group overflow-hidden flex items-center gap-4"
             >
               {/* Decorative Background Blob */}
               <div className={`absolute -right-6 -bottom-6 w-20 h-20 rounded-full ${color} opacity-[0.03] group-hover:scale-150 transition-transform duration-700 ease-out`} />
-              
+
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${lightBg} border border-white/60 shadow-inner group-hover:scale-110 transition-transform duration-300 ease-out shrink-0`}>
                 <Icon size={22} className={iconColor} strokeWidth={2.5} />
               </div>
