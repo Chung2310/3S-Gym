@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -14,7 +14,7 @@ function MemoryRouter({ children, initialEntries = ['/portal'] }: React.Componen
 }
 
 function PortalPage(props: React.ComponentProps<typeof RawPortalPage>) {
-  return <Routes><Route path="/portal/*" element={<RawPortalPage {...props} />} /></Routes>;
+  return <Routes><Route path="/*" element={<RawPortalPage {...props} />} /><Route path="/portal/*" element={<RawPortalPage {...props} />} /></Routes>;
 }
 
 vi.mock('../../src/services/api', () => ({
@@ -85,9 +85,9 @@ describe('PortalPage', () => {
   });
 
   it.each<[UserRole, string]>([
-    ['ADMIN', '/portal/admin'],
-    ['PT', '/portal/pt/customers'],
-    ['CUSTOMER', '/portal/me'],
+    ['ADMIN', '/admin'],
+    ['PT', '/pt/customers'],
+    ['CUSTOMER', '/me'],
   ])('điều hướng vai trò %s tới route riêng', async (role, expectedPath) => {
     function Location() {
       const { pathname } = useLocation();
@@ -200,7 +200,7 @@ describe('PortalPage', () => {
     render(<MemoryRouter initialEntries={['/portal/khong-ton-tai']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /><Location /></ToastProvider></MemoryRouter>);
 
     expect(await screen.findByRole('heading', { name: 'Không tìm thấy trang' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Quay về trang dành cho PT' })).toHaveAttribute('href', '/portal/pt/customers');
+    expect(screen.getByRole('link', { name: 'Quay về trang dành cho PT' })).toHaveAttribute('href', '/pt/customers');
     expect(screen.getByTestId('invalid-route')).toHaveTextContent('/portal/khong-ton-tai');
   });
 

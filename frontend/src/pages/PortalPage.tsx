@@ -23,16 +23,16 @@ import { getSession } from '../services/session';
 import type { Session, User } from '../types';
 
 const roleDestinations = {
-  ADMIN: '/portal/admin',
-  PT: '/portal/pt/customers',
-  CUSTOMER: '/portal/me',
+  ADMIN: '/admin',
+  PT: '/pt/customers',
+  CUSTOMER: '/me',
 } as const;
 const roleLabels = { ADMIN: 'ADMIN', PT: 'PT', CUSTOMER: 'khách hàng' } as const;
 
 function PortalRoutes({ user }: { user: User }) {
   const { features } = useFeatures();
   const location = useLocation();
-  const isPortalRoot = location.pathname === '/portal' || location.pathname === '/';
+  const isPortalRoot = location.pathname === '/portal' || location.pathname === '/portal/' || location.pathname === '/';
 
   return <AppShell user={user} features={features}>
     <Routes>
@@ -46,7 +46,7 @@ function PortalRoutes({ user }: { user: User }) {
       <Route path="pt/roadmaps/*" element={<FeatureRoute user={user} roles={['PT']} feature="ROADMAP"><RoadmapWorkspace /></FeatureRoute>} />
       <Route path="pt/exercises" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><ExerciseLibrary /></FeatureRoute>} />
       <Route path="pt/workout-plans/*" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><WorkoutWorkspace /></FeatureRoute>} />
-      <Route path="pt/workouts" element={<Navigate to="/portal/pt/workout-plans" replace />} />
+      <Route path="pt/workouts" element={<Navigate to="/pt/workout-plans" replace />} />
       <Route path="pt/progress/*" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><ProgressWorkspace /></FeatureRoute>} />
       <Route path="pt/nutrition" element={<FeatureRoute user={user} roles={['PT']} feature="NUTRITION_AI"><NutritionWorkspace /></FeatureRoute>} />
       <Route path="pt/care" element={<FeatureRoute user={user} roles={['PT']} feature="CARE"><CareWorkspace /></FeatureRoute>} />
