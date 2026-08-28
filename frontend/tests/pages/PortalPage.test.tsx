@@ -25,6 +25,10 @@ vi.mock('../../src/services/api', () => ({
   },
 }));
 
+vi.mock('../../src/components/notifications/NotificationBell', () => ({
+  default: () => <button type="button" aria-label="Thông báo" />,
+}));
+
 const defaultGet = async (path: string) => path.startsWith('/api/dashboard/admin')
   ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
   : { data: [], meta: { page: 1, totalPages: 0 }, message: '' };
