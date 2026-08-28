@@ -11,6 +11,13 @@ describe('AppShell', () => {
     expect(screen.getByText('PT Minh')).toBeInTheDocument();
     expect(screen.getByText('Huấn luyện viên')).toBeInTheDocument();
     expect(screen.getByText('Nội dung CRM')).toBeInTheDocument();
+
+    const actions = document.querySelector('.portal-header-actions');
+    expect(actions).toHaveClass('ml-auto', 'flex', 'shrink-0', 'items-center', 'gap-2');
+    const notificationButton = actions?.querySelector('button[aria-haspopup="dialog"]');
+    expect(notificationButton).toBeInTheDocument();
+    expect(actions?.querySelector('.portal-header-user')).toHaveTextContent('PT Minh');
+    expect(actions?.firstElementChild).toContainElement(notificationButton as HTMLElement);
   });
 
   it('chỉ hiển thị navigation phù hợp vai trò và feature', () => {
