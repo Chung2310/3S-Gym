@@ -4,6 +4,7 @@ import FeatureFlag from '../models/FeatureFlag.js';
 import NutritionFormula from '../models/NutritionFormula.js';
 import ActivityCalorie from '../models/ActivityCalorie.js';
 import KnowledgeDocument from '../models/KnowledgeDocument.js';
+import MigrationRecord from '../models/MigrationRecord.js';
 import { migrateDown, migrationStatus, runMigrations, seedReferenceData } from '../services/migrationService.js';
 
 let mongo: MongoMemoryServer;
@@ -36,4 +37,22 @@ it('tracks migration version and rolls back only fields added by migration', asy
   expect(legacy).not.toHaveProperty('version');
   expect(legacy).not.toHaveProperty('status');
   expect((await migrateDown()).rolledBack).toBeNull();
+});
+
+it('remains idempotent when the migration index has not been created yet', async () => {
+  await mongoose.connection.db?.dropDatabase();
+  await KnowledgeDocument.collection.insertOne({
+    title: 'Fresh database legacy document',
+    topic: 'GENERAL',
+    content: 'Legacy content',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  const first = await runMigrations();
+  const second = await runMigrations();
+
+  expect(first.applied).toEqual(['001-content-defaults']);
+  expect(second.applied).toEqual([]);
+  expect(await MigrationRecord.countDocuments({ version: '001-content-defaults' })).toBe(1);
 });
