@@ -84,12 +84,21 @@ frontend/
 ## 2. Quy Tắc UI & Form Tái Sử Dụng (`components/ui/`)
 
 ### Nguyên tắc bắt buộc:
-1. **Mọi thành phần UI dùng chung** (Badges, Buttons, Cards, Inputs, Tables, Modals) **PHẢI** nằm trong `frontend/src/components/ui/`.
-2. **Form Thêm mới / Chỉnh sửa**:
+1. **BẮT BUỘC thêm `placeholder` cho TẤT CẢ các trường nhập liệu (Inputs / Textareas)**:
+   - **Tất cả** thẻ `<input>`, `<textarea>`, component `FormField`, thanh tìm kiếm (`Search Input`), ô lọc dữ liệu, ô nhập số liệu **PHẢI** có thuộc tính `placeholder="..."` đầy đủ và rõ ràng.
+   - **Nội dung placeholder phải mang tính hướng dẫn trực quan (Actionable & Informative)**:
+     - Với ô tìm kiếm: `placeholder="Tìm theo tên học viên, SĐT, mã..."`
+     - Với trường thông tin: `placeholder="Nhập họ và tên đầy đủ..."`, `placeholder="Nhập số điện thoại (10 số)..."`
+     - Với trường số đo / chỉ số: `placeholder="Ví dụ: 72.5 (kg)"`, `placeholder="Ví dụ: 18.5 (%)"`
+     - Với ghi chú / mô tả: `placeholder="Nhập ghi chú chi tiết hoặc phác đồ..."`
+   - **Tuyệt đối KHÔNG** để input thiếu `placeholder` hoặc để placeholder rỗng/chung chung vô nghĩa.
+
+2. **Mọi thành phần UI dùng chung** (Badges, Buttons, Cards, Inputs, Tables, Modals) **PHẢI** nằm trong `frontend/src/components/ui/`.
+3. **Form Thêm mới / Chỉnh sửa**:
    - Xây dựng trên nền `ProfileFormModal` (hoặc `FormModal`) kết hợp với `FormField`.
    - Luôn có cơ chế phát hiện form bẩn (`dirty` state) để hỏi xác nhận khi người dùng vô tình đóng modal lúc đang nhập liệu dang dở.
    - Hỗ trợ phím tắt `Escape`, khóa cuộn trang nền và quản lý focus accessibility.
-3. **Upload ảnh / Avatar**:
+4. **Upload ảnh / Avatar**:
    - Sử dụng endpoint chuẩn `api.upload('/api/upload/image', formData)` gửi lên Cloudinary.
    - Có preview ảnh đại diện hình tròn, nút xóa ảnh và trạng thái loading khi tải lên.
 

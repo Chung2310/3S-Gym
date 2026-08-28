@@ -459,7 +459,7 @@ export default function PtDashboard() {
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
                           <Link
-                            to="/portal/pt/inbody"
+                            to="/pt/inbody"
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#003b70', background: '#f0f9ff', border: '1px solid #bae6fd', textDecoration: 'none' }}
                             title="Xem kết quả InBody"
                           >
@@ -467,7 +467,7 @@ export default function PtDashboard() {
                             <span>InBody</span>
                           </Link>
                           <Link
-                            to="/portal/pt/care"
+                            to="/pt/care"
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#9a3412', background: '#fff7ed', border: '1px solid #fed7aa', textDecoration: 'none' }}
                             title="Mở hồ sơ chăm sóc"
                           >
@@ -589,7 +589,7 @@ export default function PtDashboard() {
                       ⏱️ Thời gian: <strong>{c.changes?.daysBetween} ngày</strong> ({c.measurementCount} lần đo)
                     </span>
                     <Link
-                      to="/portal/pt/inbody"
+                      to="/pt/inbody"
                       style={{ color: '#0284c7', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                     >
                       <span>Xem lộ trình</span>
@@ -711,14 +711,14 @@ export default function PtDashboard() {
                   </span>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <Link
-                      to="/portal/pt/care"
+                      to="/pt/care"
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#fff', background: '#dc2626', textDecoration: 'none', border: '0' }}
                     >
                       <HeartPulse size={12} />
                       <span>Mở Chăm sóc</span>
                     </Link>
                     <Link
-                      to="/portal/pt/inbody"
+                      to="/pt/inbody"
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#003b70', background: '#f0f9ff', border: '1px solid #bae6fd', textDecoration: 'none' }}
                     >
                       <Ruler size={12} />

@@ -75,8 +75,8 @@ export default function PtPackageManagerModal({ open, customer, onClose }: PtPac
   return <>
     <FormModal open={open} title={`Gói PT của ${customer?.fullName || 'khách hàng'}`} description="Tạo và quản lý số buổi tập của khách hàng." dirty={Boolean(form.name || form.totalSessions || form.startDate || form.endDate)} loading={loading} submitLabel={editing ? 'Lưu thay đổi' : 'Thêm gói PT'} onClose={onClose} onSubmit={submit}>
       <div className="form-grid">
-        <FormField label="Tên gói" name="name" value={form.name} onChange={change} required />
-        <FormField label="Tổng số buổi" name="totalSessions" type="number" min="1" value={form.totalSessions} onChange={change} required />
+        <FormField label="Tên gói" name="name" placeholder="Nhập tên gói PT (ví dụ: Gói 24 buổi Tăng cơ)..." value={form.name} onChange={change} required />
+        <FormField label="Tổng số buổi" name="totalSessions" type="number" min="1" placeholder="Nhập số buổi (ví dụ: 24)..." value={form.totalSessions} onChange={change} required />
         <FormField label="Ngày bắt đầu" name="startDate" type="date" value={form.startDate} onChange={change} required />
         <FormField label="Ngày kết thúc" name="endDate" type="date" value={form.endDate} onChange={change} required />
         <FormField label="Trạng thái" name="status" as="select" value={form.status} onChange={change}><option value="ACTIVE">Đang hoạt động</option><option value="EXPIRED">Hết hạn</option><option value="COMPLETED">Hoàn thành</option><option value="CANCELLED">Đã hủy</option></FormField>

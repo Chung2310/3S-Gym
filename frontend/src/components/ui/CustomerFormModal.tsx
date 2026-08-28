@@ -99,7 +99,7 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }: 
     <section className="profile-form-section">
       <h3>Thông tin cá nhân</h3>
       <div className="profile-form-grid">
-        <FormField label="Họ tên" name="customerFullName" value={form.fullName} onChange={change('fullName')} required />
+        <FormField label="Họ tên" name="customerFullName" placeholder="Nhập họ và tên khách hàng..." value={form.fullName} onChange={change('fullName')} required />
         <FormField label="Ngày sinh" name="customerDateOfBirth" type="date" max={today} value={form.dateOfBirth} onChange={change('dateOfBirth')} />
         <FormField label="Giới tính" name="customerGender" as="select" value={form.gender} onChange={change('gender')}>
           <option value="OTHER">Khác</option><option value="MALE">Nam</option><option value="FEMALE">Nữ</option>
@@ -109,17 +109,17 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }: 
     <section className="profile-form-section">
       <h3>Liên hệ</h3>
       <div className="profile-form-grid">
-        <FormField label="Số điện thoại" name="customerPhone" value={form.phone} onChange={change('phone')} required />
-        <FormField label="Email" name="customerEmail" type="email" value={form.email} onChange={change('email')} />
+        <FormField label="Số điện thoại" name="customerPhone" placeholder="Nhập số điện thoại (ví dụ: 0912345678)..." value={form.phone} onChange={change('phone')} required />
+        <FormField label="Email" name="customerEmail" type="email" placeholder="Nhập email (ví dụ: khachhang@example.com)..." value={form.email} onChange={change('email')} />
       </div>
     </section>
     <section className="profile-form-section">
       <h3>Chỉ số và sức khỏe</h3>
       <div className="profile-form-grid">
-        <FormField label="Chiều cao (cm)" name="customerHeight" type="number" min="0" step="0.1" value={form.height} onChange={change('height')} />
-        <FormField label="Cân nặng ban đầu (kg)" name="customerInitialWeight" type="number" min="0" step="0.1" value={form.initialWeight} onChange={change('initialWeight')} />
+        <FormField label="Chiều cao (cm)" name="customerHeight" type="number" min="0" step="0.1" placeholder="Ví dụ: 172.5" value={form.height} onChange={change('height')} />
+        <FormField label="Cân nặng ban đầu (kg)" name="customerInitialWeight" type="number" min="0" step="0.1" placeholder="Ví dụ: 68.0" value={form.initialWeight} onChange={change('initialWeight')} />
         <div className="grid-full-width">
-          <FormField label="Lưu ý sức khỏe" name="customerMedicalNotes" as="textarea" rows={3} maxLength={2000} value={form.medicalNotes} onChange={change('medicalNotes')} />
+          <FormField label="Lưu ý sức khỏe" name="customerMedicalNotes" as="textarea" rows={3} maxLength={2000} placeholder="Nhập tiền sử bệnh lý, chấn thương hoặc lưu ý sức khỏe đặc biệt..." value={form.medicalNotes} onChange={change('medicalNotes')} />
         </div>
       </div>
     </section>
@@ -127,10 +127,10 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }: 
       <h3>Quản lý</h3>
       <div className="profile-form-grid">
         <div className="grid-full-width">
-          <FormField label="Mục tiêu ban đầu" name="customerInitialGoal" as="textarea" rows={3} maxLength={1000} value={form.initialGoal} onChange={change('initialGoal')} />
+          <FormField label="Mục tiêu ban đầu" name="customerInitialGoal" as="textarea" rows={3} maxLength={1000} placeholder="Nhập mục tiêu tập luyện (ví dụ: Giảm 5kg mỡ, tăng cơ săn chắc trong 3 tháng)..." value={form.initialGoal} onChange={change('initialGoal')} />
         </div>
         <div className="grid-full-width">
-          <FormField label="Ghi chú nội bộ" name="customerInternalNotes" as="textarea" rows={3} maxLength={2000} value={form.internalNotes} onChange={change('internalNotes')} />
+          <FormField label="Ghi chú nội bộ" name="customerInternalNotes" as="textarea" rows={3} maxLength={2000} placeholder="Nhập ghi chú nội bộ của PT dành cho học viên..." value={form.internalNotes} onChange={change('internalNotes')} />
         </div>
         <FormField label="Trạng thái" name="customerStatus" as="select" value={form.status} onChange={change('status')}>
           <option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Ngừng hoạt động</option><option value="LEAD">Tiềm năng</option>
