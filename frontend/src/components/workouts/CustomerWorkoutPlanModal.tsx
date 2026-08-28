@@ -1,5 +1,5 @@
 import ContentFormModal, { type ContentItem } from '../ui/ContentFormModal';
-import type { CustomerWorkoutPlan, CustomerWorkoutPlanDraft } from './workoutPlanMapper';
+import type { CustomerWorkoutPlan, CustomerWorkoutPlanDraft } from '../../types/workout';
 
 interface Props { open: boolean; item?: CustomerWorkoutPlan | null; initialDraft?: CustomerWorkoutPlanDraft | null; onClose: () => void; onSaved: () => void }
 

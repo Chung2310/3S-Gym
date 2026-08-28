@@ -12,6 +12,23 @@ export interface InBodyExtraction {
   bmr?: number | null;
   visceralFatLevel?: number | null;
   inbodyScore?: number | null;
+  bodyWater?: number | null;
+  boneMineral?: number | null;
+  waistHipRatio?: number | null;
+  segmentalMuscle?: {
+    rightArm?: number | null;
+    leftArm?: number | null;
+    trunk?: number | null;
+    rightLeg?: number | null;
+    leftLeg?: number | null;
+  } | null;
+  segmentalFat?: {
+    rightArm?: number | null;
+    leftArm?: number | null;
+    trunk?: number | null;
+    rightLeg?: number | null;
+    leftLeg?: number | null;
+  } | null;
   confidence: number;
   warnings: string[];
 }
@@ -34,7 +51,7 @@ async function extractInBody(file: Express.Multer.File): Promise<InBodyExtractio
       body: JSON.stringify({
         model: APP_POLICY.AI_MODEL, temperature: 0,
         messages: [{ role: 'user', content: [
-          { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, confidence và warnings. Chỉ trả JSON.' },
+          { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm: weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, bodyWater, boneMineral, waistHipRatio, segmentalMuscle (rightArm, leftArm, trunk, rightLeg, leftLeg), segmentalFat (rightArm, leftArm, trunk, rightLeg, leftLeg), confidence và warnings. Chỉ trả JSON thuần túy.' },
           { type: 'image_url', image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` } },
         ] }],
       }),

@@ -9,7 +9,7 @@ import { api } from '../../services/api';
 import type { PaginationMeta } from '../../types';
 import { errorMessage } from '../../types';
 import CustomerWorkoutPlanModal from './CustomerWorkoutPlanModal';
-import type { CustomerWorkoutPlan, CustomerWorkoutPlanDraft } from './workoutPlanMapper';
+import type { CustomerWorkoutPlan, CustomerWorkoutPlanDraft } from '../../types/workout';
 
 interface Props { initialDraft?: CustomerWorkoutPlanDraft | null; onDraftConsumed?: () => void }
 type Action = { kind: 'publish' | 'unpublish' | 'delete'; item: CustomerWorkoutPlan };

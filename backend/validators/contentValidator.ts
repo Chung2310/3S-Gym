@@ -5,7 +5,36 @@ import { commonMessages, idParams, nonEmptyPatch, objectId, paginationQuery } fr
 const systemFields = { ptId: Joi.forbidden(), status: Joi.forbidden(), publishedAt: Joi.forbidden(), version: Joi.forbidden() };
 export const contentListSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, status: Joi.string().valid('DRAFT', 'PUBLISHED'), customerId: objectId }).messages(commonMessages) };
 export const contentIdSchema: RequestValidationSchema = { params: idParams() };
-const inbodyFields = { customerId: objectId, measurementDate: Joi.date().iso(), weight: Joi.number().positive(), bmi: Joi.number().min(0).allow(null), bodyFatPercentage: Joi.number().min(0).max(100).allow(null), bodyFatMass: Joi.number().min(0).allow(null), muscleMass: Joi.number().min(0).allow(null), bmr: Joi.number().min(0).allow(null), visceralFatLevel: Joi.number().min(0).allow(null), inbodyScore: Joi.number().min(0).allow(null), source: Joi.string().valid('MANUAL', 'AI_SCAN'), strengths: Joi.string().allow('', null), priorities: Joi.string().allow('', null), recommendation: Joi.string().allow('', null) };
+const segmentalSchema = Joi.object({
+  rightArm: Joi.number().allow(null),
+  leftArm: Joi.number().allow(null),
+  trunk: Joi.number().allow(null),
+  rightLeg: Joi.number().allow(null),
+  leftLeg: Joi.number().allow(null),
+}).allow(null);
+
+const inbodyFields = {
+  customerId: objectId,
+  measurementDate: Joi.date().iso(),
+  weight: Joi.number().positive(),
+  bmi: Joi.number().min(0).allow(null),
+  bodyFatPercentage: Joi.number().min(0).max(100).allow(null),
+  bodyFatMass: Joi.number().min(0).allow(null),
+  muscleMass: Joi.number().min(0).allow(null),
+  bmr: Joi.number().min(0).allow(null),
+  visceralFatLevel: Joi.number().min(0).allow(null),
+  inbodyScore: Joi.number().min(0).allow(null),
+  bodyWater: Joi.number().min(0).allow(null),
+  boneMineral: Joi.number().min(0).allow(null),
+  waistHipRatio: Joi.number().min(0).allow(null),
+  segmentalMuscle: segmentalSchema,
+  segmentalFat: segmentalSchema,
+  consultationNotes: Joi.string().allow('', null),
+  source: Joi.string().valid('MANUAL', 'AI_SCAN'),
+  strengths: Joi.string().allow('', null),
+  priorities: Joi.string().allow('', null),
+  recommendation: Joi.string().allow('', null),
+};
 export const inbodySchemas = { create: { body: Joi.object({ ...inbodyFields, customerId: objectId.required(), measurementDate: Joi.date().iso().required(), weight: Joi.number().positive().required() }).messages(commonMessages) }, update: { body: nonEmptyPatch({ ...inbodyFields, ...systemFields }) } } satisfies Record<string, RequestValidationSchema>;
 export const confirmInbodyOcrSchema: RequestValidationSchema = {
   params: idParams(),
@@ -19,6 +48,12 @@ export const confirmInbodyOcrSchema: RequestValidationSchema = {
     bmr: Joi.number().min(0).allow(null),
     visceralFatLevel: Joi.number().min(0).allow(null),
     inbodyScore: Joi.number().min(0).allow(null),
+    bodyWater: Joi.number().min(0).allow(null),
+    boneMineral: Joi.number().min(0).allow(null),
+    waistHipRatio: Joi.number().min(0).allow(null),
+    segmentalMuscle: segmentalSchema,
+    segmentalFat: segmentalSchema,
+    consultationNotes: Joi.string().allow('', null),
     strengths: Joi.string().allow('', null),
     priorities: Joi.string().allow('', null),
     recommendation: Joi.string().allow('', null),

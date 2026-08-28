@@ -1,14 +1,27 @@
-import { useState, type ReactNode } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronRight, Dumbbell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { Bell, ChevronRight, Dumbbell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { clearSession } from '../services/session';
+import { api } from '../services/api';
 import { navigationForPath, visibleNavigation, type NavigationSection } from '../config/portalNavigation';
 import type { FeatureState, User, UserRole } from '../types';
+import NotificationDropdown from './notifications/NotificationDropdown';
 
-const roleNames: Record<UserRole, string> = { ADMIN: 'Quản lý hệ thống', PT: 'Huấn luyện viên', CUSTOMER: 'Khách hàng' };
+const roleNames: Record<UserRole, string> = {
+  ADMIN: 'Quản lý hệ thống',
+  PT: 'Huấn luyện viên',
+  CUSTOMER: 'Khách hàng',
+};
+
 const sectionOrder: NavigationSection[] = ['Tổng quan', 'Vận hành', 'Tri thức & trợ lý', 'Tài khoản'];
 const sidebarStorageKey = '3s-portal-sidebar-collapsed';
-interface AppShellProps { user: User; children: ReactNode; features?: FeatureState }
+
+interface AppShellProps {
+  user: User;
+  children: ReactNode;
+  features?: FeatureState;
+}
 
 function initialSidebarCollapsed() {
   try {
@@ -18,50 +31,202 @@ function initialSidebarCollapsed() {
   }
 }
 
+function getInitials(fullName?: string, username?: string): string {
+  const name = (fullName || username || '').trim();
+  if (!name) return 'U';
+  const parts = name.split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function AppShell({ user, children, features = {} }: AppShellProps) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(initialSidebarCollapsed);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const items = visibleNavigation(user, features);
   const current = navigationForPath(location.pathname, user, features);
-  const logout = () => { clearSession(); navigate('/login'); };
-  const toggleSidebar = () => setCollapsed((currentValue) => {
-    const nextValue = !currentValue;
-    try {
-      window.localStorage.setItem(sidebarStorageKey, String(nextValue));
-    } catch {
-      // The in-memory preference still works when browser storage is unavailable.
-    }
-    return nextValue;
-  });
+
+  useEffect(() => {
+    let mounted = true;
+    api
+      .get<{ readAt: string | null }[]>('/api/notifications?page=1&limit=20')
+      .then((res) => {
+        if (mounted && Array.isArray(res.data)) {
+          const unread = res.data.filter((n) => !n.readAt).length;
+          setUnreadCount(unread);
+        }
+      })
+      .catch(() => {
+        // Silently ignore if unauthorized / unauthenticated
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [location.pathname]);
+
+  const logout = () => {
+    clearSession();
+    navigate('/login');
+  };
+
+  const toggleSidebar = () =>
+    setCollapsed((currentValue) => {
+      const nextValue = !currentValue;
+      try {
+        window.localStorage.setItem(sidebarStorageKey, String(nextValue));
+      } catch {
+        // Fallback in-memory
+      }
+      return nextValue;
+    });
+
   const toggleLabel = collapsed ? 'Mở rộng menu' : 'Thu gọn menu';
-  return <div className={`portal-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
-    <aside className={`portal-sidebar ${open ? 'mobile-open' : ''} ${collapsed ? 'sidebar-collapsed' : ''}`}>
-      <div className="portal-brand"><Dumbbell size={28} /><div><strong>3S Wellness</strong><span>PT Portal</span></div><button type="button" className="mobile-close" aria-label="Đóng menu" onClick={() => setOpen(false)}><X /></button></div>
-      <button type="button" className="portal-sidebar-toggle" aria-label={toggleLabel} title={toggleLabel} aria-expanded={!collapsed} aria-controls="portal-navigation" onClick={toggleSidebar}>{collapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}</button>
-      <nav id="portal-navigation" aria-label="Điều hướng portal" className="portal-navigation">{sectionOrder.map((section) => {
-        const sectionItems = items.filter((item) => item.section === section);
-        if (!sectionItems.length) return null;
-        return <div className="portal-nav-section" key={section} aria-label={section}><span className="portal-nav-heading">{section}</span>{sectionItems.map((item) => {
-          const Icon = item.icon; const active = current?.path === item.path;
-          return <Link key={item.path} to={item.path} aria-label={item.label} title={collapsed ? item.label : undefined} aria-current={active ? 'page' : undefined} className={active ? 'active' : undefined} onClick={() => setOpen(false)}><Icon size={18} aria-hidden="true" /><span>{item.label}</span></Link>;
-        })}</div>;
-      })}</nav>
-      <div className="portal-logout-wrap">
+  const displayName = user.fullName || user.username || 'Người dùng';
+
+  return (
+    <div className={`portal-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <aside className={`portal-sidebar ${open ? 'mobile-open' : ''} ${collapsed ? 'sidebar-collapsed' : ''}`}>
+        <div className="portal-brand">
+          <Dumbbell size={28} />
+          <div>
+            <strong>3S Wellness</strong>
+            <span>PT Portal</span>
+          </div>
+          <button type="button" className="mobile-close" aria-label="Đóng menu" onClick={() => setOpen(false)}>
+            <X />
+          </button>
+        </div>
+
         <button
           type="button"
-          className="portal-logout-btn"
-          aria-label="Đăng xuất"
-          title={collapsed ? 'Đăng xuất' : undefined}
-          onClick={logout}
+          className="portal-sidebar-toggle"
+          aria-label={toggleLabel}
+          title={toggleLabel}
+          aria-expanded={!collapsed}
+          aria-controls="portal-navigation"
+          onClick={toggleSidebar}
         >
-          <LogOut size={18} aria-hidden="true" />
-          <span>Đăng xuất</span>
+          {collapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
         </button>
+
+        <nav id="portal-navigation" aria-label="Điều hướng portal" className="portal-navigation">
+          {sectionOrder.map((section) => {
+            const sectionItems = items.filter((item) => item.section === section);
+            if (!sectionItems.length) return null;
+            return (
+              <div className="portal-nav-section" key={section} aria-label={section}>
+                <span className="portal-nav-heading">{section}</span>
+                {sectionItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = current?.path === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      aria-label={item.label}
+                      title={collapsed ? item.label : undefined}
+                      aria-current={active ? 'page' : undefined}
+                      className={active ? 'active' : undefined}
+                      onClick={() => setOpen(false)}
+                    >
+                      <Icon size={18} aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="portal-logout-wrap">
+          <button
+            type="button"
+            className="portal-logout-btn"
+            aria-label="Đăng xuất"
+            title={collapsed ? 'Đăng xuất' : undefined}
+            onClick={logout}
+          >
+            <LogOut size={18} aria-hidden="true" />
+            <span>Đăng xuất</span>
+          </button>
+        </div>
+      </aside>
+
+      {open && <button className="sidebar-overlay" aria-label="Đóng menu" onClick={() => setOpen(false)} />}
+
+      <div className="portal-main">
+        <header className="portal-header">
+          <button className="mobile-menu" type="button" onClick={() => setOpen(true)}>
+            <Menu /> Menu
+          </button>
+
+          <nav className="portal-breadcrumb" aria-label="Điều hướng trang">
+            <span>Portal</span>
+            {location.pathname === '/notifications' ? (
+              <>
+                <ChevronRight size={15} />
+                <strong>Thông báo</strong>
+              </>
+            ) : current ? (
+              <>
+                <ChevronRight size={15} />
+                <span>{current.section}</span>
+                <ChevronRight size={15} />
+                <strong>{current.label}</strong>
+              </>
+            ) : null}
+          </nav>
+
+          <div className="portal-header-actions">
+            {/* Notification Bell with Dropdown */}
+            <div className="portal-notification-wrap">
+              <button
+                type="button"
+                className={`portal-header-bell ${notificationsOpen ? 'is-active' : ''}`}
+                aria-label="Thông báo"
+                title={unreadCount > 0 ? `Thông báo (${unreadCount} chưa đọc)` : 'Thông báo'}
+                aria-expanded={notificationsOpen}
+                aria-haspopup="dialog"
+                onClick={() => setNotificationsOpen((prev) => !prev)}
+              >
+                <Bell size={18} aria-hidden="true" />
+                {unreadCount > 0 && <span className="bell-badge" aria-label={`${unreadCount} thông báo chưa đọc`} />}
+              </button>
+
+              {notificationsOpen && (
+                <NotificationDropdown
+                  onClose={() => setNotificationsOpen(false)}
+                  onUnreadCountChange={(count) => setUnreadCount(count)}
+                />
+              )}
+            </div>
+
+            {/* User Circle Avatar with Hover Popover */}
+            <div className="portal-user-wrap" tabIndex={0} role="button" aria-label={`Tài khoản: ${displayName}`}>
+              <div className="portal-user-avatar" title={displayName}>
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={displayName} />
+                ) : (
+                  <span>{getInitials(user.fullName, user.username)}</span>
+                )}
+              </div>
+              <div className="portal-user-popover">
+                <strong>{displayName}</strong>
+                <span className="portal-user-role">{roleNames[user.role]}</span>
+                {user.username && user.fullName && user.fullName !== user.username && (
+                  <div className="portal-user-uname">@{user.username}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="portal-content">{children}</main>
       </div>
-    </aside>
-    {open && <button className="sidebar-overlay" aria-label="Đóng menu" onClick={() => setOpen(false)} />}
-    <div className="portal-main"><header className="portal-header"><button className="mobile-menu" type="button" onClick={() => setOpen(true)}><Menu /> Menu</button><nav className="portal-breadcrumb" aria-label="Điều hướng trang"><span>Portal</span>{current && <><ChevronRight size={15} /><span>{current.section}</span><ChevronRight size={15} /><strong>{current.label}</strong></>}</nav><div className="portal-header-user"><strong>{user.fullName || user.username}</strong><span>{roleNames[user.role]}</span></div></header><main className="portal-content">{children}</main></div>
-  </div>;
+    </div>
+  );
 }

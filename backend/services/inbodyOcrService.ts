@@ -29,7 +29,12 @@ async function confirmOcrDraft(user: AuthenticatedUser, id: string, corrections:
   if (record.source !== 'AI_SCAN' || record.ocrStatus !== 'REVIEW_REQUIRED') {
     throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Kết quả OCR không ở trạng thái chờ xác nhận.' });
   }
-  const allowed = ['measurementDate', 'weight', 'bmi', 'bodyFatPercentage', 'bodyFatMass', 'muscleMass', 'bmr', 'visceralFatLevel', 'inbodyScore', 'strengths', 'priorities', 'recommendation'];
+  const allowed = [
+    'measurementDate', 'weight', 'bmi', 'bodyFatPercentage', 'bodyFatMass',
+    'muscleMass', 'bmr', 'visceralFatLevel', 'inbodyScore', 'bodyWater',
+    'boneMineral', 'waistHipRatio', 'segmentalMuscle', 'segmentalFat',
+    'consultationNotes', 'strengths', 'priorities', 'recommendation',
+  ];
   for (const field of allowed) if (Object.prototype.hasOwnProperty.call(corrections, field)) record.set(field, corrections[field]);
   record.ocrStatus = 'CONFIRMED';
   const saved = await record.save();
