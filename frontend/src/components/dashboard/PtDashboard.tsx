@@ -384,24 +384,25 @@ export default function PtDashboard() {
 
                       {/* Data Status */}
                       <td>
-                        {c.progressCategory === 'GOOD' && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: 700, fontSize: '0.72rem' }}>
-                            🟢 Tiến bộ tốt
-                          </span>
-                        )}
-                        {c.progressCategory === 'SLOW' && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700, fontSize: '0.72rem' }}>
-                            🟡 Tiến bộ chậm
-                          </span>
-                        )}
-                        {c.progressCategory === 'POOR' && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 700, fontSize: '0.72rem' }}>
-                            🔴 Cần quan tâm
-                          </span>
-                        )}
-                        {c.progressCategory === 'INSUFFICIENT_DATA' && (
+                        {c.dataStatus === 'INSUFFICIENT_DATA' || c.progressCategory === 'INSUFFICIENT_DATA' ? (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', fontWeight: 700, fontSize: '0.72rem' }}>
-                            ⚪ Cần đo thêm InBody ({c.measurementCount}/2)
+                            <span>⚪</span>
+                            <span>Cần ≥ 2 lần InBody</span>
+                          </span>
+                        ) : c.progressCategory === 'GOOD' ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', fontWeight: 700, fontSize: '0.72rem' }}>
+                            <span>🟢</span>
+                            <span>Tiến bộ tốt</span>
+                          </span>
+                        ) : c.progressCategory === 'SLOW' ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700, fontSize: '0.72rem' }}>
+                            <span>🟡</span>
+                            <span>Tiến bộ chậm</span>
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '12px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 700, fontSize: '0.72rem' }}>
+                            <span>🔴</span>
+                            <span>Cần quan tâm</span>
                           </span>
                         )}
                       </td>
@@ -426,7 +427,7 @@ export default function PtDashboard() {
                           </div>
                         ) : (
                           <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.74rem' }}>
-                            Chưa có dữ liệu đối chiếu
+                            Chưa đủ dữ liệu InBody đối chiếu
                           </span>
                         )}
                       </td>
