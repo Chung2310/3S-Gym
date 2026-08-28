@@ -434,11 +434,17 @@ a {
 .button-danger:hover { background: #b91c1c; }
 .icon-button, .text-button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--primary-color); cursor: pointer; font-size: .85rem; font-weight: 650; transition: all .15s ease; }
 .text-button:hover { background: #f0f7fb; }
-.inline-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.inline-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 .inline-actions .text-button { padding: 6px 12px; border-radius: 8px; font-size: .83rem; font-weight: 650; background: #f8fafc; color: #003b70; border: 1px solid #e2e8f0; }
 .inline-actions .text-button:hover { background: #e0f2fe; border-color: #bae6fd; color: #0284c7; }
 .inline-actions .text-button.text-danger { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
 .inline-actions .text-button.text-danger:hover { background: #fee2e2; border-color: #fca5a5; }
+.inline-actions .action-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #003b70; cursor: pointer; transition: all .15s ease; }
+.inline-actions .action-icon-btn:hover { background: #e0f2fe; border-color: #7dd3fc; color: #0284c7; transform: translateY(-1px); box-shadow: 0 2px 6px rgba(2,132,199,.15); }
+.inline-actions .action-icon-btn.btn-primary-action { background: #e0f2fe; border-color: #bae6fd; color: #0284c7; }
+.inline-actions .action-icon-btn.btn-primary-action:hover { background: #0284c7; border-color: #0284c7; color: #fff; }
+.inline-actions .action-icon-btn.text-danger { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+.inline-actions .action-icon-btn.text-danger:hover { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; transform: translateY(-1px); box-shadow: 0 2px 6px rgba(220,38,38,.18); }
 .portal-shell { min-height: 100vh; display: grid; grid-template-columns: 240px minmax(0, 1fr); background: #f4f8fb; transition: grid-template-columns .2s ease; }
 .portal-shell.sidebar-collapsed { grid-template-columns: 72px minmax(0, 1fr); }
 .portal-sidebar { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 18px 14px; color: #fff; background: linear-gradient(180deg, #003b70, #00264d); z-index: 100; transition: padding .2s ease; }

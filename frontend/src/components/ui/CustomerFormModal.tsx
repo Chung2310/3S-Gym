@@ -6,7 +6,7 @@ import { api } from '../../services/api';
 import { errorMessage } from '../../types';
 
 interface CustomerFormState { fullName: string; dateOfBirth: string; gender: string; phone: string; email: string; height: string | number; initialWeight: string | number; medicalNotes: string; initialGoal: string; internalNotes: string; status: string }
-interface CustomerRecord extends Partial<CustomerFormState> { _id?: string }
+interface CustomerRecord extends Partial<Omit<CustomerFormState, 'email'>> { _id?: string; email?: string | null; [key: string]: unknown }
 interface CustomerFormModalProps { open: boolean; customer?: CustomerRecord | null; onClose: () => void; onSaved: (data: unknown) => void }
 
 const emptyCustomerForm = {
