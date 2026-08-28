@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { api } from '../../services/api';
 import { errorMessage } from '../../types';
 import { useToast } from '../ui/ToastProvider';
@@ -60,17 +60,157 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
   };
   const warnings = draft.ocrWarnings?.length ? draft.ocrWarnings : draft.warnings ?? [];
 
-  return <div>
-    <div className="published-card"><strong>Cần PT kiểm tra</strong><p>Kết quả OCR luôn là bản nháp cho tới khi PT xác nhận.</p>{draft.confidence !== undefined && draft.confidence < 0.8 && <strong>Độ tin cậy thấp</strong>}</div>
-    {warnings.length > 0 && <ul className="panel" aria-label="Cảnh báo OCR">{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>}
-    <div className="form-grid">
-      <label className="field"><span>Ngày đo</span><input aria-label="Ngày đo xác nhận" type="date" value={form.measurementDate} onChange={(event) => change('measurementDate', event.target.value)} required /></label>
-      <label className="field"><span>Cân nặng (kg)</span><input aria-label="Cân nặng (kg)" type="number" step="0.1" value={form.weight} onChange={(event) => change('weight', event.target.value)} /></label>
-      <label className="field"><span>BMI</span><input aria-label="BMI" type="number" step="0.1" value={form.bmi} onChange={(event) => change('bmi', event.target.value)} /></label>
-      <label className="field"><span>Tỷ lệ mỡ (%)</span><input aria-label="Tỷ lệ mỡ (%)" type="number" step="0.1" value={form.bodyFatPercentage} onChange={(event) => change('bodyFatPercentage', event.target.value)} /></label>
-      <label className="field"><span>Khối lượng cơ (kg)</span><input aria-label="Khối lượng cơ (kg)" type="number" step="0.1" value={form.muscleMass} onChange={(event) => change('muscleMass', event.target.value)} /></label>
-      <label className="field"><span>BMR</span><input aria-label="BMR" type="number" value={form.bmr} onChange={(event) => change('bmr', event.target.value)} /></label>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0 16px' }}>
+      <div
+        style={{
+          background: '#f0f9ff',
+          border: '1px solid #bae6fd',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '8px',
+        }}
+      >
+        <div>
+          <strong style={{ color: '#0369a1', display: 'block', fontSize: '0.92rem' }}>
+            📋 Bản nháp từ AI OCR (Cần PT kiểm tra)
+          </strong>
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+            Kết quả quét InBody luôn ở trạng thái nháp cho tới khi PT xác nhận và lưu.
+          </span>
+        </div>
+        {draft.confidence !== undefined && (
+          <span
+            style={{
+              padding: '4px 10px',
+              borderRadius: '20px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              background: draft.confidence >= 0.8 ? '#dcfce7' : '#fef3c7',
+              color: draft.confidence >= 0.8 ? '#15803d' : '#b45309',
+            }}
+          >
+            Độ tin cậy: {Math.round(draft.confidence * 100)}%
+          </span>
+        )}
+      </div>
+
+      {warnings.length > 0 && (
+        <div
+          style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: '8px',
+            padding: '10px 14px',
+            fontSize: '0.82rem',
+            color: '#92400e',
+          }}
+          aria-label="Cảnh báo OCR"
+        >
+          <strong style={{ display: 'block', marginBottom: '4px' }}>⚠️ Lưu ý kiểm tra:</strong>
+          <ul style={{ margin: 0, paddingLeft: '18px' }}>
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
+        <label className="field" style={{ margin: 0 }}>
+          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.86rem' }}>
+            Ngày đo <strong style={{ color: '#e11d48' }}>*</strong>
+          </span>
+          <input
+            aria-label="Ngày đo xác nhận"
+            type="date"
+            value={form.measurementDate}
+            onChange={(event) => change('measurementDate', event.target.value)}
+            required
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+          />
+        </label>
+
+        <label className="field" style={{ margin: 0 }}>
+          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.86rem' }}>Cân nặng (kg)</span>
+          <input
+            aria-label="Cân nặng (kg)"
+            type="number"
+            step="0.1"
+            placeholder="vd: 65.5"
+            value={form.weight}
+            onChange={(event) => change('weight', event.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+          />
+        </label>
+
+        <label className="field" style={{ margin: 0 }}>
+          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.86rem' }}>BMI</span>
+          <input
+            aria-label="BMI"
+            type="number"
+            step="0.1"
+            placeholder="vd: 22.4"
+            value={form.bmi}
+            onChange={(event) => change('bmi', event.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+          />
+        </label>
+
+        <label className="field" style={{ margin: 0 }}>
+          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.86rem' }}>Tỷ lệ mỡ (%)</span>
+          <input
+            aria-label="Tỷ lệ mỡ (%)"
+            type="number"
+            step="0.1"
+            placeholder="vd: 18.5"
+            value={form.bodyFatPercentage}
+            onChange={(event) => change('bodyFatPercentage', event.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+          />
+        </label>
+
+        <label className="field" style={{ margin: 0 }}>
+          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.86rem' }}>Khối lượng cơ (kg)</span>
+          <input
+            aria-label="Khối lượng cơ (kg)"
+            type="number"
+            step="0.1"
+            placeholder="vd: 28.2"
+            value={form.muscleMass}
+            onChange={(event) => change('muscleMass', event.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+          />
+        </label>
+
+        <label className="field" style={{ margin: 0 }}>
+          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.86rem' }}>BMR (kcal)</span>
+          <input
+            aria-label="BMR"
+            type="number"
+            placeholder="vd: 1540"
+            value={form.bmr}
+            onChange={(event) => change('bmr', event.target.value)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+          />
+        </label>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', gap: '10px' }}>
+        <button
+          className="button button-primary"
+          type="button"
+          onClick={() => void submit()}
+          disabled={loading}
+          style={{ minWidth: '180px', padding: '10px 20px', fontSize: '0.92rem', fontWeight: 700 }}
+        >
+          {loading ? 'Đang lưu kết quả...' : '💾 Xác nhận & Lưu InBody'}
+        </button>
+      </div>
     </div>
-    <div className="modal-actions"><button className="button button-primary" type="button" onClick={() => void submit()} disabled={loading}>{loading ? 'Đang xác nhận...' : 'Xác nhận dữ liệu'}</button></div>
-  </div>;
+  );
 }

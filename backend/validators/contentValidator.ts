@@ -7,7 +7,23 @@ export const contentListSchema: RequestValidationSchema = { query: Joi.object({ 
 export const contentIdSchema: RequestValidationSchema = { params: idParams() };
 const inbodyFields = { customerId: objectId, measurementDate: Joi.date().iso(), weight: Joi.number().positive(), bmi: Joi.number().min(0).allow(null), bodyFatPercentage: Joi.number().min(0).max(100).allow(null), bodyFatMass: Joi.number().min(0).allow(null), muscleMass: Joi.number().min(0).allow(null), bmr: Joi.number().min(0).allow(null), visceralFatLevel: Joi.number().min(0).allow(null), inbodyScore: Joi.number().min(0).allow(null), source: Joi.string().valid('MANUAL', 'AI_SCAN'), strengths: Joi.string().allow('', null), priorities: Joi.string().allow('', null), recommendation: Joi.string().allow('', null) };
 export const inbodySchemas = { create: { body: Joi.object({ ...inbodyFields, customerId: objectId.required(), measurementDate: Joi.date().iso().required(), weight: Joi.number().positive().required() }).messages(commonMessages) }, update: { body: nonEmptyPatch({ ...inbodyFields, ...systemFields }) } } satisfies Record<string, RequestValidationSchema>;
-export const confirmInbodyOcrSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ weight: Joi.number().positive(), bodyFatPercentage: Joi.number().min(0).max(100), bmi: Joi.number().min(0), bodyFatMass: Joi.number().min(0), muscleMass: Joi.number().min(0), bmr: Joi.number().min(0), visceralFatLevel: Joi.number().min(0), inbodyScore: Joi.number().min(0) }) };
+export const confirmInbodyOcrSchema: RequestValidationSchema = {
+  params: idParams(),
+  body: nonEmptyPatch({
+    measurementDate: Joi.date().iso().allow(null),
+    weight: Joi.number().positive().allow(null),
+    bodyFatPercentage: Joi.number().min(0).max(100).allow(null),
+    bmi: Joi.number().min(0).allow(null),
+    bodyFatMass: Joi.number().min(0).allow(null),
+    muscleMass: Joi.number().min(0).allow(null),
+    bmr: Joi.number().min(0).allow(null),
+    visceralFatLevel: Joi.number().min(0).allow(null),
+    inbodyScore: Joi.number().min(0).allow(null),
+    strengths: Joi.string().allow('', null),
+    priorities: Joi.string().allow('', null),
+    recommendation: Joi.string().allow('', null),
+  }),
+};
 const goalFields = { customerId: objectId, type: Joi.string().valid('WEIGHT_LOSS', 'FAT_LOSS', 'WEIGHT_GAIN', 'MUSCLE_GAIN', 'RECOMPOSITION', 'FITNESS'), title: Joi.string().trim(), deadline: Joi.date().iso(), targetValue: Joi.number().allow(null), sessionsPerWeek: Joi.number().integer().min(1).max(14), targetUnit: Joi.string().allow('', null), cardioNotes: Joi.string().allow('', null), evaluationNotes: Joi.string().allow('', null) };
 export const goalSchemas = { create: { body: Joi.object({ ...goalFields, customerId: objectId.required(), type: goalFields.type.required(), title: goalFields.title.required(), deadline: goalFields.deadline.required() }).messages(commonMessages) }, update: { body: nonEmptyPatch({ ...goalFields, ...systemFields }) } } satisfies Record<string, RequestValidationSchema>;
 const planExercise = Joi.object({ name: Joi.string().trim().required(), sets: Joi.number().integer().min(1), reps: Joi.string(), notes: Joi.string().allow('') }).messages(commonMessages);
