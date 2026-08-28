@@ -8,7 +8,7 @@ const create = asyncHandler(async (req, res) => success(res, {
 }));
 
 const confirm = asyncHandler(async (req, res) => success(res, {
-  message: 'ÄÃ£ xÃ¡c nháº­n dá»¯ liá»‡u OCR InBody.',
+  message: 'Đã xác nhận dữ liệu OCR InBody.',
   data: await confirmOcrDraft(req.user!, String(req.params.id), req.body),
 }));
 
