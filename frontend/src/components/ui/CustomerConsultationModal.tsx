@@ -151,14 +151,14 @@ export default function CustomerConsultationModal({ open, customer, onClose }: C
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="consultation-modal-title">
-      <div className="modal-content" style={{ maxWidth: '850px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="modal-content" style={{ maxWidth: '850px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: '#ffffff', color: '#0f172a', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 38, 77, 0.45)' }}>
         {/* Header */}
-        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid #e2e8f0' }}>
+        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
           <div>
             <h2 id="consultation-modal-title" style={{ fontSize: '1.25rem', fontWeight: 700, color: '#003b70', margin: 0 }}>
               Lịch sử tư vấn: {customer.fullName}
             </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+            <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#475569' }}>
               Ghi nhận các buổi tư vấn 1-1, thể trạng, lời khuyên và kế hoạch hành động.
             </p>
           </div>

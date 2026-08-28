@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   ArrowRight,
   Calendar,
   Camera,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   Dumbbell,
@@ -87,6 +88,74 @@ export default function CustomerDetailModal({
   const [inbodies, setInbodies] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
 
+  // Drag-to-scroll & overflow scroll support for tabs
+  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
+  const isDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 6);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 6);
+  }, []);
+
+  useEffect(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    checkScroll();
+    const handleResize = () => checkScroll();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [checkScroll, open]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    isDownRef.current = true;
+    hasDraggedRef.current = false;
+    startXRef.current = e.pageX - el.offsetLeft;
+    scrollLeftRef.current = el.scrollLeft;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDownRef.current) return;
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+    if (Math.abs(walk) > 4) {
+      hasDraggedRef.current = true;
+    }
+    el.scrollLeft = scrollLeftRef.current - walk;
+    checkScroll();
+  };
+
+  const handleMouseUp = () => {
+    isDownRef.current = false;
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    if (e.deltaY) {
+      el.scrollLeft += e.deltaY;
+      checkScroll();
+    }
+  };
+
+  const scrollBy = (offset: number) => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    el.scrollBy({ left: offset, behavior: 'smooth' });
+    setTimeout(checkScroll, 300);
+  };
+
   const loadAll = async () => {
     if (!customer?._id) return;
     try {
@@ -154,23 +223,41 @@ export default function CustomerDetailModal({
         {/* Header Profile Banner */}
         <div
           style={{
-            background: 'linear-gradient(135deg, #003b70 0%, #002347 100%)',
+            background: 'linear-gradient(135deg, #00264d 0%, #003b70 50%, #005696 100%)',
             color: '#ffffff',
-            padding: '24px 28px',
+            padding: '24px 28px 0 28px',
             position: 'relative',
           }}
         >
+          {/* Circular Close Button with hover state */}
           <button
             type="button"
             className="icon-button"
             onClick={onClose}
             aria-label="Đóng"
-            style={{ position: 'absolute', top: '16px', right: '16px', color: '#94a3b8' }}
+            style={{
+              position: 'absolute',
+              top: '18px',
+              right: '18px',
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.12)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              zIndex: 10,
+            }}
           >
-            <X size={22} />
+            <X size={18} />
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          {/* Profile & Actions Row (with right padding to prevent button collision) */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', paddingRight: '48px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div
                 style={{
@@ -184,8 +271,9 @@ export default function CustomerDetailModal({
                   fontSize: '1.5rem',
                   fontWeight: 800,
                   color: '#ffffff',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                  border: '2px solid rgba(255,255,255,0.2)',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  flexShrink: 0,
                 }}
               >
                 {detail?.fullName ? detail.fullName.charAt(0).toUpperCase() : customer.fullName?.charAt(0).toUpperCase() || 'K'}
@@ -199,17 +287,17 @@ export default function CustomerDetailModal({
                   {detail?.status && <StatusBadge status={detail.status} />}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '6px', fontSize: '0.86rem', color: '#cbd5e1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '6px', fontSize: '0.88rem', color: '#f1f5f9' }}>
                   {detail?.phone && (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Phone size={13} style={{ color: '#38bdf8' }} /> {detail.phone}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#ffffff', fontWeight: 600 }}>
+                      <Phone size={14} style={{ color: '#38bdf8' }} /> {detail.phone}
                     </span>
                   )}
                   {detail?.email && (
-                    <span>{detail.email}</span>
+                    <span style={{ color: '#e2e8f0' }}>{detail.email}</span>
                   )}
                   {detail?.gender && (
-                    <span>
+                    <span style={{ color: '#bae6fd', fontWeight: 600 }}>
                       {detail.gender === 'MALE' ? 'Nam' : detail.gender === 'FEMALE' ? 'Nữ' : 'Khác'}
                     </span>
                   )}
@@ -223,7 +311,15 @@ export default function CustomerDetailModal({
                 <button
                   type="button"
                   className="button button-secondary"
-                  style={{ background: 'rgba(255,255,255,0.1)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.2)', fontSize: '0.84rem' }}
+                  style={{
+                    background: 'rgba(255,255,255,0.18)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255,255,255,0.35)',
+                    fontSize: '0.84rem',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                  }}
                   onClick={() => {
                     onClose();
                     onEditCustomer(detail);
@@ -236,7 +332,14 @@ export default function CustomerDetailModal({
                 <button
                   type="button"
                   className="button button-primary"
-                  style={{ fontSize: '0.84rem', background: '#00a4e4' }}
+                  style={{
+                    fontSize: '0.84rem',
+                    background: '#00a4e4',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    boxShadow: '0 2px 8px rgba(0, 164, 228, 0.35)',
+                  }}
                   onClick={() => {
                     onClose();
                     onGrantAccount(detail);
@@ -248,68 +351,141 @@ export default function CustomerDetailModal({
             </div>
           </div>
 
-          {/* Sub-tabs Navigation */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '6px',
-              marginTop: '20px',
-              borderBottom: '1px solid rgba(255,255,255,0.15)',
-              overflowX: 'auto',
-              paddingBottom: '2px',
-            }}
-          >
-            {[
-              { id: 'overview', label: 'Tổng quan & Hồ sơ', icon: User, count: null },
-              { id: 'packages', label: 'Gói tập PT', icon: Package, count: packages.length },
-              { id: 'consultations', label: 'Lịch sử tư vấn', icon: MessageSquare, count: consultations.length },
-              { id: 'photos', label: 'Ảnh Before / After', icon: Camera, count: photos.length },
-              { id: 'workouts', label: 'Lịch sử tập luyện', icon: Dumbbell, count: sessions.length },
-              { id: 'inbody', label: 'InBody & Số đo', icon: Ruler, count: inbodies.length },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as DetailTab)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 14px',
-                    fontSize: '0.84rem',
-                    fontWeight: active ? 700 : 500,
-                    color: active ? '#ffffff' : '#94a3b8',
-                    background: active ? 'rgba(255,255,255,0.15)' : 'transparent',
-                    border: 'none',
-                    borderRadius: '8px 8px 0 0',
-                    borderBottom: active ? '3px solid #38bdf8' : '3px solid transparent',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <Icon size={15} style={{ color: active ? '#38bdf8' : 'currentColor' }} />
-                  <span>{tab.label}</span>
-                  {tab.count !== null && tab.count > 0 && (
-                    <span
-                      style={{
-                        background: active ? '#38bdf8' : 'rgba(255,255,255,0.15)',
-                        color: active ? '#003b70' : '#ffffff',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        padding: '1px 6px',
-                        borderRadius: '10px',
-                      }}
-                    >
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          {/* Sub-tabs Navigation (Drag-to-scroll, wheel scroll & navigation chevrons) */}
+          <div style={{ position: 'relative', marginTop: '22px' }}>
+            {canScrollLeft && (
+              <button
+                type="button"
+                onClick={() => scrollBy(-180)}
+                aria-label="Cuộn sang trái"
+                style={{
+                  position: 'absolute',
+                  left: '-12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: '#00264d',
+                  border: '1px solid rgba(255, 255, 255, 0.35)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 10,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+            )}
+
+            <div
+              ref={tabsContainerRef}
+              className="no-scrollbar"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onWheel={handleWheel}
+              onScroll={checkScroll}
+              style={{
+                display: 'flex',
+                gap: '4px',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                paddingBottom: '0',
+                cursor: 'grab',
+                userSelect: 'none',
+              }}
+            >
+              {[
+                { id: 'overview', label: 'Tổng quan & Hồ sơ', icon: User, count: null },
+                { id: 'packages', label: 'Gói tập PT', icon: Package, count: packages.length },
+                { id: 'consultations', label: 'Lịch sử tư vấn', icon: MessageSquare, count: consultations.length },
+                { id: 'photos', label: 'Ảnh Before / After', icon: Camera, count: photos.length },
+                { id: 'workouts', label: 'Lịch sử tập luyện', icon: Dumbbell, count: sessions.length },
+                { id: 'inbody', label: 'InBody & Số đo', icon: Ruler, count: inbodies.length },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      if (!hasDraggedRef.current) {
+                        setActiveTab(tab.id as DetailTab);
+                      }
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '10px 16px',
+                      fontSize: '0.86rem',
+                      fontWeight: active ? 800 : 600,
+                      color: active ? '#003b70' : '#f1f5f9',
+                      background: active ? '#f8fafc' : 'rgba(255, 255, 255, 0.08)',
+                      border: 'none',
+                      borderRadius: '10px 10px 0 0',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.15s ease',
+                      boxShadow: active ? '0 -2px 8px rgba(0,0,0,0.06)' : 'none',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon size={15} style={{ color: active ? '#0284c7' : '#7dd3fc' }} />
+                    <span>{tab.label}</span>
+                    {tab.count !== null && tab.count > 0 && (
+                      <span
+                        style={{
+                          background: active ? '#e0f2fe' : 'rgba(255,255,255,0.2)',
+                          color: active ? '#0284c7' : '#ffffff',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '10px',
+                        }}
+                      >
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {canScrollRight && (
+              <button
+                type="button"
+                onClick={() => scrollBy(180)}
+                aria-label="Cuộn sang phải"
+                style={{
+                  position: 'absolute',
+                  right: '-12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: '#00264d',
+                  border: '1px solid rgba(255, 255, 255, 0.35)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 10,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                }}
+              >
+                <ChevronRight size={16} />
+              </button>
+            )}
           </div>
         </div>
 

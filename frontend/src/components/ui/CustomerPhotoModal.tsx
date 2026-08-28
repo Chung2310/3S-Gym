@@ -190,14 +190,14 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="photo-modal-title">
-      <div className="modal-content" style={{ maxWidth: '960px', width: '95%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="modal-content" style={{ maxWidth: '960px', width: '95%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: '#ffffff', color: '#0f172a', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 38, 77, 0.45)' }}>
         {/* Header */}
-        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #e2e8f0' }}>
+        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
           <div>
             <h2 id="photo-modal-title" style={{ fontSize: '1.25rem', fontWeight: 700, color: '#003b70', margin: 0 }}>
               Ảnh Before / After: {customer.fullName}
             </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+            <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#475569' }}>
               Theo dõi sự thay đổi vóc dáng qua các giai đoạn và đối chiếu ảnh trực quan.
             </p>
           </div>
