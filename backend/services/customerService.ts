@@ -183,14 +183,32 @@ async function deleteConsultation(user: AuthenticatedUser, customerId: string, c
   if (!result.deletedCount) throw notFound();
 }
 
-async function createPhoto(user: AuthenticatedUser, customerId: string, payload: Record<string, unknown>) {
+async function createPhoto(user: AuthenticatedUser, customerId: string, payload: any) {
   await getCustomer(user, customerId);
-  return ProgressPhoto.create({
-    ...payload,
+  const items = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.photos)
+    ? payload.photos
+    : [payload];
+
+  if (!items.length) {
+    throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Danh sách ảnh tải lên không được để trống.' });
+  }
+
+  const docs = items.map((item: any) => ({
     customerId: new Types.ObjectId(customerId),
     ptId: new Types.ObjectId(user.id),
-    takenDate: payload.takenDate ? new Date(String(payload.takenDate)) : new Date(),
-  });
+    photoUrl: String(item.photoUrl),
+    stage: item.stage || 'PROGRESS',
+    angle: item.angle || 'FRONT',
+    weight: item.weight !== undefined && item.weight !== null && item.weight !== '' ? Number(item.weight) : null,
+    bodyFat: item.bodyFat !== undefined && item.bodyFat !== null && item.bodyFat !== '' ? Number(item.bodyFat) : null,
+    notes: item.notes ? String(item.notes).trim() : '',
+    takenDate: item.takenDate ? new Date(String(item.takenDate)) : new Date(),
+  }));
+
+  const created = await ProgressPhoto.insertMany(docs);
+  return Array.isArray(payload) || Array.isArray(payload?.photos) ? created : created[0];
 }
 
 async function listPhotos(user: AuthenticatedUser, customerId: string, query: { page?: unknown; limit?: unknown; stage?: unknown }) {

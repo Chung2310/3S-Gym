@@ -203,23 +203,32 @@ export default function CustomerDetailModal({
 
   const activePackage = useMemo(() => packages.find((p) => p.status === 'ACTIVE'), [packages]);
 
+  const isSubModalOpen = showPackageModal || showConsultationModal || showPhotoModal;
+
   if (!open || !customer) return null;
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="customer-detail-title">
+    <>
       <div
-        className="modal-content"
-        style={{
-          maxWidth: '1020px',
-          width: '95%',
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0,
-          overflow: 'hidden',
-          borderRadius: '16px',
-        }}
+        className="modal-backdrop"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="customer-detail-title"
+        style={{ display: isSubModalOpen ? 'none' : 'grid' }}
       >
+        <div
+          className="modal-content"
+          style={{
+            maxWidth: '1020px',
+            width: '95%',
+            maxHeight: '92vh',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: 0,
+            overflow: 'hidden',
+            borderRadius: '16px',
+          }}
+        >
         {/* Header Profile Banner */}
         <div
           style={{
@@ -765,8 +774,9 @@ export default function CustomerDetailModal({
           )}
         </div>
       </div>
+    </div>
 
-      {/* Sub-modals */}
+      {/* Sub-modals rendered cleanly without double backdrop */}
       <PtPackageManagerModal
         open={showPackageModal}
         customer={detail || customer}
@@ -793,6 +803,6 @@ export default function CustomerDetailModal({
           loadAll();
         }}
       />
-    </div>
+    </>
   );
 }
