@@ -142,15 +142,12 @@ try {
 
 ---
 
----
+## 5. Quy Tắc Kiểm Thử (Testing Guidelines)
 
-## 5. Quy Tắc Bỏ Qua Kiểm Thử (Test Bypass Policy)
-
-> [!IMPORTANT]
-> **BỎ QUA TOÀN BỘ VIỆC CHẠY TEST TỰ ĐỘNG**:
-> - **TUYỆT ĐỐI KHÔNG tự động chạy test (`npm test`, `vitest`, `npx vitest`)** sau các bước code/sửa code trừ khi người dùng yêu cầu cụ thể bằng lời.
-> - Ưu tiên kiểm tra nhanh cú pháp / kiểu dữ liệu bằng `npm run typecheck` nếu cần xác thực tính hợp lệ TypeScript.
-> - **Chỉ viết thêm file test mới khi người dùng yêu cầu trực tiếp.**
+> [!NOTE]
+> **Quy trình chạy và viết test**:
+> - Chạy kiểm thử bằng `npm test` để bảo đảm độ ổn định và chất lượng toàn diện của mã nguồn (backend & frontend).
+> - Kết hợp kiểm tra kiểu tĩnh `npm run typecheck`.
 > - Khi viết test:
 >   - **KHÔNG** đặt file `.test.ts` / `.test.tsx` chung thư mục với mã nguồn `src/`.
 >   - **TẤT CẢ** file test phải đặt trong thư mục `frontend/tests/` theo đúng cấu trúc phân cấp tương ứng.

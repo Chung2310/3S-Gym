@@ -5,7 +5,7 @@ import { useToast } from './ToastProvider';
 import { api } from '../../services/api';
 import { errorMessage } from '../../types';
 
-interface CustomerSummary { _id?: string; fullName?: string; email?: string }
+interface CustomerSummary { _id?: string; fullName?: string; email?: string | null; [key: string]: unknown }
 interface CustomerAccountModalProps { open: boolean; customer: CustomerSummary | null; onClose: () => void; onSaved: (data: unknown) => void }
 
 export default function CustomerAccountModal({ open, customer, onClose, onSaved }: CustomerAccountModalProps) {

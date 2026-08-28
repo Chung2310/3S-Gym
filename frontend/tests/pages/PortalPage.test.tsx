@@ -121,7 +121,7 @@ describe('PortalPage', () => {
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
 
     expect(screen.getByRole('tablist', { name: 'Nội dung khách hàng' })).toBeVisible();
-    expect(screen.getAllByRole('tab')).toHaveLength(6);
+    expect(screen.getAllByRole('tab')).toHaveLength(5);
     expect(screen.getByRole('tab', { name: 'Khách hàng' })).toHaveAttribute('aria-selected', 'true');
 
     await user.click(screen.getByRole('tab', { name: 'InBody' }));
@@ -154,14 +154,13 @@ describe('PortalPage', () => {
     expect(screen.getByRole('dialog', { name: 'Gói PT của Khách Gói' })).toBeInTheDocument();
   });
 
-  it('PT mở được form tạo yêu cầu chuyển khách', async () => {
+  it('PT mở được form tạo khách hàng mới', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
-    await user.click(screen.getByRole('tab', { name: 'Chuyển PT' }));
     await user.click(screen.getByRole('button', { name: 'Tạo mới' }));
-    expect(screen.getByRole('dialog', { name: 'Tạo yêu cầu chuyển PT' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Mã khách hàng' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Mã PT nhận')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Thêm khách hàng' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Họ tên')).toBeInTheDocument();
+    expect(screen.getByLabelText('Số điện thoại')).toBeInTheDocument();
   });
 
   it('PT lọc danh sách nội dung theo trạng thái và khách hàng', async () => {

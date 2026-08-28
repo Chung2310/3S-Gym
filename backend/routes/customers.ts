@@ -92,4 +92,14 @@ router.post('/:id/packages', ...allowStaff, validate(createPackageSchema), contr
 router.patch('/:id/packages/:packageId', ...allowStaff, validate(updatePackageSchema), controller.updatePackage);
 router.delete('/:id/packages/:packageId', ...allowStaff, validate(deletePackageSchema), controller.deletePackage);
 
+router.get('/:id/consultations', ...allowStaff, controller.listConsultations);
+router.post('/:id/consultations', ...allowStaff, controller.createConsultation);
+router.patch('/:id/consultations/:consultationId', ...allowStaff, controller.updateConsultation);
+router.delete('/:id/consultations/:consultationId', ...allowStaff, controller.deleteConsultation);
+
+router.get('/:id/photos', ...allowStaff, controller.listPhotos);
+router.post('/:id/photos', ...allowStaff, controller.createPhoto);
+router.patch('/:id/photos/:photoId', ...allowStaff, controller.updatePhoto);
+router.delete('/:id/photos/:photoId', ...allowStaff, controller.deletePhoto);
+
 export default router;
