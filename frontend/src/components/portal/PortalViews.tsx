@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowRightLeft, Check, Dumbbell, Pencil, Phone, Plus, RefreshCw, Ruler, Salad, Send, Target, Users, X, Search, RotateCcw, type LucideIcon } from 'lucide-react';
+import { Dumbbell, Eye, Package, Pencil, Phone, Plus, RefreshCw, RotateCcw, Ruler, Salad, Send, Target, Trash2, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import ConfirmModal from '../ui/ConfirmModal';
 import ContentFormModal from '../ui/ContentFormModal';
 import CustomerAccountModal from '../ui/CustomerAccountModal';
+import CustomerConsultationModal from '../ui/CustomerConsultationModal';
+import CustomerDetailModal from '../ui/CustomerDetailModal';
 import CustomerFormModal from '../ui/CustomerFormModal';
+import CustomerPhotoModal from '../ui/CustomerPhotoModal';
 import DataList from '../ui/DataList';
 import type { DataColumn } from '../ui/DataList';
 import FilterBar from '../ui/FilterBar';
 import Pagination from '../ui/Pagination';
 import PtPackageManagerModal from '../ui/PtPackageManagerModal';
 import StatusBadge from '../ui/StatusBadge';
-import TransferFormModal from '../ui/TransferFormModal';
 import CustomerSelect from '../ui/CustomerSelect';
 import PtManagementView from '../admin/PtManagementView';
 import { useToast } from '../ui/ToastProvider';
@@ -19,9 +21,8 @@ import type { PaginationMeta } from '../../types';
 import { errorMessage } from '../../types';
 import type { ContentItem, Resource } from '../ui/ContentFormModal';
 
-interface PortalItem { _id?: string; id?: string; title?: string; summary?: string; status?: string; customerId?: string; measurementDate?: string; weight?: number; targetCalories?: number; fullName?: string; username?: string; phone?: string; email?: string; initialGoal?: string; packages?: unknown; userId?: string; fromPtId?: string; toPtId?: string; reason?: string; [key: string]: unknown }
+interface PortalItem { _id?: string; id?: string; title?: string; summary?: string; status?: string; customerId?: string; measurementDate?: string; weight?: number; targetCalories?: number; fullName?: string; username?: string; phone?: string; email?: string | null; initialGoal?: string; packages?: unknown; userId?: string | null; [key: string]: unknown }
 interface SectionHeaderProps { title: string; description: string; action?: ReactNode }
-interface TransferDecision { item: PortalItem; action: 'accept' | 'reject' }
 interface CustomerContent { inbody: PortalItem[]; goals: PortalItem[]; workoutPlans: PortalItem[]; nutritionPlans: PortalItem[]; progressReports: PortalItem[] }
 
 function SectionHeader({ title, description, action }: SectionHeaderProps) {
@@ -32,7 +33,7 @@ export function AdminView() {
   return <PtManagementView />;
 }
 
-type PtTab = 'customers' | 'transfers' | Resource;
+type PtTab = 'customers' | Resource;
 interface PtTabItem { value: PtTab; label: string; icon: LucideIcon }
 
 const ptTabs: PtTabItem[] = [
@@ -45,7 +46,7 @@ const ptTabs: PtTabItem[] = [
 
 export function PtView() {
   const toast = useToast();
-  const [tab, setTab] = useState<'customers' | 'transfers' | Resource>('customers');
+  const [tab, setTab] = useState<PtTab>('customers');
   const [items, setItems] = useState<PortalItem[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0 });
   const [keyword, setKeyword] = useState('');
@@ -56,23 +57,16 @@ export function PtView() {
   const [formItem, setFormItem] = useState<PortalItem | null>(null);
   const [customerForm, setCustomerForm] = useState<{ open: boolean; customer: PortalItem | null }>({ open: false, customer: null });
   const [confirm, setConfirm] = useState<PortalItem | null>(null);
-  const [transferDecision, setTransferDecision] = useState<TransferDecision | null>(null);
   const [accountCustomer, setAccountCustomer] = useState<PortalItem | null>(null);
   const [packageCustomer, setPackageCustomer] = useState<PortalItem | null>(null);
+  const [consultationCustomer, setConsultationCustomer] = useState<PortalItem | null>(null);
+  const [photoCustomer, setPhotoCustomer] = useState<PortalItem | null>(null);
+  const [detailCustomer, setDetailCustomer] = useState<PortalItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PortalItem | null>(null);
 
   const load = useCallback(async (page = 1) => { try { const params = new URLSearchParams({ page: String(page), limit: '20' }); if (tab === 'customers' && keyword) params.set('keyword', keyword); if (tab === 'customers' && customerStatus) params.set('status', customerStatus); if (tab !== 'customers' && statusFilter) params.set('status', statusFilter); if (tab !== 'customers' && customerFilter) params.set('customerId', customerFilter); const result = await api.get<PortalItem[]>(`/api/${tab}?${params}`); setItems(result.data); if (result.meta) setMeta(result.meta); } catch (error) { toast.error(errorMessage(error)); } }, [tab, keyword, customerStatus, statusFilter, customerFilter, toast]);
   useEffect(() => { load(); }, [load]);
   const publish = async () => { if (!confirm) return; try { const result = await api.patch(`/api/${tab}/${confirm._id}/${confirm.status === 'PUBLISHED' ? 'unpublish' : 'publish'}`); toast.success(result.message); setConfirm(null); load(); } catch (error) { toast.error(errorMessage(error)); } };
-  const resolveTransfer = async () => {
-    if (!transferDecision) return;
-    try {
-      const result = await api.patch(`/api/transfers/${transferDecision.item._id}/${transferDecision.action}`);
-      toast.success(result.message);
-      setTransferDecision(null);
-      load();
-    } catch (error) { toast.error(errorMessage(error)); }
-  };
   const deleteSelectedItem = async () => {
     if (!deleteTarget) return;
     try { const path = tab === 'customers' ? `/api/customers/${deleteTarget._id}` : `/api/${tab}/${deleteTarget._id}`; const result = await api.delete(path); toast.success(result.message); setDeleteTarget(null); load(); }
@@ -100,8 +94,12 @@ export function PtView() {
   };
 
   const columns = useMemo<DataColumn<PortalItem>[]>(() => {
-    if (tab === 'customers') return [{ key: 'fullName', label: 'Họ tên' }, { key: 'phone', label: 'Số điện thoại' }, { key: 'initialGoal', label: 'Mục tiêu' }, { key: 'packages', label: 'Gói tập', render: (item) => <button className="text-button" onClick={() => setPackageCustomer(item)}>Gói PT</button> }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];
-    if (tab === 'transfers') return [{ key: 'customerId', label: 'Khách hàng', render: renderCustomerCell }, { key: 'fromPtId', label: 'PT chuyển' }, { key: 'toPtId', label: 'PT nhận' }, { key: 'reason', label: 'Lý do' }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];
+    if (tab === 'customers') return [
+      { key: 'fullName', label: 'Họ tên' },
+      { key: 'phone', label: 'Số điện thoại' },
+      { key: 'initialGoal', label: 'Mục tiêu' },
+      { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }
+    ];
     return [{ key: 'title', label: tab === 'inbody' ? 'Ngày đo' : 'Tên nội dung', render: (item) => item.title || (item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : '—') }, { key: 'customerId', label: 'Khách hàng', render: renderCustomerCell }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];
   }, [tab]);
   const openCreateForm = () => {
@@ -118,10 +116,18 @@ export function PtView() {
   return <>
     <SectionHeader title="Khách hàng của tôi" description="Quản lý hồ sơ và công bố nội dung cho khách hàng." action={<button className="button button-primary" onClick={openCreateForm}><Plus size={18} /> Tạo mới</button>} />
     <div className="customer-browser-tabs" role="tablist" aria-label="Nội dung khách hàng">{ptTabs.map(({ value, label, icon: Icon }) => <button id={`customer-tab-${value}`} type="button" role="tab" aria-selected={tab === value} aria-controls="customer-tab-panel" key={value} className={tab === value ? 'active' : ''} onClick={() => selectTab(value)}><Icon size={16} aria-hidden="true" /><span>{label}</span></button>)}</div>
-    <TransferFormModal open={showForm && tab === 'transfers'} transfer={formItem} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />
-    <ContentFormModal open={showForm && !['customers', 'transfers'].includes(tab)} resource={tab as Resource} item={formItem as ContentItem | null} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />
+    <ContentFormModal open={showForm && tab !== 'customers'} resource={tab as Resource} item={formItem as ContentItem | null} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />
     <CustomerAccountModal open={Boolean(accountCustomer)} customer={accountCustomer} onClose={() => setAccountCustomer(null)} onSaved={() => { setAccountCustomer(null); load(); }} />
     <PtPackageManagerModal open={Boolean(packageCustomer)} customer={packageCustomer} onClose={() => setPackageCustomer(null)} />
+    <CustomerConsultationModal open={Boolean(consultationCustomer)} customer={consultationCustomer} onClose={() => setConsultationCustomer(null)} />
+    <CustomerPhotoModal open={Boolean(photoCustomer)} customer={photoCustomer} onClose={() => setPhotoCustomer(null)} />
+    <CustomerDetailModal
+      open={Boolean(detailCustomer)}
+      customer={detailCustomer}
+      onClose={() => { setDetailCustomer(null); load(); }}
+      onEditCustomer={(c) => setCustomerForm({ open: true, customer: c })}
+      onGrantAccount={(c) => setAccountCustomer(c)}
+    />
     <div id="customer-tab-panel" className="customer-tab-panel" role="tabpanel" aria-labelledby={`customer-tab-${tab}`}>
       <div className="panel">
         {tab === 'customers' ? (
@@ -147,6 +153,7 @@ export function PtView() {
               <CustomerSelect
                 label=""
                 name="customerFilter"
+                ariaLabel="Lọc theo mã khách hàng"
                 value={customerFilter}
                 onChange={(val) => setCustomerFilter(val)}
                 placeholder="Lọc theo học viên (tên hoặc SĐT)..."
@@ -154,15 +161,8 @@ export function PtView() {
             </div>
             <select aria-label="Lọc theo trạng thái" className="filter-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} style={{ minHeight: '44px' }}>
               <option value="">Tất cả trạng thái</option>
-              {tab === 'transfers' ? <>
-                <option value="PENDING">Chờ xác nhận</option>
-                <option value="ACCEPTED">Đã nhận</option>
-                <option value="REJECTED">Đã từ chối</option>
-                <option value="ADMIN_FORCED">Admin chuyển</option>
-              </> : <>
-                <option value="DRAFT">Bản nháp</option>
-                <option value="PUBLISHED">Đã công bố</option>
-              </>}
+              <option value="DRAFT">Bản nháp</option>
+              <option value="PUBLISHED">Đã công bố</option>
             </select>
             <button className="button button-secondary" onClick={() => load()} style={{ minHeight: '44px' }}>
               <RefreshCw size={15} /> Lọc
@@ -174,13 +174,91 @@ export function PtView() {
             )}
           </div>
         )}
-        <DataList items={items} columns={columns} renderActions={(item) => <div className="inline-actions">{tab === 'customers' ? <><button className="text-button" onClick={() => setCustomerForm({ open: true, customer: item })}><Pencil size={16} /> Sửa</button>{!item.userId && <button className="text-button" onClick={() => setAccountCustomer(item)}>Cấp tài khoản</button>}</> : <button className="text-button" onClick={() => { setFormItem(item); setShowForm(true); }}><Pencil size={16} /> Sửa</button>}{tab === 'transfers' && item.status === 'PENDING' && <><button className="text-button" onClick={() => setTransferDecision({ item, action: 'accept' })}><Check size={16} /> Xác nhận nhận khách</button><button className="text-button" onClick={() => setTransferDecision({ item, action: 'reject' })}><X size={16} /> Từ chối</button></>}{!['customers', 'transfers'].includes(tab) && <button className="text-button" onClick={() => setConfirm(item)}><Send size={16} /> {item.status === 'PUBLISHED' ? 'Thu hồi' : 'Công bố'}</button>}<button className="text-button text-danger" onClick={() => setDeleteTarget(item)}>Xóa</button></div>} />
+        <DataList
+          items={items}
+          columns={columns}
+          renderActions={(item) => (
+            <div className="inline-actions">
+              {tab === 'customers' ? (
+                <>
+                  <button
+                    type="button"
+                    className="action-icon-btn btn-primary-action"
+                    title="Xem chi tiết hồ sơ"
+                    aria-label="Chi tiết"
+                    onClick={() => setDetailCustomer(item)}
+                  >
+                    <Eye size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="action-icon-btn"
+                    title="Quản lý gói PT"
+                    aria-label="Gói PT"
+                    onClick={() => setPackageCustomer(item)}
+                  >
+                    <Package size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="action-icon-btn"
+                    title="Chỉnh sửa thông tin"
+                    aria-label="Sửa"
+                    onClick={() => setCustomerForm({ open: true, customer: item })}
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  {!item.userId && (
+                    <button
+                      type="button"
+                      className="action-icon-btn"
+                      title="Cấp tài khoản đăng nhập"
+                      aria-label="Cấp tài khoản"
+                      onClick={() => setAccountCustomer(item)}
+                    >
+                      <UserPlus size={16} />
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="action-icon-btn"
+                  title="Chỉnh sửa"
+                  aria-label="Sửa"
+                  onClick={() => { setFormItem(item); setShowForm(true); }}
+                >
+                  <Pencil size={16} />
+                </button>
+              )}
+              {tab !== 'customers' && (
+                <button
+                  type="button"
+                  className="action-icon-btn"
+                  title={item.status === 'PUBLISHED' ? 'Thu hồi nội dung' : 'Công bố nội dung'}
+                  aria-label={item.status === 'PUBLISHED' ? 'Thu hồi' : 'Công bố'}
+                  onClick={() => setConfirm(item)}
+                >
+                  <Send size={16} />
+                </button>
+              )}
+              <button
+                type="button"
+                className="action-icon-btn text-danger"
+                title="Xóa"
+                aria-label="Xóa"
+                onClick={() => setDeleteTarget(item)}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          )}
+        />
         <Pagination page={meta.page || 1} totalPages={meta.totalPages || 0} onPageChange={load} />
       </div>
     </div>
     <CustomerFormModal open={customerForm.open} customer={customerForm.customer} onClose={() => setCustomerForm({ open: false, customer: null })} onSaved={() => { setCustomerForm({ open: false, customer: null }); load(meta.page || 1); }} />
     <ConfirmModal open={Boolean(confirm)} title={confirm?.status === 'PUBLISHED' ? 'Thu hồi nội dung?' : 'Công bố nội dung?'} description={confirm?.status === 'PUBLISHED' ? 'Khách hàng sẽ không còn nhìn thấy nội dung này.' : 'Khách hàng sẽ nhìn thấy nội dung sau khi công bố.'} onClose={() => setConfirm(null)} onConfirm={publish} />
-    <ConfirmModal open={Boolean(transferDecision)} title={transferDecision?.action === 'accept' ? 'Xác nhận nhận khách?' : 'Từ chối nhận khách?'} description={transferDecision?.action === 'accept' ? 'Sau khi xác nhận, khách hàng sẽ được chuyển sang danh sách quản lý của bạn.' : 'Yêu cầu chuyển khách sẽ được đánh dấu là đã từ chối.'} onClose={() => setTransferDecision(null)} onConfirm={resolveTransfer} />
     <ConfirmModal open={Boolean(deleteTarget)} title="Xóa vĩnh viễn?" description="Dữ liệu đã xóa không thể khôi phục." danger confirmLabel="Xóa vĩnh viễn" onClose={() => setDeleteTarget(null)} onConfirm={deleteSelectedItem} />
   </>;
 }

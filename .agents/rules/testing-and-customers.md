@@ -1,8 +1,6 @@
-# Quy tắc Phát Triển & Hành Vi Trợ Lý AI
-
-## 1. Bỏ qua chạy Test tự động (Skip Automated Tests)
-- **Tuyệt đối KHÔNG tự động chạy test (`npm test`, `vitest`, `npx vitest`)** sau mỗi lần thay đổi mã nguồn trừ khi người dùng yêu cầu rõ ràng bằng lời (ví dụ: "chạy test đi", "kiểm tra test").
-- Tập trung vào kiểm tra tính hợp lệ TypeScript bằng `npm run typecheck` và đảm bảo giao diện trực quan, không bị lỗi cú pháp hay crash runtime.
+## 1. Kiểm Thử & Đảm Bảo Chất Lượng (Testing & Quality Assurance)
+- Luôn kiểm tra tính toàn vẹn của hệ thống qua việc chạy bộ kiểm thử (`npm test` / `vitest`) và kiểm tra kiểu dữ liệu tĩnh (`npm run typecheck`).
+- Đảm bảo tất cả các ca kiểm thử backend và frontend đều vượt qua để duy trì tính ổn định.
 
 ## 2. Chuẩn hóa hiển thị & chọn Học viên (Customer Selection & Display)
 - **Tên và Số điện thoại**: Tất cả các bảng danh sách (InBody, Mục tiêu, Giáo án, Dinh dưỡng, Chuyển PT, Lịch tập,...) **BẮT BUỘC** hiển thị **Họ và tên** kèm **Số điện thoại (SĐT)** của học viên.

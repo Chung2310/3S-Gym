@@ -7,6 +7,8 @@ import Goal from '../models/Goal.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
 import NutritionPlan from '../models/NutritionPlan.js';
 import TransferRequest from '../models/TransferRequest.js';
+import ConsultationNote from '../models/ConsultationNote.js';
+import ProgressPhoto from '../models/ProgressPhoto.js';
 import * as userService from './userService.js';
 import type { UserPayload } from './userService.js';
 import { AppError } from '../errors/AppError.js';
@@ -142,4 +144,104 @@ async function createCustomerAccount(user: AuthenticatedUser, customerId: string
   return { customer, user: { id: account.id, username: account.username, fullName: account.fullName, email: account.email, role: account.role, status: account.status } };
 }
 
-export { listCustomers, getCustomer, createCustomer, updateCustomer, deleteCustomer, createPackage, updatePackage, deletePackage, listPackages, createCustomerAccount };
+async function createConsultation(user: AuthenticatedUser, customerId: string, payload: Record<string, unknown>) {
+  await getCustomer(user, customerId);
+  return ConsultationNote.create({
+    ...payload,
+    customerId: new Types.ObjectId(customerId),
+    ptId: new Types.ObjectId(user.id),
+    consultationDate: payload.consultationDate ? new Date(String(payload.consultationDate)) : new Date(),
+  });
+}
+
+async function listConsultations(user: AuthenticatedUser, customerId: string, query: { page?: unknown; limit?: unknown }) {
+  await getCustomer(user, customerId);
+  const page = Number(query.page || 1);
+  const limit = Number(query.limit || 50);
+  const filter = { customerId: new Types.ObjectId(customerId) };
+  const [consultations, total] = await Promise.all([
+    ConsultationNote.find(filter).sort({ consultationDate: -1, createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    ConsultationNote.countDocuments(filter),
+  ]);
+  return { consultations, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+}
+
+async function updateConsultation(user: AuthenticatedUser, customerId: string, consultationId: string, payload: Record<string, unknown>) {
+  await getCustomer(user, customerId);
+  const item = await ConsultationNote.findOne({ _id: consultationId, customerId });
+  if (!item) throw notFound();
+  for (const field of ['topic', 'currentCondition', 'advice', 'actionPlan', 'notes'] as const) {
+    if (payload[field] !== undefined) item.set(field, payload[field]);
+  }
+  if (payload.consultationDate) item.consultationDate = new Date(String(payload.consultationDate));
+  return item.save();
+}
+
+async function deleteConsultation(user: AuthenticatedUser, customerId: string, consultationId: string) {
+  await getCustomer(user, customerId);
+  const result = await ConsultationNote.deleteOne({ _id: consultationId, customerId });
+  if (!result.deletedCount) throw notFound();
+}
+
+async function createPhoto(user: AuthenticatedUser, customerId: string, payload: Record<string, unknown>) {
+  await getCustomer(user, customerId);
+  return ProgressPhoto.create({
+    ...payload,
+    customerId: new Types.ObjectId(customerId),
+    ptId: new Types.ObjectId(user.id),
+    takenDate: payload.takenDate ? new Date(String(payload.takenDate)) : new Date(),
+  });
+}
+
+async function listPhotos(user: AuthenticatedUser, customerId: string, query: { page?: unknown; limit?: unknown; stage?: unknown }) {
+  await getCustomer(user, customerId);
+  const page = Number(query.page || 1);
+  const limit = Number(query.limit || 50);
+  const filter: Record<string, unknown> = { customerId: new Types.ObjectId(customerId) };
+  if (query.stage && ['BEFORE', 'AFTER', 'PROGRESS'].includes(String(query.stage))) {
+    filter.stage = query.stage;
+  }
+  const [photos, total] = await Promise.all([
+    ProgressPhoto.find(filter).sort({ takenDate: -1, createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    ProgressPhoto.countDocuments(filter),
+  ]);
+  return { photos, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+}
+
+async function updatePhoto(user: AuthenticatedUser, customerId: string, photoId: string, payload: Record<string, unknown>) {
+  await getCustomer(user, customerId);
+  const item = await ProgressPhoto.findOne({ _id: photoId, customerId });
+  if (!item) throw notFound();
+  for (const field of ['photoUrl', 'stage', 'angle', 'weight', 'bodyFat', 'notes'] as const) {
+    if (payload[field] !== undefined) item.set(field, payload[field]);
+  }
+  if (payload.takenDate) item.takenDate = new Date(String(payload.takenDate));
+  return item.save();
+}
+
+async function deletePhoto(user: AuthenticatedUser, customerId: string, photoId: string) {
+  await getCustomer(user, customerId);
+  const result = await ProgressPhoto.deleteOne({ _id: photoId, customerId });
+  if (!result.deletedCount) throw notFound();
+}
+
+export {
+  listCustomers,
+  getCustomer,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+  createPackage,
+  updatePackage,
+  deletePackage,
+  listPackages,
+  createCustomerAccount,
+  createConsultation,
+  listConsultations,
+  updateConsultation,
+  deleteConsultation,
+  createPhoto,
+  listPhotos,
+  updatePhoto,
+  deletePhoto,
+};

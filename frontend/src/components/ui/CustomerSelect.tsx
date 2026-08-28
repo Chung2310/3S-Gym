@@ -154,7 +154,6 @@ export default function CustomerSelect({
         style={{
           position: 'absolute',
           opacity: 0,
-          pointerEvents: 'none',
           height: '1px',
           width: '1px',
           padding: 0,
