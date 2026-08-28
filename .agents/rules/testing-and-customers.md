@@ -11,3 +11,7 @@
 
 ## 3. Placeholder bắt buộc
 - Tất cả các trường `<input>`, `<textarea>`, `FormField`, ô tìm kiếm, ô lọc đều bắt buộc phải có `placeholder` trực quan, rõ ràng và có tính hướng dẫn.
+
+## 4. Bắt buộc có Icon Mắt (Show/Hide Password toggle) cho trường Mật khẩu
+- Tất cả các ô nhập mật khẩu (Đăng nhập, Cấp tài khoản học viên, Tạo/Sửa người dùng, Đổi mật khẩu) **BẮT BUỘC** phải có nút icon mắt (`Eye` / `EyeOff`) để người dùng có thể bấm xem / ẩn mật khẩu đang nhập.
+

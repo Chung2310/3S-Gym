@@ -102,6 +102,10 @@ frontend/
    - Sử dụng endpoint chuẩn `api.upload('/api/upload/image', formData)` gửi lên Cloudinary.
    - Có preview ảnh đại diện hình tròn, nút xóa ảnh và trạng thái loading khi tải lên.
 
+5. **BẮT BUỘC có Icon Mắt (Show/Hide Password toggle) cho TẤT CẢ các trường Mật khẩu**:
+   - Mọi ô nhập mật khẩu (`type="password"`, tạo tài khoản, đổi mật khẩu, đăng nhập, cấp tài khoản học viên, quản lý tài khoản PT/User) **BẮT BUỘC** phải tích hợp nút bấm icon mắt (`Eye` / `EyeOff` từ `lucide-react`) cho phép người dùng click để hiển thị hoặc ẩn mật khẩu trực quan.
+   - Luôn ưu tiên dùng `FormField` với `type="password"` để tự động có tính năng ẩn/hiện mật khẩu này.
+
 ---
 
 ## 3. Hệ Thống Design Tokens & Thẩm Mỹ UI
