@@ -204,11 +204,12 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         <button
           className="button button-primary"
           type="button"
+          aria-label="Xác nhận dữ liệu"
           onClick={() => void submit()}
           disabled={loading}
           style={{ minWidth: '180px', padding: '10px 20px', fontSize: '0.92rem', fontWeight: 700 }}
         >
-          {loading ? 'Đang lưu kết quả...' : '💾 Xác nhận & Lưu InBody'}
+          {loading ? 'Đang xác nhận...' : 'Xác nhận dữ liệu'}
         </button>
       </div>
     </div>
