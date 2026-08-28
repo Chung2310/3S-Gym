@@ -3,6 +3,7 @@ import FormModal from '../ui/FormModal';
 import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
 import { errorMessage } from '../../types';
+import ExerciseVideoFields, { type ExerciseVideo } from './ExerciseVideoFields';
 
 export interface Exercise {
   [key: string]: unknown;
@@ -12,25 +13,29 @@ export interface Exercise {
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   equipment?: string[];
   technique?: string;
+  videos?: ExerciseVideo[];
   scope: 'GLOBAL' | 'PRIVATE';
 }
 
 interface ExerciseFormModalProps { open: boolean; exercise?: Exercise | null; onClose: () => void; onSaved: () => void }
-interface ExerciseFormState { name: string; muscleGroup: string; level: Exercise['level']; equipment: string; technique: string }
-const emptyForm: ExerciseFormState = { name: '', muscleGroup: '', level: 'BEGINNER', equipment: '', technique: '' };
+interface ExerciseFormState { name: string; muscleGroup: string; level: Exercise['level']; equipment: string; technique: string; videos: ExerciseVideo[] }
+const emptyForm: ExerciseFormState = { name: '', muscleGroup: '', level: 'BEGINNER', equipment: '', technique: '', videos: [] };
 
 export default function ExerciseFormModal({ open, exercise, onClose, onSaved }: ExerciseFormModalProps) {
   const toast = useToast();
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   useEffect(() => {
     if (!open) return;
-    setForm(exercise ? { name: exercise.name, muscleGroup: exercise.muscleGroup, level: exercise.level, equipment: exercise.equipment?.join(', ') ?? '', technique: exercise.technique ?? '' } : emptyForm);
+    setUploading(false);
+    setForm(exercise ? { name: exercise.name, muscleGroup: exercise.muscleGroup, level: exercise.level, equipment: exercise.equipment?.join(', ') ?? '', technique: exercise.technique ?? '', videos: exercise.videos ?? [] } : { ...emptyForm, videos: [] });
   }, [exercise, open]);
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setLoading(true);
-    const body = { name: form.name, muscleGroup: form.muscleGroup, level: form.level, equipment: form.equipment.split(',').map((item) => item.trim()).filter(Boolean), technique: form.technique, scope: 'PRIVATE' as const };
+    if (uploading) return;
+    const body = { name: form.name, muscleGroup: form.muscleGroup, level: form.level, equipment: form.equipment.split(',').map((item) => item.trim()).filter(Boolean), technique: form.technique, videos: form.videos, scope: 'PRIVATE' as const };
     try {
       const result = exercise ? await api.patch(`/api/exercises/${exercise._id}`, body) : await api.post('/api/exercises', body);
       toast.success(result.message);
@@ -39,11 +44,11 @@ export default function ExerciseFormModal({ open, exercise, onClose, onSaved }: 
     finally { setLoading(false); }
   };
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
-  return <FormModal open={open} title={exercise ? 'Sửa bài tập' : 'Tạo bài tập'} dirty={Object.values(form).some(Boolean)} loading={loading} submitLabel="Lưu bài tập" onClose={onClose} onSubmit={submit}><div className="form-grid">
-    <label className="field"><span>Tên bài tập</span><input aria-label="Tên bài tập" value={form.name} onChange={(event) => change('name', event.target.value)} required /></label>
-    <label className="field"><span>Nhóm cơ</span><input aria-label="Nhóm cơ" value={form.muscleGroup} onChange={(event) => change('muscleGroup', event.target.value)} required /></label>
+  return <FormModal open={open} title={exercise ? 'Sửa bài tập' : 'Tạo bài tập'} dirty={Object.values(form).some(Boolean)} loading={loading || uploading} submitLabel="Lưu bài tập" onClose={onClose} onSubmit={submit}><div className="form-grid">
+    <label className="field"><span>Tên bài tập</span><input aria-label="Tên bài tập" placeholder="Ví dụ: Barbell Squat" value={form.name} onChange={(event) => change('name', event.target.value)} required /></label>
+    <label className="field"><span>Nhóm cơ</span><input aria-label="Nhóm cơ" placeholder="Ví dụ: Chân" value={form.muscleGroup} onChange={(event) => change('muscleGroup', event.target.value)} required /></label>
     <label className="field"><span>Cấp độ</span><select aria-label="Cấp độ" value={form.level} onChange={(event) => change('level', event.target.value)}><option value="BEGINNER">Cơ bản</option><option value="INTERMEDIATE">Trung cấp</option><option value="ADVANCED">Nâng cao</option></select></label>
     <label className="field"><span>Thiết bị</span><input aria-label="Thiết bị" value={form.equipment} onChange={(event) => change('equipment', event.target.value)} placeholder="Phân cách bằng dấu phẩy" /></label>
-    <label className="field"><span>Kỹ thuật</span><textarea aria-label="Kỹ thuật" value={form.technique} onChange={(event) => change('technique', event.target.value)} /></label>
-  </div></FormModal>;
+    <label className="field"><span>Kỹ thuật</span><textarea aria-label="Kỹ thuật" placeholder="Mô tả cách thực hiện đúng..." value={form.technique} onChange={(event) => change('technique', event.target.value)} /></label>
+  </div><ExerciseVideoFields videos={form.videos} onChange={(videos) => setForm((current) => ({ ...current, videos }))} onUploadingChange={setUploading} /></FormModal>;
 }

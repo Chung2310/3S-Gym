@@ -1,18 +1,22 @@
 import express from 'express';
 const router = express.Router();
 import multer from 'multer';
-import { uploadImage } from '../services/cloudinaryService.js';
+import { uploadImage, uploadVideo } from '../services/cloudinaryService.js';
 import { success } from '../middlewares/response.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { validate } from '../middlewares/validate.js';
 import { authenticate, authorize } from '../middlewares/auth.js';
-import { imageUploadSchema } from '../validators/uploadValidator.js';
+import { imageUploadSchema, videoUploadSchema } from '../validators/uploadValidator.js';
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn 5MB
+});
+const videoUpload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 },
 });
 
 /* legacy manual validator
@@ -80,5 +84,17 @@ router.post(
     });
   })
 );
+
+router.post('/video', authenticate, authorize('ADMIN', 'PT'), videoUpload.single('video'), validate(videoUploadSchema), asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw new AppError({ status: 400, code: ERROR_CODES.UPLOAD, message: 'Vui lòng cung cấp file video để upload.' });
+  }
+
+  const result = await uploadVideo(req.file.buffer);
+  return success(res, {
+    message: 'Tải video lên thành công.',
+    data: { url: result.secure_url, publicId: result.public_id },
+  });
+}));
 
 export default router;

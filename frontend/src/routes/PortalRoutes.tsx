@@ -9,8 +9,8 @@ import InBodyPage from '../pages/pt/InBodyPage';
 import PtCustomersPage from '../pages/pt/PtCustomersPage';
 import PtDashboardPage from '../pages/pt/PtDashboardPage';
 import RoadmapPage from '../pages/pt/RoadmapPage';
-import ExerciseLibraryPage from '../pages/pt/ExerciseLibraryPage';
-import WorkoutPlansPage from '../pages/pt/WorkoutPlansPage';
+import MyWorkoutPlans from '../components/workouts/MyWorkoutPlans';
+import WorkoutStudioPage from '../pages/pt/WorkoutStudioPage';
 import ProgressPage from '../pages/pt/ProgressPage';
 import NutritionPage from '../pages/pt/NutritionPage';
 import CarePage from '../pages/pt/CarePage';
@@ -97,23 +97,33 @@ function PortalContent({ user }: { user: User }) {
             </FeatureRoute>
           }
         />
+        <Route path="pt/exercises" element={<Navigate to="/pt/my-workout-plans?tab=exercises" replace />} />
         <Route
-          path="pt/exercises"
+          path="pt/my-workout-plans/new"
+          element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><WorkoutStudioPage /></FeatureRoute>}
+        />
+        <Route
+          path="pt/my-workout-plans/:templateId/edit"
+          element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><WorkoutStudioPage /></FeatureRoute>}
+        />
+        <Route
+          path="pt/my-workout-plans"
           element={
             <FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY">
-              <ExerciseLibraryPage />
+              <MyWorkoutPlans />
             </FeatureRoute>
           }
         />
         <Route
-          path="pt/workout-plans/*"
-          element={
-            <FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY">
-              <WorkoutPlansPage />
-            </FeatureRoute>
-          }
+          path="pt/customers/:customerId/workout-plans/:planId/edit"
+          element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><WorkoutStudioPage /></FeatureRoute>}
         />
-        <Route path="pt/workouts" element={<Navigate to="/pt/workout-plans" replace />} />
+        <Route
+          path="pt/customer-workout-plans"
+          element={<Navigate to="/pt/customers" replace />}
+        />
+        <Route path="pt/workout-plans/*" element={<Navigate to="/pt/my-workout-plans" replace />} />
+        <Route path="pt/workouts" element={<Navigate to="/pt/my-workout-plans" replace />} />
         <Route
           path="pt/progress/*"
           element={

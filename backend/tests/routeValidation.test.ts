@@ -47,4 +47,15 @@ describe('Validation các route công cụ dùng chung', () => {
     expect(upload.status).toBe(400);
     expect(upload.body.errors[0].field).toBe('image');
   });
+
+  it('từ chối upload video khi thiếu file hoặc sai định dạng', async () => {
+    const missing = await request(app).post('/api/upload/video').set('Authorization', `Bearer ${ptToken}`);
+    expect(missing.status).toBe(400);
+    expect(missing.body.errors[0].field).toBe('video');
+
+    const invalid = await request(app).post('/api/upload/video').set('Authorization', `Bearer ${ptToken}`)
+      .attach('video', Buffer.from('not-a-video'), { filename: 'guide.txt', contentType: 'text/plain' });
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.errors[0].field).toBe('video');
+  });
 });

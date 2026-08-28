@@ -17,8 +17,17 @@ export interface WorkoutTemplate {
   status: 'ACTIVE' | 'ARCHIVED';
   sessions: Array<{
     name: string;
-    exercises: Array<{ exerciseId?: string; name: string; sets?: number; reps?: string; restSeconds?: number }>;
+    exercises: Array<{ exerciseId?: string; name: string; sets?: number; reps?: string; weight?: string; rpe?: number; rir?: number; tempo?: string; restSeconds?: number; notes?: string }>;
   }>;
+  durationDays?: number;
+  muscleGroups?: string[];
+  defaultSets?: number;
+  defaultReps?: string;
+  defaultWeight?: string;
+  defaultTempo?: string;
+  technicalNotes?: string;
+  scheduledExercises?: Array<Record<string, unknown>>;
+  unscheduledExercises?: Array<Record<string, unknown>>;
 }
 
 interface Props {
@@ -27,7 +36,7 @@ interface Props {
   onAssign?: (template: WorkoutTemplate) => void;
 }
 
-export default function WorkoutTemplateList({ refreshKey, onEdit, onAssign }: Props) {
+export default function WorkoutTemplateList({ refreshKey, onEdit }: Props) {
   const toast = useToast();
   const [items, setItems] = useState<WorkoutTemplate[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0 });
@@ -79,12 +88,12 @@ export default function WorkoutTemplateList({ refreshKey, onEdit, onAssign }: Pr
 
   return (
     <section className="panel">
-      <div className="section-header" style={{ marginBottom: '14px', alignItems: 'center' }}>
+      <div className="section-header mb-3.5 items-center">
         <div>
           <h2>Giáo án mẫu</h2>
           <p>Chỉnh sửa tạo phiên bản mới; chỉ giáo án đã lưu trữ mới có thể xóa.</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="flex items-center gap-2">
           <select
             className="filter-select"
             aria-label="Trạng thái giáo án"
@@ -112,13 +121,10 @@ export default function WorkoutTemplateList({ refreshKey, onEdit, onAssign }: Pr
         items={items}
         columns={columns}
         renderActions={(item) => (
-          <div className="inline-actions">
+          <div className="inline-actions md:flex-nowrap md:whitespace-nowrap">
+            <button className="text-button" onClick={() => onEdit(item)}>Sửa</button>
             {item.status === 'ACTIVE' ? (
-              <>
-                {onAssign && <button className="text-button" onClick={() => onAssign(item)}>Gán cho khách</button>}
-                <button className="text-button" onClick={() => onEdit(item)}>Sửa</button>
-                <button className="text-button" onClick={() => void archive(item)}>Lưu trữ</button>
-              </>
+              <button className="text-button" onClick={() => void archive(item)}>Lưu trữ</button>
             ) : (
               <button className="text-button" onClick={() => void remove(item)}>Xóa</button>
             )}

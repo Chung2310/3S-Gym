@@ -3,6 +3,8 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/customerController.js';
 import { createCustomerAccountSchema, createCustomerSchema, createPackageSchema, customerIdSchema, deletePackageSchema, listCustomersSchema, listPackagesSchema, updateCustomerSchema, updatePackageSchema } from '../validators/customerValidator.js';
+import * as workoutPlanController from '../controllers/customerWorkoutPlanController.js';
+import { assignCustomerPlanSchema, getCustomerPlanSchema, listCustomerPlansSchema, updateCustomerPlanSchema } from '../validators/customerWorkoutPlanValidator.js';
 const router = express.Router();
 const allowStaff = [authenticate, authorize('ADMIN', 'PT')];
 /* legacy manual validators
@@ -83,6 +85,10 @@ function accountValidator(req: Request): ValidationIssue[] {
 */
 router.get('/', ...allowStaff, validate(listCustomersSchema), controller.list);
 router.post('/', ...allowStaff, validate(createCustomerSchema), controller.create);
+router.get('/:id/workout-plans', ...allowStaff, validate(listCustomerPlansSchema), workoutPlanController.list);
+router.post('/:id/workout-plans/assign', ...allowStaff, validate(assignCustomerPlanSchema), workoutPlanController.assign);
+router.get('/:id/workout-plans/:planId', ...allowStaff, validate(getCustomerPlanSchema), workoutPlanController.get);
+router.patch('/:id/workout-plans/:planId', ...allowStaff, validate(updateCustomerPlanSchema), workoutPlanController.update);
 router.get('/:id', ...allowStaff, validate(customerIdSchema), controller.get);
 router.patch('/:id', ...allowStaff, validate(updateCustomerSchema), controller.update);
 router.delete('/:id', ...allowStaff, validate(customerIdSchema), controller.remove);
