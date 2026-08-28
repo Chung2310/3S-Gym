@@ -50,6 +50,7 @@ async function applyContentDefaults() {
 }
 
 async function runMigrations() {
+  await MigrationRecord.createIndexes();
   const ownerId = randomUUID();
   const lockedAt = new Date();
   const expiresAt = new Date(lockedAt.getTime() + LOCK_DURATION_MS);
