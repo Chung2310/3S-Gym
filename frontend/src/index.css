@@ -844,5 +844,28 @@ a {
   .profile-form-actions .button { flex: 1; }
 }
 
-
-
+/* Customer Searchable Select Component */
+.customer-select-container {
+  width: 100%;
+}
+.customer-select-trigger:hover:not(.is-disabled) {
+  border-color: #94a3b8 !important;
+}
+.customer-select-trigger:focus-visible {
+  outline: none;
+  border-color: #003b70 !important;
+  box-shadow: 0 0 0 3px rgba(0, 59, 112, 0.12) !important;
+}
+.customer-select-dropdown {
+  animation: fadeInDown 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

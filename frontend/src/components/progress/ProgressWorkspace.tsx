@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Search, X, Activity, RotateCcw } from 'lucide-react';
+import { Activity, RotateCcw } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
+import CustomerSelect from '../ui/CustomerSelect';
 import { errorMessage } from '../../types';
 import WorkoutCheckIn from '../workouts/WorkoutCheckIn';
 import WorkoutSessionHistory from '../workouts/WorkoutSessionHistory';
@@ -18,13 +19,14 @@ export default function ProgressWorkspace() {
   const [reports, setReports] = useState<ProgressReport[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!customerId) return;
+  const load = useCallback(async (targetId?: string) => {
+    const idToLoad = targetId || customerId;
+    if (!idToLoad) return;
     try {
       setLoading(true);
       const [progress, reportResult] = await Promise.all([
-        api.get<{ measurements: Measurement[] }>(`/api/progress/${customerId}`),
-        api.get<ProgressReport[]>(`/api/progress-reports?customerId=${customerId}&page=1&limit=20`),
+        api.get<{ measurements: Measurement[] }>(`/api/progress/${idToLoad}`),
+        api.get<ProgressReport[]>(`/api/progress-reports?customerId=${idToLoad}&page=1&limit=20`),
       ]);
       setMeasurements(progress.data.measurements);
       setReports(reportResult.data);
@@ -46,31 +48,26 @@ export default function ProgressWorkspace() {
 
       <WorkoutCheckIn onCompleted={() => setSessionRefresh((value) => value + 1)} />
 
-      <div className="panel" style={{ padding: '10px 14px', marginBottom: '14px' }}>
-        <div className="filter-bar" style={{ margin: 0 }}>
-          <div className="search-field" style={{ maxWidth: '340px' }}>
-            <Search size={16} className="search-icon" aria-hidden="true" />
-            <input
-              aria-label="Mã khách hàng tiến độ"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              placeholder="Nhập mã khách hàng để tra cứu tiến độ..."
-            />
-            {customerId && (
-              <button
-                type="button"
-                className="search-clear-btn"
-                onClick={() => setCustomerId('')}
-                aria-label="Xóa mã khách hàng"
-              >
-                <X size={12} />
-              </button>
-            )}
-          </div>
+      <div className="panel" style={{ padding: '16px 20px', marginBottom: '14px' }}>
+        <h3 style={{ fontSize: '0.94rem', fontWeight: 700, margin: '0 0 12px 0', color: '#1e293b' }}>
+          Tra cứu tiến độ học viên
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 420px) auto auto', gap: '12px', alignItems: 'flex-end' }}>
+          <CustomerSelect
+            label="Chọn học viên"
+            name="lookupCustomerId"
+            value={customerId}
+            onChange={(selectedId) => {
+              setCustomerId(selectedId);
+              if (selectedId) void load(selectedId);
+            }}
+            placeholder="Tìm theo tên học viên hoặc SĐT..."
+          />
           <button
             className="button button-primary"
             onClick={() => void load()}
             disabled={!customerId || loading}
+            style={{ height: '44px' }}
           >
             <Activity size={15} /> {loading ? 'Đang tải...' : 'Tải tiến độ'}
           </button>
@@ -83,6 +80,7 @@ export default function ProgressWorkspace() {
                 setMeasurements([]);
                 setReports([]);
               }}
+              style={{ height: '44px' }}
             >
               <RotateCcw size={13} /> Xóa tìm kiếm
             </button>
