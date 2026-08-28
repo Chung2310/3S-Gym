@@ -24,7 +24,7 @@ interface InBodyReviewFormProps {
   onConfirmed: (draft: InBodyOcrDraft) => void;
 }
 
-const numberValue = (value: string): number | undefined => value === '' ? undefined : Number(value);
+const numberValue = (value: string): number | undefined => (value === '' ? undefined : Number(value));
 
 export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFormProps) {
   const toast = useToast();
@@ -37,7 +37,9 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
     muscleMass: draft.muscleMass?.toString() ?? '',
     bmr: draft.bmr?.toString() ?? '',
   });
+
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
+
   const submit = async () => {
     setLoading(true);
     try {
@@ -58,44 +60,32 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
       setLoading(false);
     }
   };
+
   const warnings = draft.ocrWarnings?.length ? draft.ocrWarnings : draft.warnings ?? [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0 16px' }}>
       <div
+        className="published-card"
         style={{
-          background: '#f0f9ff',
-          border: '1px solid #bae6fd',
-          borderRadius: '10px',
-          padding: '12px 16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '8px',
+          margin: 0,
         }}
       >
         <div>
-          <strong style={{ color: '#0369a1', display: 'block', fontSize: '0.92rem' }}>
-            📋 Bản nháp từ AI OCR (Cần PT kiểm tra)
-          </strong>
-          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-            Kết quả quét InBody luôn ở trạng thái nháp cho tới khi PT xác nhận và lưu.
-          </span>
+          <strong>Cần PT kiểm tra</strong>
+          <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+            Kết quả OCR luôn là bản nháp cho tới khi PT xác nhận.
+          </p>
         </div>
-        {draft.confidence !== undefined && (
-          <span
-            style={{
-              padding: '4px 10px',
-              borderRadius: '20px',
-              fontSize: '0.78rem',
-              fontWeight: 700,
-              background: draft.confidence >= 0.8 ? '#dcfce7' : '#fef3c7',
-              color: draft.confidence >= 0.8 ? '#15803d' : '#b45309',
-            }}
-          >
-            Độ tin cậy: {Math.round(draft.confidence * 100)}%
-          </span>
+        {draft.confidence !== undefined && draft.confidence < 0.8 && (
+          <strong style={{ color: '#b45309', background: '#fef3c7', padding: '4px 10px', borderRadius: '16px', fontSize: '0.8rem' }}>
+            Độ tin cậy thấp
+          </strong>
         )}
       </div>
 
@@ -112,7 +102,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           aria-label="Cảnh báo OCR"
         >
           <strong style={{ display: 'block', marginBottom: '4px' }}>⚠️ Lưu ý kiểm tra:</strong>
-          <ul style={{ margin: 0, paddingLeft: '18px' }}>
+          <ul className="panel" aria-label="Cảnh báo OCR" style={{ margin: 0, paddingLeft: '18px' }}>
             {warnings.map((warning) => (
               <li key={warning}>{warning}</li>
             ))}
