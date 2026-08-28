@@ -8,7 +8,8 @@ import AppShell from '../../src/components/AppShell';
 describe('AppShell', () => {
   it('hiển thị vai trò và nội dung portal', () => {
     render(<MemoryRouter><AppShell user={{ username: 'pt-minh', fullName: 'PT Minh', role: 'PT' }}><div>Nội dung CRM</div></AppShell></MemoryRouter>);
-    expect(screen.getAllByText('PT Minh')).toHaveLength(2);
+    expect(screen.getByText('PT Minh')).toBeInTheDocument();
+    expect(screen.getByText('Huấn luyện viên')).toBeInTheDocument();
     expect(screen.getByText('Nội dung CRM')).toBeInTheDocument();
   });
 

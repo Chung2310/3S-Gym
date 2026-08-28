@@ -94,10 +94,17 @@ export default function FeatureFlagsView() {
 
   return (
     <div className="feature-flags-view">
-      <div className="section-header">
+      <div className="pt-view-header">
         <div>
-          <h2>Quản lý Tính năng Hệ thống (Feature Flags)</h2>
-          <p>Bật/tắt các module chức năng, phân quyền truy cập theo vai trò và kiểm thử Pilot.</p>
+          <h2 className="text-xl font-bold text-[#003b70] m-0 tracking-tight flex items-center gap-2.5">
+            <div className="p-2 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+              <SlidersHorizontal size={20} className="shrink-0" />
+            </div>
+            <span>Quản lý Tính năng Hệ thống (Feature Flags)</span>
+          </h2>
+          <p className="text-xs text-slate-500 m-0 mt-1 leading-relaxed">
+            Bật/tắt các module chức năng, phân quyền truy cập theo vai trò và kiểm thử Pilot.
+          </p>
         </div>
       </div>
 
@@ -106,15 +113,17 @@ export default function FeatureFlagsView() {
           <article className="feature-flag-card" key={flag.key}>
             <div>
               <div className="feature-flag-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Zap size={18} color={flag.enabled ? '#00a4e4' : '#94a3b8'} />
-                  <h3 className="feature-flag-title">{flag.name}</h3>
+                <div className="flex items-center gap-2 min-w-0 pr-2">
+                  <div className={`p-1.5 rounded-lg shrink-0 ${flag.enabled ? 'bg-sky-50 text-sky-600' : 'bg-slate-100 text-slate-400'}`}>
+                    <Zap size={16} />
+                  </div>
+                  <h3 className="feature-flag-title truncate" title={flag.name}>{flag.name}</h3>
                 </div>
-                <label className="toggle-switch" onClick={(e) => e.stopPropagation()}>
+                <label className="toggle-switch shrink-0" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     checked={flag.enabled}
-                    onChange={() => {}}
+                    onChange={() => { }}
                     onClick={(e) => handleToggle(flag, e)}
                   />
                   <span className="toggle-slider" />
@@ -122,27 +131,28 @@ export default function FeatureFlagsView() {
               </div>
 
               <p className="feature-flag-desc">{flag.description}</p>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Mã:</span>
-                <code style={{ fontSize: '0.75rem', background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', color: '#003b70' }}>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-semibold text-slate-400">Mã:</span>
+                <code className="text-[11px] font-mono bg-slate-100 px-2 py-0.5 rounded-md text-[#003b70] font-bold">
                   {flag.key}
                 </code>
               </div>
             </div>
 
             <div className="feature-flag-footer">
-              <div style={{ display: 'flex', gap: '4px' }}>
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {flag.roles.map((role) => (
                   <RoleBadge key={role} role={role as UserRole} />
                 ))}
               </div>
               <button
                 type="button"
-                className="text-button"
+                className="h-8.5 px-3 rounded-lg text-xs font-bold text-[#003b70] bg-sky-50 border border-sky-200/80 hover:bg-sky-100 transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs shrink-0"
                 onClick={() => setSelectedFlag(flag)}
-                style={{ fontSize: '0.85rem', fontWeight: 700 }}
               >
-                <SlidersHorizontal size={15} /> Cấu hình
+                <SlidersHorizontal size={13} className="shrink-0" />
+                <span>Cấu hình</span>
               </button>
             </div>
           </article>
