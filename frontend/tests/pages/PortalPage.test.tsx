@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter as RouterMemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { vi } from 'vitest';
-import RawPortalPage from '../../src/pages/PortalPage';
+import RawPortalRoutes from '../../src/routes/PortalRoutes';
 import { ToastProvider } from '../../src/components/ui/ToastProvider';
 import { api } from '../../src/services/api';
 import type { UserRole } from '../../src/types';
@@ -13,8 +13,8 @@ function MemoryRouter({ children, initialEntries = ['/portal'] }: React.Componen
   return <RouterMemoryRouter initialEntries={initialEntries}>{children}</RouterMemoryRouter>;
 }
 
-function PortalPage(props: React.ComponentProps<typeof RawPortalPage>) {
-  return <Routes><Route path="/*" element={<RawPortalPage {...props} />} /><Route path="/portal/*" element={<RawPortalPage {...props} />} /></Routes>;
+function PortalPage(props: React.ComponentProps<typeof RawPortalRoutes>) {
+  return <Routes><Route path="/*" element={<RawPortalRoutes {...props} />} /><Route path="/portal/*" element={<RawPortalRoutes {...props} />} /></Routes>;
 }
 
 vi.mock('../../src/services/api', () => ({
@@ -98,7 +98,9 @@ describe('PortalPage', () => {
   });
 
   it('PT có thao tác cấp tài khoản cho khách chưa có user', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: [{ _id: 'customer-1', fullName: 'Khách A', phone: '0901', status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' });
+    vi.mocked(api.get).mockImplementation(async (path: string) => path.startsWith('/api/customers')
+      ? { data: [{ _id: 'customer-1', fullName: 'Khách A', phone: '0901', status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' }
+      : defaultGet(path));
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
     const user = userEvent.setup();
     const buttons = await screen.findAllByRole('button', { name: 'Cấp tài khoản' });
@@ -133,7 +135,9 @@ describe('PortalPage', () => {
 
   it('PT sửa khách bằng popup và vẫn có thao tác cấp tài khoản riêng', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.get).mockResolvedValueOnce({ data: [{ _id: 'customer-edit-1', fullName: 'Khách A', phone: '0901234567', status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' });
+    vi.mocked(api.get).mockImplementation(async (path: string) => path.startsWith('/api/customers')
+      ? { data: [{ _id: 'customer-edit-1', fullName: 'Khách A', phone: '0901234567', status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' }
+      : defaultGet(path));
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
 
     const editButtons = await screen.findAllByRole('button', { name: 'Sửa' });
@@ -147,7 +151,9 @@ describe('PortalPage', () => {
 
   it('PT quản lý gói tập của khách trong popup', async () => {
     const user = userEvent.setup();
-    vi.mocked(api.get).mockResolvedValueOnce({ data: [{ _id: 'customer-package-1', fullName: 'Khách Gói', phone: '0901234567', status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' });
+    vi.mocked(api.get).mockImplementation(async (path: string) => path.startsWith('/api/customers')
+      ? { data: [{ _id: 'customer-package-1', fullName: 'Khách Gói', phone: '0901234567', status: 'ACTIVE' }], meta: { page: 1, totalPages: 1 }, message: '' }
+      : defaultGet(path));
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
     const buttons = await screen.findAllByRole('button', { name: 'Gói PT' });
     await user.click(buttons[0]);
@@ -204,7 +210,7 @@ describe('PortalPage', () => {
   });
 
   it('điều hướng đúng khi PortalPage nằm dưới route cha /portal/* như ứng dụng thật', async () => {
-    render(<MemoryRouter initialEntries={['/portal/pt/customers']}><ToastProvider><Routes><Route path="/portal/*" element={<RawPortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} />} /></Routes></ToastProvider></MemoryRouter>);
+    render(<MemoryRouter initialEntries={['/portal/pt/customers']}><ToastProvider><Routes><Route path="/portal/*" element={<RawPortalRoutes session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} />} /></Routes></ToastProvider></MemoryRouter>);
 
     expect(await screen.findByRole('heading', { name: 'Khách hàng của tôi' })).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'Không tìm thấy trang' })).not.toBeInTheDocument();

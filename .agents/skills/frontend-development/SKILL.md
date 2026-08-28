@@ -6,6 +6,8 @@ description: >-
   quản lý modal CRUD, tích hợp API và quy tắc tổ chức thư mục kiểm thử.
 ---
 
+# 3S Gym Frontend — Quy Chuẩn Kiến Trúc & Phát Triển
+
 ## 0. Tailwind-first styling policy
 
 1. Tailwind CSS v4 is the required styling system for every new or modified frontend UI. The project uses `@tailwindcss/vite`; do not add another CSS framework.
@@ -14,123 +16,342 @@ description: >-
 4. Use complete, statically discoverable Tailwind class strings. Conditional classes must resolve to complete strings so Tailwind can scan them.
 5. Include responsive, hover, active, disabled, focus-visible, and motion-reduce states in Tailwind classes for interactive UI.
 6. Reusable UI primitives still belong in `frontend/src/components/ui/`; their styling follows the same Tailwind-first rule.
-# 3S Gym Frontend Development Skill & Best Practices
-
-Tài liệu này định nghĩa cấu trúc chuẩn, quy tắc tái sử dụng UI và phong cách lập trình cho phần Frontend của dự án 3S Gym.
 
 ---
 
-## 1. Cấu Trúc Thư Mục Chuẩn (Directory Architecture)
-
-Toàn bộ mã nguồn Frontend tuân thủ cấu trúc phân tầng rõ ràng:
+## 1. Cấu Trúc Thư Mục — Tổng Quan
 
 ```
 frontend/
 ├── src/
-│   ├── components/
-│   │   ├── ui/                    # TOÀN BỘ UI và FORM CRUD TÁI SỬ DỤNG
-│   │   │   ├── FormModal.tsx      # Modal form chuẩn với discard confirm & focus trap
-│   │   │   ├── ProfileFormModal.tsx
-│   │   │   ├── FormField.tsx      # Field input, select, textarea chuẩn kèm label/error
-│   │   │   ├── ConfirmModal.tsx   # Popup xác nhận hành động nguy hiểm (xóa/hủy)
-│   │   │   ├── RoleBadge.tsx      # Badge vai trò (ADMIN, PT, CUSTOMER)
-│   │   │   ├── StatusBadge.tsx    # Badge trạng thái (ACTIVE, LOCKED, DRAFT,...)
-│   │   │   ├── DataList.tsx       # Bảng dữ liệu responsive (desktop table / mobile cards)
-│   │   │   ├── FilterBar.tsx      # Thanh tìm kiếm & lọc nhanh
-│   │   │   ├── Pagination.tsx     # Phân trang
-│   │   │   ├── ToastProvider.tsx  # Hệ thống thông báo nổi Toast
-│   │   │   ├── UserFormModal.tsx  # Modal thêm/sửa tài khoản người dùng đa năng
-│   │   │   ├── PtFormModal.tsx    # Modal hồ sơ PT & upload avatar Cloudinary
-│   │   │   ├── CustomerFormModal.tsx
-│   │   │   ├── CustomerAccountModal.tsx
-│   │   │   ├── PtPackageManagerModal.tsx
-│   │   │   ├── TransferFormModal.tsx
-│   │   │   ├── FeatureFlagModal.tsx
-│   │   │   └── index.ts           # Barrel export
-│   │   ├── admin/                 # Quản trị (Dashboard, Quản lý tài khoản, Feature Flags)
-│   │   ├── customers/             # Quản lý khách hàng của PT
-│   │   ├── workouts/              # Giáo án & bài tập
-│   │   ├── exercises/             # Thư viện bài tập
-│   │   ├── nutrition/             # Dinh dưỡng & tính toán AI
-│   │   ├── inbody/                # Quét OCR InBody
-│   │   ├── roadmap/               # Lộ trình huấn luyện
-│   │   ├── care/                  # Chăm sóc khách hàng & cảnh báo
-│   │   ├── knowledge/             # Kho tri thức & RAG
-│   │   ├── assistant/             # Trợ lý AI PT
-│   │   ├── calendar/              # Lịch tập & sự kiện
-│   │   ├── notifications/         # Trung tâm thông báo
-│   │   ├── progress/              # Biểu đồ & báo cáo tiến độ
-│   │   ├── dashboard/             # PT Dashboard
-│   │   ├── customer-portal/       # Khách hàng cá nhân
-│   │   ├── flags/                 # FeatureGate
-│   │   ├── portal/                # View tổng hợp Portal
-│   │   ├── AppShell.tsx           # Khung layout ứng dụng (Sidebar, Header, Navigation)
-│   │   ├── Navbar.tsx             # Thanh điều hướng công khai
-│   │   └── PortalNotFound.tsx
-│   ├── pages/                     # Trang entry point (PortalPage, LoginPage, LandingPage, ConsultationTool)
-│   ├── services/                  # Gọi API, session, feature flags
-│   ├── hooks/                     # Custom React hooks (useAsyncResource,...)
-│   ├── types/ & types.ts          # TypeScript interfaces & types
-│   └── index.css                  # Toàn bộ CSS tokens & styles
-└── tests/                         # THƯ MỤC KIỂM THỬ TẬP TRUNG (TÁCH BIỆT KHỎI SRC)
-    ├── components/
-    ├── pages/
-    ├── services/
-    └── hooks/
+│   ├── types/           # Kiểu dữ liệu & Interfaces
+│   ├── services/        # Business logic & API (TS thuần, KHÔNG JSX)
+│   ├── hooks/           # Custom React Hooks
+│   ├── routes/          # Cấu hình Router & Navigation (Route config)
+│   ├── pages/           # Trang URL — chứa STATE + DATA FETCHING + LAYOUT
+│   │   ├── pt/          # Trang PT: /pt/*
+│   │   ├── admin/       # Trang Admin: /admin/*
+│   │   ├── customer/    # Trang Customer: /me/*
+│   │   └── common/      # Trang dùng chung: /calendar, /notifications
+│   ├── components/      # UI Components thuần (KHÔNG state nghiệp vụ)
+│   │   ├── ui/          # Primitives dùng chung (Modal, DataList, Pagination...)
+│   │   ├── inbody/      # Sub-components InBody (Modal, Form, Chart)
+│   │   ├── admin/       # Sub-components Admin (Dashboard, Management Views)
+│   │   ├── exercises/   # Sub-components Exercises
+│   │   ├── workouts/    # Sub-components Workout Plans
+│   │   ├── nutrition/   # Sub-components Nutrition
+│   │   ├── roadmap/     # Sub-components Roadmap
+│   │   ├── care/        # Sub-components Care & Alerts
+│   │   ├── progress/    # Sub-components Progress
+│   │   ├── dashboard/   # Sub-components KPI Dashboard
+│   │   ├── knowledge/   # Sub-components Knowledge Base
+│   │   ├── assistant/   # Sub-components PT Assistant
+│   │   ├── calendar/    # Sub-components Calendar
+│   │   ├── notifications/  # Sub-components Notifications
+│   │   ├── portal/      # Sub-components Portal Views
+│   │   ├── customer-portal/ # Sub-components Customer Portal
+│   │   └── customers/   # Sub-components Customer Management
+│   ├── config/          # Config files (environment, constants)
+│   ├── index.css        # Design tokens & global styles
+│   ├── App.tsx          # Root component (chỉ wrap Router + Providers)
+│   └── main.tsx         # Entry point
+└── tests/               # Kiểm thử (TÁCH BIỆT khỏi src/)
+    ├── services/        # Unit tests cho services
+    ├── components/      # Component tests
+    ├── pages/           # Page integration tests
+    └── hooks/           # Hook tests
 ```
 
 ---
 
-## 2. Quy Tắc UI & Form Tái Sử Dụng (`components/ui/`)
+## 2. QUY TẮC TỪNG THƯ MỤC (BẮT BUỘC)
 
-### Nguyên tắc bắt buộc:
-1. **BẮT BUỘC thêm `placeholder` cho TẤT CẢ các trường nhập liệu (Inputs / Textareas)**:
-   - **Tất cả** thẻ `<input>`, `<textarea>`, component `FormField`, thanh tìm kiếm (`Search Input`), ô lọc dữ liệu, ô nhập số liệu **PHẢI** có thuộc tính `placeholder="..."` đầy đủ và rõ ràng.
-   - **Nội dung placeholder phải mang tính hướng dẫn trực quan (Actionable & Informative)**:
-     - Với ô tìm kiếm: `placeholder="Tìm theo tên học viên, SĐT, mã..."`
-     - Với trường thông tin: `placeholder="Nhập họ và tên đầy đủ..."`, `placeholder="Nhập số điện thoại (10 số)..."`
-     - Với trường số đo / chỉ số: `placeholder="Ví dụ: 72.5 (kg)"`, `placeholder="Ví dụ: 18.5 (%)"`
-     - Với ghi chú / mô tả: `placeholder="Nhập ghi chú chi tiết hoặc phác đồ..."`
-   - **Tuyệt đối KHÔNG** để input thiếu `placeholder` hoặc để placeholder rỗng/chung chung vô nghĩa.
+### 📁 `types/` — Kiểu Dữ Liệu & Interfaces
 
-2. **Mọi thành phần UI dùng chung** (Badges, Buttons, Cards, Inputs, Tables, Modals) **PHẢI** nằm trong `frontend/src/components/ui/`.
-3. **Form Thêm mới / Chỉnh sửa**:
-   - Xây dựng trên nền `ProfileFormModal` (hoặc `FormModal`) kết hợp với `FormField`.
-   - Luôn có cơ chế phát hiện form bẩn (`dirty` state) để hỏi xác nhận khi người dùng vô tình đóng modal lúc đang nhập liệu dang dở.
-   - Hỗ trợ phím tắt `Escape`, khóa cuộn trang nền và quản lý focus accessibility.
-4. **Upload ảnh / Avatar**:
-   - Sử dụng endpoint chuẩn `api.upload('/api/upload/image', formData)` gửi lên Cloudinary.
-   - Có preview ảnh đại diện hình tròn, nút xóa ảnh và trạng thái loading khi tải lên.
+**Trách nhiệm**: Tập trung toàn bộ định nghĩa TypeScript: Data Models, API Interfaces, Enums, Type aliases.
 
-5. **BẮT BUỘC có Icon Mắt (Show/Hide Password toggle) cho TẤT CẢ các trường Mật khẩu**:
-   - Mọi ô nhập mật khẩu (`type="password"`, tạo tài khoản, đổi mật khẩu, đăng nhập, cấp tài khoản học viên, quản lý tài khoản PT/User) **BẮT BUỘC** phải tích hợp nút bấm icon mắt (`Eye` / `EyeOff` từ `lucide-react`) cho phép người dùng click để hiển thị hoặc ẩn mật khẩu trực quan.
-   - Luôn ưu tiên dùng `FormField` với `type="password"` để tự động có tính năng ẩn/hiện mật khẩu này.
+| ✅ ĐƯỢC PHÉP | ❌ CẤM |
+|---|---|
+| `interface`, `type`, `enum` | Import React / JSX |
+| Export types cho các layer khác | Logic tính toán |
+| Re-export qua `types.ts` root | State management |
+
+**Quy tắc cụ thể**:
+- Mỗi domain 1 file: `types/inbody.ts`, `types/workout.ts`, `types/api.ts`
+- Re-export tập trung qua `src/types.ts`
+- **KHÔNG** định nghĩa types/interfaces phức tạp rải rác trong component hay service
+
+**Files hiện tại**: `inbody.ts`, `workout.ts`, `api.ts`
 
 ---
 
-## 3. Hệ Thống Design Tokens & Thẩm Mỹ UI
+### 📁 `services/` — Business Logic & API
 
-- **Màu sắc thương hiệu**:
-  - `--primary-color: #003b70` (Xanh đậm thương hiệu)
-  - `--secondary-color: #00a4e4` (Xanh sáng tương tác)
-  - `--accent-color: #ff3366` (Hồng cam điểm nhấn)
-  - `--bg-color: #f4f8fb` (Nền xám sáng êm dịu)
-- **Typography**:
-  - Tiêu đề, số liệu KPI: font `'Oswald', sans-serif`, viết hoa, đậm nét và sắc sảo.
-  - Nội dung, nhãn form: font `'Montserrat', sans-serif`, rõ ràng, dễ đọc.
-- **Hiệu ứng & Micro-interactions**:
-  - Stat cards có hiệu ứng hover nâng nhẹ (`transform: translateY(-2px)` + đổ bóng mềm).
-  - Status badges và Role badges có màu sắc chuẩn nghĩa ngữ nghĩa (Xanh lá: Active/Published, Đỏ: Locked/Rejected, Vàng: Pending/Draft).
+**Trách nhiệm**: Logic nghiệp vụ thuần, thuật toán tính toán, API client, session/token management.
+
+| ✅ ĐƯỢC PHÉP | ❌ CẤM |
+|---|---|
+| TypeScript/JavaScript thuần | JSX (`<div>`, `<span>`...) |
+| Import từ `types/` | React Hooks (`useState`, `useEffect`) |
+| Hàm thuần (pure functions) | DOM manipulation |
+| API calls (`api.get`, `api.post`) | Import từ `components/` |
+
+**Quy tắc cụ thể**:
+- Code phải unit-testable mà không cần React
+- Không depend vào UI layer
+- Import types từ `types/`, KHÔNG tự định nghĩa
+
+**Files hiện tại**: `api.ts`, `session.ts`, `features.ts`, `inbodyAnalytics.ts`, `workoutPlanMapper.ts`
 
 ---
 
-## 4. Tích Hợp API & Quản Lý Lỗi
+### 📁 `hooks/` — Custom React Hooks
 
-- Sử dụng `api` client từ `frontend/src/services/api.ts`.
-- Luôn hiển thị thông báo lỗi thân thiện qua `useToast()` bằng hàm chuẩn hóa `errorMessage(error)`:
+**Trách nhiệm**: Hooks tái sử dụng, đóng gói logic React phức tạp.
+
+| ✅ ĐƯỢC PHÉP | ❌ CẤM |
+|---|---|
+| React Hooks (`useState`, `useEffect`, `useCallback`) | JSX / Rendering |
+| Import từ `services/` và `types/` | Import từ `components/` |
+| Return state + handlers | Business logic phức tạp (nên để `services/`) |
+
+**Files hiện tại**: `useAsyncResource.ts`
+
+---
+
+### 📁 `routes/` — Cấu Hình Router & Navigation
+
+**Trách nhiệm**: Định nghĩa cấu trúc URL routing — map URL paths → Pages. Chứa `<Routes>`, `<Route>`, `<Navigate>`, tab-based routing.
+
+| ✅ ĐƯỢC PHÉP | ❌ CẤM |
+|---|---|
+| `<Routes>`, `<Route>`, `<Navigate>` | Business logic, API calls |
+| Import Pages từ `pages/` | `useState`, data fetching |
+| Import Components layout (AppShell, FeatureRoute) | Render UI trực tiếp (forms, tables, cards) |
+| Tab navigation (`useSearchParams`) | Định nghĩa types/interfaces |
+
+**Quy tắc cụ thể**:
+- Route file chỉ **MÁP URL → Page**, không xử lý data
+- Layout wrappers (AppShell, FeatureRoute) chỉ dùng để bọc Pages
+- **KHÔNG** render nội dung UI trực tiếp trong route files
+- **KHÔNG** đặt files routing trong `pages/` — routing config PHẢI ở `routes/`
+
+**Files hiện tại**: `PortalRoutes.tsx`, `AdminRoutes.tsx`
+
+**Ví dụ đúng**:
+```tsx
+// routes/PortalRoutes.tsx — CHỈ map URL → Page
+<Route path="pt/inbody" element={
+  <FeatureRoute user={user} roles={['PT']} feature="OCR_INBODY">
+    <InBodyPage />
+  </FeatureRoute>
+} />
+```
+
+**Ví dụ sai**:
+```tsx
+// ❌ KHÔNG nhét routing config vào pages/
+// ❌ pages/PortalPage.tsx với <Routes><Route>...</Routes>
+```
+
+---
+
+### 📁 `pages/` — Trang URL (Lắp ráp Components thành trang hoàn chỉnh)
+
+**Trách nhiệm**: Mỗi file = MỘT TRANG ở MỘT URL. Page là **bộ não** điều phối: quản lý state, fetch data, rồi **LẮP RÁP** các components con thành một trang hoàn chỉnh.
+
+> **QUAN TRỌNG**: Page KHÔNG chứa rendering code (JSX phức tạp) — page chỉ import components rồi compose chúng lại. Toàn bộ rendering UI phải nằm trong `components/`.
+
+| ✅ ĐƯỢC PHÉP | ❌ CẤM |
+|---|---|
+| `useState`, `useEffect`, `useCallback` | `<Routes>`, `<Route>` (→ `routes/`) |
+| API calls (`api.get`, `api.post`...) | Export nhiều components từ 1 file |
+| Import + lắp ráp components từ `components/` | Viết rendering code (tables, cards, forms) trực tiếp — phải tách ra component |
+| Truyền data xuống components qua props | Cục code >50-80 dòng JSX — signal cần tách component |
+| Import logic từ `services/` | — |
+
+**Quy tắc cụ thể**:
+
+1. **Mỗi page = 1 URL**: `InBodyPage.tsx` → `/pt/inbody`, `CalendarPage.tsx` → `/calendar`
+2. **Page = BỘ NÃO**: Chứa state management + data fetching + error handling
+3. **Page = LẮP RÁP**: Import components nhỏ rồi ghép lại, truyền data qua props
+4. **Page KHÔNG export** — Không ai import page ngoại trừ `routes/`
+5. **KHÔNG nhét routing** (`<Routes>`, `<Route>`) vào pages — routing thuộc về `routes/`
+6. **Admin tab views** dùng `?tab=` → KHÔNG phải pages, là components trong `components/admin/`
+
+**Cấu trúc thư mục**:
+```
+pages/
+├── LandingPage.tsx        # /
+├── LoginPage.tsx          # /login
+├── ConsultationTool.tsx   # /consultation
+├── pt/                    # Trang PT (mỗi file = 1 URL /pt/*)
+│   ├── InBodyPage.tsx         # /pt/inbody
+│   ├── PtCustomersPage.tsx    # /pt/customers
+│   ├── PtDashboardPage.tsx    # /pt/dashboard
+│   ├── WorkoutPlansPage.tsx   # /pt/workout-plans
+│   ├── ExerciseLibraryPage.tsx# /pt/exercises
+│   ├── RoadmapPage.tsx        # /pt/roadmaps
+│   ├── ProgressPage.tsx       # /pt/progress
+│   ├── NutritionPage.tsx      # /pt/nutrition
+│   ├── CarePage.tsx           # /pt/care
+│   ├── PtAssistantPage.tsx    # /pt/assistant
+│   └── KnowledgeSearchPage.tsx# /pt/knowledge-search
+├── admin/                 # Trang Admin
+│   └── AdminKnowledgePage.tsx # /admin/knowledge
+├── customer/              # Trang Customer
+│   └── CustomerPortalPage.tsx # /me/*
+└── common/                # Trang dùng chung
+    ├── CalendarPage.tsx       # /calendar
+    └── NotificationsPage.tsx  # /notifications
+```
+
+**Ví dụ đúng** — Page lắp ráp components:
+```tsx
+// pages/pt/ExerciseLibraryPage.tsx
+export default function ExerciseLibraryPage() {
+  // === BỘ NÃO: state + data ===
+  const [items, setItems] = useState<Exercise[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta>({...});
+  const load = useCallback(async (page = 1) => {
+    const result = await api.get<Exercise[]>(`/api/exercises?${query}`);
+    setItems(result.data);
+  }, [...]);
+  useEffect(() => { void load(); }, [load]);
+
+  // === LẮP RÁP: compose components ===
+  return (
+    <section>
+      <SectionHeader title="Thư viện bài tập" />
+      <ExerciseFilter muscleGroup={muscleGroup} onFilter={setMuscleGroup} />
+      <DataList items={items} columns={columns} />
+      <Pagination page={meta.page} onPageChange={load} />
+      <ExerciseFormModal open={showForm} onSaved={load} />
+    </section>
+  );
+}
+```
+
+**Ví dụ sai** — Page chứa rendering code trực tiếp:
+```tsx
+// ❌ SAI — nhét rendering logic vào page
+export default function ExerciseLibraryPage() {
+  return (
+    <section>
+      <div className="filter-bar">          {/* ← rendering code */}
+        <input value={muscleGroup} ... />   {/* ← nên tách ra <ExerciseFilter /> */}
+        <select ...>                        {/* ← nên tách ra component */}
+          <option>Cơ bản</option>
+        </select>
+      </div>
+      <table>                               {/* ← nên dùng <DataList /> */}
+        <tr>...</tr>
+      </table>
+    </section>
+  );
+}
+```
+
+---
+
+### 📁 `components/` — Mảnh UI Tái Sử Dụng (Ghép vào Page)
+
+**Trách nhiệm**: Các mảnh UI nhỏ, tái sử dụng. Giống như **table, button, modal, filter, form, card, list, chart**. Nhận data qua props, render ra giao diện.
+
+> **NGUYÊN TẮC**: Component = mảnh ghép. Page = bức tranh hoàn chỉnh ghép từ các mảnh.
+
+| ✅ ĐƯỢC PHÉP | ❌ CẤM |
+|---|---|
+| JSX rendering | Routing (`<Routes>`, `<Route>`) |
+| Nhận data qua props | Định nghĩa types phức tạp (→ `types/`) |
+| UI state riêng (`open`, `activeTab`, `loading`) | Business logic tính toán (→ `services/`) |
+| Event handlers → gọi callback props | — |
+| Import từ `components/ui/` | — |
+
+#### `components/ui/` — UI Primitives (dùng chung toàn app)
+
+Các component tái sử dụng ở MỌI nơi:
+- `FormModal.tsx`, `ProfileFormModal.tsx` — Modal form chuẩn
+- `FormField.tsx` — Input/Select/Textarea chuẩn
+- `ConfirmModal.tsx` — Popup xác nhận
+- `DataList.tsx` — Bảng responsive
+- `FilterBar.tsx` — Thanh lọc
+- `Pagination.tsx` — Phân trang
+- `StatusBadge.tsx`, `RoleBadge.tsx` — Badge
+- `ToastProvider.tsx` — Thông báo Toast
+- `CustomerSelect.tsx` — Chọn học viên
+
+#### `components/<feature>/` — Sub-components chuyên biệt
+
+Mảnh UI chuyên biệt cho từng tính năng, được IMPORT bởi pages:
+- `components/inbody/` → InBody Modals, Forms, Charts, Review
+- `components/admin/` → Admin tab panel views (Dashboard, PT/User Management)
+- `components/exercises/` → ExerciseFormModal, ExerciseFilter
+- `components/workouts/` → Workout plan sub-components
+- `components/calendar/` → CalendarEventModal, CalendarList, CalendarFilter
+- `components/assistant/` → ConversationList, SuggestionReview
+- `components/knowledge/` → KnowledgeEditor, KnowledgeDocList
+- `components/portal/` → Customer/PT tab views
+- `components/notifications/` → NotificationList, NotificationItem
+- ...
+
+**Lưu ý**: Components trong `components/admin/` (AdminDashboardPage, PtManagementView, UserManagementView...) là **tab panel views** — render qua `?tab=xxx`, không có URL riêng. Import bởi `routes/AdminRoutes.tsx`.
+
+
+
+### 📁 `tests/` — Kiểm Thử
+
+**Trách nhiệm**: Chứa toàn bộ test files, phân chia theo layer.
+
+| Thư mục | Test cho |
+|---|---|
+| `tests/services/` | Unit test services (inbodyAnalytics, workoutPlanMapper) |
+| `tests/components/` | Component/Modal tests |
+| `tests/pages/` | Page integration tests |
+| `tests/hooks/` | Hook tests |
+
+**Quy tắc**:
+- **Chỉ test file liên quan/thay đổi**: Khi sửa component hay page nào, chỉ chạy test tương ứng (ví dụ: `npx vitest run frontend/tests/components/xxx.test.tsx`) để phản hồi tức thì (< 2-3s).
+- **Typecheck nhanh**: `npx tsc --noEmit` để bắt lỗi type nhanh chóng.
+- **TUYỆT ĐỐI KHÔNG** đặt `.test.ts` / `.test.tsx` trong `src/` (tất cả đặt trong `frontend/tests/`).
+- Khai báo `// @vitest-environment jsdom` + `import '@testing-library/jest-dom/vitest'` ở đầu file test React.
+
+---
+
+## 3. Quy Tắc UI & Form
+
+### 3.1. Placeholder bắt buộc
+- **TẤT CẢ** `<input>`, `<textarea>`, `FormField`, search, filter **PHẢI** có `placeholder` rõ ràng
+- Ví dụ: `placeholder="Nhập họ và tên đầy đủ..."`, `placeholder="Ví dụ: 72.5 (kg)"`
+
+### 3.2. Icon Mắt cho Mật khẩu
+- **TẤT CẢ** input password **PHẢI** có nút `Eye`/`EyeOff` toggle
+
+### 3.3. Form Thêm/Sửa
+- Xây trên `ProfileFormModal` + `FormField`
+- Dirty state detection + Escape key + focus trap
+
+### 3.4. Customer Display
+- Hiển thị Họ tên + SĐT, **KHÔNG** hiển thị ObjectId thô
+- Dùng `CustomerSelect` cho form chọn học viên
+
+---
+
+## 4. Design Tokens
+
+- `--primary-color: #003b70` (Xanh đậm thương hiệu)
+- `--secondary-color: #00a4e4` (Xanh sáng tương tác)
+- `--accent-color: #ff3366` (Hồng cam điểm nhấn)
+- `--bg-color: #f4f8fb` (Nền xám sáng)
+- Tiêu đề: `'Oswald', sans-serif` — viết hoa, đậm
+- Nội dung: `'Montserrat', sans-serif` — rõ ràng
+
+---
+
+## 5. API Integration
+
 ```tsx
 const toast = useToast();
-
 try {
   const result = await api.patch(`/api/users/${id}`, payload);
   toast.success(result.message);
@@ -142,24 +363,20 @@ try {
 
 ---
 
-## 5. Quy Tắc Kiểm Thử (Testing Guidelines)
+## 6. Luồng Dữ Liệu Chuẩn (Data Flow)
 
-> [!NOTE]
-> **Quy trình chạy và viết test**:
-> - Chạy kiểm thử bằng `npm test` để bảo đảm độ ổn định và chất lượng toàn diện của mã nguồn (backend & frontend).
-> - Kết hợp kiểm tra kiểu tĩnh `npm run typecheck`.
-> - Khi viết test:
->   - **KHÔNG** đặt file `.test.ts` / `.test.tsx` chung thư mục với mã nguồn `src/`.
->   - **TẤT CẢ** file test phải đặt trong thư mục `frontend/tests/` theo đúng cấu trúc phân cấp tương ứng.
->   - Khai báo môi trường `// @vitest-environment jsdom` và `import '@testing-library/jest-dom/vitest';` ở đầu file test.
+```
+URL Request
+    ↓
+routes/ (PortalRoutes.tsx) — map URL → Page
+    ↓
+pages/ (InBodyPage.tsx) — useState + useEffect + api.get()
+    ↓
+services/ (inbodyAnalytics.ts) — tính toán, transform data
+    ↓
+components/ (InBodyDetailModal.tsx) — render UI từ props
+    ↓
+components/ui/ (DataList, Pagination) — UI primitives
+```
 
----
-
-## 6. Quy Chuẩn Chọn & Hiển Thị Học Viên (Customer Selection & Display)
-
-1. **Hiển thị học viên trong bảng / danh sách dữ liệu**:
-   - **BẮT BUỘC hiển thị Họ tên và Số điện thoại (SĐT)** của học viên (ví dụ: `Nguyễn Văn A` kèm SĐT `0901 234 567`).
-   - **TUYỆT ĐỐI KHÔNG hiển thị chuỗi mã ID thô** (như `6a90fa9a406b88dacfa89f8d`) ở các cột bảng cho người dùng nhìn thấy.
-2. **Form / Modal chọn học viên**:
-   - Sử dụng component `CustomerSelect` từ `components/ui/CustomerSelect` để người dùng tìm kiếm và chọn theo Tên hoặc Số điện thoại.
-   - Không bắt người dùng phải nhớ hay gõ mã Customer ID bằng tay.
+Không bao giờ đi ngược: `components/` KHÔNG gọi `services/` trực tiếp cho business logic — nhận qua props từ `pages/`.

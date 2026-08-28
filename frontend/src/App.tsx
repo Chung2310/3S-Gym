@@ -3,7 +3,7 @@ import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ConsultationTool from './pages/ConsultationTool';
-import PortalPage from './pages/PortalPage';
+import PortalRoutes from './routes/PortalRoutes';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ToastProvider } from './components/ui/ToastProvider';
 
@@ -19,8 +19,8 @@ function MainContent() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/consultation" element={<ProtectedRoute><ConsultationTool /></ProtectedRoute>} />
-          <Route path="/portal/*" element={<ProtectedRoute><PortalPage /></ProtectedRoute>} />
-          <Route path="/*" element={<ProtectedRoute><PortalPage /></ProtectedRoute>} />
+          <Route path="/portal/*" element={<ProtectedRoute><PortalRoutes /></ProtectedRoute>} />
+          <Route path="/*" element={<ProtectedRoute><PortalRoutes /></ProtectedRoute>} />
         </Routes>
       </main>
     </div>

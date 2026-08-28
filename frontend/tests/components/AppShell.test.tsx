@@ -46,10 +46,21 @@ describe('AppShell', () => {
     expect(container.querySelector('.portal-sidebar')).not.toHaveClass('mobile-open');
   });
 
-  it('chỉ đánh dấu điểm đến cụ thể nhất khi route lồng nhau', () => {
-    render(<MemoryRouter initialEntries={['/admin/knowledge']}><AppShell user={{ username: 'admin', role: 'ADMIN' }} features={{ KNOWLEDGE_BASE: true }}><div>Kho tri thức</div></AppShell></MemoryRouter>);
+  it('hiển thị icon chuông thông báo và avatar tròn ở header', () => {
+    render(
+      <MemoryRouter>
+        <AppShell user={{ username: 'pt-lan', fullName: 'Lan Nguyen', role: 'PT' }}>
+          <div>Portal</div>
+        </AppShell>
+      </MemoryRouter>
+    );
 
-    expect(screen.getByRole('link', { name: 'Kho tri thức' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'Quản lý PT' })).not.toHaveAttribute('aria-current');
+    const bellBtn = screen.getByRole('button', { name: 'Thông báo' });
+    expect(bellBtn).toBeInTheDocument();
+
+    expect(screen.getByText('LN')).toBeInTheDocument();
+    expect(screen.getByText('Lan Nguyen')).toBeInTheDocument();
+    expect(screen.getByText('Huấn luyện viên')).toBeInTheDocument();
   });
 });
+

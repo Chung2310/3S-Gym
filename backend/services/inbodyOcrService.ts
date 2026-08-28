@@ -20,16 +20,21 @@ async function createOcrDraft(user: AuthenticatedUser, customerId: string, measu
 
 async function confirmOcrDraft(user: AuthenticatedUser, id: string, corrections: Record<string, unknown>) {
   const record = await InBodyRecord.findById(id);
-  if (!record) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'KhÃ´ng tÃ¬m tháº¥y káº¿t quáº£ InBody.' });
+  if (!record) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy kết quả InBody.' });
   const customer = await CustomerProfile.findOne({
     _id: record.customerId,
     ...(user.role === 'PT' ? { assignedPtId: user.id } : {}),
   });
-  if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'KhÃ´ng tÃ¬m tháº¥y khÃ¡ch hÃ ng.' });
+  if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
   if (record.source !== 'AI_SCAN' || record.ocrStatus !== 'REVIEW_REQUIRED') {
-    throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Káº¿t quáº£ OCR khÃ´ng á»Ÿ tráº¡ng thÃ¡i chá» xÃ¡c nháº­n.' });
+    throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Kết quả OCR không ở trạng thái chờ xác nhận.' });
   }
-  const allowed = ['measurementDate', 'weight', 'bmi', 'bodyFatPercentage', 'bodyFatMass', 'muscleMass', 'bmr', 'visceralFatLevel', 'inbodyScore', 'strengths', 'priorities', 'recommendation'];
+  const allowed = [
+    'measurementDate', 'weight', 'bmi', 'bodyFatPercentage', 'bodyFatMass',
+    'muscleMass', 'bmr', 'visceralFatLevel', 'inbodyScore', 'bodyWater',
+    'boneMineral', 'waistHipRatio', 'segmentalMuscle', 'segmentalFat',
+    'consultationNotes', 'strengths', 'priorities', 'recommendation',
+  ];
   for (const field of allowed) if (Object.prototype.hasOwnProperty.call(corrections, field)) record.set(field, corrections[field]);
   record.ocrStatus = 'CONFIRMED';
   const saved = await record.save();

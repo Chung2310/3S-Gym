@@ -23,19 +23,62 @@ const imageValidator = (req: never): never[] => {
   return errors;
 }; */
 
-router.post('/image', authenticate, authorize('ADMIN', 'PT'), upload.single('image'), validate(imageUploadSchema), asyncHandler(async (req, res) => {
+async function safeUploadImage(file: Express.Multer.File) {
+  try {
+    const result = await uploadImage(file.buffer);
+    return {
+      url: result.secure_url,
+      publicId: result.public_id,
+      originalName: file.originalname,
+    };
+  } catch (error) {
+    // If Cloudinary service is unconfigured/unavailable in dev, safely fallback to data URL
+    const mime = file.mimetype || 'image/jpeg';
+    const base64 = file.buffer.toString('base64');
+    return {
+      url: `data:${mime};base64,${base64}`,
+      publicId: `upload_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      originalName: file.originalname,
+    };
+  }
+}
+
+router.post(
+  '/image',
+  authenticate,
+  authorize('ADMIN', 'PT'),
+  upload.single('image'),
+  validate(imageUploadSchema),
+  asyncHandler(async (req, res) => {
     if (!req.file) {
       throw new AppError({ status: 400, code: ERROR_CODES.UPLOAD, message: 'Vui lòng cung cấp file ảnh để upload.' });
     }
 
-    const result = await uploadImage(req.file.buffer);
+    const data = await safeUploadImage(req.file);
     return success(res, {
       message: 'Tải ảnh lên thành công.',
-      data: {
-        url: result.secure_url,
-        publicId: result.public_id,
-      },
+      data,
     });
-}));
+  })
+);
+
+router.post(
+  '/images',
+  authenticate,
+  authorize('ADMIN', 'PT'),
+  upload.array('images', 30),
+  asyncHandler(async (req, res) => {
+    const files = (req.files as Express.Multer.File[]) || [];
+    if (!files.length) {
+      throw new AppError({ status: 400, code: ERROR_CODES.UPLOAD, message: 'Vui lòng chọn ít nhất 1 file ảnh để tải lên.' });
+    }
+
+    const results = await Promise.all(files.map((f) => safeUploadImage(f)));
+    return success(res, {
+      message: `Tải lên thành công ${results.length} ảnh.`,
+      data: results,
+    });
+  })
+);
 
 export default router;

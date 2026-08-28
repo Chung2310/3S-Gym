@@ -1,0 +1,782 @@
+import { useMemo, useState } from 'react';
+import {
+  Activity,
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
+  Calendar,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Copy,
+  Droplets,
+  Dumbbell,
+  Eye,
+  EyeOff,
+  Flame,
+  HeartPulse,
+  Info,
+  Layers,
+  MessageSquare,
+  Minus,
+  Pencil,
+  Phone,
+  Ruler,
+  Salad,
+  Scale,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  User,
+  X,
+  Zap,
+} from 'lucide-react';
+import { useToast } from '../ui/ToastProvider';
+import { api } from '../../services/api';
+import { errorMessage } from '../../types';
+import type { InBodyRecordData } from '../../types/inbody';
+import { analyzeInBody } from '../../services/inbodyAnalytics';
+
+interface InBodyDetailModalProps {
+  open: boolean;
+  record: InBodyRecordData | null;
+  previousRecord?: InBodyRecordData | null;
+  customerMeta?: { fullName?: string; gender?: string; height?: number; phone?: string };
+  onClose: () => void;
+  onEdit?: (record: InBodyRecordData) => void;
+  onStatusChanged?: (updated: InBodyRecordData) => void;
+}
+
+export default function InBodyDetailModal({
+  open,
+  record,
+  previousRecord,
+  customerMeta,
+  onClose,
+  onEdit,
+  onStatusChanged,
+}: InBodyDetailModalProps) {
+  const toast = useToast();
+  const [copied, setCopied] = useState(false);
+  const [toggling, setToggling] = useState(false);
+
+  const analysis = useMemo(() => {
+    if (!record) return null;
+    return analyzeInBody(record, previousRecord, customerMeta);
+  }, [record, previousRecord, customerMeta]);
+
+  if (!open || !record || !analysis) return null;
+
+  const customerName =
+    customerMeta?.fullName ||
+    (typeof record.customerId === 'object' && record.customerId?.fullName) ||
+    'Học viên';
+  const customerPhone =
+    customerMeta?.phone ||
+    (typeof record.customerId === 'object' && record.customerId?.phone) ||
+    '';
+  const isPublished = record.status === 'PUBLISHED';
+
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(analysis.quickMessage);
+      setCopied(true);
+      toast.success('Đã sao chép kịch bản tư vấn InBody vào clipboard!');
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      toast.error('Không thể sao chép tự động. Vui lòng chọn và sao chép thủ công.');
+    }
+  };
+
+  const handleTogglePublish = async () => {
+    setToggling(true);
+    const isPublishing = record.status !== 'PUBLISHED';
+    try {
+      const endpoint = isPublishing ? `/api/inbody/${record._id}/publish` : `/api/inbody/${record._id}/unpublish`;
+      const res = await api.patch<InBodyRecordData>(endpoint, {});
+      toast.success(res.message || (isPublishing ? 'Đã công bố InBody cho học viên!' : 'Đã chuyển về bản nháp!'));
+      const updated: InBodyRecordData = {
+        ...record,
+        status: isPublishing ? 'PUBLISHED' : 'DRAFT',
+        publishedAt: isPublishing ? new Date().toISOString() : null,
+      };
+      onStatusChanged?.(updated);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const sm = record.segmentalMuscle;
+  const sf = record.segmentalFat;
+  const hasSegmental = Boolean(
+    sm?.rightArm || sm?.leftArm || sm?.trunk || sm?.rightLeg || sm?.leftLeg ||
+    sf?.rightArm || sf?.leftArm || sf?.trunk || sf?.rightLeg || sf?.leftLeg
+  );
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.65)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+        overflowY: 'auto',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: '18px',
+          width: '100%',
+          maxWidth: '920px',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          overflow: 'hidden',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #003b70 0%, #0369a1 100%)',
+            padding: '20px 24px',
+            color: '#ffffff',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '16px',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(4px)',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                <Sparkles size={13} /> Phân Tích InBody & Tư Vấn PT
+              </span>
+              {record.source === 'AI_SCAN' && (
+                <span
+                  style={{
+                    background: '#ede9fe',
+                    color: '#6d28d9',
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  AI OCR
+                </span>
+              )}
+              <span
+                style={{
+                  background: isPublished ? '#dcfce7' : '#fef3c7',
+                  color: isPublished ? '#15803d' : '#b45309',
+                  padding: '3px 9px',
+                  borderRadius: '12px',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                }}
+              >
+                {isPublished ? '✓ Đã công bố học viên' : '📝 Bản nháp nội bộ'}
+              </span>
+            </div>
+            <h2 style={{ margin: '8px 0 2px', fontSize: '1.45rem', fontWeight: 800, color: '#ffffff' }}>
+              {customerName}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.86rem', color: '#e0f2fe', marginTop: '4px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Calendar size={14} /> Ngày đo: {new Date(record.measurementDate).toLocaleDateString('vi-VN')}
+              </span>
+              {customerPhone && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Phone size={13} /> {customerPhone}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={handleCopyMessage}
+              style={{
+                background: copied ? '#10b981' : 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: '#ffffff',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                fontSize: '0.84rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+              title="Sao chép kịch bản tư vấn gửi khách qua Zalo/SMS"
+            >
+              {copied ? <Check size={15} /> : <Copy size={15} />}
+              <span>{copied ? 'Đã chép' : 'Sao chép'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: 'none',
+                color: '#ffffff',
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+              aria-label="Đóng"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Modal Scrollable Body */}
+        <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '22px' }}>
+          {/* Section 1: InBody Score & Comparison Summary Banner */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: record.inbodyScore ? 'minmax(180px, 220px) 1fr' : '1fr',
+              gap: '16px',
+              alignItems: 'stretch',
+            }}
+          >
+            {/* Score Box */}
+            {record.inbodyScore != null && (
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: '14px',
+                  padding: '18px 20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                }}
+              >
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Điểm InBody Score
+                </span>
+                <div style={{ fontSize: '2.8rem', fontWeight: 900, color: '#15803d', lineHeight: 1.1, margin: '6px 0' }}>
+                  {record.inbodyScore}
+                  <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#16a34a' }}>/100</span>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    background: '#15803d',
+                    color: '#ffffff',
+                  }}
+                >
+                  {analysis.classifications.inbodyScore?.label || 'Đạt chuẩn'}
+                </span>
+              </div>
+            )}
+
+            {/* Comparison / Delta Card or Status Banner */}
+            <div
+              style={{
+                background: analysis.comparison
+                  ? analysis.comparison.trendType === 'EXCELLENT'
+                    ? '#f0fdf4'
+                    : analysis.comparison.trendType === 'NEEDS_ADJUSTMENT'
+                      ? '#fff1f2'
+                      : '#f0f9ff'
+                  : '#f8fafc',
+                border: `1px solid ${analysis.comparison
+                    ? analysis.comparison.trendType === 'EXCELLENT'
+                      ? '#bbf7d0'
+                      : analysis.comparison.trendType === 'NEEDS_ADJUSTMENT'
+                        ? '#fecdd3'
+                        : '#bae6fd'
+                    : '#e2e8f0'
+                  }`,
+                borderRadius: '14px',
+                padding: '16px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+              }}
+            >
+              {analysis.comparison ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <TrendingUp size={18} color={analysis.comparison.trendType === 'NEEDS_ADJUSTMENT' ? '#e11d48' : '#0284c7'} />
+                    <strong style={{ fontSize: '0.94rem', color: '#0f172a' }}>
+                      So sánh với lần đo trước (cách {analysis.comparison.daysBetween} ngày):
+                    </strong>
+                  </div>
+                  <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#334155', fontWeight: 600 }}>
+                    {analysis.comparison.trendSummary}
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    <span
+                      style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: analysis.comparison.deltaWeight > 0 ? '#b45309' : '#15803d',
+                      }}
+                    >
+                      Cân nặng: {analysis.comparison.deltaWeight > 0 ? `+${analysis.comparison.deltaWeight}` : analysis.comparison.deltaWeight} kg
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: analysis.comparison.deltaFatPercentage < 0 ? '#15803d' : '#e11d48',
+                      }}
+                    >
+                      % Mỡ: {analysis.comparison.deltaFatPercentage > 0 ? `+${analysis.comparison.deltaFatPercentage}` : analysis.comparison.deltaFatPercentage}%
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        color: analysis.comparison.deltaMuscleMass > 0 ? '#15803d' : '#b45309',
+                      }}
+                    >
+                      Khối lượng cơ: {analysis.comparison.deltaMuscleMass > 0 ? `+${analysis.comparison.deltaMuscleMass}` : analysis.comparison.deltaMuscleMass} kg
+                    </span>
+                    {analysis.comparison.deltaVisceralFat !== 0 && (
+                      <span
+                        style={{
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          color: analysis.comparison.deltaVisceralFat < 0 ? '#15803d' : '#e11d48',
+                        }}
+                      >
+                        Mỡ nội tạng: {analysis.comparison.deltaVisceralFat > 0 ? `+${analysis.comparison.deltaVisceralFat}` : analysis.comparison.deltaVisceralFat} Lv
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Info size={24} color="#0284c7" />
+                  <div>
+                    <strong style={{ color: '#003b70', display: 'block', fontSize: '0.94rem' }}>
+                      Phiếu InBody khởi điểm (Baseline)
+                    </strong>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                      Đây là kết quả đo đầu tiên hoặc chưa có dữ liệu đối chiếu. Các lần đo tiếp theo sẽ tự động so sánh mức độ tiến bộ.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 2: Core Body Composition Metrics Grid */}
+          <div>
+            <h3 style={{ margin: '0 0 12px', fontSize: '1.02rem', fontWeight: 800, color: '#003b70', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Scale size={18} color="#0284c7" /> Phân Tích Thành Phần Cơ Thể (Body Composition)
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
+              {/* 1. Cân nặng */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Cân nặng (Weight)</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#003b70', margin: '4px 0' }}>
+                  {record.weight} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>kg</span>
+                </div>
+                {analysis.classifications.bmi && (
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: analysis.classifications.bmi.color }}>
+                    BMI: {record.bmi || '—'} ({analysis.classifications.bmi.label})
+                  </span>
+                )}
+              </div>
+
+              {/* 2. Tỷ lệ mỡ */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Tỷ lệ mỡ (Body Fat %)</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
+                  {record.bodyFatPercentage != null ? `${record.bodyFatPercentage}%` : '—'}
+                </div>
+                {analysis.classifications.bodyFat && (
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: analysis.classifications.bodyFat.color }}>
+                    {analysis.classifications.bodyFat.label}
+                  </span>
+                )}
+              </div>
+
+              {/* 3. Khối lượng cơ xương */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Khối lượng cơ (Muscle)</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#15803d', margin: '4px 0' }}>
+                  {record.muscleMass != null ? `${record.muscleMass} kg` : '—'}
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                  {record.weight && record.muscleMass ? `~${((record.muscleMass / record.weight) * 100).toFixed(1)}% cơ thể` : 'Cơ xương (SMM)'}
+                </span>
+              </div>
+
+              {/* 4. Khối lượng mỡ (Body Fat Mass) */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Khối lượng mỡ (Fat Mass)</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#b45309', margin: '4px 0' }}>
+                  {record.bodyFatMass != null
+                    ? `${record.bodyFatMass} kg`
+                    : record.weight && record.bodyFatPercentage
+                      ? `${((record.weight * record.bodyFatPercentage) / 100).toFixed(1)} kg`
+                      : '—'}
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Tổng lượng mỡ tích tụ</span>
+              </div>
+
+              {/* 5. Mỡ nội tạng (Visceral Fat) */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Mỡ nội tạng (Visceral Fat)</span>
+                <div
+                  style={{
+                    fontSize: '1.4rem',
+                    fontWeight: 800,
+                    color: record.visceralFatLevel && record.visceralFatLevel >= 10 ? '#dc2626' : '#0f172a',
+                    margin: '4px 0',
+                  }}
+                >
+                  Level {record.visceralFatLevel != null ? record.visceralFatLevel : '—'}
+                </div>
+                {analysis.classifications.visceralFat && (
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: analysis.classifications.visceralFat.color }}>
+                    {analysis.classifications.visceralFat.label}
+                  </span>
+                )}
+              </div>
+
+              {/* 6. BMR Trao đổi chất */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Trao đổi chất cơ bản (BMR)</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0369a1', margin: '4px 0' }}>
+                  {record.bmr != null ? `${record.bmr}` : '—'} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>kcal</span>
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Đốt thụ động / ngày</span>
+              </div>
+
+              {/* 7. Lượng nước (Body Water) */}
+              {record.bodyWater != null && (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Tổng lượng nước (TBW)</span>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7', margin: '4px 0' }}>
+                    {record.bodyWater} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>L</span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Độ hydrat hóa cơ thể</span>
+                </div>
+              )}
+
+              {/* 8. Tỷ lệ eo / mông (WHR) */}
+              {record.waistHipRatio != null && (
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Tỷ lệ eo / mông (WHR)</span>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#7c3aed', margin: '4px 0' }}>
+                    {record.waistHipRatio}
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Phân bố mỡ bụng</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 3: Segmental Muscle & Fat Breakdown (if available) */}
+          {hasSegmental && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px 20px' }}>
+              <h4 style={{ margin: '0 0 14px', fontSize: '0.96rem', fontWeight: 800, color: '#003b70', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Layers size={17} color="#0284c7" /> Phân Tích Cơ & Mỡ Từng Phần (Segmental Lean & Fat)
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                {[
+                  { label: 'Tay Phải (Right Arm)', m: sm?.rightArm, f: sf?.rightArm },
+                  { label: 'Tay Trái (Left Arm)', m: sm?.leftArm, f: sf?.leftArm },
+                  { label: 'Thân mình (Trunk)', m: sm?.trunk, f: sf?.trunk },
+                  { label: 'Chân Phải (Right Leg)', m: sm?.rightLeg, f: sf?.rightLeg },
+                  { label: 'Chân Trái (Left Leg)', m: sm?.leftLeg, f: sf?.leftLeg },
+                ].map((part) => (
+                  <div key={part.label} style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '10px 12px' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block' }}>{part.label}</span>
+                    <div style={{ marginTop: '4px', fontSize: '0.84rem' }}>
+                      <span style={{ color: '#15803d', fontWeight: 700, display: 'block' }}>
+                        Cơ: {part.m != null ? `${part.m} kg` : '—'}
+                      </span>
+                      <span style={{ color: '#b45309', fontWeight: 600, fontSize: '0.78rem', display: 'block' }}>
+                        Mỡ: {part.f != null ? `${part.f} kg` : '—'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {(analysis.segmentalAnalysis.muscleImbalanceArm.hasImbalance || analysis.segmentalAnalysis.muscleImbalanceLeg.hasImbalance) && (
+                <div style={{ marginTop: '12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 12px', fontSize: '0.82rem', color: '#92400e' }}>
+                  <strong>⚠️ Lưu ý mất cân đối cơ:</strong>
+                  {analysis.segmentalAnalysis.muscleImbalanceArm.hasImbalance && (
+                    <div>• {analysis.segmentalAnalysis.muscleImbalanceArm.note}</div>
+                  )}
+                  {analysis.segmentalAnalysis.muscleImbalanceLeg.hasImbalance && (
+                    <div>• {analysis.segmentalAnalysis.muscleImbalanceLeg.note}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Section 4: AI Intelligent Analysis (Strengths, Improvements, Priority, Alerts) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' }}>
+            {/* Box: Strengths & Highlights */}
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px', padding: '18px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#15803d' }}>
+                <CheckCircle2 size={20} />
+                <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800 }}>Điểm Mạnh Của Học Viên</h4>
+              </div>
+              {analysis.strengths.length > 0 ? (
+                <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.86rem', color: '#166534' }}>
+                  {analysis.strengths.map((s, idx) => (
+                    <li key={idx} style={{ lineHeight: 1.45 }}>{s}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ margin: 0, fontSize: '0.86rem', color: '#166534' }}>Thể trạng ở mức khởi đầu, sẵn sàng cho lộ trình rèn luyện mới.</p>
+              )}
+            </div>
+
+            {/* Box: Improvements & Priority Focus */}
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '14px', padding: '18px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#b45309' }}>
+                <Flame size={20} />
+                <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800 }}>Điểm Cần Cải Thiện & Vấn Đề Ưu Tiên</h4>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.86rem', color: '#92400e' }}>
+                {analysis.improvements.length > 0 && (
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: '4px' }}>Cần cải thiện:</strong>
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {analysis.improvements.map((imp, idx) => (
+                        <li key={idx}>{imp}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {analysis.priorities.length > 0 && (
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '8px', borderLeft: '3px solid #b45309' }}>
+                    <strong style={{ color: '#78350f', display: 'block', fontSize: '0.82rem', textTransform: 'uppercase' }}>
+                      🎯 Mục Tiêu Ưu Tiên Số 1:
+                    </strong>
+                    <p style={{ margin: '2px 0 0', fontWeight: 700, color: '#92400e' }}>
+                      {analysis.priorities[0]}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: Health & Biometric Alerts (if any) */}
+          {analysis.alerts.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={18} /> Cảnh Báo Chỉ Số Sức Khỏe Cần Theo Dõi Sát
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '10px' }}>
+                {analysis.alerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    style={{
+                      background: alert.level === 'danger' ? '#fff1f2' : '#fffbeb',
+                      border: `1px solid ${alert.level === 'danger' ? '#fecdd3' : '#fde68a'}`,
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      color: alert.level === 'danger' ? '#9f1239' : '#92400e',
+                    }}
+                  >
+                    <strong style={{ display: 'block', fontSize: '0.88rem', marginBottom: '2px' }}>
+                      ⚠️ {alert.title}
+                    </strong>
+                    <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.4 }}>{alert.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 6: PT Consultation Script & Actionable Advice */}
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRadius: '16px',
+              padding: '20px 22px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#003b70' }}>
+                <MessageSquare size={20} color="#0284c7" />
+                <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 800 }}>
+                  Kịch Bản & Hướng Dẫn Tư Vấn Chuyên Sâu Cho PT
+                </h4>
+              </div>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={handleCopyMessage}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', padding: '6px 12px' }}
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? 'Đã chép nội dung' : 'Sao chép tin nhắn gửi KH'}
+              </button>
+            </div>
+
+            {/* Talking Points */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+              <strong style={{ color: '#003b70', display: 'block', fontSize: '0.86rem', marginBottom: '8px' }}>
+                🗣️ Lời thoại gợi ý khi trao đổi trực tiếp với học viên:
+              </strong>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.86rem', color: '#334155' }}>
+                {analysis.consultationGuide.talkingPoints.map((tp, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <span style={{ background: '#e0f2fe', color: '#0369a1', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0, marginTop: '2px' }}>
+                      {idx + 1}
+                    </span>
+                    <p style={{ margin: 0, lineHeight: 1.45 }}>{tp}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Nutrition & Workout Targets */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px' }}>
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                <strong style={{ color: '#15803d', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.86rem', marginBottom: '6px' }}>
+                  <Salad size={16} /> Định hướng Dinh dưỡng:
+                </strong>
+                <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: '#334155', lineHeight: 1.4 }}>
+                  {analysis.consultationGuide.nutritionAdvice}
+                </p>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', background: '#f0fdf4', padding: '6px 10px', borderRadius: '6px', marginTop: '6px' }}>
+                  💧 <strong>Nước & Protein:</strong> {analysis.consultationGuide.proteinRecommendation}. {analysis.consultationGuide.waterRecommendation}
+                </div>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+                <strong style={{ color: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.86rem', marginBottom: '6px' }}>
+                  <Dumbbell size={16} /> Định hướng Tập luyện:
+                </strong>
+                <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: '#334155', lineHeight: 1.4 }}>
+                  {analysis.consultationGuide.workoutAdvice}
+                </p>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', background: '#f0f9ff', padding: '6px 10px', borderRadius: '6px', marginTop: '6px' }}>
+                  ⚡ <strong>Calo đề xuất:</strong> Giảm mỡ: {analysis.consultationGuide.targetCaloriesRecommendation.fatLoss} kcal | Tăng cơ: {analysis.consultationGuide.targetCaloriesRecommendation.muscleGain} kcal/ngày.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer Actions */}
+        <div
+          style={{
+            background: '#ffffff',
+            borderTop: '1px solid #e2e8f0',
+            padding: '14px 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {onEdit && (
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => {
+                  onClose();
+                  onEdit(record);
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Pencil size={15} /> Sửa chỉ số
+              </button>
+            )}
+
+            <button
+              type="button"
+              className={isPublished ? 'button button-secondary' : 'button button-primary'}
+              onClick={handleTogglePublish}
+              disabled={toggling}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              {isPublished ? <EyeOff size={15} /> : <Eye size={15} />}
+              {toggling ? 'Đang cập nhật...' : isPublished ? 'Thu hồi về bản nháp' : 'Công bố cho học viên'}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={onClose}
+            style={{ padding: '8px 18px', fontWeight: 600 }}
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

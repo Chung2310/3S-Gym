@@ -30,3 +30,6 @@ export function fieldErrors(error: unknown): Record<string, string> {
 }
 
 export type { ApiFailure, ApiList, ApiSuccess, FeatureKey, FeatureState, FieldError } from './types/api';
+export * from './types/inbody';
+export * from './types/workout';
+export * from './types/knowledge';

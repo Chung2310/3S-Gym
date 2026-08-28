@@ -7,7 +7,6 @@ export interface NavigationItem { path: string; label: string; section: Navigati
 
 export const portalNavigation: NavigationItem[] = [
   { path: '/pt/dashboard', label: 'Dashboard PT', section: 'Tổng quan', icon: LayoutDashboard, roles: ['PT'], feature: 'DASHBOARD' },
-  { path: '/notifications', label: 'Thông báo', section: 'Tổng quan', icon: Bell, roles: ['ADMIN', 'PT', 'CUSTOMER'] },
   { path: '/calendar', label: 'Lịch nội bộ', section: 'Tổng quan', icon: CalendarDays, roles: ['ADMIN', 'PT'] },
   { path: '/admin', label: 'Quản lý PT', section: 'Vận hành', icon: Users, roles: ['ADMIN'], matchChildren: true },
   { path: '/pt/customers', label: 'Khách hàng', section: 'Vận hành', icon: Users, roles: ['PT'], matchChildren: true },

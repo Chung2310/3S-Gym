@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { ArrowRight, Calendar, Camera, Check, Image as ImageIcon, Plus, Sliders, Trash2, Upload, Weight, X, ZoomIn } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import FormField from './FormField';
@@ -53,22 +53,114 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Upload Form State
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [form, setForm] = useState({
-    takenDate: new Date().toISOString().slice(0, 10),
-    stage: 'BEFORE',
-    angle: 'FRONT',
-    weight: '',
-    bodyFat: '',
-    notes: '',
-  });
+  // Batch Multi-Photo Upload State
+  const [uploadQueue, setUploadQueue] = useState<
+    Array<{
+      id: string;
+      file: File;
+      previewUrl: string;
+      stage: 'BEFORE' | 'AFTER' | 'PROGRESS';
+      angle: 'FRONT' | 'SIDE' | 'BACK' | 'OTHER';
+      weight?: string;
+      notes?: string;
+      takenDate: string;
+    }>
+  >([]);
+  const [bulkStage, setBulkStage] = useState<'BEFORE' | 'AFTER' | 'PROGRESS'>('BEFORE');
+  const [bulkDate, setBulkDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [bulkWeight, setBulkWeight] = useState<string>('');
 
   // Compare Mode State
   const [beforePhotoId, setBeforePhotoId] = useState('');
   const [afterPhotoId, setAfterPhotoId] = useState('');
+  const [compareAngle, setCompareAngle] = useState<string>('ALL');
+  const [compareViewType, setCompareViewType] = useState<'sideBySide' | 'slider' | 'multiAngle' | 'timeline'>('sideBySide');
+  const [sliderPos, setSliderPos] = useState<number>(50);
   const [zoomPhoto, setZoomPhoto] = useState<ProgressPhotoItem | null>(null);
+
+  // Direct Drag Handler for Split Slider
+  const sliderContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
+
+  const handleSliderMove = (clientX: number) => {
+    if (!sliderContainerRef.current) return;
+    const rect = sliderContainerRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const x = clientX - rect.left;
+    const percent = Math.min(100, Math.max(0, (x / rect.width) * 100));
+    setSliderPos(Math.round(percent * 10) / 10);
+  };
+
+  const handleSliderMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingSlider(true);
+    handleSliderMove(e.clientX);
+  };
+
+  const handleSliderTouchStart = (e: React.TouchEvent) => {
+    setIsDraggingSlider(true);
+    if (e.touches[0]) {
+      handleSliderMove(e.touches[0].clientX);
+    }
+  };
+
+  useEffect(() => {
+    if (!isDraggingSlider) return;
+
+    const onMouseMove = (e: MouseEvent) => {
+      handleSliderMove(e.clientX);
+    };
+
+    const onMouseUp = () => {
+      setIsDraggingSlider(false);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches[0]) {
+        handleSliderMove(e.touches[0].clientX);
+      }
+    };
+
+    const onTouchEnd = () => {
+      setIsDraggingSlider(false);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchmove', onTouchMove);
+    window.addEventListener('touchend', onTouchEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [isDraggingSlider]);
+
+  const autoPairPhotos = (angle = compareAngle) => {
+    const pool = angle === 'ALL' ? items : items.filter((p) => p.angle === angle);
+    if (pool.length < 2) {
+      if (pool.length === 1) {
+        setBeforePhotoId(pool[0]._id);
+      }
+      return;
+    }
+    const sorted = [...pool].sort((a, b) => new Date(a.takenDate).getTime() - new Date(b.takenDate).getTime());
+    const earliest = sorted.find((p) => p.stage === 'BEFORE') || sorted[0];
+    const latest = [...sorted].reverse().find((p) => (p.stage === 'AFTER' || p.stage === 'PROGRESS') && p._id !== earliest._id) || sorted[sorted.length - 1];
+    
+    if (earliest && latest) {
+      setBeforePhotoId(earliest._id);
+      setAfterPhotoId(latest._id);
+    }
+  };
+
+  const swapBeforeAfter = () => {
+    const temp = beforePhotoId;
+    setBeforePhotoId(afterPhotoId);
+    setAfterPhotoId(temp);
+  };
 
   const load = async (page = 1) => {
     if (!customer?._id) return;
@@ -82,17 +174,20 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
 
       // Auto-assign default before/after if available
       if (loaded.length > 0) {
-        const befores = loaded.filter((p) => p.stage === 'BEFORE');
-        const afters = loaded.filter((p) => p.stage === 'AFTER' || p.stage === 'PROGRESS');
+        const sorted = [...loaded].sort((a, b) => new Date(a.takenDate).getTime() - new Date(b.takenDate).getTime());
+        const befores = sorted.filter((p) => p.stage === 'BEFORE');
+        const afters = sorted.filter((p) => p.stage === 'AFTER' || p.stage === 'PROGRESS');
+        
         if (befores.length > 0 && !beforePhotoId) {
-          setBeforePhotoId(befores[befores.length - 1]._id);
+          setBeforePhotoId(befores[0]._id);
         } else if (!beforePhotoId) {
-          setBeforePhotoId(loaded[loaded.length - 1]._id);
+          setBeforePhotoId(sorted[0]._id);
         }
+        
         if (afters.length > 0 && !afterPhotoId) {
-          setAfterPhotoId(afters[0]._id);
-        } else if (!afterPhotoId && loaded.length > 1) {
-          setAfterPhotoId(loaded[0]._id);
+          setAfterPhotoId(afters[afters.length - 1]._id);
+        } else if (!afterPhotoId && sorted.length > 1) {
+          setAfterPhotoId(sorted[sorted.length - 1]._id);
         }
       }
     } catch (error) {
@@ -105,64 +200,81 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
   useEffect(() => {
     if (!open) return;
     setShowUploadForm(false);
-    setSelectedFile(null);
-    setPreviewUrl('');
+    setUploadQueue([]);
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, customer?._id, stageFilter]);
 
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
+  const handleFilesSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const newItems = files.map((file) => ({
+      id: Math.random().toString(36).slice(2, 9),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      stage: bulkStage,
+      angle: 'FRONT' as const,
+      weight: bulkWeight,
+      notes: '',
+      takenDate: bulkDate,
+    }));
+    setUploadQueue((prev) => [...prev, ...newItems]);
+    e.target.value = '';
   };
 
-  const handleUploadSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const applyBulkStage = (stage: 'BEFORE' | 'AFTER' | 'PROGRESS') => {
+    setBulkStage(stage);
+    setUploadQueue((q) => q.map((item) => ({ ...item, stage })));
+  };
+
+  const applyBulkDate = (date: string) => {
+    setBulkDate(date);
+    setUploadQueue((q) => q.map((item) => ({ ...item, takenDate: date })));
+  };
+
+  const applyBulkWeight = (weight: string) => {
+    setBulkWeight(weight);
+    setUploadQueue((q) => q.map((item) => ({ ...item, weight })));
+  };
+
+  const removeQueueItem = (id: string) => {
+    setUploadQueue((q) => q.filter((item) => item.id !== id));
+  };
+
+  const updateQueueItem = (id: string, updates: Partial<(typeof uploadQueue)[0]>) => {
+    setUploadQueue((q) => q.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  };
+
+  const handleBatchUploadSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!customer?._id) return;
-    if (!selectedFile && !previewUrl) {
-      toast.error('Vui lòng chọn ảnh cần tải lên.');
+    if (!uploadQueue.length) {
+      toast.error('Vui lòng chọn ít nhất 1 ảnh để tải lên.');
       return;
     }
     try {
       setUploading(true);
-      let photoUrl = previewUrl;
-      if (selectedFile) {
-        const uploadForm = new FormData();
-        uploadForm.append('file', selectedFile);
-        const uploadRes = await api.upload<{ url: string }>('/api/upload/image', uploadForm);
-        photoUrl = uploadRes.data?.url || '';
-      }
-
-      if (!photoUrl) {
-        throw new Error('Tải ảnh thất bại, vui lòng thử lại.');
-      }
-
-      const payload = {
-        photoUrl,
-        takenDate: form.takenDate,
-        stage: form.stage,
-        angle: form.angle,
-        weight: form.weight ? Number(form.weight) : null,
-        bodyFat: form.bodyFat ? Number(form.bodyFat) : null,
-        notes: form.notes.trim(),
-      };
-
-      const result = await api.post(`/api/customers/${customer._id}/photos`, payload);
-      toast.success(result.message);
-      setShowUploadForm(false);
-      setSelectedFile(null);
-      setPreviewUrl('');
-      setForm({
-        takenDate: new Date().toISOString().slice(0, 10),
-        stage: 'PROGRESS',
-        angle: 'FRONT',
-        weight: '',
-        bodyFat: '',
-        notes: '',
+      const formData = new FormData();
+      uploadQueue.forEach((item) => {
+        formData.append('images', item.file);
       });
+
+      const uploadRes = await api.upload<Array<{ url: string; publicId: string }>>('/api/upload/images', formData);
+      const uploadedImages = uploadRes.data || [];
+
+      const photosPayload = uploadQueue.map((item, index) => ({
+        photoUrl: uploadedImages[index]?.url || item.previewUrl,
+        takenDate: item.takenDate || new Date().toISOString().slice(0, 10),
+        stage: item.stage,
+        angle: item.angle,
+        weight: item.weight ? Number(item.weight) : null,
+        notes: (item.notes || '').trim(),
+      }));
+
+      const result = await api.post(`/api/customers/${customer._id}/photos`, photosPayload);
+      toast.success(result.message || `Đã tải lên thành công ${uploadQueue.length} ảnh!`);
+      setUploadQueue([]);
+      setShowUploadForm(false);
       load();
     } catch (error) {
       toast.error(errorMessage(error));
@@ -183,22 +295,76 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
     }
   };
 
+  const filteredCompareItems = useMemo(() => {
+    if (compareAngle === 'ALL') return items;
+    return items.filter((p) => p.angle === compareAngle);
+  }, [items, compareAngle]);
+
+  // Dedicated options for Before and After dropdowns
+  const beforeOptions = useMemo(() => {
+    const pool = compareAngle === 'ALL' ? items : items.filter((p) => p.angle === compareAngle);
+    const befores = pool.filter((p) => p.stage === 'BEFORE');
+    return befores.length > 0 ? befores : pool;
+  }, [items, compareAngle]);
+
+  const afterOptions = useMemo(() => {
+    const pool = compareAngle === 'ALL' ? items : items.filter((p) => p.angle === compareAngle);
+    const afters = pool.filter((p) => p.stage === 'AFTER' || p.stage === 'PROGRESS');
+    return afters.length > 0 ? afters : pool;
+  }, [items, compareAngle]);
+
+  useEffect(() => {
+    if (beforeOptions.length > 0 && !beforeOptions.some((p) => p._id === beforePhotoId)) {
+      setBeforePhotoId(beforeOptions[0]._id);
+    }
+  }, [beforeOptions, beforePhotoId]);
+
+  useEffect(() => {
+    if (afterOptions.length > 0 && !afterOptions.some((p) => p._id === afterPhotoId)) {
+      setAfterPhotoId(afterOptions[afterOptions.length - 1]._id);
+    }
+  }, [afterOptions, afterPhotoId]);
+
   const selectedBefore = useMemo(() => items.find((i) => i._id === beforePhotoId), [items, beforePhotoId]);
   const selectedAfter = useMemo(() => items.find((i) => i._id === afterPhotoId), [items, afterPhotoId]);
+
+  const multiAnglePairs = useMemo(() => {
+    const angles: Array<'FRONT' | 'SIDE' | 'BACK'> = ['FRONT', 'SIDE', 'BACK'];
+    return angles.map((angle) => {
+      const list = items
+        .filter((p) => p.angle === angle)
+        .sort((a, b) => new Date(a.takenDate).getTime() - new Date(b.takenDate).getTime());
+      const before = list.find((p) => p.stage === 'BEFORE') || list[0] || null;
+      const after =
+        [...list].reverse().find((p) => (p.stage === 'AFTER' || p.stage === 'PROGRESS') && p._id !== before?._id) ||
+        (list.length > 1 ? list[list.length - 1] : null);
+      return {
+        angle,
+        title: ANGLE_LABELS[angle] || angle,
+        before,
+        after: after && after._id !== before?._id ? after : null,
+        totalCount: list.length,
+      };
+    });
+  }, [items]);
+
+  const sortedTimeline = useMemo(() => {
+    return [...items].sort((a, b) => new Date(a.takenDate).getTime() - new Date(b.takenDate).getTime());
+  }, [items]);
 
   if (!open || !customer) return null;
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="photo-modal-title">
-      <div className="modal-content" style={{ maxWidth: '960px', width: '95%', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="modal-content" style={{ maxWidth: '1000px', width: '96%', maxHeight: '94vh', display: 'flex', flexDirection: 'column', background: '#ffffff', color: '#0f172a', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 38, 77, 0.45)' }}>
         {/* Header */}
-        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #e2e8f0' }}>
+        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
           <div>
             <h2 id="photo-modal-title" style={{ fontSize: '1.25rem', fontWeight: 700, color: '#003b70', margin: 0 }}>
               Ảnh Before / After: {customer.fullName}
             </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
-              Theo dõi sự thay đổi vóc dáng qua các giai đoạn và đối chiếu ảnh trực quan.
+            <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#475569' }}>
+              Theo dõi sự thay đổi vóc dáng qua các giai đoạn và đối chiếu ảnh trực quan đa góc độ.
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -217,7 +383,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                 style={{ padding: '6px 14px', fontSize: '0.84rem' }}
                 onClick={() => setActiveTab('compare')}
               >
-                <Sliders size={15} style={{ marginRight: '6px' }} /> So sánh Before/After
+                <Sliders size={15} style={{ marginRight: '6px' }} /> So sánh Before / After
               </button>
             </div>
             <button type="button" className="icon-button" onClick={onClose} aria-label="Đóng">
@@ -248,146 +414,275 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                 </div>
                 {!showUploadForm && (
                   <button type="button" className="button button-primary" onClick={() => setShowUploadForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Plus size={16} /> Tải ảnh mới
+                    <Plus size={16} /> Tải nhiều ảnh mới
                   </button>
                 )}
               </div>
 
-              {/* Upload Form */}
+              {/* Multi-Photo Batch Upload Form */}
               {showUploadForm && (
                 <form
-                  onSubmit={handleUploadSubmit}
+                  onSubmit={handleBatchUploadSubmit}
                   style={{
                     background: '#f8fafc',
                     border: '1px solid #cbd5e1',
-                    borderRadius: '12px',
-                    padding: '18px 20px',
-                    marginBottom: '20px',
+                    borderRadius: '14px',
+                    padding: '20px 22px',
+                    marginBottom: '22px',
+                    boxShadow: '0 4px 14px rgba(0, 59, 112, 0.05)',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#003b70' }}>Tải ảnh tiến độ học viên</h3>
-                    <button type="button" className="icon-button" onClick={() => setShowUploadForm(false)}>
-                      <X size={16} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#003b70' }}>
+                        Tải nhiều ảnh tiến độ cùng lúc
+                      </h3>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                        Chọn hoặc kéo thả nhiều ảnh cùng lúc, gán nhanh giai đoạn (Before/After) và tải lên 1 chạm.
+                      </p>
+                    </div>
+                    <button type="button" className="icon-button" onClick={() => setShowUploadForm(false)} aria-label="Đóng form tải ảnh">
+                      <X size={18} />
                     </button>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '20px' }}>
-                    {/* Image Preview Box */}
+                  {/* Drop zone / File selector */}
+                  <div style={{ marginBottom: '18px' }}>
+                    <label
+                      htmlFor="multiPhotoInput"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '24px',
+                        border: '2px dashed #0284c7',
+                        borderRadius: '12px',
+                        background: '#f0f9ff',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <Upload size={36} style={{ color: '#0284c7', marginBottom: '8px' }} />
+                      <strong style={{ fontSize: '0.95rem', color: '#003b70' }}>
+                        Nhấp để chọn nhiều ảnh hoặc kéo thả ảnh vào đây
+                      </strong>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
+                        Hỗ trợ định dạng JPG, PNG, WebP (chọn được 1 hoặc nhiều ảnh cùng lúc)
+                      </span>
+                      <input
+                        id="multiPhotoInput"
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleFilesSelect}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Bulk Controls & Queue Preview */}
+                  {uploadQueue.length > 0 && (
                     <div>
-                      <label
-                        htmlFor="photoUploadInput"
+                      {/* Bulk Settings Bar */}
+                      <div
                         style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          height: '200px',
-                          border: '2px dashed #94a3b8',
+                          background: '#ffffff',
+                          padding: '14px 16px',
                           borderRadius: '10px',
-                          cursor: 'pointer',
-                          background: previewUrl ? '#000' : '#ffffff',
-                          overflow: 'hidden',
-                          position: 'relative',
+                          border: '1px solid #e2e8f0',
+                          marginBottom: '16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '12px',
                         }}
                       >
-                        {previewUrl ? (
-                          <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        ) : (
-                          <div style={{ textAlign: 'center', padding: '12px', color: '#64748b' }}>
-                            <Camera size={32} style={{ margin: '0 auto 8px', color: '#0284c7' }} />
-                            <span style={{ fontSize: '0.84rem', fontWeight: 600, display: 'block' }}>Chọn hoặc kéo ảnh</span>
-                            <small style={{ fontSize: '0.72rem' }}>PNG, JPG tối đa 10MB</small>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#003b70' }}>
+                            Gán nhanh cho cả {uploadQueue.length} ảnh:
+                          </span>
+                          <button
+                            type="button"
+                            className={`button ${bulkStage === 'BEFORE' ? 'button-primary' : 'button-secondary'}`}
+                            style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                            onClick={() => applyBulkStage('BEFORE')}
+                          >
+                            Tất cả Trước (Before)
+                          </button>
+                          <button
+                            type="button"
+                            className={`button ${bulkStage === 'AFTER' ? 'button-primary' : 'button-secondary'}`}
+                            style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                            onClick={() => applyBulkStage('AFTER')}
+                          >
+                            Tất cả Sau (After)
+                          </button>
+                          <button
+                            type="button"
+                            className={`button ${bulkStage === 'PROGRESS' ? 'button-primary' : 'button-secondary'}`}
+                            style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                            onClick={() => applyBulkStage('PROGRESS')}
+                          >
+                            Tất cả Tiến độ
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            type="date"
+                            className="field"
+                            value={bulkDate}
+                            onChange={(e) => applyBulkDate(e.target.value)}
+                            style={{ padding: '5px 8px', fontSize: '0.8rem', width: '140px' }}
+                            title="Ngày chụp cho tất cả"
+                          />
+                          <input
+                            type="number"
+                            step="0.1"
+                            placeholder="Cân nặng (kg)"
+                            value={bulkWeight}
+                            onChange={(e) => applyBulkWeight(e.target.value)}
+                            style={{ padding: '5px 8px', fontSize: '0.8rem', width: '110px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                            title="Cân nặng cho tất cả"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Upload Queue Grid */}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                          gap: '14px',
+                          maxHeight: '340px',
+                          overflowY: 'auto',
+                          paddingRight: '4px',
+                          marginBottom: '16px',
+                        }}
+                      >
+                        {uploadQueue.map((item, idx) => (
+                          <div
+                            key={item.id}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '10px',
+                              overflow: 'hidden',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              position: 'relative',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                            }}
+                          >
+                            {/* Remove button */}
+                            <button
+                              type="button"
+                              onClick={() => removeQueueItem(item.id)}
+                              style={{
+                                position: 'absolute',
+                                top: '6px',
+                                right: '6px',
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                background: 'rgba(0,0,0,0.65)',
+                                color: '#ffffff',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 2,
+                              }}
+                              title="Bỏ ảnh này"
+                            >
+                              <X size={14} />
+                            </button>
+
+                            {/* Thumbnail */}
+                            <div style={{ height: '140px', background: '#0f172a', position: 'relative' }}>
+                              <img
+                                src={item.previewUrl}
+                                alt={`Queue ${idx + 1}`}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '6px',
+                                  left: '6px',
+                                  background: 'rgba(0,0,0,0.7)',
+                                  color: '#fff',
+                                  fontSize: '0.7rem',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                #{idx + 1}
+                              </span>
+                            </div>
+
+                            {/* Controls for this photo */}
+                            <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <select
+                                value={item.stage}
+                                onChange={(e) => updateQueueItem(item.id, { stage: e.target.value as any })}
+                                style={{ padding: '4px 6px', fontSize: '0.78rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 600 }}
+                              >
+                                <option value="BEFORE">Trước (Before)</option>
+                                <option value="AFTER">Sau (After)</option>
+                                <option value="PROGRESS">Tiến độ định kỳ</option>
+                              </select>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                                <select
+                                  value={item.angle}
+                                  onChange={(e) => updateQueueItem(item.id, { angle: e.target.value as any })}
+                                  style={{ padding: '3px 4px', fontSize: '0.74rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                >
+                                  <option value="FRONT">Chính diện</option>
+                                  <option value="SIDE">Nghiêng</option>
+                                  <option value="BACK">Sau lưng</option>
+                                  <option value="OTHER">Khác</option>
+                                </select>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  placeholder="Kg"
+                                  value={item.weight || ''}
+                                  onChange={(e) => updateQueueItem(item.id, { weight: e.target.value })}
+                                  style={{ padding: '3px 4px', fontSize: '0.74rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                />
+                              </div>
+                            </div>
                           </div>
-                        )}
-                        <input
-                          id="photoUploadInput"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileSelect}
-                          style={{ display: 'none' }}
-                          required={!previewUrl}
-                        />
-                      </label>
-                    </div>
+                        ))}
+                      </div>
 
-                    {/* Inputs */}
-                    <div className="profile-form-grid" style={{ alignContent: 'start' }}>
-                      <FormField
-                        label="Giai đoạn"
-                        name="stage"
-                        as="select"
-                        value={form.stage}
-                        onChange={(e) => setForm({ ...form, stage: e.target.value })}
-                        required
-                      >
-                        <option value="BEFORE">Trước khi tập (Before)</option>
-                        <option value="AFTER">Sau khi tập (After)</option>
-                        <option value="PROGRESS">Tiến độ định kỳ</option>
-                      </FormField>
-
-                      <FormField
-                        label="Góc chụp"
-                        name="angle"
-                        as="select"
-                        value={form.angle}
-                        onChange={(e) => setForm({ ...form, angle: e.target.value })}
-                      >
-                        <option value="FRONT">Chính diện</option>
-                        <option value="SIDE">Nghiêng</option>
-                        <option value="BACK">Phía sau</option>
-                        <option value="OTHER">Khác</option>
-                      </FormField>
-
-                      <FormField
-                        label="Ngày chụp"
-                        name="takenDate"
-                        type="date"
-                        value={form.takenDate}
-                        onChange={(e) => setForm({ ...form, takenDate: e.target.value })}
-                        required
-                      />
-
-                      <FormField
-                        label="Cân nặng lúc chụp (kg)"
-                        name="weight"
-                        type="number"
-                        step="0.1"
-                        placeholder="Ví dụ: 72.5"
-                        value={form.weight}
-                        onChange={(e) => setForm({ ...form, weight: e.target.value })}
-                      />
-
-                      <FormField
-                        label="Tỷ lệ mỡ BodyFat (%)"
-                        name="bodyFat"
-                        type="number"
-                        step="0.1"
-                        placeholder="Ví dụ: 19.5"
-                        value={form.bodyFat}
-                        onChange={(e) => setForm({ ...form, bodyFat: e.target.value })}
-                      />
-
-                      <div className="grid-full-width">
-                        <FormField
-                          label="Ghi chú về ảnh"
-                          name="notes"
-                          placeholder="Ví dụ: Chụp vào buổi sáng trước khi ăn, tuần tập thứ 8..."
-                          value={form.notes}
-                          onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                        />
+                      {/* Action buttons */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          onClick={() => setUploadQueue([])}
+                          disabled={uploading}
+                        >
+                          Xóa tất cả ({uploadQueue.length})
+                        </button>
+                        <button
+                          type="submit"
+                          className="button button-primary"
+                          disabled={uploading}
+                          style={{ minWidth: '180px', fontWeight: 700 }}
+                        >
+                          {uploading ? 'Đang tải lên...' : `Tải lên tất cả (${uploadQueue.length} ảnh)`}
+                        </button>
                       </div>
                     </div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' }}>
-                    <button type="button" className="button button-secondary" onClick={() => setShowUploadForm(false)}>
-                      Hủy
-                    </button>
-                    <button type="submit" className="button button-primary" disabled={uploading}>
-                      {uploading ? 'Đang tải lên...' : 'Lưu ảnh'}
-                    </button>
-                  </div>
+                  )}
                 </form>
               )}
 
@@ -403,7 +698,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
                   {items.map((item) => {
-                    const badge = STAGE_LABELS[item.stage] || STAGE_LABELS.PROGRESS;
+                    const stageInfo = STAGE_LABELS[item.stage] || { label: item.stage, color: '#475569', bg: '#f1f5f9' };
                     return (
                       <div
                         key={item._id}
@@ -412,24 +707,24 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                           border: '1px solid #e2e8f0',
                           borderRadius: '12px',
                           overflow: 'hidden',
-                          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                           display: 'flex',
                           flexDirection: 'column',
-                          position: 'relative',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                         }}
                       >
                         <div
                           style={{
-                            height: '220px',
+                            height: '210px',
                             background: '#0f172a',
                             position: 'relative',
                             cursor: 'pointer',
+                            overflow: 'hidden',
                           }}
                           onClick={() => setZoomPhoto(item)}
                         >
                           <img
                             src={item.photoUrl}
-                            alt={item.stage}
+                            alt={stageInfo.label}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
                           <span
@@ -437,15 +732,16 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                               position: 'absolute',
                               top: '8px',
                               left: '8px',
-                              background: badge.bg,
-                              color: badge.color,
+                              background: stageInfo.bg,
+                              color: stageInfo.color,
                               fontSize: '0.72rem',
                               fontWeight: 700,
                               padding: '3px 8px',
                               borderRadius: '6px',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                             }}
                           >
-                            {badge.label}
+                            {item.stage}
                           </span>
                           <span
                             style={{
@@ -517,133 +813,509 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
 
           {activeTab === 'compare' && (
             <div>
-              {/* Selectors Bar */}
+              {/* Compare Mode Header & Mode Switcher */}
               <div
                 style={{
                   background: '#f8fafc',
                   border: '1px solid #e2e8f0',
                   borderRadius: '12px',
                   padding: '14px 18px',
-                  marginBottom: '20px',
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '20px',
+                  marginBottom: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
                 }}
               >
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#0369a1', marginBottom: '6px' }}>
-                    1. Chọn ảnh Trước (Before):
-                  </label>
-                  <select
-                    className="filter-select"
-                    style={{ width: '100%' }}
-                    value={beforePhotoId}
-                    onChange={(e) => setBeforePhotoId(e.target.value)}
-                    aria-label="Chọn ảnh Before"
+                {/* View Mode Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#003b70', marginRight: '4px' }}>Chế độ xem:</span>
+                  <button
+                    type="button"
+                    className={`button ${compareViewType === 'sideBySide' ? 'button-primary' : 'button-ghost'}`}
+                    style={{ padding: '5px 12px', fontSize: '0.82rem' }}
+                    onClick={() => setCompareViewType('sideBySide')}
                   >
-                    <option value="">-- Chọn ảnh Trước --</option>
-                    {items.map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {new Date(p.takenDate).toLocaleDateString('vi-VN')} ({STAGE_LABELS[p.stage]?.label || p.stage}) - {p.weight ? `${p.weight}kg` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    Song song (2 cột)
+                  </button>
+                  <button
+                    type="button"
+                    className={`button ${compareViewType === 'slider' ? 'button-primary' : 'button-ghost'}`}
+                    style={{ padding: '5px 12px', fontSize: '0.82rem' }}
+                    onClick={() => setCompareViewType('slider')}
+                  >
+                    Thanh trượt lồng nhau
+                  </button>
+                  <button
+                    type="button"
+                    className={`button ${compareViewType === 'multiAngle' ? 'button-primary' : 'button-ghost'}`}
+                    style={{ padding: '5px 12px', fontSize: '0.82rem' }}
+                    onClick={() => setCompareViewType('multiAngle')}
+                  >
+                    Trọn bộ 3 góc (360°)
+                  </button>
+                  <button
+                    type="button"
+                    className={`button ${compareViewType === 'timeline' ? 'button-primary' : 'button-ghost'}`}
+                    style={{ padding: '5px 12px', fontSize: '0.82rem' }}
+                    onClick={() => setCompareViewType('timeline')}
+                  >
+                    Dòng thời gian ({items.length})
+                  </button>
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#15803d', marginBottom: '6px' }}>
-                    2. Chọn ảnh Sau (After):
-                  </label>
-                  <select
-                    className="filter-select"
-                    style={{ width: '100%' }}
-                    value={afterPhotoId}
-                    onChange={(e) => setAfterPhotoId(e.target.value)}
-                    aria-label="Chọn ảnh After"
-                  >
-                    <option value="">-- Chọn ảnh Sau --</option>
-                    {items.map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {new Date(p.takenDate).toLocaleDateString('vi-VN')} ({STAGE_LABELS[p.stage]?.label || p.stage}) - {p.weight ? `${p.weight}kg` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Quick actions: Angle Filter & Auto-Pair */}
+                {(compareViewType === 'sideBySide' || compareViewType === 'slider') && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <select
+                      className="filter-select"
+                      value={compareAngle}
+                      onChange={(e) => {
+                        setCompareAngle(e.target.value);
+                        autoPairPhotos(e.target.value);
+                      }}
+                      style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                      aria-label="Lọc góc chụp so sánh"
+                    >
+                      <option value="ALL">Tất cả góc</option>
+                      <option value="FRONT">Chính diện</option>
+                      <option value="SIDE">Nghiêng</option>
+                      <option value="BACK">Phía sau</option>
+                    </select>
+
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                      onClick={() => autoPairPhotos()}
+                      title="Tự động chọn ảnh đầu tiên và ảnh mới nhất"
+                    >
+                      ⚡ Tự ghép Before & After
+                    </button>
+
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                      onClick={swapBeforeAfter}
+                      title="Đổi chiều ảnh Trước và Sau"
+                    >
+                      ⇄ Hoán đổi
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Side-by-Side Comparison Container */}
-              {selectedBefore && selectedAfter ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Delta Stats Badge */}
-                  {(selectedBefore.weight || selectedAfter.weight) && (
-                    <div
-                      style={{
-                        background: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: '10px',
-                        padding: '12px 18px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-around',
-                        fontSize: '0.9rem',
-                      }}
+              {/* Selectors Bar for both Side-by-Side and Slider views */}
+              {(compareViewType === 'sideBySide' || compareViewType === 'slider') && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '16px',
+                    marginBottom: '16px',
+                  }}
+                >
+                  <div style={{ background: '#f0f9ff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #bae6fd' }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, color: '#0369a1', marginBottom: '4px' }}>
+                      <span>1. Ảnh Trước (Before):</span>
+                      <span style={{ fontSize: '0.74rem', opacity: 0.85 }}>({beforeOptions.length} ảnh)</span>
+                    </label>
+                    <select
+                      className="filter-select"
+                      style={{ width: '100%', fontSize: '0.84rem' }}
+                      value={beforePhotoId}
+                      onChange={(e) => setBeforePhotoId(e.target.value)}
+                      aria-label="Chọn ảnh Before"
                     >
-                      <div>
-                        <span style={{ color: '#64748b' }}>Cân nặng Trước: </span>
-                        <strong>{selectedBefore.weight ? `${selectedBefore.weight} kg` : '—'}</strong>
-                      </div>
-                      <ArrowRight size={16} style={{ color: '#16a34a' }} />
-                      <div>
-                        <span style={{ color: '#64748b' }}>Cân nặng Sau: </span>
-                        <strong>{selectedAfter.weight ? `${selectedAfter.weight} kg` : '—'}</strong>
-                      </div>
-                      {selectedBefore.weight && selectedAfter.weight && (
-                        <div style={{ background: '#16a34a', color: '#fff', padding: '3px 10px', borderRadius: '20px', fontWeight: 700, fontSize: '0.84rem' }}>
-                          Thay đổi: {(selectedAfter.weight - selectedBefore.weight).toFixed(1)} kg
-                        </div>
-                      )}
-                    </div>
-                  )}
+                      <option value="">-- Chọn ảnh Trước (Before) --</option>
+                      {beforeOptions.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {new Date(p.takenDate).toLocaleDateString('vi-VN')} ({STAGE_LABELS[p.stage]?.label || p.stage}) - {ANGLE_LABELS[p.angle] || p.angle} {p.weight ? `• ${p.weight}kg` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    {/* Before Card */}
-                    <div style={{ border: '2px solid #0284c7', borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
-                      <div style={{ background: '#0284c7', color: '#fff', padding: '8px 14px', fontWeight: 700, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>TRƯỚC (BEFORE)</span>
-                        <span>{new Date(selectedBefore.takenDate).toLocaleDateString('vi-VN')}</span>
-                      </div>
-                      <div style={{ height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src={selectedBefore.photoUrl} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                      </div>
-                      <div style={{ background: '#ffffff', padding: '10px 14px', fontSize: '0.84rem' }}>
-                        <div><strong>Chỉ số:</strong> {selectedBefore.weight ? `${selectedBefore.weight} kg` : ''} {selectedBefore.bodyFat ? `• ${selectedBefore.bodyFat}% Fat` : ''}</div>
-                        {selectedBefore.notes && <div style={{ color: '#64748b', marginTop: '2px' }}>{selectedBefore.notes}</div>}
-                      </div>
-                    </div>
-
-                    {/* After Card */}
-                    <div style={{ border: '2px solid #16a34a', borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
-                      <div style={{ background: '#16a34a', color: '#fff', padding: '8px 14px', fontWeight: 700, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between' }}>
-                        <span>SAU (AFTER)</span>
-                        <span>{new Date(selectedAfter.takenDate).toLocaleDateString('vi-VN')}</span>
-                      </div>
-                      <div style={{ height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src={selectedAfter.photoUrl} alt="After" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                      </div>
-                      <div style={{ background: '#ffffff', padding: '10px 14px', fontSize: '0.84rem' }}>
-                        <div><strong>Chỉ số:</strong> {selectedAfter.weight ? `${selectedAfter.weight} kg` : ''} {selectedAfter.bodyFat ? `• ${selectedAfter.bodyFat}% Fat` : ''}</div>
-                        {selectedAfter.notes && <div style={{ color: '#64748b', marginTop: '2px' }}>{selectedAfter.notes}</div>}
-                      </div>
-                    </div>
+                  <div style={{ background: '#f0fdf4', padding: '10px 14px', borderRadius: '10px', border: '1px solid #bbf7d0' }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 700, color: '#15803d', marginBottom: '4px' }}>
+                      <span>2. Ảnh Sau (After):</span>
+                      <span style={{ fontSize: '0.74rem', opacity: 0.85 }}>({afterOptions.length} ảnh)</span>
+                    </label>
+                    <select
+                      className="filter-select"
+                      style={{ width: '100%', fontSize: '0.84rem' }}
+                      value={afterPhotoId}
+                      onChange={(e) => setAfterPhotoId(e.target.value)}
+                      aria-label="Chọn ảnh After"
+                    >
+                      <option value="">-- Chọn ảnh Sau (After) --</option>
+                      {afterOptions.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {new Date(p.takenDate).toLocaleDateString('vi-VN')} ({STAGE_LABELS[p.stage]?.label || p.stage}) - {ANGLE_LABELS[p.angle] || p.angle} {p.weight ? `• ${p.weight}kg` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-                  <Sliders size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
-                  <h4 style={{ margin: '0 0 6px', color: '#334155' }}>Vui lòng chọn 2 ảnh để so sánh</h4>
-                  <p style={{ margin: 0, fontSize: '0.86rem', color: '#64748b' }}>
-                    Chọn 1 ảnh ở giai đoạn Trước (Before) và 1 ảnh ở giai đoạn Sau (After) để thấy sự khác biệt.
-                  </p>
+              )}
+
+              {/* VIEW 1: SIDE BY SIDE */}
+              {compareViewType === 'sideBySide' && (
+                <div>
+                  {/* Side-by-Side Comparison Container */}
+                  {selectedBefore && selectedAfter ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {/* Delta Stats Badge */}
+                      <div
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '10px',
+                          padding: '12px 18px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-around',
+                          fontSize: '0.9rem',
+                          flexWrap: 'wrap',
+                          gap: '10px',
+                        }}
+                      >
+                        <div>
+                          <span style={{ color: '#64748b' }}>Cân nặng Trước: </span>
+                          <strong style={{ color: '#0369a1' }}>{selectedBefore.weight ? `${selectedBefore.weight} kg` : '—'}</strong>
+                        </div>
+                        <ArrowRight size={16} style={{ color: '#0284c7' }} />
+                        <div>
+                          <span style={{ color: '#64748b' }}>Cân nặng Sau: </span>
+                          <strong style={{ color: '#15803d' }}>{selectedAfter.weight ? `${selectedAfter.weight} kg` : '—'}</strong>
+                        </div>
+                        {selectedBefore.weight && selectedAfter.weight && (
+                          <div
+                            style={{
+                              background: selectedAfter.weight <= selectedBefore.weight ? '#16a34a' : '#ea580c',
+                              color: '#fff',
+                              padding: '3px 12px',
+                              borderRadius: '20px',
+                              fontWeight: 700,
+                              fontSize: '0.84rem',
+                            }}
+                          >
+                            Thay đổi: {(selectedAfter.weight - selectedBefore.weight).toFixed(1)} kg
+                          </div>
+                        )}
+                        {selectedBefore.takenDate && selectedAfter.takenDate && (
+                          <span style={{ color: '#64748b', fontSize: '0.82rem' }}>
+                            Khoảng cách: {Math.max(0, Math.round((new Date(selectedAfter.takenDate).getTime() - new Date(selectedBefore.takenDate).getTime()) / (1000 * 3600 * 24)))} ngày
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        {/* Before Card */}
+                        <div style={{ border: '2px solid #0284c7', borderRadius: '12px', overflow: 'hidden', background: '#0f172a' }}>
+                          <div style={{ background: '#0284c7', color: '#fff', padding: '8px 14px', fontWeight: 700, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>TRƯỚC (BEFORE) • {ANGLE_LABELS[selectedBefore.angle] || selectedBefore.angle}</span>
+                            <span>{new Date(selectedBefore.takenDate).toLocaleDateString('vi-VN')}</span>
+                          </div>
+                          <div style={{ height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setZoomPhoto(selectedBefore)}>
+                            <img src={selectedBefore.photoUrl} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          </div>
+                          <div style={{ background: '#ffffff', padding: '10px 14px', fontSize: '0.84rem' }}>
+                            <div><strong>Chỉ số:</strong> {selectedBefore.weight ? `${selectedBefore.weight} kg` : ''} {selectedBefore.bodyFat ? `• ${selectedBefore.bodyFat}% Fat` : ''}</div>
+                            {selectedBefore.notes && <div style={{ color: '#64748b', marginTop: '2px' }}>{selectedBefore.notes}</div>}
+                          </div>
+                        </div>
+
+                        {/* After Card */}
+                        <div style={{ border: '2px solid #16a34a', borderRadius: '12px', overflow: 'hidden', background: '#0f172a' }}>
+                          <div style={{ background: '#16a34a', color: '#fff', padding: '8px 14px', fontWeight: 700, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>SAU (AFTER) • {ANGLE_LABELS[selectedAfter.angle] || selectedAfter.angle}</span>
+                            <span>{new Date(selectedAfter.takenDate).toLocaleDateString('vi-VN')}</span>
+                          </div>
+                          <div style={{ height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setZoomPhoto(selectedAfter)}>
+                            <img src={selectedAfter.photoUrl} alt="After" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          </div>
+                          <div style={{ background: '#ffffff', padding: '10px 14px', fontSize: '0.84rem' }}>
+                            <div><strong>Chỉ số:</strong> {selectedAfter.weight ? `${selectedAfter.weight} kg` : ''} {selectedAfter.bodyFat ? `• ${selectedAfter.bodyFat}% Fat` : ''}</div>
+                            {selectedAfter.notes && <div style={{ color: '#64748b', marginTop: '2px' }}>{selectedAfter.notes}</div>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                      <Sliders size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
+                      <h4 style={{ margin: '0 0 6px', color: '#334155' }}>Vui lòng chọn 2 ảnh để so sánh</h4>
+                      <p style={{ margin: 0, fontSize: '0.86rem', color: '#64748b' }}>
+                        Chọn 1 ảnh ở giai đoạn Trước (Before) và 1 ảnh ở giai đoạn Sau (After) để thấy sự khác biệt.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* VIEW 2: INTERACTIVE SPLIT SLIDER */}
+              {compareViewType === 'slider' && (
+                <div>
+                  {selectedBefore && selectedAfter ? (
+                    <div>
+                      {/* Interactive Drag Notice / Tooltip */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                        <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#003b70', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7' }}></span>
+                          Kéo trực tiếp thanh trượt trên ảnh để đối chiếu (Trước: {Math.round(sliderPos)}% / Sau: {Math.round(100 - sliderPos)}%):
+                        </span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={sliderPos}
+                          onChange={(e) => setSliderPos(Number(e.target.value))}
+                          style={{ width: '200px', cursor: 'pointer' }}
+                        />
+                      </div>
+
+                      {/* Slider Container with Direct Mouse/Touch Drag */}
+                      <div
+                        ref={sliderContainerRef}
+                        onMouseDown={handleSliderMouseDown}
+                        onTouchStart={handleSliderTouchStart}
+                        style={{
+                          position: 'relative',
+                          width: '100%',
+                          height: '520px',
+                          background: '#0f172a',
+                          borderRadius: '14px',
+                          overflow: 'hidden',
+                          border: isDraggingSlider ? '3px solid #005696' : '2px solid #0284c7',
+                          userSelect: 'none',
+                          cursor: 'ew-resize',
+                          touchAction: 'none',
+                        }}
+                      >
+                        {/* After Image (Full background) */}
+                        <img
+                          src={selectedAfter.photoUrl}
+                          alt="After"
+                          draggable={false}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            pointerEvents: 'none',
+                          }}
+                        />
+
+                        {/* Before Image (Clipped) */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            overflow: 'hidden',
+                            clipPath: `polygon(0 0, ${sliderPos}% 0, ${sliderPos}% 100%, 0 100%)`,
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          <img
+                            src={selectedBefore.photoUrl}
+                            alt="Before"
+                            draggable={false}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              pointerEvents: 'none',
+                            }}
+                          />
+                        </div>
+
+                        {/* Vertical Slider Divider Line */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            bottom: 0,
+                            left: `${sliderPos}%`,
+                            width: '4px',
+                            background: '#ffffff',
+                            boxShadow: '0 0 12px rgba(0,0,0,0.8)',
+                            transform: 'translateX(-50%)',
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: `translate(-50%, -50%) scale(${isDraggingSlider ? 1.25 : 1})`,
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              background: '#ffffff',
+                              color: '#003b70',
+                              border: '3px solid #0284c7',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                              fontWeight: 900,
+                              fontSize: '1rem',
+                              cursor: 'ew-resize',
+                              transition: 'transform 0.1s ease',
+                            }}
+                          >
+                            ⇄
+                          </div>
+                        </div>
+
+                        {/* Labels on top corners */}
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '12px',
+                            left: '12px',
+                            background: 'rgba(2, 132, 199, 0.9)',
+                            color: '#fff',
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.82rem',
+                          }}
+                        >
+                          TRƯỚC ({new Date(selectedBefore.takenDate).toLocaleDateString('vi-VN')})
+                        </span>
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '12px',
+                            right: '12px',
+                            background: 'rgba(22, 163, 74, 0.9)',
+                            color: '#fff',
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            fontSize: '0.82rem',
+                          }}
+                        >
+                          SAU ({new Date(selectedAfter.takenDate).toLocaleDateString('vi-VN')})
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                      <p style={{ margin: 0, color: '#64748b' }}>Vui lòng chọn ít nhất 2 ảnh để kích hoạt thanh trượt.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* VIEW 3: MULTI-ANGLE 360 MATRIX */}
+              {compareViewType === 'multiAngle' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ background: '#f0f9ff', padding: '12px 16px', borderRadius: '10px', border: '1px solid #bae6fd', fontSize: '0.86rem', color: '#0369a1' }}>
+                    <strong>Bảng so sánh 360° đa góc độ:</strong> Tổng hợp nhanh các góc chụp Chính diện, Nghiêng và Sau lưng giữa giai đoạn bắt đầu và hiện tại.
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                    {multiAnglePairs.map((pair) => (
+                      <div
+                        key={pair.angle}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                        }}
+                      >
+                        <div style={{ background: '#003b70', color: '#ffffff', padding: '10px 14px', fontWeight: 700, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Góc {pair.title}</span>
+                          <span style={{ fontSize: '0.78rem', opacity: 0.85 }}>({pair.totalCount} ảnh)</span>
+                        </div>
+
+                        {pair.before && pair.after ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', padding: '10px', background: '#0f172a' }}>
+                            {/* Before Thumbnail */}
+                            <div style={{ position: 'relative', height: '220px', cursor: 'pointer' }} onClick={() => setZoomPhoto(pair.before)}>
+                              <img src={pair.before.photoUrl} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }} />
+                              <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#0284c7', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>
+                                Trước: {new Date(pair.before.takenDate).toLocaleDateString('vi-VN')}
+                              </span>
+                            </div>
+
+                            {/* After Thumbnail */}
+                            <div style={{ position: 'relative', height: '220px', cursor: 'pointer' }} onClick={() => setZoomPhoto(pair.after)}>
+                              <img src={pair.after.photoUrl} alt="After" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }} />
+                              <span style={{ position: 'absolute', top: '4px', left: '4px', background: '#16a34a', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>
+                                Sau: {new Date(pair.after.takenDate).toLocaleDateString('vi-VN')}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ padding: '30px 14px', textAlign: 'center', color: '#64748b', fontSize: '0.82rem', background: '#f8fafc' }}>
+                            Chưa đủ 2 ảnh Trước và Sau cho góc {pair.title}.
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* VIEW 4: TIMELINE PROGRESSION */}
+              {compareViewType === 'timeline' && (
+                <div>
+                  <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '16px', fontSize: '0.86rem', color: '#334155' }}>
+                    <strong>Dòng tiến trình thời gian ({sortedTimeline.length} cột mốc):</strong> Xem lại toàn bộ ảnh tiến trình theo trình tự thời gian từ lúc nhập học.
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '14px' }}>
+                    {sortedTimeline.map((item, idx) => (
+                      <div
+                        key={item._id}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '10px',
+                          overflow: 'hidden',
+                          position: 'relative',
+                        }}
+                      >
+                        <div style={{ height: '190px', background: '#0f172a', position: 'relative', cursor: 'pointer' }} onClick={() => setZoomPhoto(item)}>
+                          <img src={item.photoUrl} alt={item.stage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: '6px',
+                              left: '6px',
+                              background: item.stage === 'BEFORE' ? '#0284c7' : item.stage === 'AFTER' ? '#16a34a' : '#7c3aed',
+                              color: '#fff',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            #{idx + 1} • {item.stage}
+                          </span>
+                        </div>
+                        <div style={{ padding: '10px', fontSize: '0.8rem', color: '#475569' }}>
+                          <div style={{ fontWeight: 700, color: '#003b70' }}>{new Date(item.takenDate).toLocaleDateString('vi-VN')}</div>
+                          <div>Góc: {ANGLE_LABELS[item.angle] || item.angle}</div>
+                          {item.weight && <div>Cân nặng: <strong>{item.weight} kg</strong></div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
