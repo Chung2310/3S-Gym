@@ -43,14 +43,15 @@ function PortalRoutes({ user }: { user: User }) {
       <Route path="pt/assistant" element={<FeatureRoute user={user} roles={['PT']} feature="PT_ASSISTANT"><PtAssistant /></FeatureRoute>} />
       <Route path="admin/*" element={<FeatureRoute user={user} roles={['ADMIN']}><AdminRoutes /></FeatureRoute>} />
       <Route path="pt/inbody" element={<FeatureRoute user={user} roles={['PT']} feature="OCR_INBODY"><InBodyWorkspace /></FeatureRoute>} />
-      <Route path="pt/roadmaps" element={<FeatureRoute user={user} roles={['PT']} feature="ROADMAP"><RoadmapWorkspace /></FeatureRoute>} />
+      <Route path="pt/roadmaps/*" element={<FeatureRoute user={user} roles={['PT']} feature="ROADMAP"><RoadmapWorkspace /></FeatureRoute>} />
       <Route path="pt/exercises" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><ExerciseLibrary /></FeatureRoute>} />
-      <Route path="pt/workout-plans" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><WorkoutWorkspace /></FeatureRoute>} />
+      <Route path="pt/workout-plans/*" element={<FeatureRoute user={user} roles={['PT']} feature="EXERCISE_LIBRARY"><WorkoutWorkspace /></FeatureRoute>} />
       <Route path="pt/workouts" element={<Navigate to="/portal/pt/workout-plans" replace />} />
-      <Route path="pt/progress" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><ProgressWorkspace /></FeatureRoute>} />
+      <Route path="pt/progress/*" element={<FeatureRoute user={user} roles={['PT']} feature="PROGRESS"><ProgressWorkspace /></FeatureRoute>} />
       <Route path="pt/nutrition" element={<FeatureRoute user={user} roles={['PT']} feature="NUTRITION_AI"><NutritionWorkspace /></FeatureRoute>} />
       <Route path="pt/care" element={<FeatureRoute user={user} roles={['PT']} feature="CARE"><CareWorkspace /></FeatureRoute>} />
       <Route path="pt/dashboard" element={<FeatureRoute user={user} roles={['PT']} feature="DASHBOARD"><PtDashboard /></FeatureRoute>} />
+      <Route path="pt/customers/*" element={<FeatureRoute user={user} roles={['PT']}><PtRoutes /></FeatureRoute>} />
       <Route path="pt/*" element={<FeatureRoute user={user} roles={['PT']}><PtRoutes /></FeatureRoute>} />
       <Route path="me/*" element={<FeatureRoute user={user} roles={['CUSTOMER']}><CustomerRoutes /></FeatureRoute>} />
       <Route path="*" element={isPortalRoot ? <Navigate to={roleDestinations[user.role]} replace /> : <PortalNotFound destination={roleDestinations[user.role]} roleLabel={roleLabels[user.role]} />} />
