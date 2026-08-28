@@ -233,6 +233,7 @@ export default function PtManagementView() {
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="Tìm theo tên, SĐT, email, chuyên môn..."
                 className="w-full h-9 pl-9 pr-8 text-xs bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 focus:border-cyan-500 rounded-lg outline-none focus:ring-2 focus:ring-cyan-500/15 transition-all text-slate-800"
+                style={{ paddingLeft: '34px' }}
               />
               {keyword && (
                 <button

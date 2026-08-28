@@ -1,11 +1,12 @@
-import express, { type Request } from 'express';
-import mongoose from 'mongoose';
+import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
 import { requireFeature } from '../middlewares/requireFeature.js';
-import { validate, listValidator, type ValidationIssue } from '../middlewares/validate.js';
+import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/exerciseController.js';
+import { contentIdSchema, createExerciseSchema, listExercisesSchema, updateExerciseSchema } from '../validators/contentValidator.js';
 const router = express.Router();
 const base = [authenticate, authorize('ADMIN', 'PT'), requireFeature('EXERCISE_LIBRARY')] as const;
+/* legacy manual validators
 const bodyValidator = (req: Request): ValidationIssue[] => {
   const errors: ValidationIssue[] = [];
   if (typeof req.body.name !== 'string' || !req.body.name.trim()) errors.push({ field: 'name', message: 'Vui lòng nhập tên bài tập.' });
@@ -20,15 +21,16 @@ const queryValidator = (req: Request): ValidationIssue[] => {
   if (req.query.level && !['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(String(req.query.level))) errors.push({ field: 'level', message: 'Cấp độ bài tập không hợp lệ.' });
   return errors;
 };
-router.get('/', ...base, validate(queryValidator), controller.list);
-router.get('/:id', ...base, validate((req) => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã bài tập không hợp lệ.' }]), controller.get);
-router.post('/', ...base, validate(bodyValidator), controller.create);
-router.patch('/:id', ...base, validate((req) => {
+*/
+router.get('/', ...base, validate(listExercisesSchema), controller.list);
+router.get('/:id', ...base, validate(contentIdSchema), controller.get);
+router.post('/', ...base, validate(createExerciseSchema), controller.create);
+router.patch('/:id', ...base, validate(updateExerciseSchema), controller.update); /*
   const errors: ValidationIssue[] = mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'MÃ£ bÃ i táº­p khÃ´ng há»£p lá»‡.' }];
   if (req.body.name !== undefined && (typeof req.body.name !== 'string' || !req.body.name.trim())) errors.push({ field: 'name', message: 'TÃªn bÃ i táº­p khÃ´ng há»£p lá»‡.' });
   if (req.body.level !== undefined && !['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(req.body.level)) errors.push({ field: 'level', message: 'Cáº¥p Ä‘á»™ bÃ i táº­p khÃ´ng há»£p lá»‡.' });
   for (const field of ['scope', 'ownerPtId']) if (Object.prototype.hasOwnProperty.call(req.body, field)) errors.push({ field, message: `KhÃ´ng Ä‘Æ°á»£c phÃ©p cáº­p nháº­t ${field}.` });
   return errors;
-}), controller.update);
-router.delete('/:id', ...base, validate((req) => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã bài tập không hợp lệ.' }]), controller.remove);
+*/
+router.delete('/:id', ...base, validate(contentIdSchema), controller.remove);
 export default router;

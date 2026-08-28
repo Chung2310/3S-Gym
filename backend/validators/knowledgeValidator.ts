@@ -1,0 +1,15 @@
+import Joi from 'joi';
+import type { RequestValidationSchema } from '../middlewares/validate.js';
+import { commonMessages, idParams, nonEmptyPatch, objectId, paginationQuery } from './commonValidator.js';
+export const searchKnowledgeSchema: RequestValidationSchema = { query: Joi.object({ q: Joi.string().trim().required() }).messages(commonMessages) };
+export const listKnowledgeSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, status: Joi.string().valid('DRAFT', 'PUBLISHED'), topic: Joi.string(), keyword: Joi.string().allow('') }).messages(commonMessages) };
+const knowledgeFields = { title: Joi.string().trim(), topic: Joi.string().trim(), content: Joi.string().trim(), effectiveAt: Joi.date().iso() };
+export const createKnowledgeSchema: RequestValidationSchema = { body: Joi.object({ title: knowledgeFields.title.required(), topic: knowledgeFields.topic.required(), content: knowledgeFields.content.required(), effectiveAt: knowledgeFields.effectiveAt }).messages(commonMessages) };
+export const updateKnowledgeSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...knowledgeFields, status: Joi.forbidden(), version: Joi.forbidden(), publishedAt: Joi.forbidden() }) };
+export const knowledgeIdSchema: RequestValidationSchema = { params: idParams() };
+export const listConversationsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId }).messages(commonMessages) };
+export const createConversationSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), title: Joi.string().trim().required() }).messages(commonMessages) };
+export const addConversationMessageSchema: RequestValidationSchema = { params: idParams(), body: Joi.object({ content: Joi.string().trim().required(), requestType: Joi.string().trim().required() }).messages(commonMessages) };
+export const createSuggestionSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), scenario: Joi.string().trim().required(), requestType: Joi.string().trim().required() }).messages(commonMessages) };
+export const listSuggestionsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId, reviewStatus: Joi.string().valid('PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED') }).messages(commonMessages) };
+export const contentDraftSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), request: Joi.string().trim().min(10).required() }).messages(commonMessages) };

@@ -1,11 +1,11 @@
-import express, { type Request } from 'express';
-import mongoose from 'mongoose';
+import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
-import { validate, type ValidationIssue } from '../middlewares/validate.js';
-import { FEATURE_KEYS } from '../models/FeatureFlag.js';
+import { validate } from '../middlewares/validate.js';
 import * as featureController from '../controllers/featureController.js';
+import { updateFeatureSchema } from '../validators/operationsValidator.js';
 
 const router = express.Router();
+/* legacy manual validator
 const roles = ['ADMIN', 'PT', 'CUSTOMER'];
 
 const updateValidator = (req: Request): ValidationIssue[] => {
@@ -15,9 +15,9 @@ const updateValidator = (req: Request): ValidationIssue[] => {
   if (!Array.isArray(req.body.roles) || req.body.roles.some((role: unknown) => typeof role !== 'string' || !roles.includes(role))) errors.push({ field: 'roles', message: 'Danh sách vai trò không hợp lệ.' });
   if (req.body.pilotUserIds !== undefined && (!Array.isArray(req.body.pilotUserIds) || req.body.pilotUserIds.some((id: unknown) => typeof id !== 'string' || !mongoose.isValidObjectId(id)))) errors.push({ field: 'pilotUserIds', message: 'Danh sách tài khoản pilot không hợp lệ.' });
   return errors;
-};
+}; */
 
 router.get('/me', authenticate, featureController.mine);
-router.patch('/:key', authenticate, authorize('ADMIN'), validate(updateValidator), featureController.update);
+router.patch('/:key', authenticate, authorize('ADMIN'), validate(updateFeatureSchema), featureController.update);
 
 export default router;
