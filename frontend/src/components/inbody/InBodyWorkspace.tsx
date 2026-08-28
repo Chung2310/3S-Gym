@@ -215,19 +215,19 @@ export default function InBodyWorkspace() {
             </button>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+          <div style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
+            <table className="data-table" style={{ width: '100%', minWidth: '960px', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
-                  <th style={{ padding: '14px 18px', fontWeight: 700 }}>Học viên</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700 }}>Ngày đo</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700 }}>Cân nặng</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700 }}>Tỷ lệ mỡ (Fat)</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700 }}>Khối lượng cơ</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700 }}>BMI & BMR</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700 }}>Nguồn</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700 }}>Trạng thái</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'right' }}>Thao tác</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '200px' }}>Học viên</th>
+                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '120px' }}>Ngày đo</th>
+                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '110px' }}>Cân nặng</th>
+                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '120px' }}>Tỷ lệ mỡ (Fat)</th>
+                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '130px' }}>Khối lượng cơ</th>
+                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '140px' }}>BMI & BMR</th>
+                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '110px' }}>Nguồn</th>
+                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '130px' }}>Trạng thái</th>
+                  <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'center', minWidth: '110px' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -246,12 +246,12 @@ export default function InBodyWorkspace() {
                       }}
                     >
                       {/* Customer Info */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div
                             style={{
-                              width: '34px',
-                              height: '34px',
+                              width: '36px',
+                              height: '36px',
                               borderRadius: '50%',
                               background: '#e0f2fe',
                               color: '#0369a1',
@@ -259,21 +259,21 @@ export default function InBodyWorkspace() {
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontWeight: 700,
-                              fontSize: '0.84rem',
+                              fontSize: '0.86rem',
                               flexShrink: 0,
                             }}
                           >
                             {customerName.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <strong style={{ color: '#0f172a', display: 'block' }}>{customerName}</strong>
+                            <strong style={{ color: '#0f172a', display: 'block', fontSize: '0.9rem' }}>{customerName}</strong>
                             {customerPhone && <span style={{ fontSize: '0.76rem', color: '#64748b' }}>{customerPhone}</span>}
                           </div>
                         </div>
                       </td>
 
                       {/* Measurement Date */}
-                      <td style={{ padding: '14px 18px', color: '#334155' }}>
+                      <td style={{ padding: '14px 18px', color: '#334155', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Calendar size={14} color="#0284c7" />
                           <span>{item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : '—'}</span>
@@ -281,17 +281,19 @@ export default function InBodyWorkspace() {
                       </td>
 
                       {/* Weight */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
                         {item.weight ? (
                           <span
                             style={{
                               fontWeight: 800,
                               color: '#003b70',
-                              fontSize: '0.95rem',
+                              fontSize: '0.92rem',
                               background: '#f0f9ff',
-                              padding: '4px 10px',
+                              padding: '5px 12px',
                               borderRadius: '8px',
                               border: '1px solid #bae6fd',
+                              display: 'inline-block',
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             {item.weight} kg
@@ -302,7 +304,7 @@ export default function InBodyWorkspace() {
                       </td>
 
                       {/* Body Fat */}
-                      <td style={{ padding: '14px 18px', color: '#0f172a' }}>
+                      <td style={{ padding: '14px 18px', color: '#0f172a', whiteSpace: 'nowrap' }}>
                         {item.bodyFatPercentage ? (
                           <strong>{item.bodyFatPercentage}%</strong>
                         ) : (
@@ -311,7 +313,7 @@ export default function InBodyWorkspace() {
                       </td>
 
                       {/* Muscle Mass */}
-                      <td style={{ padding: '14px 18px', color: '#0f172a' }}>
+                      <td style={{ padding: '14px 18px', color: '#0f172a', whiteSpace: 'nowrap' }}>
                         {item.muscleMass ? (
                           <strong style={{ color: '#15803d' }}>{item.muscleMass} kg</strong>
                         ) : (
@@ -320,28 +322,29 @@ export default function InBodyWorkspace() {
                       </td>
 
                       {/* BMI & BMR */}
-                      <td style={{ padding: '14px 18px', color: '#475569', fontSize: '0.82rem' }}>
-                        <div>BMI: <strong>{item.bmi || '—'}</strong></div>
-                        <div>BMR: <strong>{item.bmr ? `${item.bmr} kcal` : '—'}</strong></div>
+                      <td style={{ padding: '14px 18px', color: '#475569', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                        <div>BMI: <strong style={{ color: '#0f172a' }}>{item.bmi || '—'}</strong></div>
+                        <div style={{ marginTop: '2px' }}>BMR: <strong style={{ color: '#0f172a' }}>{item.bmr ? `${item.bmr} kcal` : '—'}</strong></div>
                       </td>
 
                       {/* Source */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
                         {item.source === 'AI_SCAN' ? (
                           <span
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px',
-                              padding: '3px 8px',
+                              gap: '5px',
+                              padding: '4px 9px',
                               borderRadius: '6px',
                               background: '#f3e8ff',
                               color: '#7c3aed',
-                              fontSize: '0.75rem',
+                              fontSize: '0.76rem',
                               fontWeight: 700,
+                              whiteSpace: 'nowrap',
                             }}
                           >
-                            <Sparkles size={11} /> AI OCR
+                            <Sparkles size={12} /> AI OCR
                           </span>
                         ) : (
                           <span
@@ -349,12 +352,13 @@ export default function InBodyWorkspace() {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '4px',
-                              padding: '3px 8px',
+                              padding: '4px 9px',
                               borderRadius: '6px',
                               background: '#f1f5f9',
                               color: '#475569',
-                              fontSize: '0.75rem',
+                              fontSize: '0.76rem',
                               fontWeight: 600,
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             Thủ công
@@ -363,7 +367,7 @@ export default function InBodyWorkspace() {
                       </td>
 
                       {/* Status */}
-                      <td style={{ padding: '14px 18px' }}>
+                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
                         {isPublished ? (
                           <span
                             style={{
@@ -376,6 +380,7 @@ export default function InBodyWorkspace() {
                               color: '#15803d',
                               fontSize: '0.78rem',
                               fontWeight: 700,
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             <Check size={12} /> Đã công bố
@@ -392,6 +397,7 @@ export default function InBodyWorkspace() {
                               color: '#b45309',
                               fontSize: '0.78rem',
                               fontWeight: 700,
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             Bản nháp
@@ -399,50 +405,70 @@ export default function InBodyWorkspace() {
                         )}
                       </td>
 
-                      {/* Actions */}
-                      <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                          {/* Toggle Publish / Unpublish Button */}
+                      {/* Actions: Icon-only with hover text */}
+                      <td style={{ padding: '14px 18px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                          {/* Toggle Publish / Unpublish Icon Button */}
                           <button
                             type="button"
                             onClick={() => void handleTogglePublish(item)}
                             disabled={isToggling}
+                            aria-label={isPublished ? 'Thu hồi về bản nháp' : 'Công bố cho học viên'}
+                            title={isPublished ? 'Thu hồi về bản nháp' : 'Công bố cho học viên xem'}
                             style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '6px 12px',
+                              width: '34px',
+                              height: '34px',
                               borderRadius: '8px',
                               border: isPublished ? '1px solid #fecdd3' : '1px solid #bbf7d0',
                               background: isPublished ? '#fff1f2' : '#f0fdf4',
                               color: isPublished ? '#e11d48' : '#15803d',
-                              fontSize: '0.8rem',
-                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
                               cursor: 'pointer',
                               transition: 'all 0.15s ease',
+                              padding: 0,
                             }}
-                            title={isPublished ? 'Thu hồi về bản nháp' : 'Công bố cho học viên xem'}
                           >
                             {isToggling ? (
-                              <Loader2 size={13} className="animate-spin" />
+                              <Loader2 size={15} className="animate-spin" />
                             ) : isPublished ? (
-                              <>
-                                <EyeOff size={13} /> Thu hồi
-                              </>
+                              <EyeOff size={16} />
                             ) : (
-                              <>
-                                <Eye size={13} /> Công bố
-                              </>
+                              <Eye size={16} />
                             )}
                           </button>
 
-                          {/* Delete Button */}
+                          {/* Delete Icon Button */}
                           <button
                             type="button"
-                            className="icon-button"
                             onClick={() => setDeletingItem(item)}
-                            style={{ color: '#94a3b8', padding: '6px' }}
+                            aria-label="Xóa kết quả InBody"
                             title="Xóa phiếu InBody"
+                            style={{
+                              width: '34px',
+                              height: '34px',
+                              borderRadius: '8px',
+                              border: '1px solid #e2e8f0',
+                              background: '#ffffff',
+                              color: '#64748b',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              padding: 0,
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = '#e11d48';
+                              e.currentTarget.style.borderColor = '#fecdd3';
+                              e.currentTarget.style.background = '#fff1f2';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = '#64748b';
+                              e.currentTarget.style.borderColor = '#e2e8f0';
+                              e.currentTarget.style.background = '#ffffff';
+                            }}
                           >
                             <Trash2 size={16} />
                           </button>

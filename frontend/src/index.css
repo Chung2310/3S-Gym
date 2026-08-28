@@ -466,12 +466,24 @@ a {
 .portal-brand h2 { font-size: 1.1rem; }
 .portal-brand div, .portal-user { display: flex; flex-direction: column; }
 .portal-brand span, .portal-user span { color: #a9dff3; font-size: .74rem; }
-.portal-sidebar nav { display: grid; gap: 6px; }
-.portal-sidebar nav a { padding: 9px 11px; border-radius: 8px; color: #d8eff8; font-size: .84rem; font-weight: 600; display: flex; align-items: center; gap: 9px; border-left: 3px solid transparent; }
+.portal-sidebar nav { display: grid; }
 .portal-sidebar nav a:hover { background: rgba(255,255,255,.1); color: #fff; }
-.portal-navigation { overflow-y: auto; padding-right: 3px; }
 .portal-nav-section { display: grid; gap: 4px; margin-bottom: 14px; }
+.portal-navigation {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  padding-right: 0;
+  overscroll-behavior: contain;
+}
+.portal-navigation::-webkit-scrollbar,
+.portal-sidebar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
 .portal-nav-heading { padding: 0 10px; color: #7ec8e8; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.portal-sidebar nav a { padding: 9px 11px; border-radius: 8px; color: #d8eff8; font-size: .84rem; font-weight: 600; display: flex; align-items: center; gap: 9px; border-left: 3px solid transparent; }
 .portal-sidebar nav a.active { color: #fff; background: rgba(0,164,228,.22); border-left-color: #31c4ff; box-shadow: inset 0 0 0 1px rgba(126,220,255,.12); }
 .portal-sidebar-toggle { position: absolute; top: 22px; right: -15px; display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid rgba(126,220,255,.5); border-radius: 50%; color: #fff; background: #07588d; box-shadow: 0 4px 12px rgba(0,38,77,.24); cursor: pointer; z-index: 2; transition: color .15s ease, background .15s ease, transform .15s ease; }
 .portal-sidebar-toggle:hover { color: #003b70; background: #fff; transform: scale(1.04); }
