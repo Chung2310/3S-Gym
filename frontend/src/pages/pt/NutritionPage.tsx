@@ -16,6 +16,7 @@ import type { Customer, NutritionSummary } from '../../types';
 import NutritionMacroCalculator from '../../components/nutrition/NutritionMacroCalculator';
 import ActivityLibraryCalculator from '../../components/nutrition/ActivityLibraryCalculator';
 import MealPlannerBuilder from '../../components/nutrition/MealPlannerBuilder';
+import NutritionPlanList, { type NutritionPlanItem } from '../../components/nutrition/NutritionPlanList';
 import NutritionLogForm from '../../components/nutrition/NutritionLogForm';
 
 type NutritionTab = 'macro_calculator' | 'activity_library' | 'meal_swapper' | 'logs_balance';
@@ -29,6 +30,8 @@ export default function NutritionPage() {
   const [loading, setLoading] = useState(false);
   const [appliedNutrition, setAppliedNutrition] = useState<any>(null);
   const [appliedAiAnalysis, setAppliedAiAnalysis] = useState<any>(null);
+  const [editingPlan, setEditingPlan] = useState<NutritionPlanItem | null>(null);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
 
   const load = useCallback(
     async (targetId?: string) => {
@@ -50,6 +53,8 @@ export default function NutritionPage() {
   const handleApplyMacroToPlan = (nutrition: any, rawAi?: any) => {
     setAppliedNutrition(nutrition);
     if (rawAi) setAppliedAiAnalysis(rawAi);
+    setEditingPlan(null);
+    setIsCreatingNew(true);
     setActiveTab('meal_swapper');
   };
 
@@ -204,15 +209,39 @@ export default function NutritionPage() {
           />
         )}
 
-        {/* Tab 2: Meal Planner Builder & AI */}
+        {/* Tab 2: Meal Planner Builder & List */}
         {activeTab === 'meal_swapper' && (
-          <MealPlannerBuilder
-            selectedCustomer={selectedCustomer}
-            customerId={customerId}
-            onSaved={() => void load()}
-            appliedNutrition={appliedNutrition}
-            appliedAiAnalysis={appliedAiAnalysis}
-          />
+          editingPlan || isCreatingNew ? (
+            <MealPlannerBuilder
+              selectedCustomer={selectedCustomer}
+              customerId={customerId}
+              editingPlan={editingPlan}
+              onBack={() => {
+                setEditingPlan(null);
+                setIsCreatingNew(false);
+              }}
+              onSaved={() => {
+                setEditingPlan(null);
+                setIsCreatingNew(false);
+                void load();
+              }}
+              appliedNutrition={appliedNutrition}
+              appliedAiAnalysis={appliedAiAnalysis}
+            />
+          ) : (
+            <NutritionPlanList
+              selectedCustomer={selectedCustomer}
+              customerId={customerId}
+              onCreateNew={() => {
+                setEditingPlan(null);
+                setIsCreatingNew(true);
+              }}
+              onEditPlan={(plan) => {
+                setEditingPlan(plan);
+                setIsCreatingNew(false);
+              }}
+            />
+          )
         )}
 
         {/* Tab 3: Activity Calorie Library */}

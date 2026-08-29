@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
+  ArrowLeft,
   ArrowRightLeft,
   Check,
   CheckCircle2,
@@ -28,6 +29,8 @@ interface MealPlannerBuilderProps {
   selectedCustomer?: Customer | null;
   customerId?: string;
   onSaved?: () => void;
+  onBack?: () => void;
+  editingPlan?: any | null;
   appliedNutrition?: CalculatedNutrition | null;
   appliedAiAnalysis?: AiNutritionAnalysisResult | null;
 }
@@ -36,6 +39,8 @@ export default function MealPlannerBuilder({
   selectedCustomer,
   customerId,
   onSaved,
+  onBack,
+  editingPlan,
   appliedNutrition,
   appliedAiAnalysis,
 }: MealPlannerBuilderProps) {
@@ -84,18 +89,52 @@ export default function MealPlannerBuilder({
     };
   }, [loadingAi]);
 
-  // Sync title & goal when customer changes
+  // Sync editingPlan or new draft when props change
   useEffect(() => {
-    if (selectedCustomer?.fullName) {
-      setTitle(`Thực Đơn Dinh Dưỡng - ${selectedCustomer.fullName}`);
-    } else {
-      setTitle('Kế Hoạch Thực Đơn Dinh Dưỡng');
-    }
-  }, [selectedCustomer]);
+    if (editingPlan) {
+      if (editingPlan.title) setTitle(editingPlan.title);
+      if (editingPlan.notes) setDietAdviceNotes(editingPlan.notes);
+      if (editingPlan.targetCalories) setTargetKcalInput(String(editingPlan.targetCalories));
+      if (Array.isArray(editingPlan.menu) && editingPlan.menu.length > 0) {
+        setMealCount(editingPlan.menu.length);
+        const parsedMeals: MealBlock[] = editingPlan.menu.map((m: any, idx: number) => {
+          const rawItems = Array.isArray(m.items) ? m.items : [];
+          const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
+            if (typeof it === 'object' && it !== null) {
+              return {
+                name: it.name || 'Món ăn',
+                amount: it.amount || '100g',
+                calories: it.calories || 100,
+                protein: it.protein || 10,
+                carbs: it.carbs || 10,
+                fat: it.fat || 3,
+                prepTip: it.prepTip || undefined,
+              };
+            }
+            const str = String(it);
+            return {
+              name: str.split('(')[0]?.trim() || str,
+              amount: '1 khẩu phần',
+              calories: 120,
+              protein: 15,
+              carbs: 10,
+              fat: 3,
+            };
+          });
 
-  // Sync from AI Macro Calculator when applied from Tab 1
-  useEffect(() => {
-    if (appliedAiAnalysis) {
+          return {
+            id: `meal_loaded_${idx + 1}`,
+            name: m.name || `Bữa ${idx + 1}`,
+            timeSlot: m.timeSlot || '08:00',
+            targetKcal: m.calories || 400,
+            items: mealFoods,
+            imageUrl: m.imageUrl || undefined,
+          };
+        });
+        setMeals(parsedMeals);
+        setShowConfigStudio(false);
+      }
+    } else if (appliedAiAnalysis) {
       setTitle(`Thực Đơn ${appliedAiAnalysis.goalLabel} - ${selectedCustomer?.fullName || 'Học viên'}`);
       setTargetKcalInput(String(appliedAiAnalysis.targetCalories));
       if (appliedAiAnalysis.dietaryAdvice?.keyNotes) {
@@ -112,73 +151,21 @@ export default function MealPlannerBuilder({
         }));
         setMeals(timingMeals);
       }
+      setShowConfigStudio(true);
     } else if (appliedNutrition) {
       setTitle(`Thực Đơn ${appliedNutrition.goalLabel} - ${selectedCustomer?.fullName || 'Học viên'}`);
       setTargetKcalInput(String(appliedNutrition.targetCalories));
-    }
-  }, [appliedAiAnalysis, appliedNutrition, selectedCustomer]);
-
-  // Load existing plan from database if customer already has saved plans
-  useEffect(() => {
-    const targetId = customerId || selectedCustomer?._id;
-    if (!targetId) return;
-
-    let isMounted = true;
-    void (async () => {
-      try {
-        const res = await api.get<{ data?: any[]; items?: any[] }>(`/api/nutrition-plans?customerId=${targetId}`);
-        const list = Array.isArray(res.data) ? res.data : (res as any).data?.items || [];
-        if (isMounted && Array.isArray(list) && list.length > 0) {
-          const latest = list[0];
-          if (latest.title) setTitle(latest.title);
-          if (latest.notes) setDietAdviceNotes(latest.notes);
-          if (Array.isArray(latest.menu) && latest.menu.length > 0) {
-            const parsedMeals: MealBlock[] = latest.menu.map((m: any, idx: number) => {
-              const rawItems = Array.isArray(m.items) ? m.items : [];
-              const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
-                if (typeof it === 'object' && it !== null) {
-                  return {
-                    name: it.name || 'Món ăn',
-                    amount: it.amount || '100g',
-                    calories: it.calories || 100,
-                    protein: it.protein || 10,
-                    carbs: it.carbs || 10,
-                    fat: it.fat || 3,
-                    prepTip: it.prepTip || undefined,
-                  };
-                }
-                const str = String(it);
-                return {
-                  name: str.split('(')[0]?.trim() || str,
-                  amount: '1 khẩu phần',
-                  calories: 120,
-                  protein: 15,
-                  carbs: 10,
-                  fat: 3,
-                };
-              });
-
-              return {
-                id: `meal_loaded_${idx + 1}`,
-                name: m.name || `Bữa ${idx + 1}`,
-                timeSlot: m.timeSlot || '08:00',
-                targetKcal: m.calories || 400,
-                items: mealFoods,
-                imageUrl: m.imageUrl || undefined,
-              };
-            });
-            setMeals(parsedMeals);
-          }
-        }
-      } catch {
-        // Silently continue with clean empty state
+      setShowConfigStudio(true);
+    } else {
+      if (selectedCustomer?.fullName) {
+        setTitle(`Thực Đơn Dinh Dưỡng - ${selectedCustomer.fullName}`);
+      } else {
+        setTitle('Kế Hoạch Thực Đơn Dinh Dưỡng');
       }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [customerId, selectedCustomer]);
+      setMeals([]);
+      setShowConfigStudio(true);
+    }
+  }, [editingPlan, appliedAiAnalysis, appliedNutrition, selectedCustomer]);
 
   // Total Macros Calculation
   const totalKcal = meals.reduce((sum, m) => sum + m.items.reduce((s, i) => s + (i.calories || 0), 0), 0);
@@ -355,7 +342,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         imageUrl: m.imageUrl || undefined,
       }));
 
-      const res = await api.post<any>('/api/nutrition-plans', {
+      const payload = {
         customerId: targetId,
         title: title || `Thực Đơn Dinh Dưỡng - ${selectedCustomer?.fullName || 'Học viên'}`,
         targetCalories: totalKcal,
@@ -366,9 +353,15 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         },
         menu: menuPayload,
         notes: dietAdviceNotes || undefined,
-      });
+      };
 
-      const planId = res.data?._id || res.data?.id;
+      let planId = editingPlan?._id;
+      if (planId) {
+        await api.patch(`/api/nutrition-plans/${planId}`, payload);
+      } else {
+        const res = await api.post<any>('/api/nutrition-plans', payload);
+        planId = res.data?._id || res.data?.id;
+      }
 
       if (publishToCustomer && planId) {
         await api.patch(`/api/nutrition-plans/${planId}/publish`, { publish: true });
@@ -456,27 +449,53 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#38bdf8', fontWeight: 800 }}>
-                THIẾT KẾ THỰC ĐƠN CƠM VIỆT
-              </span>
-              {meals.length > 0 && (
-                <span style={{ background: '#10b981', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
-                  {meals.length} Bữa Ăn • {totalKcal} kcal
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '10px',
+                  padding: '9px 14px',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Quay lại danh sách các bản thực đơn của học viên"
+              >
+                <ArrowLeft size={16} /> Danh Sách
+              </button>
+            )}
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#38bdf8', fontWeight: 800 }}>
+                  THIẾT KẾ THỰC ĐƠN CƠM VIỆT
                 </span>
+                {meals.length > 0 && (
+                  <span style={{ background: '#10b981', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                    {meals.length} Bữa Ăn • {totalKcal} kcal
+                  </span>
+                )}
+              </div>
+              <h2 style={{ margin: '4px 0 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: 800 }}>
+                {selectedCustomer ? `Thực Đơn: ${selectedCustomer.fullName}` : 'Thiết Kế Thực Đơn Dinh Dưỡng'}
+              </h2>
+              {meals.length > 0 && (
+                <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.76rem', color: '#93c5fd', flexWrap: 'wrap' }}>
+                  <span>Đạm (P): <strong style={{ color: '#ffffff' }}>{totalProtein}g</strong></span>
+                  <span>Tinh bột (C): <strong style={{ color: '#ffffff' }}>{totalCarbs}g</strong></span>
+                  <span>Chất béo (F): <strong style={{ color: '#ffffff' }}>{totalFat}g</strong></span>
+                </div>
               )}
             </div>
-            <h2 style={{ margin: '4px 0 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: 800 }}>
-              {selectedCustomer ? `Thực Đơn: ${selectedCustomer.fullName}` : 'Thiết Kế Thực Đơn Dinh Dưỡng'}
-            </h2>
-            {meals.length > 0 && (
-              <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.76rem', color: '#93c5fd', flexWrap: 'wrap' }}>
-                <span>Đạm (P): <strong style={{ color: '#ffffff' }}>{totalProtein}g</strong></span>
-                <span>Tinh bột (C): <strong style={{ color: '#ffffff' }}>{totalCarbs}g</strong></span>
-                <span>Chất béo (F): <strong style={{ color: '#ffffff' }}>{totalFat}g</strong></span>
-              </div>
-            )}
           </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
