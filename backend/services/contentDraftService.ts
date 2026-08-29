@@ -69,7 +69,7 @@ export async function createNutritionDraft(user: AuthenticatedUser, customerId: 
   const customerBmr = latestInBody?.bmr || null;
 
   const prompt = `Bạn là Chuyên gia dinh dưỡng thể hình & Đầu bếp dinh dưỡng thể thao hàng đầu tại Việt Nam (3S Wellness Fitness & Yoga).
-Hãy thiết kế một THỰC ĐƠN MÓN ĂN THỰC TẾ 100% CƠM VIỆT DỄ MUA, DỄ NẤU, ĐẦY ĐỦ DINH DƯỠNG CHO GYMER:
+Nhiệm vụ của bạn là thiết kế THỰC ĐƠN MÓN ĂN THỰC TẾ 100% CƠM VIỆT, DỄ MUA TẠI CHỢ/SIÊU THỊ, DỄ NẤU VÀ ĐÁP ỨNG CHÍNH XÁC CÁC YÊU CẦU CỦA PT:
 
 HỌC VIÊN:
 - Họ tên: ${customer.fullName}
@@ -79,24 +79,24 @@ HỌC VIÊN:
 - Mục tiêu thể hình: ${customerGoal}
 - Tiền sử sức khỏe & Bệnh lý: ${customer.medicalNotes || 'Bình thường'}
 
-YÊU CẦU CHI TIẾT TỪ PT VÀ NHU CẦU HỌC VIÊN:
+YÊU CẦU CHI TIẾT TỪ PT VÀ NHU CẦU HỌC VIÊN (BẮT BUỘC TUÂN THỦ 100%):
 ${request}
 
-QUY TẮC BẮT BUỘC VỀ MÓN ĂN THỰC TẾ:
-1. CẤU TRÚC BỮA CHÍNH (Trưa, Tối): Mỗi bữa chính CHỈ GỒM ĐÚNG 3 MÓN CHUẨN MÂM CƠM GIA ĐÌNH VIỆT:
-   - 1 Món đạm chính (Protein): Ức gà áp chảo sốt tiêu, Bò xào cần tỏi / ớt chuông, Cá hồi / Cá thu áp chảo, Thịt heo nạc vai luộc / xào, Tôm rim mặn ngọt nhạt, Trứng cuộn thịt nạc...
-   - 1 Món tinh bột phức (Carbs): Cơm gạo lứt (140-160g), Khoai lang luộc / hấp (150g), Cơm trắng (nếu cần)...
-   - 1 Món canh / rau (Fiber): Canh cải ngọt nấu tôm / thịt bằm, Canh bí đỏ tôm tươi, Rau muống luộc (kèm nước canh vắt chanh), Bông cải xanh luộc, Salad xà lách dưa chuột cà chua...
-2. BỮA SÁNG: Món ăn sáng Việt Nam quen thuộc, đủ chất (Bánh mì đen kẹp 2 trứng ốp la, Phở bò nạc tái, Bún bò nạc, Cháo yến mạch ức gà xé...). Kèm 1 món uống hoặc trái cây nhẹ (Sữa đậu nành không đường, 1 quả chuối già).
-3. BỮA PHỤ (Trước / Sau tập): Tinh gọn, tiện lợi (1 muỗng Whey Protein pha nước + 1 quả chuối, HOẶC 1 hũ sữa chua Hy Lạp + hạt / hoa quả, HOẶC 1 củ khoai lang + 2 lòng trắng trứng).
-4. CẤM TUYỆT ĐỐI (STRICT PROHIBITIONS):
-   - ❌ KHÔNG ĐƯỢC TÁCH nước sốt, gia vị, dầu ăn, nước chấm thành 1 món ăn riêng biệt (CẤM tạo món "Sốt mè rang", CẤM "1 muỗng dầu ô liu", CẤM "Nước mắm tỏi ớt"). Toàn bộ gia vị và nước sốt PHẢI ĐƯỢC GHI VÀO "prepTip" (cách chế biến) của món chính!
-   - ❌ KHÔNG BỊA các món dị thường, gượng ép (CẤM "Dưa leo sống chấm tương ớt", CẤM "Cơm trộn hạt sen", CẤM các món không ai ăn ngoài đời thực).
-   - ❌ TÍNH TOÁN MACRO CHÍNH XÁC:
-     * Thịt nạc, ức gà, tôm, cá: Carbs = 0g (hoặc 1-3g nếu có rau gia vị đi kèm), Protein cao, Fat vừa.
-     * Rau xanh, canh, dưa leo: Calo thấp (15-45 kcal), Fat = 0g, Carbs thấp (2-5g), Protein = 1-3g.
-     * Cơm lứt, khoai lang: Giàu Carbs (25-35g carbs/100g), Fat = 0-1g, Protein = 2-4g.
-5. Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown giải thích ngoài JSON:
+MỆNH LỆNH BẮT BUỘC ĐỐI VỚI CÁC DỮ KIỆN TỪ GIAO DIỆN:
+1. SỐ BỮA ĂN (menu.length): BẮT BUỘC sinh đúng số lượng bữa ăn theo yêu cầu trong mục "YÊU CẦU CHI TIẾT TỪ PT" ở trên (Ví dụ: Yêu cầu 3 bữa -> Sinh đúng 3 bữa; Yêu cầu 4 bữa -> Sinh đúng 4 bữa; Yêu cầu 5 bữa -> Sinh đúng 5 bữa; Yêu cầu 2 bữa -> Sinh đúng 2 bữa).
+2. CALO MỤC TIÊU (targetCalories): BẮT BUỘC gán giá trị "targetCalories" bằng đúng con số Calo mục tiêu được nêu trong yêu cầu của PT. Tổng calories của tất cả các bữa ăn trong mảng "menu" PHẢI CỘNG LẠI CHÍNH XÁC bằng "targetCalories"!
+3. DỊ ỨNG & KIÊNG KỴ: TUYỆT ĐỐI LOẠI BỎ 100% CÁC THỰC PHẨM TRONG DANH SÁCH DỊ ỨNG/KIÊNG KỴ ĐÃ NÊU (Ví dụ: nếu kiêng hải sản thì KHÔNG CÓ tôm, cua, cá biển; nếu ăn chay thì 100% thực vật đậu phụ nấm).
+4. PHONG CÁCH & LỊCH TRÌNH: Phân bổ giờ ăn ("timeSlot") và món ăn phù hợp với lịch tập và phong cách ẩm thực được yêu cầu.
+
+QUY TẮC CẤU TRÚC MÓN ĂN THỰC TẾ:
+- Mỗi bữa chính (Trưa, Tối) CHỈ GỒM ĐÚNG 3 MÓN CHUẨN CƠM VIỆT: 1 Món đạm chính (Ức gà, Bò, Cá, Heo nạc, Tôm, Trứng) + 1 Món tinh bột (Cơm gạo lứt, Khoai lang, Cơm trắng) + 1 Món canh/rau xanh (Canh cải, Canh bí đỏ, Rau muống luộc, Bông cải).
+- Bữa sáng: 2-3 món quen thuộc (Bánh mì đen trứng ốp la, Phở bò nạc, Cháo yến mạch ức gà + Chuối hoặc Sữa hạt).
+- Bữa phụ: 1-2 món tinh gọn (Whey Protein, Chuối, Khoai lang, Sữa chua Hy Lạp).
+- ❌ CẤM TÁCH SỐT, DẦU ĂN, GIA VỊ THÀNH 1 MÓN ĂN RIÊNG. Toàn bộ gia vị/sốt ghi vào mục "prepTip" (cách chế biến) của món chính!
+- ❌ CẤM BỊA MÓN LẠ ĐỜI, CHẮP VÁ GƯỢNG ÉP.
+- Tính toán Macro chuẩn xác (Rau xanh Fat = 0, Carbs thấp; Thịt nạc Carbs = 0; Tinh bột giàu Carbs, Fat = 0).
+
+Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown giải thích ngoài JSON theo cấu trúc:
 {
   "title": "Thực Đơn Dinh Dưỡng - ${customer.fullName}",
   "bmr": 1550,
@@ -105,46 +105,15 @@ QUY TẮC BẮT BUỘC VỀ MÓN ĂN THỰC TẾ:
   "macros": { "protein": 140, "carbs": 180, "fat": 50 },
   "menu": [
     {
-      "name": "Bữa Sáng",
+      "name": "Tên bữa ăn (Ví dụ: Bữa Sáng, Bữa Trưa...)",
       "timeSlot": "07:00 - 07:45",
       "calories": 450,
       "items": [
-        { "name": "Bánh mì đen kẹp trứng ốp la (2 quả)", "amount": "60g bánh mì + 2 trứng", "calories": 290, "protein": 18, "carbs": 28, "fat": 12, "prepTip": "Áp chảo trứng ít dầu, kẹp kèm vài lát dưa chuột tươi" },
-        { "name": "Sữa đậu nành không đường", "amount": "250ml", "calories": 90, "protein": 8, "carbs": 5, "fat": 4, "prepTip": "Uống ấm hoặc để mát buổi sáng" },
-        { "name": "Chuối già chín vừa", "amount": "1 quả (80g)", "calories": 70, "protein": 1, "carbs": 18, "fat": 0, "prepTip": "Ăn tráng miệng bổ sung Kali" }
-      ]
-    },
-    {
-      "name": "Bữa Trưa",
-      "timeSlot": "12:00 - 12:45",
-      "calories": 600,
-      "items": [
-        { "name": "Ức gà áp chảo sốt tiêu đen", "amount": "180g ức gà tươi", "calories": 290, "protein": 45, "carbs": 5, "fat": 6, "prepTip": "Ướp chút muối tiêu, tỏi băm. Áp chảo vàng đều với 1 thìa cafe dầu ô liu" },
-        { "name": "Cơm gạo lứt", "amount": "150g cơm chín", "calories": 165, "protein": 4, "carbs": 35, "fat": 1, "prepTip": "Nấu mềm dẻo vừa ăn" },
-        { "name": "Canh cải ngọt nấu tôm tươi", "amount": "1 bát tô (150g cải + 30g tôm)", "calories": 145, "protein": 10, "carbs": 4, "fat": 2, "prepTip": "Nấu canh thanh mát, nêm nhạt ít gia vị" }
-      ]
-    },
-    {
-      "name": "Bữa Phụ Chiều (Trước Tập)",
-      "timeSlot": "16:30 - 17:00",
-      "calories": 250,
-      "items": [
-        { "name": "Whey Protein Isolate", "amount": "1 muỗng (30g)", "calories": 120, "protein": 27, "carbs": 1, "fat": 1, "prepTip": "Pha 250ml nước mát, lắc đều uống trước tập 30 phút" },
-        { "name": "Khoai lang vàng luộc", "amount": "1 củ nhỏ (120g)", "calories": 105, "protein": 2, "carbs": 24, "fat": 0, "prepTip": "Luộc hoặc hấp chín trước mang theo" }
-      ]
-    },
-    {
-      "name": "Bữa Tối (Sau Tập)",
-      "timeSlot": "19:30 - 20:15",
-      "calories": 550,
-      "items": [
-        { "name": "Thịt bò xào cần tây hành tây", "amount": "150g thịt bò nạc + 100g rau", "calories": 280, "protein": 38, "carbs": 6, "fat": 10, "prepTip": "Ướp tỏi gừng, xào nhanh lửa lớn giữ độ ngọt tự nhiên" },
-        { "name": "Cơm gạo lứt", "amount": "130g cơm chín", "calories": 145, "protein": 3, "carbs": 30, "fat": 1, "prepTip": "Ăn ấm nóng" },
-        { "name": "Rau muống luộc (kèm nước canh vắt chanh)", "amount": "1 đĩa (150g)", "calories": 45, "protein": 4, "carbs": 6, "fat": 0, "prepTip": "Luộc chín giòn, nước luộc vắt chanh làm canh thanh mát" }
+        { "name": "Tên món ăn Việt Nam", "amount": "Định lượng (VD: 150g thịt ức gà)", "calories": 250, "protein": 35, "carbs": 0, "fat": 5, "prepTip": "Cách nấu nhanh ít dầu mỡ" }
       ]
     }
   ],
-  "notes": "Uống đủ 2.5 - 3 lít nước mỗi ngày, ăn chậm nhai kỹ và ưu tiên chế biến luộc, hấp, áp chảo ít dầu."
+  "notes": "Lời khuyên dinh dưỡng, chế biến và thời điểm uống nước..."
 }`;
 
   const raw = await generateNutritionDraft(prompt);

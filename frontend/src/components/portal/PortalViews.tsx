@@ -39,7 +39,6 @@ interface PtTabItem { value: PtTab; label: string; icon: LucideIcon }
 const ptTabs: PtTabItem[] = [
   { value: 'customers', label: 'Khách hàng', icon: Users },
   { value: 'goals', label: 'Mục tiêu', icon: Target },
-  { value: 'nutrition-plans', label: 'Dinh dưỡng', icon: Salad },
 ];
 
 export function PtView() {

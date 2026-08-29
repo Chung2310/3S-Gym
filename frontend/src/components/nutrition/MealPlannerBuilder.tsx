@@ -8,6 +8,8 @@ import {
   Plus,
   RefreshCw,
   Salad,
+  Save,
+  Send,
   Sliders,
   Sparkles,
   Wand2,
@@ -324,7 +326,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
     }
   };
 
-  const handleSavePlan = async () => {
+  const handleSavePlan = async (publishToCustomer: boolean = false) => {
     const targetId = customerId || selectedCustomer?._id;
     if (!targetId) {
       toast.error('Vui lòng chọn học viên trước khi lưu thực đơn.');
@@ -353,7 +355,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         imageUrl: m.imageUrl || undefined,
       }));
 
-      const result = await api.post('/api/nutrition-plans', {
+      const res = await api.post<any>('/api/nutrition-plans', {
         customerId: targetId,
         title: title || `Thực Đơn Dinh Dưỡng - ${selectedCustomer?.fullName || 'Học viên'}`,
         targetCalories: totalKcal,
@@ -366,7 +368,15 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         notes: dietAdviceNotes || undefined,
       });
 
-      toast.success(result.message || 'Đã lưu kế hoạch thực đơn cho học viên!');
+      const planId = res.data?._id || res.data?.id;
+
+      if (publishToCustomer && planId) {
+        await api.patch(`/api/nutrition-plans/${planId}/publish`, { publish: true });
+        toast.success('Đã lưu vào cơ sở dữ liệu và CÔNG BỐ thành công cho học viên áp dụng!');
+      } else {
+        toast.success('Đã lưu bản nháp thực đơn vào cơ sở dữ liệu thành công!');
+      }
+
       if (onSaved) onSaved();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -520,6 +530,55 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
             >
               <ImageIcon size={14} /> {showPoster ? 'Ẩn Poster Đồ Họa' : 'Xem Poster AI'}
             </button>
+
+            {meals.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleSavePlan(false)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.4)',
+                    borderRadius: '8px',
+                    padding: '8px 14px',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  title="Lưu bản nháp vào CSDL để chỉnh sửa tiếp"
+                >
+                  <Save size={14} /> {saving ? 'Đang lưu...' : 'Lưu Nháp'}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleSavePlan(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
+                  }}
+                  title="Lưu vào CSDL và gửi trực tiếp cho học viên áp dụng trên Portal"
+                >
+                  <Send size={14} /> {saving ? 'Đang gửi...' : 'Lưu & Gửi Cho Học Viên'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -818,6 +877,80 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
           >
             <Plus size={16} color="#00a4e4" /> Thêm Một Bữa Ăn Mới (Bữa 5, Bữa Phụ...)
           </button>
+        </div>
+      )}
+
+      {/* STICKY SAVE & PUBLISH ACTION BAR */}
+      {meals.length > 0 && (
+        <div
+          style={{
+            marginTop: '18px',
+            background: 'linear-gradient(135deg, #003b70 0%, #002244 100%)',
+            borderRadius: '14px',
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '14px',
+            boxShadow: '0 8px 24px rgba(0, 59, 112, 0.25)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ color: '#ffffff' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>
+                Tổng Thực Đơn: <span style={{ color: '#4ade80' }}>{totalKcal} kcal</span> ({meals.length} bữa ăn)
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#93c5fd', marginTop: '2px' }}>
+                P: <strong>{totalProtein}g</strong> | C: <strong>{totalCarbs}g</strong> | F: <strong>{totalFat}g</strong> • Học viên: <strong>{selectedCustomer?.fullName || 'Chưa chọn'}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void handleSavePlan(false)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '8px',
+                padding: '10px 18px',
+                fontWeight: 700,
+                fontSize: '0.84rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Save size={15} /> {saving ? 'Đang Lưu...' : 'Lưu Bản Nháp'}
+            </button>
+
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void handleSavePlan(true)}
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 22px',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.45)',
+              }}
+            >
+              <Send size={15} /> {saving ? 'Đang Gửi...' : 'Lưu & Gửi Cho Học Viên Áp Dụng Ngay'}
+            </button>
+          </div>
         </div>
       )}
 
