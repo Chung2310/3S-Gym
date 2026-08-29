@@ -255,6 +255,44 @@ a {
   -webkit-text-fill-color: transparent;
 }
 
+/* Tab bar navigation styles */
+.tab-bar, .tab-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab-bar button, .tab-nav button {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.tab-bar button:hover, .tab-nav button:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.tab-bar button.active, .tab-nav button.active {
+  background: var(--primary-color);
+  color: #ffffff;
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 6px rgba(0, 59, 112, 0.2);
+}
+
 /* RESPONSIVE BREAKPOINT UTILITIES (Dashboard & Landing Page) */
 .dashboard-grid-layout {
   display: grid;
@@ -434,7 +472,7 @@ a {
 .button-danger:hover { background: #b91c1c; }
 .icon-button, .text-button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--primary-color); cursor: pointer; font-size: .85rem; font-weight: 650; transition: all .15s ease; }
 .text-button:hover { background: #f0f7fb; }
-.inline-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.inline-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: nowrap; white-space: nowrap; }
 .inline-actions .text-button { padding: 6px 12px; border-radius: 8px; font-size: .83rem; font-weight: 650; background: #f8fafc; color: #003b70; border: 1px solid #e2e8f0; }
 .inline-actions .text-button:hover { background: #e0f2fe; border-color: #bae6fd; color: #0284c7; }
 .inline-actions .text-button.text-danger { color: #dc2626; background: #fef2f2; border-color: #fecaca; }

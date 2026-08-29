@@ -1,118 +1,326 @@
 import { useCallback, useState } from 'react';
-import { Search, X, Sparkles, RefreshCw, RotateCcw } from 'lucide-react';
+import {
+  Activity,
+  ArrowRightLeft,
+  Calculator,
+  Droplets,
+  Flame,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Salad,
+  Sparkles,
+  Utensils,
+  Zap,
+} from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
+import CustomerSelect from '../../components/ui/CustomerSelect';
 import { errorMessage } from '../../types';
-import ActivityCalculator from '../../components/nutrition/ActivityCalculator';
+import type { Customer, NutritionSummary } from '../../types';
+
+import NutritionMacroCalculator from '../../components/nutrition/NutritionMacroCalculator';
+import ActivityLibraryCalculator from '../../components/nutrition/ActivityLibraryCalculator';
+import MealPlannerBuilder from '../../components/nutrition/MealPlannerBuilder';
+import MealSwapperModal from '../../components/nutrition/MealSwapperModal';
 import NutritionLogForm from '../../components/nutrition/NutritionLogForm';
 import AiNutritionDraftModal from '../../components/nutrition/AiNutritionDraftModal';
 
-interface Summary {
-  consumedCalories?: number;
-  burnedCalories?: number;
-  netCalories?: number;
-  protein?: number;
-  carbs?: number;
-  fat?: number;
-}
+type NutritionTab = 'macro_calculator' | 'activity_library' | 'meal_swapper' | 'logs_balance';
 
 export default function NutritionPage() {
   const toast = useToast();
   const [customerId, setCustomerId] = useState('');
-  const [summary, setSummary] = useState<Summary>({});
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [activeTab, setActiveTab] = useState<NutritionTab>('macro_calculator');
+  const [summary, setSummary] = useState<NutritionSummary>({});
   const [aiOpen, setAiOpen] = useState(false);
+  const [swapperOpen, setSwapperOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [appliedNutrition, setAppliedNutrition] = useState<any>(null);
+  const [appliedAiAnalysis, setAppliedAiAnalysis] = useState<any>(null);
 
-  const load = useCallback(async () => {
-    if (!customerId) return;
-    try {
-      setLoading(true);
-      const result = await api.get<unknown[]>(`/api/nutrition/logs?customerId=${customerId}&page=1&limit=20`);
-      setSummary((result.summary as Summary | undefined) || {});
-    } catch (error) {
-      toast.error(errorMessage(error));
-    } finally {
-      setLoading(false);
-    }
-  }, [customerId, toast]);
+  const load = useCallback(
+    async (targetId?: string) => {
+      const idToLoad = targetId || customerId;
+      if (!idToLoad) return;
+      try {
+        setLoading(true);
+        const result = await api.get<unknown[]>(`/api/nutrition/logs?customerId=${idToLoad}&page=1&limit=20`);
+        setSummary((result.summary as NutritionSummary | undefined) || {});
+      } catch (error) {
+        toast.error(errorMessage(error));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [customerId, toast]
+  );
+
+  const handleApplyMacroToPlan = (nutrition: any, rawAi?: any) => {
+    setAppliedNutrition(nutrition);
+    if (rawAi) setAppliedAiAnalysis(rawAi);
+    setActiveTab('meal_swapper');
+  };
 
   return (
-    <section>
+    <section style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+      {/* Header */}
       <div className="section-header">
         <div>
-          <h1>Dinh dưỡng</h1>
-          <p>Tính chỉ số, theo dõi nhật ký và review bản nháp AI.</p>
+          <h1>Trợ Lý Dinh Dưỡng</h1>
+          <p>Tính BMR/TDEE & Macro cá nhân hóa bằng AI, đổi món & nhật ký calo.</p>
         </div>
-        <button
-          className="button button-primary"
-          onClick={() => setAiOpen(true)}
-          disabled={!customerId}
-        >
-          <Sparkles size={16} /> Mở trợ lý AI
-        </button>
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={() => setSwapperOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <ArrowRightLeft size={15} color="var(--secondary-color)" /> Đổi Món
+          </button>
+
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={() => setAiOpen(true)}
+            disabled={!customerId}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Sparkles size={16} /> Mở trợ lý AI
+          </button>
+        </div>
       </div>
 
-      <div className="panel" style={{ padding: '10px 14px', marginBottom: '14px' }}>
-        <div className="filter-bar" style={{ margin: 0 }}>
-          <div className="search-field" style={{ maxWidth: '340px' }}>
-            <Search size={16} className="search-icon" aria-hidden="true" />
-            <input
-              aria-label="Mã khách hàng dinh dưỡng"
+      {/* Customer Lookup & Quick Filter Bar */}
+      <div className="panel" style={{ padding: '16px 20px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 320px', maxWidth: '480px', minWidth: '260px' }}>
+            <CustomerSelect
+              label="Mã khách hàng dinh dưỡng"
+              name="customerId"
               value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              placeholder="Nhập mã khách hàng dinh dưỡng..."
+              ariaLabel="Mã khách hàng dinh dưỡng"
+              onSelectCustomer={(c) => {
+                setSelectedCustomer(c);
+              }}
+              onChange={(selectedId) => {
+                setCustomerId(selectedId);
+                if (selectedId) void load(selectedId);
+              }}
+              placeholder="Tìm theo tên học viên hoặc SĐT..."
             />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+            <button
+              type="button"
+              className="button button-primary"
+              onClick={() => void load()}
+              disabled={!customerId || loading}
+              style={{
+                height: '46px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '0 18px',
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                borderRadius: '10px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <RefreshCw size={15} className={loading ? 'spin' : ''} /> {loading ? 'Tải...' : 'Tải Nhật Ký'}
+            </button>
+
             {customerId && (
               <button
                 type="button"
-                className="search-clear-btn"
-                onClick={() => setCustomerId('')}
-                aria-label="Xóa mã khách hàng"
+                className="button button-secondary"
+                onClick={() => {
+                  setCustomerId('');
+                  setSelectedCustomer(null);
+                  setSummary({});
+                  setAppliedNutrition(null);
+                  setAppliedAiAnalysis(null);
+                }}
+                style={{
+                  height: '46px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '0 14px',
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
+                  borderRadius: '10px',
+                  whiteSpace: 'nowrap',
+                }}
               >
-                <X size={12} />
+                <RotateCcw size={14} /> Xóa
               </button>
             )}
           </div>
-          <button
-            className="button button-secondary"
-            onClick={() => void load()}
-            disabled={!customerId || loading}
-          >
-            <RefreshCw size={15} /> {loading ? 'Đang tải...' : 'Tải tổng hợp'}
-          </button>
-          {customerId && (
-            <button
-              type="button"
-              className="button-filter-reset"
-              onClick={() => {
-                setCustomerId('');
-                setSummary({});
-              }}
-            >
-              <RotateCcw size={13} /> Xóa tìm kiếm
-            </button>
-          )}
         </div>
+
+        {selectedCustomer && (
+          <div
+            style={{
+              marginTop: '12px',
+              paddingTop: '10px',
+              borderTop: '1px dashed #e2e8f0',
+              display: 'flex',
+              gap: '16px',
+              flexWrap: 'wrap',
+              fontSize: '0.8rem',
+              color: '#334155',
+            }}
+          >
+            <span><strong>Học viên:</strong> {selectedCustomer.fullName}</span>
+            {selectedCustomer.gender && <span><strong>Giới tính:</strong> {selectedCustomer.gender === 'FEMALE' ? 'Nữ' : 'Nam'}</span>}
+            {selectedCustomer.initialWeight && <span><strong>Cân nặng:</strong> {selectedCustomer.initialWeight} kg</span>}
+            {selectedCustomer.height && <span><strong>Chiều cao:</strong> {selectedCustomer.height} cm</span>}
+            {selectedCustomer.initialGoal && <span><strong>Mục tiêu:</strong> {selectedCustomer.initialGoal}</span>}
+          </div>
+        )}
       </div>
 
-      <ActivityCalculator />
+      {/* Tabs Navigation */}
+      <div className="tab-bar">
+        <button
+          type="button"
+          className={activeTab === 'macro_calculator' ? 'active' : ''}
+          onClick={() => setActiveTab('macro_calculator')}
+        >
+          <Calculator size={15} style={{ display: 'inline', marginRight: '6px' }} />
+          1. Tính BMR / Macro & AI
+        </button>
 
-      {customerId && (
-        <NutritionLogForm customerId={customerId} onSaved={() => void load()} />
-      )}
+        <button
+          type="button"
+          className={activeTab === 'activity_library' ? 'active' : ''}
+          onClick={() => setActiveTab('activity_library')}
+        >
+          <Activity size={15} style={{ display: 'inline', marginRight: '6px' }} />
+          2. Tiêu Hao Vận Động
+        </button>
 
-      <section className="panel">
-        <h2>Tổng hợp</h2>
-        <p>
-          Nạp <strong>{summary.consumedCalories || 0} kcal</strong> · Tiêu hao <strong>{summary.burnedCalories || 0} kcal</strong> · Ròng <strong>{summary.netCalories || 0} kcal</strong>
-        </p>
-      </section>
+        <button
+          type="button"
+          className={activeTab === 'meal_swapper' ? 'active' : ''}
+          onClick={() => setActiveTab('meal_swapper')}
+        >
+          <Sparkles size={15} style={{ display: 'inline', marginRight: '6px', color: '#00a4e4' }} />
+          3. Tạo Thực Đơn & AI
+        </button>
 
+        <button
+          type="button"
+          className={activeTab === 'logs_balance' ? 'active' : ''}
+          onClick={() => setActiveTab('logs_balance')}
+        >
+          <Salad size={15} style={{ display: 'inline', marginRight: '6px' }} />
+          4. Nhật Ký In/Out
+        </button>
+      </div>
+
+      {/* Tab Contents */}
+      <div style={{ marginTop: '16px', minWidth: 0 }}>
+        {/* Tab 1: Macro Calculator */}
+        {activeTab === 'macro_calculator' && (
+          <NutritionMacroCalculator
+            selectedCustomer={selectedCustomer}
+            onApplyPlan={handleApplyMacroToPlan}
+          />
+        )}
+
+        {/* Tab 2: Activity Calorie Library */}
+        {activeTab === 'activity_library' && (
+          <ActivityLibraryCalculator selectedCustomer={selectedCustomer} onLogged={() => void load()} />
+        )}
+
+        {/* Tab 3: Meal Planner Builder & AI */}
+        {activeTab === 'meal_swapper' && (
+          <MealPlannerBuilder
+            selectedCustomer={selectedCustomer}
+            customerId={customerId}
+            onSaved={() => void load()}
+            appliedNutrition={appliedNutrition}
+            appliedAiAnalysis={appliedAiAnalysis}
+          />
+        )}
+
+        {/* Tab 4: Logs & Calorie Balance */}
+        {activeTab === 'logs_balance' && (
+          <div style={{ display: 'grid', gap: '20px' }}>
+            {/* Calories In / Out Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>CALO NẠP VÀO (IN)</span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#003b70', margin: '4px 0' }}>
+                  {summary.consumedCalories || 0} <span style={{ fontSize: '0.85rem' }}>kcal</span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Từ các bữa ăn trong ngày</span>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>CALO TIÊU HAO (OUT)</span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ea580c', margin: '4px 0' }}>
+                  {summary.burnedCalories || 0} <span style={{ fontSize: '0.85rem' }}>kcal</span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Từ tập luyện & hoạt động</span>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>CALO RÒNG (NET)</span>
+                <div
+                  style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 900,
+                    color: (summary.netCalories || 0) < 0 ? '#16a34a' : '#003b70',
+                    margin: '4px 0',
+                  }}
+                >
+                  {summary.netCalories || 0} <span style={{ fontSize: '0.85rem' }}>kcal</span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Calo Nạp - Calo Tiêu Hao</span>
+              </div>
+
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>TỔNG PROTEIN NẠP</span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#1d4ed8', margin: '4px 0' }}>
+                  {summary.protein || 0} <span style={{ fontSize: '0.85rem' }}>g</span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Đã ghi nhận trong ngày</span>
+              </div>
+            </div>
+
+            {/* Log form & History */}
+            {customerId ? (
+              <NutritionLogForm customerId={customerId} onSaved={() => void load()} />
+            ) : (
+              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '30px', textAlign: 'center', color: '#64748b' }}>
+                Vui lòng chọn học viên ở thanh tìm kiếm phía trên để ghi và xem nhật ký ăn uống / vận động.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* AI Nutrition Draft Modal */}
       <AiNutritionDraftModal
         open={aiOpen}
         customerId={customerId}
+        customerName={selectedCustomer?.fullName}
         onClose={() => setAiOpen(false)}
-        onSaved={() => undefined}
+        onSaved={() => void load()}
+      />
+
+      {/* Meal Swapper Modal */}
+      <MealSwapperModal
+        open={swapperOpen}
+        onClose={() => setSwapperOpen(false)}
       />
     </section>
   );

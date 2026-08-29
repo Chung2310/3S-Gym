@@ -5,8 +5,8 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
 import { vi } from 'vitest';
 
-vi.mock('../services/aiProvider.js', () => ({
-  generateText: vi.fn().mockImplementation(async (prompt: string) => {
+vi.mock('../services/aiProvider.js', () => {
+  const handler = async (prompt: string) => {
     if (prompt.includes('Roadmap') || prompt.includes('Lộ trình')) {
       return JSON.stringify({
         title: 'Lộ trình AI 12 tuần',
@@ -53,8 +53,17 @@ vi.mock('../services/aiProvider.js', () => ({
       title: 'Giáo án AI',
       sessions: [{ name: 'Buổi 1', exercises: [] }],
     });
-  }),
-}));
+  };
+
+  return {
+    generateText: vi.fn().mockImplementation(handler),
+    generateNutritionDraft: vi.fn().mockImplementation(handler),
+    generateNutritionAnalysis: vi.fn().mockImplementation(handler),
+    generateWorkoutDraft: vi.fn().mockImplementation(handler),
+    generateRoadmapDraft: vi.fn().mockImplementation(handler),
+    generateAssistantAdvice: vi.fn().mockImplementation(handler),
+  };
+});
 
 import app from '../app.js';
 import User, { type UserDocument } from '../models/User.js';

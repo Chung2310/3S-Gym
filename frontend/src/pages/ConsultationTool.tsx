@@ -4,7 +4,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 import MealInfographicPoster from '../components/MealInfographicPoster';
 import type { MealDish } from '../components/MealInfographicPoster';
-import AppShell from '../components/AppShell';
 import { getSession } from '../services/session';
 import { useToast } from '../components/ui/ToastProvider';
 import { errorMessage } from '../types';
@@ -394,7 +393,7 @@ const ConsultationTool = () => {
   });
 
   return (
-    <AppShell user={user}>
+    <section style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
       <div className="section-header">
         <div>
           <h1>Trợ lý dinh dưỡng & Công cụ tính</h1>
@@ -415,7 +414,7 @@ const ConsultationTool = () => {
         <button type="button" className={activeTab === 'analytics' ? 'active' : ''} onClick={() => setActiveTab('analytics')}>Thống kê Calo</button>
       </div>
 
-      <main className="dashboard-main-padding" style={{ padding: '32px', flex: 1 }}>
+      <div style={{ marginTop: '20px', width: '100%', minWidth: 0 }}>
           
           {activeTab === 'inbody_scan' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -1397,8 +1396,8 @@ const ConsultationTool = () => {
               <p style={{ color: 'var(--text-light)' }}>Hệ thống đang lưu trữ và thống kê lượng calo trung bình của các gói tập PT.</p>
             </div>
           )}
-      </main>
-    </AppShell>
+      </div>
+    </section>
   );
 };
 

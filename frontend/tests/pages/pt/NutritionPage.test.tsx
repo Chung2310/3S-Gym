@@ -22,5 +22,6 @@ it('giữ manual fallback khi AI lỗi', async () => {
   await user.type(screen.getByLabelText('Yêu cầu cho AI'), 'Tạo thực đơn giảm mỡ an toàn');
   await user.click(screen.getByRole('button', { name: 'Tạo bản nháp AI' }));
   expect(await screen.findByText('AI tạm thời không khả dụng')).toBeVisible();
+  await user.click(screen.getByRole('button', { name: /4\. Nhật Ký/i }));
   expect(screen.getByRole('button', { name: 'Lưu nhật ký' })).toBeVisible();
 });

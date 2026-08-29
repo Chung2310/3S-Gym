@@ -20,6 +20,7 @@ import AdminKnowledgePage from '../pages/admin/AdminKnowledgePage';
 import CustomerPortalPage from '../pages/customer/CustomerPortalPage';
 import CalendarPage from '../pages/common/CalendarPage';
 import NotificationsPage from '../pages/common/NotificationsPage';
+import ConsultationTool from '../pages/ConsultationTool';
 
 import { FeaturesProvider, useFeatures } from '../services/features';
 import { getSession } from '../services/session';
@@ -41,6 +42,14 @@ function PortalContent({ user }: { user: User }) {
     <AppShell user={user} features={features}>
       <Routes>
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route
+          path="consultation"
+          element={
+            <FeatureRoute user={user} roles={['PT']}>
+              <ConsultationTool />
+            </FeatureRoute>
+          }
+        />
         <Route
           path="calendar"
           element={

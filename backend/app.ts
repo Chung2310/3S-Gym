@@ -31,6 +31,7 @@ import nutritionMetricsRouter from './routes/nutritionMetrics.js';
 import contentDraftsRouter from './routes/contentDrafts.js';
 import packageTemplatesRouter from './routes/packageTemplates.js';
 import workoutTemplatesRouter from './routes/workoutTemplates.js';
+import imageGenerationRouter from './routes/imageGeneration.js';
 import { configureSecurity } from './middlewares/security.js';
 import { createRateLimiter } from './middlewares/rateLimit.js';
 import { getEnv } from './config/env.js';
@@ -73,6 +74,7 @@ app.use('/api', workoutProgressRouter);
 app.use('/api', careDashboardRouter);
 app.use('/api', knowledgeAssistantRouter);
 app.use('/api', operationsRouter);
+app.use('/api/images', imageGenerationRouter);
 app.use('/api', nutritionMetricsRouter);
 app.use('/api/content-drafts', contentDraftsRouter);
 
