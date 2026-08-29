@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { loadEnv } from '../config/env.js';
+import { APP_POLICY, loadEnv } from '../config/env.js';
 
 describe('production environment', () => {
   it('fails fast with every missing production requirement', () => {
@@ -29,7 +29,7 @@ describe('production environment', () => {
       PROVIDER_TIMEOUT_MS: '1', AUTH_RATE_LIMIT_PER_15M: '999', AI_RATE_LIMIT_PER_MINUTE: '999', OCR_MAX_FILE_BYTES: '1',
     })).toMatchObject({
       JWT_ISSUER: '3s-gym', JWT_AUDIENCE: '3s-gym-api', TRUST_PROXY: false, JSON_BODY_LIMIT: '1mb',
-      PROVIDER_TIMEOUT_MS: 15_000, AUTH_RATE_LIMIT_PER_15M: 20, AI_RATE_LIMIT_PER_MINUTE: 10, OCR_MAX_FILE_BYTES: 8_388_608,
+      PROVIDER_TIMEOUT_MS: APP_POLICY.PROVIDER_TIMEOUT_MS, AUTH_RATE_LIMIT_PER_15M: 20, AI_RATE_LIMIT_PER_MINUTE: 10, OCR_MAX_FILE_BYTES: 8_388_608,
     });
   });
 
