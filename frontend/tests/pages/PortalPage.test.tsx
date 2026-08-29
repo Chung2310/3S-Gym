@@ -131,7 +131,7 @@ describe('PortalPage', () => {
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
 
     expect(screen.getByRole('tablist', { name: 'Nội dung khách hàng' })).toBeVisible();
-    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
     expect(screen.getByRole('tab', { name: 'Khách hàng' })).toHaveAttribute('aria-selected', 'true');
 
     await user.click(screen.getByRole('tab', { name: 'Mục tiêu' }));
@@ -217,14 +217,9 @@ describe('PortalPage', () => {
     expect(screen.queryByRole('heading', { name: 'Không tìm thấy trang' })).not.toBeInTheDocument();
   });
 
-  it('PT thêm bữa ăn trực tiếp trong popup dinh dưỡng', async () => {
-    const user = userEvent.setup();
+  it('không hiển thị tab Dinh dưỡng cũ trong trang khách hàng vì đã chuyển sang sidebar chuyên sâu', async () => {
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
-    await user.click(screen.getByRole('tab', { name: 'Dinh dưỡng' }));
-    await user.click(screen.getByRole('button', { name: 'Tạo mới' }));
-    await user.click(screen.getByRole('button', { name: 'Thêm bữa ăn' }));
-    expect(screen.getByLabelText('Tên bữa')).toBeInTheDocument();
-    expect(screen.getByLabelText('Món ăn')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Dinh dưỡng' })).not.toBeInTheDocument();
   });
 
   it('route module giáo án khách hàng cũ chuyển về khách hàng', async () => {

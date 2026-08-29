@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
+  ArrowLeft,
   ArrowRightLeft,
   Check,
   CheckCircle2,
@@ -8,6 +9,8 @@ import {
   Plus,
   RefreshCw,
   Salad,
+  Save,
+  Send,
   Sliders,
   Sparkles,
   Wand2,
@@ -26,6 +29,8 @@ interface MealPlannerBuilderProps {
   selectedCustomer?: Customer | null;
   customerId?: string;
   onSaved?: () => void;
+  onBack?: () => void;
+  editingPlan?: any | null;
   appliedNutrition?: CalculatedNutrition | null;
   appliedAiAnalysis?: AiNutritionAnalysisResult | null;
 }
@@ -34,6 +39,8 @@ export default function MealPlannerBuilder({
   selectedCustomer,
   customerId,
   onSaved,
+  onBack,
+  editingPlan,
   appliedNutrition,
   appliedAiAnalysis,
 }: MealPlannerBuilderProps) {
@@ -82,18 +89,52 @@ export default function MealPlannerBuilder({
     };
   }, [loadingAi]);
 
-  // Sync title & goal when customer changes
+  // Sync editingPlan or new draft when props change
   useEffect(() => {
-    if (selectedCustomer?.fullName) {
-      setTitle(`Thực Đơn Dinh Dưỡng - ${selectedCustomer.fullName}`);
-    } else {
-      setTitle('Kế Hoạch Thực Đơn Dinh Dưỡng');
-    }
-  }, [selectedCustomer]);
+    if (editingPlan) {
+      if (editingPlan.title) setTitle(editingPlan.title);
+      if (editingPlan.notes) setDietAdviceNotes(editingPlan.notes);
+      if (editingPlan.targetCalories) setTargetKcalInput(String(editingPlan.targetCalories));
+      if (Array.isArray(editingPlan.menu) && editingPlan.menu.length > 0) {
+        setMealCount(editingPlan.menu.length);
+        const parsedMeals: MealBlock[] = editingPlan.menu.map((m: any, idx: number) => {
+          const rawItems = Array.isArray(m.items) ? m.items : [];
+          const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
+            if (typeof it === 'object' && it !== null) {
+              return {
+                name: it.name || 'Món ăn',
+                amount: it.amount || '100g',
+                calories: it.calories || 100,
+                protein: it.protein || 10,
+                carbs: it.carbs || 10,
+                fat: it.fat || 3,
+                prepTip: it.prepTip || undefined,
+              };
+            }
+            const str = String(it);
+            return {
+              name: str.split('(')[0]?.trim() || str,
+              amount: '1 khẩu phần',
+              calories: 120,
+              protein: 15,
+              carbs: 10,
+              fat: 3,
+            };
+          });
 
-  // Sync from AI Macro Calculator when applied from Tab 1
-  useEffect(() => {
-    if (appliedAiAnalysis) {
+          return {
+            id: `meal_loaded_${idx + 1}`,
+            name: m.name || `Bữa ${idx + 1}`,
+            timeSlot: m.timeSlot || '08:00',
+            targetKcal: m.calories || 400,
+            items: mealFoods,
+            imageUrl: m.imageUrl || undefined,
+          };
+        });
+        setMeals(parsedMeals);
+        setShowConfigStudio(false);
+      }
+    } else if (appliedAiAnalysis) {
       setTitle(`Thực Đơn ${appliedAiAnalysis.goalLabel} - ${selectedCustomer?.fullName || 'Học viên'}`);
       setTargetKcalInput(String(appliedAiAnalysis.targetCalories));
       if (appliedAiAnalysis.dietaryAdvice?.keyNotes) {
@@ -110,73 +151,21 @@ export default function MealPlannerBuilder({
         }));
         setMeals(timingMeals);
       }
+      setShowConfigStudio(true);
     } else if (appliedNutrition) {
       setTitle(`Thực Đơn ${appliedNutrition.goalLabel} - ${selectedCustomer?.fullName || 'Học viên'}`);
       setTargetKcalInput(String(appliedNutrition.targetCalories));
-    }
-  }, [appliedAiAnalysis, appliedNutrition, selectedCustomer]);
-
-  // Load existing plan from database if customer already has saved plans
-  useEffect(() => {
-    const targetId = customerId || selectedCustomer?._id;
-    if (!targetId) return;
-
-    let isMounted = true;
-    void (async () => {
-      try {
-        const res = await api.get<{ data?: any[]; items?: any[] }>(`/api/nutrition-plans?customerId=${targetId}`);
-        const list = Array.isArray(res.data) ? res.data : (res as any).data?.items || [];
-        if (isMounted && Array.isArray(list) && list.length > 0) {
-          const latest = list[0];
-          if (latest.title) setTitle(latest.title);
-          if (latest.notes) setDietAdviceNotes(latest.notes);
-          if (Array.isArray(latest.menu) && latest.menu.length > 0) {
-            const parsedMeals: MealBlock[] = latest.menu.map((m: any, idx: number) => {
-              const rawItems = Array.isArray(m.items) ? m.items : [];
-              const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
-                if (typeof it === 'object' && it !== null) {
-                  return {
-                    name: it.name || 'Món ăn',
-                    amount: it.amount || '100g',
-                    calories: it.calories || 100,
-                    protein: it.protein || 10,
-                    carbs: it.carbs || 10,
-                    fat: it.fat || 3,
-                    prepTip: it.prepTip || undefined,
-                  };
-                }
-                const str = String(it);
-                return {
-                  name: str.split('(')[0]?.trim() || str,
-                  amount: '1 khẩu phần',
-                  calories: 120,
-                  protein: 15,
-                  carbs: 10,
-                  fat: 3,
-                };
-              });
-
-              return {
-                id: `meal_loaded_${idx + 1}`,
-                name: m.name || `Bữa ${idx + 1}`,
-                timeSlot: m.timeSlot || '08:00',
-                targetKcal: m.calories || 400,
-                items: mealFoods,
-                imageUrl: m.imageUrl || undefined,
-              };
-            });
-            setMeals(parsedMeals);
-          }
-        }
-      } catch {
-        // Silently continue with clean empty state
+      setShowConfigStudio(true);
+    } else {
+      if (selectedCustomer?.fullName) {
+        setTitle(`Thực Đơn Dinh Dưỡng - ${selectedCustomer.fullName}`);
+      } else {
+        setTitle('Kế Hoạch Thực Đơn Dinh Dưỡng');
       }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [customerId, selectedCustomer]);
+      setMeals([]);
+      setShowConfigStudio(true);
+    }
+  }, [editingPlan, appliedAiAnalysis, appliedNutrition, selectedCustomer]);
 
   // Total Macros Calculation
   const totalKcal = meals.reduce((sum, m) => sum + m.items.reduce((s, i) => s + (i.calories || 0), 0), 0);
@@ -324,7 +313,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
     }
   };
 
-  const handleSavePlan = async () => {
+  const handleSavePlan = async (publishToCustomer: boolean = false) => {
     const targetId = customerId || selectedCustomer?._id;
     if (!targetId) {
       toast.error('Vui lòng chọn học viên trước khi lưu thực đơn.');
@@ -353,7 +342,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         imageUrl: m.imageUrl || undefined,
       }));
 
-      const result = await api.post('/api/nutrition-plans', {
+      const payload = {
         customerId: targetId,
         title: title || `Thực Đơn Dinh Dưỡng - ${selectedCustomer?.fullName || 'Học viên'}`,
         targetCalories: totalKcal,
@@ -364,9 +353,23 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         },
         menu: menuPayload,
         notes: dietAdviceNotes || undefined,
-      });
+      };
 
-      toast.success(result.message || 'Đã lưu kế hoạch thực đơn cho học viên!');
+      let planId = editingPlan?._id;
+      if (planId) {
+        await api.patch(`/api/nutrition-plans/${planId}`, payload);
+      } else {
+        const res = await api.post<any>('/api/nutrition-plans', payload);
+        planId = res.data?._id || res.data?.id;
+      }
+
+      if (publishToCustomer && planId) {
+        await api.patch(`/api/nutrition-plans/${planId}/publish`, { publish: true });
+        toast.success('Đã lưu vào cơ sở dữ liệu và CÔNG BỐ thành công cho học viên áp dụng!');
+      } else {
+        toast.success('Đã lưu bản nháp thực đơn vào cơ sở dữ liệu thành công!');
+      }
+
       if (onSaved) onSaved();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -438,29 +441,64 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       {/* Top Banner & Quick Controls */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #003b70 0%, #00a4e4 100%)',
+          background: 'linear-gradient(135deg, #003b70 0%, #002244 100%)',
           color: '#ffffff',
-          borderRadius: '14px',
-          padding: '16px 20px',
-          boxShadow: '0 4px 15px rgba(0, 59, 112, 0.15)',
+          borderRadius: '16px',
+          padding: '18px 22px',
+          boxShadow: '0 4px 20px rgba(0, 59, 112, 0.18)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#bae6fd', fontWeight: 800 }}>
-                Trợ Lý Lên Thực Đơn AI
-              </span>
-              <span style={{ background: '#38bdf8', color: '#0f172a', fontSize: '0.65rem', fontWeight: 800, padding: '1px 6px', borderRadius: '4px' }}>
-                FLUX.2 & Qwen 3.8
-              </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '10px',
+                  padding: '9px 14px',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Quay lại danh sách các bản thực đơn của học viên"
+              >
+                <ArrowLeft size={16} /> Danh Sách
+              </button>
+            )}
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#38bdf8', fontWeight: 800 }}>
+                  THIẾT KẾ THỰC ĐƠN CƠM VIỆT
+                </span>
+                {meals.length > 0 && (
+                  <span style={{ background: '#10b981', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                    {meals.length} Bữa Ăn • {totalKcal} kcal
+                  </span>
+                )}
+              </div>
+              <h2 style={{ margin: '4px 0 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: 800 }}>
+                {selectedCustomer ? `Thực Đơn: ${selectedCustomer.fullName}` : 'Thiết Kế Thực Đơn Dinh Dưỡng'}
+              </h2>
+              {meals.length > 0 && (
+                <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.76rem', color: '#93c5fd', flexWrap: 'wrap' }}>
+                  <span>Đạm (P): <strong style={{ color: '#ffffff' }}>{totalProtein}g</strong></span>
+                  <span>Tinh bột (C): <strong style={{ color: '#ffffff' }}>{totalCarbs}g</strong></span>
+                  <span>Chất béo (F): <strong style={{ color: '#ffffff' }}>{totalFat}g</strong></span>
+                </div>
+              )}
             </div>
-            <h2 style={{ margin: '2px 0 0', fontSize: '1.2rem', color: '#ffffff', fontWeight: 800 }}>
-              {selectedCustomer ? `Thiết Kế Thực Đơn: ${selectedCustomer.fullName}` : 'Thiết Kế Thực Đơn Dinh Dưỡng Cá Nhân Hóa'}
-            </h2>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               type="button"
               onClick={() => setShowConfigStudio(!showConfigStudio)}
@@ -469,7 +507,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                 color: showConfigStudio ? '#38bdf8' : '#003b70',
                 border: 'none',
                 borderRadius: '8px',
-                padding: '8px 14px',
+                padding: '9px 14px',
                 fontWeight: 700,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
@@ -478,48 +516,97 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                 gap: '6px',
               }}
             >
-              <Sliders size={14} /> {showConfigStudio ? 'Thu Gọn Cấu Hình AI' : 'Mở Cấu Hình Nhu Cầu AI'}
+              <Sliders size={14} /> {showConfigStudio ? 'Thu Gọn Cấu Hình' : 'Cấu Hình Nhu Cầu AI'}
             </button>
 
-            <button
-              type="button"
-              onClick={() => setSwapperOpen(true)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <ArrowRightLeft size={14} /> Đổi Món Nhanh
-            </button>
+            {meals.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSwapperOpen(true)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    padding: '9px 14px',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <ArrowRightLeft size={14} /> Đổi Món
+                </button>
 
-            <button
-              type="button"
-              onClick={() => setShowPoster(!showPoster)}
-              style={{
-                background: showPoster ? '#0f172a' : 'rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <ImageIcon size={14} /> {showPoster ? 'Ẩn Poster Đồ Họa' : 'Xem Poster AI'}
-            </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPoster(!showPoster)}
+                  style={{
+                    background: showPoster ? '#0f172a' : 'rgba(255, 255, 255, 0.15)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    padding: '9px 14px',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <ImageIcon size={14} /> {showPoster ? 'Ẩn Poster' : 'Xem Poster'}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleSavePlan(false)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.4)',
+                    borderRadius: '8px',
+                    padding: '9px 14px',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  title="Lưu bản nháp vào CSDL để chỉnh sửa tiếp"
+                >
+                  <Save size={14} /> {saving ? 'Lưu...' : 'Lưu Nháp'}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleSavePlan(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '9px 16px',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
+                  }}
+                  title="Lưu vào CSDL và gửi trực tiếp cho học viên áp dụng trên Portal"
+                >
+                  <Send size={14} /> {saving ? 'Gửi...' : 'Lưu & Gửi Học Viên'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -818,6 +905,80 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
           >
             <Plus size={16} color="#00a4e4" /> Thêm Một Bữa Ăn Mới (Bữa 5, Bữa Phụ...)
           </button>
+        </div>
+      )}
+
+      {/* STICKY SAVE & PUBLISH ACTION BAR */}
+      {meals.length > 0 && (
+        <div
+          style={{
+            marginTop: '18px',
+            background: 'linear-gradient(135deg, #003b70 0%, #002244 100%)',
+            borderRadius: '14px',
+            padding: '16px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '14px',
+            boxShadow: '0 8px 24px rgba(0, 59, 112, 0.25)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ color: '#ffffff' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>
+                Tổng Thực Đơn: <span style={{ color: '#4ade80' }}>{totalKcal} kcal</span> ({meals.length} bữa ăn)
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#93c5fd', marginTop: '2px' }}>
+                P: <strong>{totalProtein}g</strong> | C: <strong>{totalCarbs}g</strong> | F: <strong>{totalFat}g</strong> • Học viên: <strong>{selectedCustomer?.fullName || 'Chưa chọn'}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void handleSavePlan(false)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '8px',
+                padding: '10px 18px',
+                fontWeight: 700,
+                fontSize: '0.84rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Save size={15} /> {saving ? 'Đang Lưu...' : 'Lưu Bản Nháp'}
+            </button>
+
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void handleSavePlan(true)}
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 22px',
+                fontWeight: 800,
+                fontSize: '0.86rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.45)',
+              }}
+            >
+              <Send size={15} /> {saving ? 'Đang Gửi...' : 'Lưu & Gửi Cho Học Viên Áp Dụng Ngay'}
+            </button>
+          </div>
         </div>
       )}
 

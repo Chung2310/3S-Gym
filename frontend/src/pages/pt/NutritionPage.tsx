@@ -1,17 +1,11 @@
 import { useCallback, useState } from 'react';
 import {
   Activity,
-  ArrowRightLeft,
   Calculator,
-  Droplets,
-  Flame,
-  Plus,
   RefreshCw,
   RotateCcw,
   Salad,
   Sparkles,
-  Utensils,
-  Zap,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -22,9 +16,8 @@ import type { Customer, NutritionSummary } from '../../types';
 import NutritionMacroCalculator from '../../components/nutrition/NutritionMacroCalculator';
 import ActivityLibraryCalculator from '../../components/nutrition/ActivityLibraryCalculator';
 import MealPlannerBuilder from '../../components/nutrition/MealPlannerBuilder';
-import MealSwapperModal from '../../components/nutrition/MealSwapperModal';
+import NutritionPlanList, { type NutritionPlanItem } from '../../components/nutrition/NutritionPlanList';
 import NutritionLogForm from '../../components/nutrition/NutritionLogForm';
-import AiNutritionDraftModal from '../../components/nutrition/AiNutritionDraftModal';
 
 type NutritionTab = 'macro_calculator' | 'activity_library' | 'meal_swapper' | 'logs_balance';
 
@@ -34,11 +27,11 @@ export default function NutritionPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<NutritionTab>('macro_calculator');
   const [summary, setSummary] = useState<NutritionSummary>({});
-  const [aiOpen, setAiOpen] = useState(false);
-  const [swapperOpen, setSwapperOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [appliedNutrition, setAppliedNutrition] = useState<any>(null);
   const [appliedAiAnalysis, setAppliedAiAnalysis] = useState<any>(null);
+  const [editingPlan, setEditingPlan] = useState<NutritionPlanItem | null>(null);
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
 
   const load = useCallback(
     async (targetId?: string) => {
@@ -60,6 +53,8 @@ export default function NutritionPage() {
   const handleApplyMacroToPlan = (nutrition: any, rawAi?: any) => {
     setAppliedNutrition(nutrition);
     if (rawAi) setAppliedAiAnalysis(rawAi);
+    setEditingPlan(null);
+    setIsCreatingNew(true);
     setActiveTab('meal_swapper');
   };
 
@@ -68,29 +63,8 @@ export default function NutritionPage() {
       {/* Header */}
       <div className="section-header">
         <div>
-          <h1>Trợ Lý Dinh Dưỡng</h1>
-          <p>Tính BMR/TDEE & Macro cá nhân hóa bằng AI, đổi món & nhật ký calo.</p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            type="button"
-            className="button button-secondary"
-            onClick={() => setSwapperOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <ArrowRightLeft size={15} color="var(--secondary-color)" /> Đổi Món
-          </button>
-
-          <button
-            type="button"
-            className="button button-primary"
-            onClick={() => setAiOpen(true)}
-            disabled={!customerId}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Sparkles size={16} /> Mở trợ lý AI
-          </button>
+          <h1>Trợ Lý Dinh Dưỡng & Thực Đơn Cơm Việt</h1>
+          <p>Tính toán BMR/Macro khoa học, AI thiết kế thực đơn cơm Việt thực tế và theo dõi calo.</p>
         </div>
       </div>
 
@@ -194,16 +168,7 @@ export default function NutritionPage() {
           onClick={() => setActiveTab('macro_calculator')}
         >
           <Calculator size={15} style={{ display: 'inline', marginRight: '6px' }} />
-          1. Tính BMR / Macro & AI
-        </button>
-
-        <button
-          type="button"
-          className={activeTab === 'activity_library' ? 'active' : ''}
-          onClick={() => setActiveTab('activity_library')}
-        >
-          <Activity size={15} style={{ display: 'inline', marginRight: '6px' }} />
-          2. Tiêu Hao Vận Động
+          1. Tính BMR & Macro Cá Nhân
         </button>
 
         <button
@@ -212,7 +177,16 @@ export default function NutritionPage() {
           onClick={() => setActiveTab('meal_swapper')}
         >
           <Sparkles size={15} style={{ display: 'inline', marginRight: '6px', color: '#00a4e4' }} />
-          3. Tạo Thực Đơn & AI
+          2. Thiết Kế Thực Đơn & AI Cơm Việt
+        </button>
+
+        <button
+          type="button"
+          className={activeTab === 'activity_library' ? 'active' : ''}
+          onClick={() => setActiveTab('activity_library')}
+        >
+          <Activity size={15} style={{ display: 'inline', marginRight: '6px' }} />
+          3. Tiêu Hao Vận Động (MET)
         </button>
 
         <button
@@ -221,7 +195,7 @@ export default function NutritionPage() {
           onClick={() => setActiveTab('logs_balance')}
         >
           <Salad size={15} style={{ display: 'inline', marginRight: '6px' }} />
-          4. Nhật Ký In/Out
+          4. Nhật Ký Calo In / Out
         </button>
       </div>
 
@@ -235,20 +209,44 @@ export default function NutritionPage() {
           />
         )}
 
-        {/* Tab 2: Activity Calorie Library */}
-        {activeTab === 'activity_library' && (
-          <ActivityLibraryCalculator selectedCustomer={selectedCustomer} onLogged={() => void load()} />
+        {/* Tab 2: Meal Planner Builder & List */}
+        {activeTab === 'meal_swapper' && (
+          editingPlan || isCreatingNew ? (
+            <MealPlannerBuilder
+              selectedCustomer={selectedCustomer}
+              customerId={customerId}
+              editingPlan={editingPlan}
+              onBack={() => {
+                setEditingPlan(null);
+                setIsCreatingNew(false);
+              }}
+              onSaved={() => {
+                setEditingPlan(null);
+                setIsCreatingNew(false);
+                void load();
+              }}
+              appliedNutrition={appliedNutrition}
+              appliedAiAnalysis={appliedAiAnalysis}
+            />
+          ) : (
+            <NutritionPlanList
+              selectedCustomer={selectedCustomer}
+              customerId={customerId}
+              onCreateNew={() => {
+                setEditingPlan(null);
+                setIsCreatingNew(true);
+              }}
+              onEditPlan={(plan) => {
+                setEditingPlan(plan);
+                setIsCreatingNew(false);
+              }}
+            />
+          )
         )}
 
-        {/* Tab 3: Meal Planner Builder & AI */}
-        {activeTab === 'meal_swapper' && (
-          <MealPlannerBuilder
-            selectedCustomer={selectedCustomer}
-            customerId={customerId}
-            onSaved={() => void load()}
-            appliedNutrition={appliedNutrition}
-            appliedAiAnalysis={appliedAiAnalysis}
-          />
+        {/* Tab 3: Activity Calorie Library */}
+        {activeTab === 'activity_library' && (
+          <ActivityLibraryCalculator selectedCustomer={selectedCustomer} onLogged={() => void load()} />
         )}
 
         {/* Tab 4: Logs & Calorie Balance */}
@@ -307,21 +305,6 @@ export default function NutritionPage() {
           </div>
         )}
       </div>
-
-      {/* AI Nutrition Draft Modal */}
-      <AiNutritionDraftModal
-        open={aiOpen}
-        customerId={customerId}
-        customerName={selectedCustomer?.fullName}
-        onClose={() => setAiOpen(false)}
-        onSaved={() => void load()}
-      />
-
-      {/* Meal Swapper Modal */}
-      <MealSwapperModal
-        open={swapperOpen}
-        onClose={() => setSwapperOpen(false)}
-      />
     </section>
   );
 }

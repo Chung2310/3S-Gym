@@ -1,4 +1,5 @@
 import {
+  Check,
   Clock,
   Coins,
   Flame,
@@ -7,32 +8,41 @@ import {
   Salad,
   Sparkles,
   Wand2,
+  Zap,
 } from 'lucide-react';
 import type { CalculatedNutrition } from '../../types';
 
 export const DIET_STYLES = [
-  { id: 'vietnamese_easy', label: '🇻🇳 Món Việt dễ nấu / Tiết kiệm', desc: 'Thực phẩm tươi sống chợ Việt, nấu nhanh 15-20 phút' },
+  { id: 'vietnamese_easy', label: '🇻🇳 Món Việt dễ nấu / Tiết kiệm', desc: 'Thực phẩm tươi sống chợ Việt, nhanh 15-20p' },
   { id: 'eat_clean', label: '🥗 Eat Clean Chuẩn Gym', desc: 'Ức gà, cá áp chảo, gạo lứt, khoai lang, rau luộc' },
-  { id: 'high_protein_vegan', label: '🌿 Ăn Chay Giàu Protein', desc: 'Đậu phụ, nấm, hạt, yến mạch, whey thực vật' },
-  { id: 'low_carb_keto', label: '🥑 Low-Carb / Giàu Chất Béo Tốt', desc: 'Hạn chế tinh bột dưới 50g, tăng chất béo tốt' },
-  { id: 'office_eating_out', label: '🏢 Dân Văn Phòng Ăn Ngoài', desc: 'Gợi ý chọn món chuẩn tại quán cơm văn phòng' },
+  { id: 'office_eating_out', label: '🏢 Cơm Văn Phòng / Ăn Ngoài', desc: 'Chọn món tiện lợi quán cơm bình dân' },
+  { id: 'high_protein_vegan', label: '🌿 Ăn Chay Giàu Protein', desc: 'Đậu phụ, nấm, hạt dinh dưỡng, yến mạch' },
 ];
 
 export const MEAL_COUNT_OPTIONS = [
-  { value: 3, label: '3 bữa/ngày (Sáng - Trưa - Tối)' },
-  { value: 4, label: '4 bữa/ngày (Sáng - Trưa - Phụ trước tập - Tối) - Chuẩn Gym' },
-  { value: 5, label: '5 bữa/ngày (Tăng cơ nạc Lean Bulk)' },
-  { value: 2, label: '2 bữa/ngày (Nhịn ăn gián đoạn IF 16/8)' },
+  { value: 3, label: '3 Bữa', sub: 'Sáng • Trưa • Tối' },
+  { value: 4, label: '4 Bữa (Chuẩn Gym)', sub: 'Sáng • Trưa • Phụ trước tập • Tối' },
+  { value: 5, label: '5 Bữa', sub: '3 Chính + 2 Phụ Tăng Cơ' },
+  { value: 2, label: '2 Bữa (IF 16/8)', sub: 'Bỏ sáng, ăn Trưa & Tối' },
 ];
 
 export const ALLERGY_CHIPS = [
-  'Dị ứng hải sản vỏ (tôm/cua)',
+  'Dị ứng hải sản (tôm, cua)',
   'Không dung nạp lactose (sữa bò)',
   'Không ăn thịt đỏ (bò/heo)',
   'Không ăn cay / tiêu',
   'Không ăn trứng gà',
   'Không ăn đồ sống',
 ];
+
+const SCHEDULE_PRESETS = [
+  'Tập chiều 17h30 - 19h00 (Phổ biến)',
+  'Tập sáng sớm 06h00 - 07h30',
+  'Tập tối 19h30 - 21h00',
+  'Làm văn phòng ngồi nhiều',
+];
+
+const KCAL_PRESETS = [1500, 1800, 2000, 2200, 2500];
 
 interface MealAiConfigStudioProps {
   mealCount: number;
@@ -77,166 +87,316 @@ export default function MealAiConfigStudio({
     <div
       style={{
         background: '#ffffff',
-        border: '1px solid #cbd5e1',
-        borderRadius: '14px',
-        padding: '18px 20px',
+        border: '1px solid #e2e8f0',
+        borderRadius: '16px',
+        padding: '20px 24px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '14px',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
+        gap: '18px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+      {/* Header Banner */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Sparkles size={18} color="#00a4e4" />
-          <strong style={{ fontSize: '0.95rem', color: '#003b70' }}>
-            Cấu Hình Nhu Cầu Dinh Dưỡng Để AI Sinh Thực Đơn Phù Hợp
-          </strong>
-        </div>
-        <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-          Tùy chỉnh lịch trình, số bữa, chế độ ăn & dị ứng
-        </span>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
-        {/* Field 1: Meal Count */}
-        <div>
-          <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-            <Layers size={13} style={{ display: 'inline', marginRight: '4px' }} /> SỐ LƯỢNG BỮA ĂN / NGÀY
-          </label>
-          <select
-            value={mealCount}
-            onChange={(e) => setMealCount(Number(e.target.value))}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 600 }}
-          >
-            {MEAL_COUNT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Field 2: Target Calories */}
-        <div>
-          <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-            <Flame size={13} style={{ display: 'inline', marginRight: '4px', color: '#ea580c' }} /> CALO MỤC TIÊU (KCAL/NGÀY)
-          </label>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <input
-              type="number"
-              value={targetKcalInput}
-              onChange={(e) => setTargetKcalInput(e.target.value)}
-              placeholder="VD: 1850"
-              style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 700, color: '#15803d' }}
-            />
-            {appliedNutrition && (
-              <button
-                type="button"
-                onClick={() => setTargetKcalInput(String(appliedNutrition.targetCalories))}
-                style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '0 10px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                title="Lấy số Calo vừa tính ở Tab 1"
-              >
-                Lấy từ Tab 1
-              </button>
-            )}
+          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #003b70 0%, #00a4e4 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+            <Sparkles size={18} />
+          </div>
+          <div>
+            <strong style={{ fontSize: '0.98rem', color: '#003b70', display: 'block' }}>
+              Cấu Hình Nhu Cầu Dinh Dưỡng
+            </strong>
+            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+              Tùy chỉnh số bữa, calo mục tiêu, khẩu vị & giờ tập để AI sinh thực đơn cơm Việt chính xác
+            </span>
           </div>
         </div>
 
-        {/* Field 3: Diet Style */}
-        <div>
-          <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-            <Salad size={13} style={{ display: 'inline', marginRight: '4px', color: '#16a34a' }} /> PHONG CÁCH ẨM THỰC
-          </label>
-          <select
-            value={dietStyle}
-            onChange={(e) => setDietStyle(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 600 }}
-          >
-            {DIET_STYLES.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Field 4: Budget Level */}
-        <div>
-          <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-            <Coins size={13} style={{ display: 'inline', marginRight: '4px', color: '#d97706' }} /> MỨC NGÂN SÁCH THỰC PHẨM
-          </label>
-          <select
-            value={budgetLevel}
-            onChange={(e) => setBudgetLevel(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 600 }}
-          >
-            <option value="BUDGET">Bình dân / Tiết kiệm </option>
-            <option value="STANDARD">Tiêu chuẩn Gym </option>
-            <option value="PREMIUM">Cao cấp </option>
-          </select>
-        </div>
+        {appliedNutrition && (
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 10px', borderRadius: '8px', fontSize: '0.74rem', color: '#166534', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Zap size={13} /> Đã nhận chỉ số Macro từ Tab 1: <strong>{appliedNutrition.targetCalories} kcal</strong>
+          </div>
+        )}
       </div>
 
-      {/* Schedule & Workout Times */}
-      <div>
-        <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-          <Clock size={13} style={{ display: 'inline', marginRight: '4px', color: '#0284c7' }} /> LỊCH SINH HOẠT & GIỜ TẬP LUYỆN THỰC TẾ
-        </label>
-        <input
-          value={workoutSchedule}
-          onChange={(e) => setWorkoutSchedule(e.target.value)}
-          placeholder="VD: Sáng ăn 7h30, Trưa 12h, Tập gym 17h30-19h, Tối 20h (AI sẽ tự căn carb/đạm quanh giờ tập)"
-          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', color: '#1e293b' }}
-        />
-      </div>
+      {/* Grid Layout: 2 Columns */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+        {/* LEFT COLUMN: Calo, Số Bữa & Phong Cách */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Field 1: Target Calories */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Flame size={14} color="#ea580c" /> CALO MỤC TIÊU (KCAL/NGÀY)
+              </label>
+              {appliedNutrition && (
+                <button
+                  type="button"
+                  onClick={() => setTargetKcalInput(String(appliedNutrition.targetCalories))}
+                  style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                >
+                  ⚡ Điền {appliedNutrition.targetCalories} kcal
+                </button>
+              )}
+            </div>
 
-      {/* Allergies & Dietary Restrictions */}
-      <div>
-        <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
-          🚫 THỰC PHẨM KIÊNG KỴ / DỊ ỨNG (AI SẼ LOẠI BỎ 100%)
-        </label>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {ALLERGY_CHIPS.map((chip) => {
-            const active = selectedAllergies.includes(chip);
-            return (
-              <button
-                key={chip}
-                type="button"
-                onClick={() => toggleAllergy(chip)}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <input
+                  type="number"
+                  value={targetKcalInput}
+                  onChange={(e) => setTargetKcalInput(e.target.value)}
+                  placeholder="VD: 1850"
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: '1rem',
+                    fontWeight: 800,
+                    color: '#003b70',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.78rem', color: '#64748b', fontWeight: 700 }}>
+                  kcal
+                </span>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {KCAL_PRESETS.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setTargetKcalInput(String(k))}
+                    style={{
+                      padding: '8px 8px',
+                      borderRadius: '8px',
+                      border: targetKcalInput === String(k) ? '1.5px solid #00a4e4' : '1px solid #e2e8f0',
+                      background: targetKcalInput === String(k) ? '#f0f9ff' : '#f8fafc',
+                      color: targetKcalInput === String(k) ? '#0284c7' : '#64748b',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Field 2: Meal Count Selector */}
+          <div>
+            <label style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+              <Layers size={14} color="#0284c7" /> SỐ LƯỢNG BỮA ĂN TRONG NGÀY
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+              {MEAL_COUNT_OPTIONS.map((opt) => {
+                const active = mealCount === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setMealCount(opt.value)}
+                    style={{
+                      textAlign: 'left',
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: active ? '2px solid #00a4e4' : '1px solid #e2e8f0',
+                      background: active ? '#f0f9ff' : '#ffffff',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: active ? '0 2px 8px rgba(0, 164, 228, 0.15)' : 'none',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: '0.84rem', color: active ? '#003b70' : '#1e293b' }}>
+                        {opt.label}
+                      </strong>
+                      {active && <Check size={14} color="#00a4e4" />}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: active ? '#0284c7' : '#64748b', marginTop: '2px' }}>
+                      {opt.sub}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Field 3: Diet Style Cards */}
+          <div>
+            <label style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+              <Salad size={14} color="#16a34a" /> PHONG CÁCH ẨM THỰC
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
+              {DIET_STYLES.map((s) => {
+                const active = dietStyle === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setDietStyle(s.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: active ? '1.5px solid #16a34a' : '1px solid #e2e8f0',
+                      background: active ? '#f0fdf4' : '#ffffff',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: active ? '#166534' : '#1e293b' }}>
+                        {s.label}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                        {s.desc}
+                      </div>
+                    </div>
+                    {active && <Check size={14} color="#16a34a" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Giờ tập, Dị ứng & Ghi chú */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Field 4: Workout Schedule & Presets */}
+          <div>
+            <label style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+              <Clock size={14} color="#0284c7" /> LỊCH TẬP & LỐI SỐNG SINH HOẠT
+            </label>
+            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '8px' }}>
+              {SCHEDULE_PRESETS.map((preset) => {
+                const active = workoutSchedule.includes(preset.split(' ')[0]);
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setWorkoutSchedule(preset)}
+                    style={{
+                      background: active ? '#eff6ff' : '#f8fafc',
+                      color: active ? '#1d4ed8' : '#64748b',
+                      border: active ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {preset}
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              value={workoutSchedule}
+              onChange={(e) => setWorkoutSchedule(e.target.value)}
+              placeholder="VD: Tập chiều 17h30-19h, văn phòng ngồi nhiều..."
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.82rem',
+                color: '#1e293b',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Field 5: Allergies / Restrictions */}
+          <div>
+            <label style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+              🚫 KIÊNG KỴ & DỊ ỨNG (AI SẼ LOẠI BỎ 100%)
+            </label>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {ALLERGY_CHIPS.map((chip) => {
+                const active = selectedAllergies.includes(chip);
+                return (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => toggleAllergy(chip)}
+                    style={{
+                      background: active ? '#fef2f2' : '#f8fafc',
+                      color: active ? '#dc2626' : '#64748b',
+                      border: active ? '1.5px solid #fca5a5' : '1px solid #e2e8f0',
+                      borderRadius: '16px',
+                      padding: '5px 12px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {active ? '✓ ' : '+ '} {chip}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Field 6: Budget & Custom Notes */}
+          <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '10px' }}>
+            <div>
+              <label style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
+                <Coins size={14} color="#d97706" /> NGÂN SÁCH
+              </label>
+              <select
+                value={budgetLevel}
+                onChange={(e) => setBudgetLevel(e.target.value)}
                 style={{
-                  background: active ? '#fef2f2' : '#f8fafc',
-                  color: active ? '#dc2626' : '#64748b',
-                  border: active ? '1px solid #fecaca' : '1px solid #e2e8f0',
-                  borderRadius: '16px',
-                  padding: '4px 10px',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  width: '100%',
+                  padding: '9px 10px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  boxSizing: 'border-box',
                 }}
               >
-                {active ? '✕ ' : '+ '} {chip}
-              </button>
-            );
-          })}
+                <option value="BUDGET">Tiết kiệm</option>
+                <option value="STANDARD">Tiêu chuẩn Gym</option>
+                <option value="PREMIUM">Cao cấp</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 700, display: 'block', marginBottom: '6px' }}>
+                📝 GHI CHÚ THÊM TỪ PT
+              </label>
+              <input
+                value={customDietNotes}
+                onChange={(e) => setCustomDietNotes(e.target.value)}
+                placeholder="VD: Thích cafe đen, ghét ức gà luộc..."
+                style={{
+                  width: '100%',
+                  padding: '9px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.8rem',
+                  color: '#1e293b',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Custom PT Notes */}
-      <div>
-        <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
-          📝 GHI CHÚ BỔ SUNG TỪ PT (SỞ THÍCH, MÓN ĂN THÍCH, YÊU CẦU ĐẶC THÙ)
-        </label>
-        <input
-          value={customDietNotes}
-          onChange={(e) => setCustomDietNotes(e.target.value)}
-          placeholder="VD: Học viên thích uống cafe đen buổi sáng, cần snack chống đói lúc 15h, ghét ăn ức gà luộc..."
-          style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', color: '#1e293b' }}
-        />
-      </div>
-
-      {/* Big Action Button */}
+      {/* BIG GENERATE ACTION BUTTON */}
       <button
         type="button"
         onClick={onAiGenerate}
@@ -245,21 +405,22 @@ export default function MealAiConfigStudio({
           background: 'linear-gradient(135deg, #003b70 0%, #00a4e4 100%)',
           color: '#ffffff',
           border: 'none',
-          borderRadius: '10px',
-          padding: '13px 20px',
+          borderRadius: '12px',
+          padding: '14px 24px',
           fontWeight: 800,
-          fontSize: '0.92rem',
-          cursor: 'pointer',
+          fontSize: '0.94rem',
+          cursor: loadingAi ? 'not-allowed' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: '8px',
-          boxShadow: '0 4px 14px rgba(0, 59, 112, 0.25)',
-          marginTop: '4px',
+          boxShadow: '0 4px 16px rgba(0, 59, 112, 0.25)',
+          marginTop: '6px',
+          transition: 'all 0.15s ease',
         }}
       >
         {loadingAi ? <RefreshCw size={18} className="spin" /> : <Wand2 size={18} />}
-        {loadingAi ? 'AI đang phân tích và tạo thực đơn chi tiết...' : 'AI Sinh Thực Đơn Chi Tiết 100% Khớp Hồ Sơ'}
+        {loadingAi ? 'AI đang thiết kế thực đơn cơm Việt...' : `Sinh Thực Đơn AI (${mealCount} Bữa • ${targetKcalInput || 1850} kcal)`}
       </button>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Eye, Package, Pencil, Phone, Plus, RefreshCw, RotateCcw, Ruler, Salad, Send, Target, Trash2, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { Eye, Package, Pencil, Phone, Plus, RefreshCw, RotateCcw, Ruler, Salad, Send, Shield, Target, Trash2, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import ConfirmModal from '../ui/ConfirmModal';
 import ContentFormModal from '../ui/ContentFormModal';
 import CustomerAccountModal from '../ui/CustomerAccountModal';
@@ -21,7 +21,7 @@ import type { PaginationMeta } from '../../types';
 import { errorMessage } from '../../types';
 import type { ContentItem, Resource } from '../ui/ContentFormModal';
 
-interface PortalItem { _id?: string; id?: string; title?: string; summary?: string; status?: string; customerId?: string; measurementDate?: string; weight?: number; targetCalories?: number; fullName?: string; username?: string; phone?: string; email?: string | null; initialGoal?: string; packages?: unknown; userId?: string | null; [key: string]: unknown }
+interface PortalItem { _id?: string; id?: string; title?: string; summary?: string; status?: string; customerId?: string; measurementDate?: string; weight?: number; targetCalories?: number; fullName?: string; username?: string; phone?: string; email?: string | null; initialGoal?: string; packages?: unknown; userId?: string | { _id?: string; id?: string; username?: string; email?: string | null; status?: string; role?: string; createdAt?: string } | null; [key: string]: unknown }
 interface SectionHeaderProps { title: string; description: string; action?: ReactNode }
 interface CustomerContent { inbody: PortalItem[]; goals: PortalItem[]; workoutPlans: PortalItem[]; nutritionPlans: PortalItem[]; progressReports: PortalItem[] }
 
@@ -39,7 +39,6 @@ interface PtTabItem { value: PtTab; label: string; icon: LucideIcon }
 const ptTabs: PtTabItem[] = [
   { value: 'customers', label: 'Khách hàng', icon: Users },
   { value: 'goals', label: 'Mục tiêu', icon: Target },
-  { value: 'nutrition-plans', label: 'Dinh dưỡng', icon: Salad },
 ];
 
 export function PtView() {
@@ -105,11 +104,93 @@ export function PtView() {
     return <span style={{ color: '#334155', fontWeight: 500 }}>{idStr}</span>;
   };
 
+  const renderAccountCell = (item: PortalItem) => {
+    const rawUser = item.userId;
+    if (rawUser && typeof rawUser === 'object' && 'username' in (rawUser as object) && (rawUser as { username?: string }).username) {
+      const u = rawUser as { username: string; status?: string };
+      const isLocked = u.status === 'LOCKED';
+      return (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '3px 8px',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              background: isLocked ? '#fef2f2' : '#f0f9ff',
+              color: isLocked ? '#b91c1c' : '#0369a1',
+              border: `1px solid ${isLocked ? '#fecaca' : '#bae6fd'}`,
+            }}
+          >
+            <Shield size={12} style={{ color: isLocked ? '#ef4444' : '#0284c7' }} />
+            <span>@{u.username}</span>
+          </span>
+          {isLocked ? (
+            <span style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: 600 }}>
+              (Khóa)
+            </span>
+          ) : (
+            <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>
+              (Hoạt động)
+            </span>
+          )}
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '3px 8px',
+            borderRadius: '6px',
+            fontSize: '0.76rem',
+            fontWeight: 500,
+            background: '#f8fafc',
+            color: '#64748b',
+            border: '1px solid #e2e8f0',
+          }}
+        >
+          Chưa cấp
+        </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setAccountCustomer(item);
+          }}
+          style={{
+            padding: '3px 8px',
+            fontSize: '0.74rem',
+            fontWeight: 600,
+            borderRadius: '5px',
+            background: '#00a4e4',
+            color: '#ffffff',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+          }}
+          title="Cấp tài khoản đăng nhập"
+        >
+          <UserPlus size={11} /> Cấp ngay
+        </button>
+      </div>
+    );
+  };
+
   const columns = useMemo<DataColumn<PortalItem>[]>(() => {
     if (tab === 'customers') return [
       { key: 'fullName', label: 'Họ tên' },
       { key: 'phone', label: 'Số điện thoại' },
       { key: 'email', label: 'Email' },
+      { key: 'userId', label: 'Tài khoản', render: renderAccountCell },
       { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }
     ];
     return [{ key: 'title', label: tab === 'inbody' ? 'Ngày đo' : 'Tên nội dung', render: (item) => item.title || (item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : '—') }, { key: 'customerId', label: 'Khách hàng', render: renderCustomerCell }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];
@@ -220,7 +301,7 @@ export function PtView() {
                   >
                     <Pencil size={16} />
                   </button>
-                  {!item.userId && (
+                  {(!item.userId || (typeof item.userId === 'object' && !(item.userId as { username?: string })?.username)) && (
                     <button
                       type="button"
                       className="action-icon-btn"
