@@ -16,6 +16,17 @@ interface SessionPayload {
 }
 interface MeasurementPayload { customerId: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements?: Record<string, number> }
 
+const circumferenceKeys = ['chest', 'waist', 'hips', 'arm', 'thigh', 'calf'] as const;
+function normalizeMeasurementPayload<T extends Partial<MeasurementPayload>>(payload: T, current: Record<string, number | undefined> = {}) {
+  const measurements = { ...current, ...(payload.measurements || {}) };
+  const raw = payload as T & Record<string, unknown>;
+  for (const key of circumferenceKeys) if (typeof raw[key] === 'number') measurements[key] = raw[key] as number;
+  const normalized = { ...payload, measurements } as T & { measurements: Record<string, number> };
+  for (const key of circumferenceKeys) delete (normalized as Record<string, unknown>)[key];
+  delete (normalized as Record<string, unknown>).notes;
+  return normalized;
+}
+
 const fail = (message: string, status: number) => new AppError({ message, status, code: status === 403 ? ERROR_CODES.AUTHORIZATION : ERROR_CODES.NOT_FOUND });
 async function customerFor(user: AuthenticatedUser, id: string, session?: ClientSession) {
   const customer = await CustomerProfile.findById(id).session(session || null);
@@ -99,10 +110,11 @@ async function createSession(user: AuthenticatedUser, payload: SessionPayload) {
 }
 async function createMeasurement(user: AuthenticatedUser, payload: MeasurementPayload) {
   await customerFor(user, String(payload.customerId));
-  return BodyMeasurement.create({ ...payload, ptId: user.id });
+  return BodyMeasurement.create({ ...normalizeMeasurementPayload(payload), ptId: user.id });
 }
 async function listSessions(user: AuthenticatedUser, query: Record<string, unknown>) { const customerId = String(query.customerId); await customerFor(user, customerId); const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = { customerId: new Types.ObjectId(customerId) }; if (query.attendance && ['PRESENT', 'ABSENT', 'LATE'].includes(String(query.attendance))) filter.attendance = query.attendance; const [items, total] = await Promise.all([WorkoutSession.find(filter).sort({ performedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), WorkoutSession.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
-async function updateMeasurement(user: AuthenticatedUser, id: string, payload: Partial<MeasurementPayload> & { notes?: string }) { const item = await BodyMeasurement.findById(id); if (!item) throw fail('Không tìm thấy số đo.', 404); await customerFor(user, String(item.customerId)); for (const field of ['measuredAt', 'weight', 'bodyFatPercentage', 'muscleMass', 'measurements'] as const) if (payload[field] !== undefined) item.set(field, payload[field]); return item.save(); }
+async function updateSession(user: AuthenticatedUser, id: string, payload: Record<string, unknown>) { const item = await WorkoutSession.findById(id); if (!item) throw fail('Không tìm thấy buổi tập.', 404); await customerFor(user, String(item.customerId)); for (const field of ['performedAt', 'attendance', 'absenceReason', 'exerciseLogs', 'feeling', 'notes'] as const) if (payload[field] !== undefined) item.set(field, payload[field]); return item.save(); }
+async function updateMeasurement(user: AuthenticatedUser, id: string, payload: Partial<MeasurementPayload> & Record<string, unknown>) { const item = await BodyMeasurement.findById(id); if (!item) throw fail('Không tìm thấy số đo.', 404); await customerFor(user, String(item.customerId)); const normalized = normalizeMeasurementPayload(payload, item.measurements || {}); for (const field of ['measuredAt', 'weight', 'bodyFatPercentage', 'muscleMass', 'measurements'] as const) if (normalized[field] !== undefined) item.set(field, normalized[field]); return item.save(); }
 async function deleteMeasurement(user: AuthenticatedUser, id: string) { const item = await BodyMeasurement.findById(id); if (!item) throw fail('Không tìm thấy số đo.', 404); await customerFor(user, String(item.customerId)); await item.deleteOne(); }
 async function getProgress(user: AuthenticatedUser, customerId: string) {
   await customerFor(user, customerId);
@@ -112,4 +124,4 @@ async function getProgress(user: AuthenticatedUser, customerId: string) {
   ]);
   return { customerId: new Types.ObjectId(customerId), measurements, sessions };
 }
-export { createTemplate, listTemplates, getTemplate, updateTemplate, archiveTemplate, deleteTemplate, createSession, listSessions, createMeasurement, updateMeasurement, deleteMeasurement, getProgress };
+export { createTemplate, listTemplates, getTemplate, updateTemplate, archiveTemplate, deleteTemplate, createSession, updateSession, listSessions, createMeasurement, updateMeasurement, deleteMeasurement, getProgress };

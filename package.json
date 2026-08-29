@@ -21,7 +21,8 @@
     "db:migrate": "tsx backend/scripts/migrate.ts up",
     "db:migrate:down": "tsx backend/scripts/migrate.ts down",
     "db:migrate:status": "tsx backend/scripts/migrate.ts status",
-    "db:seed": "tsx backend/scripts/seed.ts"
+    "db:seed": "tsx backend/scripts/seed.ts",
+    "db:seed:progress-demo": "tsx backend/scripts/seedProgressDemo.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

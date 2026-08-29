@@ -3,7 +3,7 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 import { requireFeature } from '../middlewares/requireFeature.js';
 import { validate } from '../middlewares/validate.js';
 import * as c from '../controllers/operationsController.js';
-import { adminDashboardSchema, createCalendarEventSchema, createProgressReportSchema, listCalendarEventsSchema, listOperationSchema, operationIdSchema, updateCalendarEventSchema, updateProgressReportSchema } from '../validators/operationsValidator.js';
+import { adminDashboardSchema, createCalendarEventSchema, createProgressReportSchema, generateProgressReportSchema, listCalendarEventsSchema, listOperationSchema, operationIdSchema, updateCalendarEventSchema, updateProgressReportSchema } from '../validators/operationsValidator.js';
 
 const router = express.Router();
 const progress = [authenticate, authorize('ADMIN', 'PT'), requireFeature('PROGRESS')] as const;
@@ -13,6 +13,7 @@ const reportValidator = (req: Request): ValidationIssue[] => { const e: Validati
 
 */
 router.post('/progress-reports', ...progress, validate(createProgressReportSchema), c.createReport);
+router.post('/progress-reports/generate', ...progress, validate(generateProgressReportSchema), c.generateReport);
 router.get('/progress-reports', ...progress, validate(listOperationSchema), c.reports);
 router.patch('/progress-reports/:id/publish', ...progress, validate(operationIdSchema), c.publishReport);
 router.patch('/progress-reports/:id/unpublish', ...progress, validate(operationIdSchema), c.unpublishReport);

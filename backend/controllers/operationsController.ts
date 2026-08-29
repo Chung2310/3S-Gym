@@ -3,6 +3,7 @@ import { success } from '../middlewares/response.js';
 import * as s from '../services/operationsService.js';
 
 const createReport = asyncHandler(async (req, res) => success(res, { status: 201, message: 'Tạo báo cáo tiến độ thành công.', data: await s.createReport(req.user!, req.body) }));
+const generateReport = asyncHandler(async (req, res) => success(res, { status: 201, message: 'Tạo báo cáo tiến độ tự động thành công.', data: await s.generateReport(req.user!, req.body) }));
 const reports = asyncHandler(async (req, res) => { const r = await s.listReports(req.user!, req.query); return success(res, { message: 'Lấy báo cáo tiến độ thành công.', data: r.items, meta: r.meta }); });
 const getReport = asyncHandler(async (req, res) => success(res, { message: 'Lấy báo cáo tiến độ thành công.', data: await s.getReport(req.user!, String(req.params.id)) }));
 const updateReport = asyncHandler(async (req, res) => success(res, { message: 'Cập nhật báo cáo tiến độ thành công.', data: await s.updateReport(req.user!, String(req.params.id), req.body) }));
@@ -18,4 +19,4 @@ const updateEvent = asyncHandler(async (req, res) => success(res, { message: 'C�
 const deleteEvent = asyncHandler(async (req, res) => success(res, { message: 'Xóa lịch thành công.', data: await s.deleteEvent(req.user!, String(req.params.id)) }));
 const adminDashboard = asyncHandler(async (req, res) => success(res, { message: 'Lấy dashboard Admin thành công.', data: await s.adminDashboard(req.query) }));
 
-export { createReport, reports, getReport, updateReport, publishReport, unpublishReport, deleteReport, notifications, readNotification, createEvent, events, getEvent, updateEvent, deleteEvent, adminDashboard };
+export { createReport, generateReport, reports, getReport, updateReport, publishReport, unpublishReport, deleteReport, notifications, readNotification, createEvent, events, getEvent, updateEvent, deleteEvent, adminDashboard };

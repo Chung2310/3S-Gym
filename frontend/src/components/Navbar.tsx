@@ -84,7 +84,7 @@ const Navbar = () => {
 
             {token ? (
               <>
-                <Link to="/consultation" style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <Link to="/pt/nutrition-assistant" style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   TRỢ LÝ PT
                 </Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', padding: '6px 14px', borderRadius: '20px' }}>
@@ -158,7 +158,7 @@ const Navbar = () => {
 
             {token ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <Link to="/consultation" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 800, fontSize: '1rem' }}>
+                <Link to="/pt/nutrition-assistant" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 800, fontSize: '1rem' }}>
                   <Bot size={18} /> TRỢ LÝ PT & INBODY
                 </Link>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.08)', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>

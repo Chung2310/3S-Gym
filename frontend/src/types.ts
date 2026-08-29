@@ -33,3 +33,4 @@ export type { ApiFailure, ApiList, ApiSuccess, FeatureKey, FeatureState, FieldEr
 export * from './types/inbody';
 export * from './types/workout';
 export * from './types/knowledge';
+export * from './types/progress';

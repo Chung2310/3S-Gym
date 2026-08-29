@@ -3,7 +3,7 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 import { requireFeature } from '../middlewares/requireFeature.js';
 import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/workoutProgressController.js';
-import { bodyMeasurementIdSchema, createBodyMeasurementSchema, createWorkoutSessionSchema, createWorkoutTemplateSchema, customerProgressSchema, listWorkoutSessionsSchema, listWorkoutTemplatesSchema, updateBodyMeasurementSchema, updateWorkoutTemplateSchema, workoutTemplateIdSchema } from '../validators/workoutValidator.js';
+import { bodyMeasurementIdSchema, createBodyMeasurementSchema, createWorkoutSessionSchema, createWorkoutTemplateSchema, customerProgressSchema, listWorkoutSessionsSchema, listWorkoutTemplatesSchema, updateBodyMeasurementSchema, updateWorkoutSessionSchema, updateWorkoutTemplateSchema, workoutTemplateIdSchema } from '../validators/workoutValidator.js';
 const router = express.Router();
 const auth = [authenticate, authorize('ADMIN', 'PT')] as const;
 /* legacy manual validators
@@ -43,6 +43,7 @@ router.patch('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY
 router.patch('/workout-templates/:id/archive', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(workoutTemplateIdSchema), controller.archiveTemplate);
 router.delete('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(workoutTemplateIdSchema), controller.deleteTemplate);
 router.post('/workout-sessions', ...auth, requireFeature('PROGRESS'), validate(createWorkoutSessionSchema), controller.createSession);
+router.patch('/workout-sessions/:id', ...auth, requireFeature('PROGRESS'), validate(updateWorkoutSessionSchema), controller.updateSession);
 router.get('/workout-sessions', ...auth, requireFeature('PROGRESS'), validate(listWorkoutSessionsSchema), controller.listSessions);
 router.post('/body-measurements', ...auth, requireFeature('PROGRESS'), validate(createBodyMeasurementSchema), controller.createMeasurement);
 router.patch('/body-measurements/:id', ...auth, requireFeature('PROGRESS'), validate(updateBodyMeasurementSchema), controller.updateMeasurement);

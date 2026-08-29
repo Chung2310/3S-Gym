@@ -51,6 +51,32 @@ it('lưu số đo và trả chuỗi tiến độ theo thời gian', async () => 
   expect(progress.body.data.measurements[0].weight).toBe(70);
 });
 
+it('normalizes nested and legacy circumference measurements without dropping existing values', async () => {
+  const nested = await request(app).post('/api/body-measurements').set('Authorization', `Bearer ${token}`).send({
+    customerId,
+    measuredAt: '2026-09-03',
+    measurements: { chest: 100, waist: 82, calf: 38 },
+  });
+  expect(nested.status).toBe(201);
+  expect(nested.body.data.measurements).toEqual({ chest: 100, waist: 82, calf: 38 });
+
+  const legacy = await request(app).post('/api/body-measurements').set('Authorization', `Bearer ${token}`).send({
+    customerId,
+    measuredAt: '2026-09-04',
+    chest: 99,
+    waist: 81,
+    calf: 37.5,
+  });
+  expect(legacy.status).toBe(201);
+  expect(legacy.body.data.measurements).toEqual({ chest: 99, waist: 81, calf: 37.5 });
+
+  const updated = await request(app).patch(`/api/body-measurements/${nested.body.data._id}`).set('Authorization', `Bearer ${token}`).send({
+    measurements: { waist: 80 },
+  });
+  expect(updated.status).toBe(200);
+  expect(updated.body.data.measurements).toEqual({ chest: 100, waist: 80, calf: 38 });
+});
+
 it('lists templates with pagination and creates a new version when updated', async () => {
   const created = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
     title: 'Strength Base', goal: 'STRENGTH', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [{ name: 'Deadlift' }] }],
