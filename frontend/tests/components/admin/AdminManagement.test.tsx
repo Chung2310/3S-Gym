@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -96,7 +96,7 @@ describe('FeatureFlagsView', () => {
       </ToastProvider>
     );
 
-    expect(await screen.findByText('Quét InBody bằng AI / OCR')).toBeInTheDocument();
+    expect(await screen.findByText('Quét phiếu InBody tự động')).toBeInTheDocument();
     expect(screen.getByText('Dinh dưỡng & Thực đơn AI')).toBeInTheDocument();
     expect(screen.getByText('Thư viện bài tập & Giáo án')).toBeInTheDocument();
   });

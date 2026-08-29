@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -27,7 +27,7 @@ it('gửi API cập nhật khi lưu popup sửa PT', async () => {
   expect(onSaved).toHaveBeenCalledWith(pt);
 });
 
-it('hỏi xác nhận khi đóng popup có dữ liệu đã thay đổi', async () => {
+it('đóng popup ngay khi bấm Hủy dù có dữ liệu đã thay đổi', async () => {
   const user = userEvent.setup();
   const onClose = vi.fn();
   render(<ToastProvider><PtFormModal open pt={pt} onClose={onClose} onSaved={vi.fn()} /></ToastProvider>);
@@ -35,8 +35,5 @@ it('hỏi xác nhận khi đóng popup có dữ liệu đã thay đổi', async 
   await user.type(screen.getByLabelText('Giới thiệu bản thân & Triết lý huấn luyện'), 'Có thay đổi');
   await user.click(screen.getByRole('button', { name: 'Hủy' }));
 
-  expect(screen.getByRole('dialog', { name: 'Bỏ các thay đổi?' })).toBeInTheDocument();
-  expect(onClose).not.toHaveBeenCalled();
-  await user.click(screen.getByRole('button', { name: 'Bỏ thay đổi' }));
   expect(onClose).toHaveBeenCalledOnce();
 });

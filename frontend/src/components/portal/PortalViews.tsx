@@ -38,7 +38,6 @@ interface PtTabItem { value: PtTab; label: string; icon: LucideIcon }
 
 const ptTabs: PtTabItem[] = [
   { value: 'customers', label: 'Khách hàng', icon: Users },
-  { value: 'inbody', label: 'InBody', icon: Ruler },
   { value: 'goals', label: 'Mục tiêu', icon: Target },
   { value: 'nutrition-plans', label: 'Dinh dưỡng', icon: Salad },
 ];
@@ -63,7 +62,21 @@ export function PtView() {
   const [detailCustomer, setDetailCustomer] = useState<PortalItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PortalItem | null>(null);
 
-  const load = useCallback(async (page = 1) => { try { const params = new URLSearchParams({ page: String(page), limit: '20' }); if (tab === 'customers' && keyword) params.set('keyword', keyword); if (tab === 'customers' && customerStatus) params.set('status', customerStatus); if (tab !== 'customers' && statusFilter) params.set('status', statusFilter); if (tab !== 'customers' && customerFilter) params.set('customerId', customerFilter); const result = await api.get<PortalItem[]>(`/api/${tab}?${params}`); setItems(result.data); if (result.meta) setMeta(result.meta); } catch (error) { toast.error(errorMessage(error)); } }, [tab, keyword, customerStatus, statusFilter, customerFilter, toast]);
+  const load = useCallback(async (page = 1) => {
+    try {
+      const params = new URLSearchParams({ page: String(page), limit: '20' });
+      if (tab === 'customers' && keyword) params.set('keyword', keyword);
+      if (tab === 'customers' && customerStatus) params.set('status', customerStatus);
+      if (tab !== 'customers' && statusFilter) params.set('status', statusFilter);
+      if (tab !== 'customers' && customerFilter) params.set('customerId', customerFilter);
+      const result = await api.get<PortalItem[]>(`/api/${tab}?${params}`);
+      setItems(Array.isArray(result.data) ? result.data : []);
+      if (result.meta) setMeta(result.meta);
+    } catch (error) {
+      toast.error(errorMessage(error));
+      setItems([]);
+    }
+  }, [tab, keyword, customerStatus, statusFilter, customerFilter, toast]);
   useEffect(() => { load(); }, [load]);
   const publish = async () => { if (!confirm) return; try { const result = await api.patch(`/api/${tab}/${confirm._id}/${confirm.status === 'PUBLISHED' ? 'unpublish' : 'publish'}`); toast.success(result.message); setConfirm(null); load(); } catch (error) { toast.error(errorMessage(error)); } };
   const deleteSelectedItem = async () => {
@@ -96,7 +109,7 @@ export function PtView() {
     if (tab === 'customers') return [
       { key: 'fullName', label: 'Họ tên' },
       { key: 'phone', label: 'Số điện thoại' },
-      { key: 'initialGoal', label: 'Mục tiêu' },
+      { key: 'email', label: 'Email' },
       { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }
     ];
     return [{ key: 'title', label: tab === 'inbody' ? 'Ngày đo' : 'Tên nội dung', render: (item) => item.title || (item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : '—') }, { key: 'customerId', label: 'Khách hàng', render: renderCustomerCell }, { key: 'status', label: 'Trạng thái', render: (item) => <StatusBadge status={item.status} /> }];

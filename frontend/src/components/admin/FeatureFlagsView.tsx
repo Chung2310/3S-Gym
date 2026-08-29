@@ -8,7 +8,7 @@ import { errorMessage, type UserRole } from '../../types';
 
 const defaultFeatureDefinitions: Record<string, { name: string; description: string }> = {
   OCR_INBODY: {
-    name: 'Quét InBody bằng AI / OCR',
+    name: 'Quét phiếu InBody tự động',
     description: 'Tự động nhận diện và trích xuất các chỉ số InBody từ ảnh chụp của học viên.',
   },
   NUTRITION_AI: {
@@ -28,7 +28,7 @@ const defaultFeatureDefinitions: Record<string, { name: string; description: str
     description: 'Quản lý tác vụ chăm sóc khách hàng, nhắc nhở và hàng đợi Today.',
   },
   KNOWLEDGE_BASE: {
-    name: 'Kho Tri thức & RAG',
+    name: 'Kho Tri thức & Tra cứu',
     description: 'Tìm kiếm tài liệu bài tập, dinh dưỡng và trợ lý tra cứu thông minh.',
   },
   PT_ASSISTANT: {

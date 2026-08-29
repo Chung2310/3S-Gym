@@ -76,7 +76,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         <div>
           <strong>Cần PT kiểm tra</strong>
           <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
-            Kết quả OCR luôn là bản nháp cho tới khi PT xác nhận tính chính xác của các số liệu.
+            Kết quả quét tự động là bản nháp để PT đối chiếu và xác nhận tính chính xác của các số liệu.
           </p>
         </div>
         {draft.confidence !== undefined && draft.confidence < 0.8 && (
