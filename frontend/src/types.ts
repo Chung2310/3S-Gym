@@ -35,3 +35,5 @@ export * from './types/workout';
 export * from './types/knowledge';
 export * from './types/nutrition';
 export * from './types/roadmap';
+export * from './types/progress';
+

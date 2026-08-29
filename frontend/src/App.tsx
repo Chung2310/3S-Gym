@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -17,6 +17,7 @@ function MainContent() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/consultation" element={<ProtectedRoute><Navigate to="/pt/nutrition-assistant" replace /></ProtectedRoute>} />
           <Route path="/portal/*" element={<ProtectedRoute><PortalRoutes /></ProtectedRoute>} />
           <Route path="/*" element={<ProtectedRoute><PortalRoutes /></ProtectedRoute>} />
         </Routes>

@@ -29,6 +29,7 @@ import knowledgeAssistantRouter from './routes/knowledgeAssistant.js';
 import operationsRouter from './routes/operations.js';
 import nutritionMetricsRouter from './routes/nutritionMetrics.js';
 import contentDraftsRouter from './routes/contentDrafts.js';
+import customerJourneyRouter from './routes/customerJourney.js';
 import packageTemplatesRouter from './routes/packageTemplates.js';
 import workoutTemplatesRouter from './routes/workoutTemplates.js';
 import imageGenerationRouter from './routes/imageGeneration.js';
@@ -54,6 +55,7 @@ app.get('/api/health/ready', (req, res, next) => {
 });
 
 app.use('/api/auth', createRateLimiter({ limit: env.AUTH_RATE_LIMIT_PER_15M, windowMs: 15 * 60_000 }), authRouter);
+app.use('/api', customerJourneyRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/customers', customersRouter);
 app.use('/api/transfers', transfersRouter);

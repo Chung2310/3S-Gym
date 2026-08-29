@@ -26,6 +26,15 @@ describe('AppShell', () => {
     expect(screen.getByRole('link', { name: 'Roadmap' })).toHaveAttribute('href', '/pt/roadmaps');
   });
 
+  it('điều hướng trợ lý dinh dưỡng trong namespace PT', () => {
+    render(<MemoryRouter><AppShell user={{ username: 'pt-a', role: 'PT' }}><div>Portal</div></AppShell></MemoryRouter>);
+
+    expect(screen.getByRole('link', { name: 'Trợ lý dinh dưỡng' })).toHaveAttribute(
+      'href',
+      '/pt/nutrition-assistant',
+    );
+  });
+
   it('nhóm menu, đánh dấu route con đang active và hiển thị breadcrumb', () => {
     render(<MemoryRouter initialEntries={['/pt/roadmaps/roadmap-1']}><AppShell user={{ username: 'pt-a', role: 'PT' }} features={{ ROADMAP: true }}><div>Chi tiết roadmap</div></AppShell></MemoryRouter>);
 

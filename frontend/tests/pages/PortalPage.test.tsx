@@ -21,6 +21,8 @@ vi.mock('../../src/services/api', () => ({
   api: {
     get: vi.fn().mockImplementation(async (path: string) => path === '/api/features/me'
       ? { data: { EXERCISE_LIBRARY: true }, message: '' }
+      : path === '/api/me/journey'
+      ? { data: { customer: { _id: 'customer-1', fullName: 'Khách Demo' }, sessions: [], measurements: [], calendar: [], photos: [], plans: { active: null, history: [] }, reports: [], analytics: { totalVolume: 0, averageRpe: null, attendance: { present: 0, late: 0, absent: 0, rate: null }, streakWeeks: 0, achievements: [], dataQuality: { level: 'INSUFFICIENT', reasons: [] } } }, message: '' }
       : path.startsWith('/api/dashboard/admin')
       ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
       : { data: [], meta: { page: 1, totalPages: 0 }, message: '' }), post: vi.fn(), patch: vi.fn(), delete: vi.fn()
@@ -29,6 +31,8 @@ vi.mock('../../src/services/api', () => ({
 
 const defaultGet = async (path: string) => path === '/api/features/me'
   ? { data: { EXERCISE_LIBRARY: true }, message: '' }
+  : path === '/api/me/journey'
+  ? { data: { customer: { _id: 'customer-1', fullName: 'Khách Demo' }, sessions: [], measurements: [], calendar: [], photos: [], plans: { active: null, history: [] }, reports: [], analytics: { totalVolume: 0, averageRpe: null, attendance: { present: 0, late: 0, absent: 0, rate: null }, streakWeeks: 0, achievements: [], dataQuality: { level: 'INSUFFICIENT', reasons: [] } } }, message: '' }
   : path.startsWith('/api/dashboard/admin')
   ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
   : { data: [], meta: { page: 1, totalPages: 0 }, message: '' };
@@ -238,6 +242,14 @@ describe('PortalPage', () => {
 
     expect(await screen.findByTestId('workout-route')).toHaveTextContent('/pt/my-workout-plans');
     expect(await screen.findByRole('heading', { name: 'Giáo án của tôi' })).toBeVisible();
+  });
+
+  it('giữ AppShell khi PT mở trợ lý dinh dưỡng', async () => {
+    render(<MemoryRouter initialEntries={['/pt/nutrition-assistant']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
+
+    expect(await screen.findByRole('heading', { name: 'Trợ lý dinh dưỡng & Công cụ tính' })).toBeVisible();
+    expect(screen.getByRole('navigation', { name: 'Điều hướng portal' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Trợ lý dinh dưỡng' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('chuyển route thư viện bài tập cũ sang tab trong Giáo án của tôi', async () => {

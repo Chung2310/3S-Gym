@@ -1,10 +1,8 @@
-import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
 import { API_BASE_URL } from '../config';
 import MealInfographicPoster from '../components/MealInfographicPoster';
 import type { MealDish } from '../components/MealInfographicPoster';
-import { getSession } from '../services/session';
 import { useToast } from '../components/ui/ToastProvider';
 import { errorMessage } from '../types';
 import { 
@@ -77,16 +75,6 @@ const FOOD_DATABASE = [
 
 const ConsultationTool = () => {
   const toast = useToast();
-  const navigate = useNavigate();
-  const session = getSession();
-  const token = session?.token || null;
-  const user = session?.user || { username: '', role: 'PT' };
-
-  useEffect(() => {
-    if (!token) {
-      navigate('/login');
-    }
-  }, [token, navigate]);
 
   const [activeTab, setActiveTab] = useState('ai_assistant');
   const [isFormulaMenuOpen, setIsFormulaMenuOpen] = useState(true);

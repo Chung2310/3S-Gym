@@ -11,6 +11,7 @@ const updateMeasurement = asyncHandler(async (req, res) => success(res, { messag
 const deleteMeasurement = asyncHandler(async (req, res) => { await service.deleteMeasurement(req.user!, String(req.params.id)); return success(res, { message: 'Xóa số đo thành công.', data: null }); });
 const createTemplate = asyncHandler(async (req, res) => success(res, { status: 201, message: 'Tạo giáo án mẫu thành công.', data: await service.createTemplate(req.user!, req.body) }));
 const createSession = asyncHandler(async (req, res) => { const result = await service.createSession(req.user!, req.body); return success(res, { status: result.created ? 201 : 200, message: result.created ? 'Ghi nhận buổi tập thành công.' : 'Buổi tập đã được ghi nhận trước đó.', data: result.session }); });
+const updateSession = asyncHandler(async (req, res) => success(res, { message: 'Cập nhật buổi tập thành công.', data: await service.updateSession(req.user!, String(req.params.id), req.body) }));
 const createMeasurement = asyncHandler(async (req, res) => success(res, { status: 201, message: 'Lưu số đo thành công.', data: await service.createMeasurement(req.user!, req.body) }));
 const getProgress = asyncHandler(async (req, res) => success(res, { message: 'Lấy dữ liệu tiến độ thành công.', data: await service.getProgress(req.user!, String(req.params.customerId)) }));
-export { createTemplate, listTemplates, getTemplate, updateTemplate, archiveTemplate, deleteTemplate, createSession, listSessions, createMeasurement, updateMeasurement, deleteMeasurement, getProgress };
+export { createTemplate, listTemplates, getTemplate, updateTemplate, archiveTemplate, deleteTemplate, createSession, updateSession, listSessions, createMeasurement, updateMeasurement, deleteMeasurement, getProgress };

@@ -142,6 +142,14 @@ function PortalContent({ user }: { user: User }) {
           }
         />
         <Route
+          path="pt/nutrition-assistant"
+          element={
+            <FeatureRoute user={user} roles={['PT']}>
+              <ConsultationTool />
+            </FeatureRoute>
+          }
+        />
+        <Route
           path="pt/nutrition"
           element={
             <FeatureRoute user={user} roles={['PT']} feature="NUTRITION_AI">
