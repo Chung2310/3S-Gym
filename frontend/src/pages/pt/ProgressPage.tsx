@@ -4,20 +4,14 @@ import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
 import CustomerSelect from '../../components/ui/CustomerSelect';
 import { errorMessage } from '../../types';
-import WorkoutCheckIn from '../../components/workouts/WorkoutCheckIn';
-import WorkoutSessionHistory from '../../components/workouts/WorkoutSessionHistory';
-import MeasurementForm from '../../components/progress/MeasurementForm';
-import ProgressCharts, { type Measurement } from '../../components/progress/ProgressCharts';
-import ProgressReportEditor from '../../components/progress/ProgressReportEditor';
-import ProgressReportList, { type ProgressReport } from '../../components/progress/ProgressReportList';
+import PtProgressWorkspace from '../../components/progress/PtProgressWorkspace';
+import type { CustomerJourneyDto } from '../../types';
 
 export default function ProgressPage() {
   const toast = useToast();
   const [customerId, setCustomerId] = useState('');
-  const [sessionRefresh, setSessionRefresh] = useState(0);
-  const [measurements, setMeasurements] = useState<Measurement[]>([]);
-  const [reports, setReports] = useState<ProgressReport[]>([]);
   const [loading, setLoading] = useState(false);
+  const [journey, setJourney] = useState<CustomerJourneyDto | null>(null);
 
   const load = useCallback(
     async (targetId?: string) => {
@@ -25,12 +19,8 @@ export default function ProgressPage() {
       if (!idToLoad) return;
       try {
         setLoading(true);
-        const [progress, reportResult] = await Promise.all([
-          api.get<{ measurements: Measurement[] }>(`/api/progress/${idToLoad}`),
-          api.get<ProgressReport[]>(`/api/progress-reports?customerId=${idToLoad}&page=1&limit=20`),
-        ]);
-        setMeasurements(progress.data.measurements);
-        setReports(reportResult.data);
+        const journeyResult = await api.get<CustomerJourneyDto>(`/api/customers/${idToLoad}/journey`);
+        setJourney(journeyResult.data);
       } catch (error) {
         toast.error(errorMessage(error));
       } finally {
@@ -49,20 +39,11 @@ export default function ProgressPage() {
         </div>
       </div>
 
-      <WorkoutCheckIn onCompleted={() => setSessionRefresh((value) => value + 1)} />
-
-      <div className="panel" style={{ padding: '16px 20px', marginBottom: '14px' }}>
-        <h3 style={{ fontSize: '0.94rem', fontWeight: 700, margin: '0 0 12px 0', color: '#1e293b' }}>
+      <div className="mb-4 rounded-xl border border-slate-200 bg-white px-5 py-4">
+        <h3 className="mb-3 text-sm font-bold text-slate-800">
           Tra cứu tiến độ học viên
         </h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(280px, 420px) auto auto',
-            gap: '12px',
-            alignItems: 'flex-end',
-          }}
-        >
+        <div className="grid items-end gap-3 md:grid-cols-[minmax(280px,420px)_auto_auto]">
           <CustomerSelect
             label="Chọn học viên"
             name="lookupCustomerId"
@@ -74,23 +55,20 @@ export default function ProgressPage() {
             placeholder="Tìm theo tên học viên hoặc SĐT..."
           />
           <button
-            className="button button-primary"
             onClick={() => void load()}
             disabled={!customerId || loading}
-            style={{ height: '44px' }}
+            className="button button-primary min-h-11"
           >
             <Activity size={15} /> {loading ? 'Đang tải...' : 'Tải tiến độ'}
           </button>
           {customerId && (
             <button
               type="button"
-              className="button-filter-reset"
               onClick={() => {
                 setCustomerId('');
-                setMeasurements([]);
-                setReports([]);
+                setJourney(null);
               }}
-              style={{ height: '44px' }}
+              className="button-filter-reset min-h-11"
             >
               <RotateCcw size={13} /> Xóa tìm kiếm
             </button>
@@ -98,16 +76,7 @@ export default function ProgressPage() {
         </div>
       </div>
 
-      <WorkoutSessionHistory customerId={customerId} refreshKey={sessionRefresh} />
-
-      {customerId && (
-        <>
-          <MeasurementForm customerId={customerId} onSaved={() => void load()} />
-          <ProgressCharts measurements={measurements} />
-          <ProgressReportEditor customerId={customerId} onSaved={() => void load()} />
-          <ProgressReportList reports={reports} />
-        </>
-      )}
+      {customerId && journey && <PtProgressWorkspace journey={journey} onRefresh={() => void load()} />}
     </section>
   );
 }

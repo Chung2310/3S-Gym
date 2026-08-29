@@ -16,7 +16,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/pt/progress', label: 'Tiến độ', section: 'Vận hành', icon: ChartNoAxesCombined, roles: ['PT'], feature: 'PROGRESS', matchChildren: true },
   { path: '/pt/nutrition', label: 'Dinh dưỡng', section: 'Vận hành', icon: Salad, roles: ['PT'], feature: 'NUTRITION_AI', matchChildren: true },
   { path: '/pt/care', label: 'Chăm sóc', section: 'Vận hành', icon: HeartPulse, roles: ['PT'], feature: 'CARE', matchChildren: true },
-  { path: '/consultation', label: 'Trợ lý dinh dưỡng', section: 'Tri thức & trợ lý', icon: Bot, roles: ['PT'] },
+  { path: '/pt/nutrition-assistant', label: 'Trợ lý dinh dưỡng', section: 'Tri thức & trợ lý', icon: Bot, roles: ['PT'] },
   { path: '/pt/assistant', label: 'PT Assistant', section: 'Tri thức & trợ lý', icon: Bot, roles: ['PT'], feature: 'PT_ASSISTANT', matchChildren: true },
   { path: '/pt/knowledge-search', label: 'Tra cứu tri thức', section: 'Tri thức & trợ lý', icon: Search, roles: ['PT'], feature: 'KNOWLEDGE_BASE', matchChildren: true },
   { path: '/admin/knowledge', label: 'Kho tri thức', section: 'Tri thức & trợ lý', icon: BookOpen, roles: ['ADMIN'], feature: 'KNOWLEDGE_BASE', matchChildren: true },

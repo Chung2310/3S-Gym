@@ -20,6 +20,7 @@ import AdminKnowledgePage from '../pages/admin/AdminKnowledgePage';
 import CustomerPortalPage from '../pages/customer/CustomerPortalPage';
 import CalendarPage from '../pages/common/CalendarPage';
 import NotificationsPage from '../pages/common/NotificationsPage';
+import ConsultationTool from '../pages/ConsultationTool';
 
 import { FeaturesProvider, useFeatures } from '../services/features';
 import { getSession } from '../services/session';
@@ -129,6 +130,14 @@ function PortalContent({ user }: { user: User }) {
           element={
             <FeatureRoute user={user} roles={['PT']} feature="PROGRESS">
               <ProgressPage />
+            </FeatureRoute>
+          }
+        />
+        <Route
+          path="pt/nutrition-assistant"
+          element={
+            <FeatureRoute user={user} roles={['PT']}>
+              <ConsultationTool />
             </FeatureRoute>
           }
         />

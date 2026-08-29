@@ -6,7 +6,7 @@ import CustomerProfile from '../models/CustomerProfile.js';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import WorkoutSession from '../models/WorkoutSession.js';
 import PtPackage from '../models/PtPackage.js';
-import { createSession } from '../services/workoutProgressService.js';
+import { createSession, updateSession } from '../services/workoutProgressService.js';
 
 let mongo: MongoMemoryReplSet;
 
@@ -28,4 +28,26 @@ it('creates one session and consumes one package unit for concurrent retries', a
   expect(settled.every((item) => item.status === 'fulfilled')).toBe(true);
   expect(await WorkoutSession.countDocuments({ ptId: pt.id, idempotencyKey: payload.idempotencyKey })).toBe(1);
   expect(await PtPackage.findOne({ customerId: customer.id }).lean()).toMatchObject({ usedSessions: 1, remainingSessions: 1 });
+});
+
+it('corrects mutable workout details while preserving the plan snapshot and ownership', async () => {
+  const pt = await User.create({ username: 'pt-session-editor', password: 'hashed-value', role: 'PT' });
+  const foreignPt = await User.create({ username: 'pt-session-foreign', password: 'hashed-value', role: 'PT' });
+  const customer = await CustomerProfile.create({ fullName: 'Khách Session', phone: '0908111003', assignedPtId: pt.id });
+  const session = await WorkoutSession.create({
+    customerId: customer.id, ptId: pt.id, performedAt: '2026-09-03', attendance: 'PRESENT', idempotencyKey: 'edit-001',
+    planSnapshot: { title: 'Original plan', version: 1, session: { name: 'Day 1' } },
+    exerciseLogs: [{ name: 'Squat', sets: [{ reps: 8, weight: 50, rpe: 7, completed: true }] }],
+  });
+
+  const updated = await updateSession({ id: pt.id, role: 'PT' }, session.id, {
+    feeling: 'Khỏe', notes: 'Kỹ thuật ổn',
+    exerciseLogs: [{ name: 'Squat', sets: [{ reps: 10, weight: 55, rpe: 8, completed: true }] }],
+    planSnapshot: { title: 'Tampered' }, customerId: foreignPt.id,
+  });
+  expect(updated).toMatchObject({ feeling: 'Khỏe', notes: 'Kỹ thuật ổn' });
+  expect((updated.exerciseLogs[0] as { sets: Array<Record<string, unknown>> }).sets[0]).toMatchObject({ reps: 10, weight: 55, rpe: 8 });
+  expect(updated.planSnapshot).toMatchObject({ title: 'Original plan', version: 1 });
+
+  await expect(updateSession({ id: foreignPt.id, role: 'PT' }, session.id, { feeling: 'Không được phép' })).rejects.toMatchObject({ status: 403 });
 });
