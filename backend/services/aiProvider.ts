@@ -20,8 +20,9 @@ export async function generateText(prompt: string): Promise<string> {
         body: JSON.stringify({
           model,
           messages: [{ role: 'user', content: prompt }],
-          temperature: 0.2,
-          max_tokens: 8192,
+          temperature: 0.1,
+          max_tokens: 16384,
+          reasoning: { effort: 'low' },
         }),
       },
       getEnv().PROVIDER_TIMEOUT_MS

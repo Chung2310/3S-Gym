@@ -40,7 +40,7 @@ async function get(user: AuthenticatedUser, id: string) {
 
 async function remove(user: AuthenticatedUser, id: string) {
   const roadmap = await getOwned(user, id);
-  if (roadmap.status === 'PUBLISHED') throw error('KhÃ´ng thá»ƒ xÃ³a roadmap Ä‘Ã£ cÃ´ng bá»‘.', 409);
+  if (roadmap.status === 'PUBLISHED') throw error('Không thể xóa lộ trình đã công bố.', 409);
   await roadmap.deleteOne();
   await recordAudit({ actor: user, action: 'ROADMAP_DELETED', resourceType: 'roadmaps', resourceId: id, customerId: roadmap.customerId });
 }
@@ -54,16 +54,34 @@ async function setPublished(user: AuthenticatedUser, id: string, publish: boolea
 }
 
 async function list(user: AuthenticatedUser, query: Record<string, unknown>) {
-  const page = Number(query.page || 1); const limit = Number(query.limit || 20);
+  const page = Math.max(1, Number(query.page || 1));
+  const limit = Math.max(1, Math.min(100, Number(query.limit || 6)));
   const filter: QueryFilter<IRoadmap> = {};
-  if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId);
-  if (query.status === 'DRAFT' || query.status === 'PUBLISHED') filter.status = query.status;
+  const customerIdStr = typeof query.customerId === 'string' ? query.customerId.trim() : '';
+  const searchStr = typeof query.search === 'string' ? query.search.trim() : '';
+
+  if (customerIdStr) {
+    filter.customerId = new Types.ObjectId(customerIdStr);
+  }
+  if (query.status === 'DRAFT' || query.status === 'PUBLISHED') {
+    filter.status = query.status;
+  }
+  if (searchStr) {
+    filter.title = { $regex: searchStr, $options: 'i' };
+  }
   if (user.role === 'PT') {
     const ids = await CustomerProfile.find({ assignedPtId: user.id }).distinct('_id');
-    if (typeof query.customerId === 'string' && !ids.some((id) => String(id) === query.customerId)) return { items: [], meta: { page, limit, total: 0, totalPages: 0 } };
-    if (typeof query.customerId !== 'string') filter.customerId = { $in: ids };
+    if (customerIdStr && !ids.some((id) => String(id) === customerIdStr)) {
+      return { items: [], meta: { page, limit, total: 0, totalPages: 0 } };
+    }
+    if (!filter.customerId) {
+      filter.customerId = { $in: ids };
+    }
   }
-  const [items, total] = await Promise.all([Roadmap.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), Roadmap.countDocuments(filter)]);
+  const [items, total] = await Promise.all([
+    Roadmap.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Roadmap.countDocuments(filter),
+  ]);
   return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 

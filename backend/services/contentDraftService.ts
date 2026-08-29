@@ -37,7 +37,12 @@ Hãy tạo Lộ trình huấn luyện (Roadmap) và Mục tiêu toàn diện d�
 - Mục tiêu đã lưu: ${goal ? `${goal.title} (${goal.type}): ${goal.targetValue} ${goal.targetUnit || 'kg'}` : 'Chưa có'}
 - Yêu cầu và mục tiêu từ PT: ${request}
 
-Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ (không kèm markdown ngoài JSON) với cấu trúc sau:
+QUY TẮC BẮT BUỘC:
+1. Trả về DUY NHẤT 1 JSON object hợp lệ, không kèm markdown giải thích ngoài JSON.
+2. Chia lộ trình thành các Phase liên tục, mỗi Phase bao gồm đầy đủ tất cả các tuần theo thứ tự từ 1 đến hết thời lượng (Ví dụ Lộ trình 12 tuần: Phase 1 gồm tuần 1, 2, 3, 4; Phase 2 gồm tuần 5, 6, 7, 8; Phase 3 gồm tuần 9, 10, 11, 12).
+3. Mỗi tuần có trọng tâm (focus) và danh sách các buổi tập (sessions) tương ứng.
+
+Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trúc sau:
 {
   "title": "Tên lộ trình chi tiết...",
   "strategy": {
@@ -67,8 +72,8 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ (không kèm mar
   "phases": [
     {
       "order": 1,
-      "name": "Phase 1: Thích nghi & Chuẩn hóa Kỹ thuật",
-      "durationWeeks": 3,
+      "name": "Phase 1: Thích nghi & Chuẩn hóa Kỹ thuật (Tuần 1 - 4)",
+      "durationWeeks": 4,
       "goals": ["Chuẩn hóa chuyển động", "Tăng sức bền core"],
       "weeks": [
         {
@@ -78,6 +83,24 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ (không kèm mar
           "sessions": [
             { "sessionNumber": 1, "name": "Buổi 1: Thân trên", "focus": "Kỹ thuật Bench press & Lat pulldown", "exercises": ["Bench Press 4x10", "Lat Pulldown 4x10"] }
           ]
+        },
+        {
+          "week": 2,
+          "focus": "Tăng dần mức tạ vừa phải",
+          "sessionTargets": 4,
+          "sessions": []
+        },
+        {
+          "week": 3,
+          "focus": "Củng cố form chuyển động",
+          "sessionTargets": 4,
+          "sessions": []
+        },
+        {
+          "week": 4,
+          "focus": "Đo InBody mốc 1 & Deload nhẹ",
+          "sessionTargets": 4,
+          "sessions": []
         }
       ]
     }
@@ -90,7 +113,46 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ (không kèm mar
 }`;
 
     const raw = await generateText(prompt);
-    const generated = parseJson(raw);
+    const generated = parseJson(raw) as any;
+
+    // Chuẩn hóa tự động đảm bảo tất cả các tuần từ 1 đến hết chu kỳ hiển thị đầy đủ, không bị đứt quãng
+    if (generated && Array.isArray(generated.phases)) {
+      let currentWeekCounter = 1;
+      generated.phases = generated.phases.map((phase: any, pIdx: number) => {
+        const duration = phase.durationWeeks || (phase.weeks ? phase.weeks.length : 4);
+        const existingWeeks = Array.isArray(phase.weeks) ? phase.weeks : [];
+        const fullWeeks = [];
+
+        for (let w = 0; w < duration; w++) {
+          const weekNum = currentWeekCounter + w;
+          const matchWeek = existingWeeks.find((ew: any) => ew.week === weekNum || ew.week === (w + 1)) || existingWeeks[w];
+          if (matchWeek) {
+            fullWeeks.push({
+              ...matchWeek,
+              week: weekNum,
+              sessionTargets: matchWeek.sessionTargets || generated.strategy?.sessionsPerWeek || 3,
+              sessions: Array.isArray(matchWeek.sessions) && matchWeek.sessions.length > 0 ? matchWeek.sessions : (existingWeeks[0]?.sessions || []),
+            });
+          } else {
+            const templateWeek = existingWeeks[0] || {};
+            fullWeeks.push({
+              week: weekNum,
+              focus: `Tuần ${weekNum}: Phân kỳ huấn luyện theo ${phase.name || `Phase ${pIdx + 1}`}`,
+              sessionTargets: generated.strategy?.sessionsPerWeek || 3,
+              sessions: templateWeek.sessions || [],
+            });
+          }
+        }
+        currentWeekCounter += duration;
+        return {
+          ...phase,
+          order: pIdx + 1,
+          durationWeeks: duration,
+          weeks: fullWeeks,
+        };
+      });
+    }
+
     return {
       ...generated,
       customerId: customer._id,

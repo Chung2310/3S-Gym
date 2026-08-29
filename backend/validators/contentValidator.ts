@@ -72,7 +72,7 @@ const sessionSchema = Joi.object({ sessionNumber: Joi.number().min(1), name: Joi
 const week = Joi.object({ week: Joi.number().integer().min(1).required(), focus: Joi.string().trim().required(), sessionTargets: Joi.number().min(0).allow(null), sessions: Joi.array().items(sessionSchema) }).messages(commonMessages);
 const phase = Joi.object({ order: Joi.number().integer().min(1).required(), name: Joi.string().trim().required(), durationWeeks: Joi.number().integer().min(1).required(), goals: Joi.array().items(Joi.string()), weeks: Joi.array().items(week) }).messages(commonMessages);
 const phases = Joi.array().min(1).items(phase).custom((value: Array<{ order: number }>, helpers) => new Set(value.map((item) => item.order)).size === value.length ? value : helpers.error('array.unique'));
-export const listRoadmapsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId, status: Joi.string().valid('DRAFT', 'PUBLISHED') }).messages(commonMessages) };
+export const listRoadmapsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId, status: Joi.string().valid('DRAFT', 'PUBLISHED'), search: Joi.string().trim().allow('') }).messages(commonMessages) };
 const roadmapBaseline = Joi.object().pattern(Joi.string(), Joi.number()).messages(commonMessages);
 const roadmapStrategy = Joi.object().unknown(true);
 export const createRoadmapSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), title: Joi.string().trim().required(), baseline: roadmapBaseline, strategy: roadmapStrategy, phases: phases.required() }).messages(commonMessages) };

@@ -110,15 +110,15 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
         if (next <= 5) {
           setAiStep(1);
           setAiProgress(15 + next * 2);
-        } else if (next <= 20) {
+        } else if (next <= 60) {
           setAiStep(2);
-          setAiProgress(25 + Math.floor(((next - 5) / 15) * 35));
-        } else if (next <= 40) {
+          setAiProgress(25 + Math.floor(((next - 5) / 55) * 35));
+        } else if (next <= 120) {
           setAiStep(3);
-          setAiProgress(60 + Math.floor(((next - 20) / 20) * 25));
+          setAiProgress(60 + Math.floor(((next - 60) / 60) * 25));
         } else {
           setAiStep(4);
-          setAiProgress(Math.min(96, 85 + Math.floor(((next - 40) / 20) * 11)));
+          setAiProgress(Math.min(96, 85 + Math.floor(((next - 120) / 60) * 11)));
         }
         return next;
       });
@@ -215,9 +215,9 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
     const requestText = `Mục tiêu chính: ${goalType}, Số lượng/Chỉ số: ${targetValue} ${targetUnit}, Thời lượng: ${durationWeeks} tuần, Tần suất: ${sessionsPerWeek} buổi/tuần. Ghi chú & Yêu cầu riêng: ${customNotes || 'Tối ưu hóa thể hình và sức khỏe toàn diện'}`;
 
     try {
-      // Race between AI backend call and 120-second timeout (2 phút)
+      // Race between AI backend call and 180-second timeout (3 phút)
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('AI_TIMEOUT_EXCEEDED')), 120000)
+        setTimeout(() => reject(new Error('AI_TIMEOUT_EXCEEDED')), 180000)
       );
 
       const aiCallPromise = api.post<{
@@ -235,7 +235,42 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
       if (proposal) {
         if (proposal.title) setTitle(proposal.title);
         if (proposal.strategy) setStrategy(proposal.strategy);
-        if (proposal.phases && Array.isArray(proposal.phases)) setPhases(proposal.phases);
+        if (proposal.phases && Array.isArray(proposal.phases)) {
+          let weekCounter = 1;
+          const normalizedPhases = proposal.phases.map((p, pIdx) => {
+            const duration = p.durationWeeks || (p.weeks ? p.weeks.length : 4);
+            const existing = Array.isArray(p.weeks) ? p.weeks : [];
+            const fullWeeks: RoadmapWeekProposal[] = [];
+
+            for (let w = 0; w < duration; w++) {
+              const weekNum = weekCounter + w;
+              const match = existing.find((ew) => ew.week === weekNum || ew.week === (w + 1)) || existing[w];
+              if (match) {
+                fullWeeks.push({
+                  ...match,
+                  week: weekNum,
+                  sessionTargets: match.sessionTargets || sessionsPerWeek,
+                  sessions: Array.isArray(match.sessions) && match.sessions.length > 0 ? match.sessions : (existing[0]?.sessions || []),
+                });
+              } else {
+                fullWeeks.push({
+                  week: weekNum,
+                  focus: `Tuần ${weekNum}: Phân kỳ huấn luyện theo ${p.name || `Phase ${pIdx + 1}`}`,
+                  sessionTargets: sessionsPerWeek,
+                  sessions: existing[0]?.sessions || [],
+                });
+              }
+            }
+            weekCounter += duration;
+            return {
+              ...p,
+              order: pIdx + 1,
+              durationWeeks: duration,
+              weeks: fullWeeks,
+            };
+          });
+          setPhases(normalizedPhases);
+        }
         if (proposal.baseline) setBaseline(proposal.baseline);
 
         const expandedMap: Record<number, boolean> = {};
@@ -247,10 +282,10 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
         return;
       }
     } catch (err: any) {
-      // Fallback tự động nếu backend AI provider quá 120s hoặc gặp lỗi mạng
+      // Fallback tự động nếu backend AI provider quá thời gian hoặc gặp lỗi mạng
       applyInstantSportsScienceRoadmap();
       if (err?.message === 'AI_TIMEOUT_EXCEEDED') {
-        toast.info('Quá thời gian chờ AI (>120s). Đã tự động tạo lộ trình tức thì theo Khoa học Thể thao & InBody!');
+        toast.info('Quá thời gian chờ AI (>180s). Đã tự động tạo lộ trình tức thì theo Khoa học Thể thao & InBody!');
       } else {
         toast.info('Đã tự động khởi tạo lộ trình chuẩn theo Khoa học Thể thao & InBody!');
       }
@@ -563,7 +598,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.95rem', color: '#f8fafc', display: 'block' }}>
-                    Đang xử lý & phân kỳ lộ trình bằng AI (GLM 5.3 Flash)
+                    Đang xử lý & phân kỳ lộ trình bằng AI (Qwen 3.8 Flash)
                   </strong>
                   <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                     Kết hợp hồ sơ {customerMeta?.fullName || 'học viên'}, dữ liệu InBody và mục tiêu PT
