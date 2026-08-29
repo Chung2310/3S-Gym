@@ -43,6 +43,14 @@ function PortalContent({ user }: { user: User }) {
       <Routes>
         <Route path="notifications" element={<NotificationsPage />} />
         <Route
+          path="consultation"
+          element={
+            <FeatureRoute user={user} roles={['PT']}>
+              <ConsultationTool />
+            </FeatureRoute>
+          }
+        />
+        <Route
           path="calendar"
           element={
             <FeatureRoute user={user} roles={['ADMIN', 'PT']}>

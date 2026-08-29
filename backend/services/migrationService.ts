@@ -120,11 +120,22 @@ async function seedReferenceData() {
   for (const key of featureKeys) await FeatureFlag.updateOne({ key }, { $setOnInsert: { key, enabled: false, roles: [], pilotUserIds: [] } }, { upsert: true });
   await NutritionFormula.updateOne({ name: 'MIFFLIN_ST_JEOR', version: 1 }, { $setOnInsert: { name: 'MIFFLIN_ST_JEOR', version: 1, active: true, fatLossFactor: 0.85, muscleGainFactor: 1.1, proteinPerKg: 2, fatPerKg: 0.8 } }, { upsert: true });
   const activities = [
-    { name: 'Đi bộ', category: 'CARDIO', met: 3.5 },
-    { name: 'Chạy bộ', category: 'CARDIO', met: 8.3 },
-    { name: 'Tập tạ', category: 'STRENGTH', met: 6 },
+    { name: 'Gym / Kháng lực cường độ cao (1h)', category: 'STRENGTH', met: 6.5 },
+    { name: 'Tập tạ / Thể hình cơ bản (1h)', category: 'STRENGTH', met: 5.5 },
+    { name: 'Chạy bộ 5km (Pace ~6:00)', category: 'CARDIO', met: 9.8 },
+    { name: 'Chạy bộ nhanh / Chạy dốc (Pace ~5:00)', category: 'CARDIO', met: 11.5 },
+    { name: 'Bơi lội 1km (Bơi sải / Bơi ếch)', category: 'CARDIO', met: 7.5 },
+    { name: 'Cycling / Đạp xe ngoài trời 20km', category: 'CARDIO', met: 7.5 },
+    { name: 'Đạp xe trong nhà / Spinning class (45p)', category: 'CARDIO', met: 8.5 },
+    { name: 'Cardio Zone 2 (LISS 30-45 phút)', category: 'CARDIO', met: 5.5 },
+    { name: 'Tabata / HIIT (Đốt mỡ ngắt quãng)', category: 'CARDIO', met: 9.5 },
+    { name: 'Boxing / Kickfit (Đấm bao cát & Di chuyển)', category: 'MARTIAL_ARTS', met: 8.5 },
+    { name: 'Nhảy dây (Jumping Rope)', category: 'CARDIO', met: 10.0 },
+    { name: 'Cầu lông / Tennis đối kháng', category: 'SPORTS', met: 6.5 },
+    { name: 'Yoga & Giãn cơ (Stretching / Mobility)', category: 'RECOVERY', met: 3.0 },
+    { name: 'Đi bộ nhanh / Đi bộ dốc máy (Incline Walk)', category: 'CARDIO', met: 4.5 },
   ];
-  for (const activity of activities) await ActivityCalorie.updateOne({ name: activity.name }, { $setOnInsert: { ...activity, active: true } }, { upsert: true });
+  for (const activity of activities) await ActivityCalorie.updateOne({ name: activity.name }, { $set: { ...activity, active: true } }, { upsert: true });
 }
 
 export { runMigrations, migrateDown, migrationStatus, seedReferenceData };

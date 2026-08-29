@@ -18,10 +18,10 @@ import Pagination from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { useToast } from '../../components/ui/ToastProvider';
 import RoadmapDetailModal from '../../components/roadmap/RoadmapDetailModal';
-import RoadmapForm, { type Roadmap } from '../../components/roadmap/RoadmapForm';
+import RoadmapForm from '../../components/roadmap/RoadmapForm';
 import RoadmapTimeline from '../../components/roadmap/RoadmapTimeline';
 import { api } from '../../services/api';
-import type { Customer, PaginationMeta } from '../../types';
+import type { Customer, PaginationMeta, Roadmap } from '../../types';
 import { errorMessage } from '../../types';
 
 export default function RoadmapPage() {

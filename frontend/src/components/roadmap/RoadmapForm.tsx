@@ -34,19 +34,9 @@ import {
 } from '../../services/roadmapGenerator';
 import CustomerSelect from '../ui/CustomerSelect';
 import { useToast } from '../ui/ToastProvider';
+import type { Roadmap } from '../../types';
 
-export interface Roadmap {
-  _id: string;
-  customerId: string;
-  ptId?: string;
-  title: string;
-  baseline?: Record<string, number>;
-  strategy?: RoadmapStrategyProposal;
-  phases: RoadmapPhaseProposal[];
-  status: 'DRAFT' | 'PUBLISHED';
-  version: number;
-  createdAt?: string;
-}
+export type { Roadmap };
 
 interface RoadmapFormProps {
   onSaved: () => void;
@@ -68,9 +58,9 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
   // Core Form State
   const [customerId, setCustomerId] = useState(initialData?.customerId || '');
   const [title, setTitle] = useState(initialData?.title || '');
-  const [phases, setPhases] = useState<RoadmapPhaseProposal[]>(initialData?.phases || [newPhase(1)]);
-  const [strategy, setStrategy] = useState<RoadmapStrategyProposal | null>(initialData?.strategy || null);
-  const [baseline, setBaseline] = useState<Record<string, number>>(initialData?.baseline || {});
+  const [phases, setPhases] = useState<RoadmapPhaseProposal[]>((initialData?.phases as RoadmapPhaseProposal[]) || [newPhase(1)]);
+  const [strategy, setStrategy] = useState<RoadmapStrategyProposal | null>((initialData?.strategy as RoadmapStrategyProposal) || null);
+  const [baseline, setBaseline] = useState<Record<string, number>>((initialData?.baseline as Record<string, number>) || {});
   const [phaseError, setPhaseError] = useState('');
   const [loading, setLoading] = useState(false);
 

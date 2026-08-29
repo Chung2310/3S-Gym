@@ -5,7 +5,7 @@ export interface PaginationMeta { page: number; limit?: number; total?: number; 
 export interface ApiResponse<T> { success: true; data: T; meta?: PaginationMeta; message?: string }
 export interface ApiErrorBody { success?: false; message?: string; code?: string; requestId?: string; errors?: Array<{ field: string; message: string }> }
 export interface ApiResult<T> { data: T; meta?: PaginationMeta; message: string; summary?: unknown }
-export interface Customer { _id: string; id?: string; userId?: string; fullName: string; phone: string; email?: string; status?: string; assignedPtId?: string; initialGoal?: string;[key: string]: unknown }
+export interface Customer { _id: string; id?: string; userId?: string; fullName: string; phone: string; email?: string; status?: string; assignedPtId?: string; initialGoal?: string; initialWeight?: number; height?: number; gender?: string; fitnessGoal?: string; medicalNotes?: string; [key: string]: unknown }
 export interface ContentEntity { _id: string; id?: string; title?: string; status?: string; customerId?: string; measurementDate?: string; weight?: number; targetCalories?: number;[key: string]: unknown }
 function validationErrors(error: unknown): Array<{ field: string; message: string }> {
   if (typeof error !== 'object' || error === null || !('errors' in error) || !Array.isArray(error.errors)) return [];
@@ -33,4 +33,7 @@ export type { ApiFailure, ApiList, ApiSuccess, FeatureKey, FeatureState, FieldEr
 export * from './types/inbody';
 export * from './types/workout';
 export * from './types/knowledge';
+export * from './types/nutrition';
+export * from './types/roadmap';
 export * from './types/progress';
+

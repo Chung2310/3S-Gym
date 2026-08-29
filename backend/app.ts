@@ -32,6 +32,7 @@ import contentDraftsRouter from './routes/contentDrafts.js';
 import customerJourneyRouter from './routes/customerJourney.js';
 import packageTemplatesRouter from './routes/packageTemplates.js';
 import workoutTemplatesRouter from './routes/workoutTemplates.js';
+import imageGenerationRouter from './routes/imageGeneration.js';
 import { configureSecurity } from './middlewares/security.js';
 import { createRateLimiter } from './middlewares/rateLimit.js';
 import { getEnv } from './config/env.js';
@@ -75,6 +76,7 @@ app.use('/api', workoutProgressRouter);
 app.use('/api', careDashboardRouter);
 app.use('/api', knowledgeAssistantRouter);
 app.use('/api', operationsRouter);
+app.use('/api/images', imageGenerationRouter);
 app.use('/api', nutritionMetricsRouter);
 app.use('/api/content-drafts', contentDraftsRouter);
 

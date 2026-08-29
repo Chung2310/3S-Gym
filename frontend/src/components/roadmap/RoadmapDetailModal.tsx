@@ -16,8 +16,7 @@ import {
   Zap,
 } from 'lucide-react';
 import StatusBadge from '../ui/StatusBadge';
-import type { Roadmap } from './RoadmapForm';
-import type { Customer } from '../../types';
+import type { Roadmap, Customer } from '../../types';
 
 interface RoadmapDetailModalProps {
   open: boolean;
