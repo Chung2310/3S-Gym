@@ -6,6 +6,12 @@ import ProgressPhoto from '../models/ProgressPhoto.js';
 import ProgressReport from '../models/ProgressReport.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutSession from '../models/WorkoutSession.js';
+import Roadmap from '../models/Roadmap.js';
+import NutritionPlan from '../models/NutritionPlan.js';
+import Goal from '../models/Goal.js';
+import InBodyRecord from '../models/InBodyRecord.js';
+import PtPackage from '../models/PtPackage.js';
+import User from '../models/User.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
@@ -34,7 +40,22 @@ function dateFilter(field: string, from?: unknown, to?: unknown) {
 export async function getJourney(user: AuthenticatedUser, options: { customerId?: string; from?: unknown; to?: unknown; customerView?: boolean }) {
   const customer = options.customerView ? await ownCustomer(user) : await staffCustomer(user, String(options.customerId));
   const customerId = new Types.ObjectId(String(customer._id));
-  const [sessions, measurements, calendar, photos, activePlan, planHistory, reports] = await Promise.all([
+  const [
+    sessions,
+    measurements,
+    calendar,
+    photos,
+    activePlan,
+    planHistory,
+    reports,
+    roadmaps,
+    nutritionPlans,
+    goals,
+    inbodyRecords,
+    ptPackages,
+    assignedPt,
+    publishedWorkoutPlans,
+  ] = await Promise.all([
     WorkoutSession.find({ customerId, ...dateFilter('performedAt', options.from, options.to) }).sort({ performedAt: -1 }).lean(),
     BodyMeasurement.find({ customerId, ...dateFilter('measuredAt', options.from, options.to) }).sort({ measuredAt: 1 }).lean(),
     CalendarEvent.find({ customerId, ...dateFilter('startsAt', options.from, options.to) }).sort({ startsAt: 1 }).lean(),
@@ -42,10 +63,53 @@ export async function getJourney(user: AuthenticatedUser, options: { customerId?
     WorkoutPlan.findOne({ customerId, lifecycleStatus: 'ACTIVE' }).lean(),
     WorkoutPlan.find({ customerId, lifecycleStatus: 'ARCHIVED' }).sort({ archivedAt: -1 }).lean(),
     ProgressReport.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ periodEnd: -1 }).lean(),
+    Roadmap.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ createdAt: -1 }).lean(),
+    NutritionPlan.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ createdAt: -1 }).lean(),
+    Goal.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ createdAt: -1 }).lean(),
+    InBodyRecord.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ measurementDate: -1 }).lean(),
+    PtPackage.find({ customerId }).sort({ startDate: -1 }).lean(),
+    customer.assignedPtId ? User.findById(customer.assignedPtId, 'fullName username phone email avatarUrl').lean() : null,
+    WorkoutPlan.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ createdAt: -1 }).lean(),
   ]);
   const analytics = analyzeProgress({ sessions: sessions as unknown as Parameters<typeof analyzeProgress>[0]['sessions'], measurements: measurements as unknown as Parameters<typeof analyzeProgress>[0]['measurements'], ...(typeof options.from === 'string' ? { periodStart: options.from } : {}), ...(typeof options.to === 'string' ? { periodEnd: options.to } : {}) });
   return {
-    customer: { _id: String(customer._id), fullName: customer.fullName, phone: customer.phone },
-    sessions, measurements, calendar, photos, plans: { active: activePlan, history: planHistory }, reports, analytics,
+    customer: {
+      _id: String(customer._id),
+      fullName: customer.fullName,
+      phone: customer.phone,
+      email: customer.email || null,
+      gender: customer.gender,
+      height: customer.height,
+      initialWeight: customer.initialWeight,
+      initialGoal: customer.initialGoal,
+      status: customer.status,
+      assignedPt: assignedPt
+        ? {
+            _id: String(assignedPt._id),
+            fullName: assignedPt.fullName || assignedPt.username,
+            username: assignedPt.username,
+            phone: assignedPt.phone || '',
+            email: assignedPt.email || '',
+            avatarUrl: assignedPt.avatarUrl || '',
+          }
+        : null,
+      packages: ptPackages,
+      activePackage: ptPackages.find((p) => p.status === 'ACTIVE') || ptPackages[0] || null,
+    },
+    sessions,
+    measurements,
+    calendar,
+    photos,
+    plans: {
+      active: activePlan || publishedWorkoutPlans.find((p) => p.status === 'PUBLISHED') || null,
+      history: planHistory,
+      published: publishedWorkoutPlans,
+    },
+    roadmaps,
+    nutritionPlans,
+    goals,
+    inbodyRecords,
+    reports,
+    analytics,
   };
 }

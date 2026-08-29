@@ -19,11 +19,13 @@ import {
   Phone,
   Plus,
   Ruler,
+  Shield,
   Sliders,
   Sparkles,
   Target,
   Trash2,
   User,
+  UserPlus,
   X,
 } from 'lucide-react';
 import FormField from './FormField';
@@ -52,7 +54,15 @@ export interface CustomerFullDetail {
   initialGoal?: string;
   internalNotes?: string;
   status: string;
-  userId?: string | null;
+  userId?: string | {
+    _id?: string;
+    id?: string;
+    username?: string;
+    email?: string | null;
+    status?: 'ACTIVE' | 'LOCKED';
+    role?: string;
+    createdAt?: string;
+  } | null;
   createdAt?: string;
   updatedAt?: string;
   [key: string]: unknown;
@@ -209,6 +219,16 @@ export default function CustomerDetailModal({
 
   const activePackage = useMemo(() => packages.find((p) => p.status === 'ACTIVE'), [packages]);
 
+  const userAccount = useMemo(() => {
+    if (!detail?.userId) return null;
+    if (typeof detail.userId === 'object' && detail.userId !== null && 'username' in detail.userId && detail.userId.username) {
+      return detail.userId;
+    }
+    return null;
+  }, [detail?.userId]);
+
+  const hasAccount = Boolean(userAccount || (detail?.userId && typeof detail.userId === 'string'));
+
   const isSubModalOpen = showPackageModal || showConsultationModal || showPhotoModal;
 
   if (!open || !customer) return null;
@@ -300,9 +320,44 @@ export default function CustomerDetailModal({
                       {detail?.fullName || customer.fullName}
                     </h1>
                     {detail?.status && <StatusBadge status={detail.status} />}
+                    {userAccount ? (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: 'rgba(255, 255, 255, 0.18)',
+                          border: '1px solid rgba(255, 255, 255, 0.35)',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          color: '#ffffff',
+                        }}
+                      >
+                        <Shield size={11} style={{ color: '#38bdf8' }} />
+                        @{userAccount.username}
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: '1px dashed rgba(255, 255, 255, 0.25)',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.72rem',
+                          color: '#bae6fd',
+                        }}
+                      >
+                        Chưa cấp tài khoản
+                      </span>
+                    )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '6px', fontSize: '0.88rem', color: '#f1f5f9' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '6px', fontSize: '0.88rem', color: '#f1f5f9', flexWrap: 'wrap' }}>
                     {detail?.phone && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#ffffff', fontWeight: 600 }}>
                         <Phone size={14} style={{ color: '#38bdf8' }} /> {detail.phone}
@@ -343,7 +398,7 @@ export default function CustomerDetailModal({
                     <Pencil size={14} style={{ marginRight: '5px' }} /> Sửa thông tin
                   </button>
                 )}
-                {detail && !detail.userId && onGrantAccount && (
+                {detail && !hasAccount && onGrantAccount && (
                   <button
                     type="button"
                     className="button button-primary"
@@ -544,6 +599,114 @@ export default function CustomerDetailModal({
                     <small style={{ color: '#0284c7' }}>Lần gần nhất: {sessions[0]?.performedAt ? new Date(sessions[0].performedAt).toLocaleDateString('vi-VN') : '—'}</small>
                   </div>
                 </div>
+
+                {/* App Account Section */}
+                {userAccount ? (
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)',
+                      padding: '18px 20px',
+                      borderRadius: '12px',
+                      border: '1px solid #bae6fd',
+                      boxShadow: '0 2px 8px rgba(2, 132, 199, 0.05)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Shield size={16} style={{ color: '#0284c7' }} />
+                        </div>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#003b70' }}>Tài khoản đăng nhập ứng dụng</h3>
+                          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Học viên dùng tài khoản này để đăng nhập vào cổng Customer Portal</span>
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          background: userAccount.status === 'LOCKED' ? '#fee2e2' : '#dcfce7',
+                          color: userAccount.status === 'LOCKED' ? '#991b1b' : '#166534',
+                          border: `1px solid ${userAccount.status === 'LOCKED' ? '#fca5a5' : '#86efac'}`,
+                        }}
+                      >
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: userAccount.status === 'LOCKED' ? '#ef4444' : '#22c55e' }} />
+                        {userAccount.status === 'LOCKED' ? 'Tài khoản đã khóa' : 'Đang hoạt động'}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', background: '#ffffff', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <div>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Tên đăng nhập</span>
+                        <strong style={{ fontSize: '0.94rem', color: '#0284c7', marginTop: '2px', display: 'block' }}>@{userAccount.username}</strong>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Email đăng nhập</span>
+                        <span style={{ fontSize: '0.88rem', color: '#1e293b', marginTop: '2px', display: 'block', fontWeight: 500 }}>{userAccount.email || detail.email || 'Chưa cập nhật'}</span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Quyền hạn</span>
+                        <span style={{ fontSize: '0.88rem', color: '#0f172a', marginTop: '2px', display: 'block', fontWeight: 600 }}>Hội viên (CUSTOMER)</span>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Cổng truy cập</span>
+                        <span style={{ fontSize: '0.88rem', color: '#0284c7', marginTop: '2px', display: 'block', fontWeight: 600 }}>/me (Hành trình của tôi)</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, #fefce8 0%, #fffbeb 100%)',
+                      padding: '16px 20px',
+                      borderRadius: '12px',
+                      border: '1px solid #fef08a',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <UserPlus size={18} style={{ color: '#854d0e' }} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#854d0e' }}>Khách hàng chưa được cấp tài khoản ứng dụng</h4>
+                        <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#a16207' }}>
+                          Cấp tài khoản để học viên tự đăng nhập theo dõi lịch tập, kết quả InBody, giáo án và tiến độ.
+                        </p>
+                      </div>
+                    </div>
+                    {onGrantAccount && (
+                      <button
+                        type="button"
+                        className="button button-primary"
+                        onClick={() => {
+                          onClose();
+                          onGrantAccount(detail);
+                        }}
+                        style={{
+                          fontSize: '0.82rem',
+                          padding: '7px 14px',
+                          fontWeight: 700,
+                          background: '#00a4e4',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        <UserPlus size={14} /> Cấp tài khoản ngay
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {/* Goal & Notes Section */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>

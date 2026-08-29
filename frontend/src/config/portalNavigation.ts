@@ -20,7 +20,13 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/pt/assistant', label: 'PT Assistant', section: 'Tri thức & trợ lý', icon: Bot, roles: ['PT'], feature: 'PT_ASSISTANT', matchChildren: true },
   { path: '/pt/knowledge-search', label: 'Tra cứu tri thức', section: 'Tri thức & trợ lý', icon: Search, roles: ['PT'], feature: 'KNOWLEDGE_BASE', matchChildren: true },
   { path: '/admin/knowledge', label: 'Kho tri thức', section: 'Tri thức & trợ lý', icon: BookOpen, roles: ['ADMIN'], feature: 'KNOWLEDGE_BASE', matchChildren: true },
-  { path: '/me', label: 'Hành trình của tôi', section: 'Tài khoản', icon: HeartPulse, roles: ['CUSTOMER'], matchChildren: true },
+  { path: '/me', label: 'Hành trình của tôi', section: 'Tổng quan', icon: LayoutDashboard, roles: ['CUSTOMER'] },
+  { path: '/me/workouts', label: 'Giáo án tập luyện', section: 'Vận hành', icon: BookOpen, roles: ['CUSTOMER'] },
+  { path: '/me/nutrition', label: 'Kế hoạch Dinh dưỡng', section: 'Vận hành', icon: Salad, roles: ['CUSTOMER'] },
+  { path: '/me/roadmap', label: 'Lộ trình phát triển', section: 'Vận hành', icon: Map, roles: ['CUSTOMER'] },
+  { path: '/me/inbody', label: 'Chỉ số & Mục tiêu', section: 'Vận hành', icon: Ruler, roles: ['CUSTOMER'] },
+  { path: '/me/sessions', label: 'Lịch & Buổi tập', section: 'Vận hành', icon: CalendarDays, roles: ['CUSTOMER'] },
+  { path: '/me/progress', label: 'Tiến độ & Báo cáo', section: 'Vận hành', icon: ChartNoAxesCombined, roles: ['CUSTOMER'] },
 ];
 
 export function visibleNavigation(user: User, features: FeatureState = {}): NavigationItem[] { return portalNavigation.filter((item) => item.roles.includes(user.role) && (!item.feature || features[item.feature] === true)); }

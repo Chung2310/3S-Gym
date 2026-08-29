@@ -61,14 +61,14 @@ async function listCustomers(user: AuthenticatedUser, query: CustomerQuery) {
   const sortField = query.sort === 'fullName' || query.sort === 'status' ? query.sort : 'createdAt';
   const sortDirection = query.order === 'asc' ? 1 : -1;
   const [customers, total] = await Promise.all([
-    CustomerProfile.find(filter).sort({ [sortField]: sortDirection }).skip((page - 1) * limit).limit(limit).lean(),
+    CustomerProfile.find(filter).populate('userId', 'username email status role createdAt').sort({ [sortField]: sortDirection }).skip((page - 1) * limit).limit(limit).lean(),
     CustomerProfile.countDocuments(filter),
   ]);
   return { customers, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 
 async function getCustomer(user: AuthenticatedUser, id: string) {
-  const customer = await CustomerProfile.findOne(scopedFilter(user, { _id: id })).lean();
+  const customer = await CustomerProfile.findOne(scopedFilter(user, { _id: id })).populate('userId', 'username email status role createdAt').lean();
   if (!customer) throw notFound();
   return customer;
 }
@@ -80,7 +80,7 @@ async function createCustomer(user: AuthenticatedUser, payload: CustomerPayload)
 }
 
 async function updateCustomer(user: AuthenticatedUser, id: string, payload: CustomerPayload) {
-  const customer = await CustomerProfile.findOneAndUpdate(scopedFilter(user, { _id: id }), customerChanges(payload), { returnDocument: 'after', runValidators: true }).lean();
+  const customer = await CustomerProfile.findOneAndUpdate(scopedFilter(user, { _id: id }), customerChanges(payload), { returnDocument: 'after', runValidators: true }).populate('userId', 'username email status role createdAt').lean();
   if (!customer) throw notFound();
   return customer;
 }
