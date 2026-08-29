@@ -51,7 +51,7 @@ async function extractInBody(file: Express.Multer.File): Promise<InBodyExtractio
       body: JSON.stringify({
         model: APP_POLICY.AI_MODEL, temperature: 0,
         messages: [{ role: 'user', content: [
-          { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm: weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, bodyWater, boneMineral, waistHipRatio, segmentalMuscle (rightArm, leftArm, trunk, rightLeg, leftLeg), segmentalFat (rightArm, leftArm, trunk, rightLeg, leftLeg), confidence và warnings. Chỉ trả JSON thuần túy.' },
+          { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm: weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, bodyWater, boneMineral, waistHipRatio, segmentalMuscle (rightArm, leftArm, trunk, rightLeg, leftLeg), segmentalFat (rightArm, leftArm, trunk, rightLeg, leftLeg), confidence (số thực từ 0.0 đến 1.0) và warnings (mảng chuỗi cảnh báo nếu có). Chỉ trả JSON thuần túy.' },
           { type: 'image_url', image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` } },
         ] }],
       }),
@@ -61,7 +61,49 @@ async function extractInBody(file: Express.Multer.File): Promise<InBodyExtractio
     if (!match) throw new Error('OCR provider không trả JSON hợp lệ');
     const parsed = JSON.parse(match[0]) as InBodyExtraction;
     if (!Number.isFinite(parsed.weight) || parsed.weight <= 0) throw new Error('OCR không đọc được cân nặng hợp lệ');
-    return { ...parsed, confidence: Number(parsed.confidence || 0), warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [] };
+
+    // Parse and sanitize confidence into [0, 1] range
+    let rawConf = typeof parsed.confidence === 'number' ? parsed.confidence : parseFloat(String(parsed.confidence || '0.85'));
+    if (!Number.isFinite(rawConf)) rawConf = 0.85;
+    if (rawConf > 1 && rawConf <= 100) rawConf = rawConf / 100;
+    const confidence = Math.min(Math.max(rawConf, 0), 1);
+
+    const numOrNull = (val: unknown, min = 0, max = Infinity): number | null => {
+      if (val === null || val === undefined || val === '') return null;
+      const n = Number(val);
+      if (!Number.isFinite(n) || n < min || n > max) return null;
+      return n;
+    };
+
+    const sanitizeSegment = (seg: unknown) => {
+      if (!seg || typeof seg !== 'object') return null;
+      const s = seg as Record<string, unknown>;
+      return {
+        rightArm: numOrNull(s.rightArm),
+        leftArm: numOrNull(s.leftArm),
+        trunk: numOrNull(s.trunk),
+        rightLeg: numOrNull(s.rightLeg),
+        leftLeg: numOrNull(s.leftLeg),
+      };
+    };
+
+    return {
+      weight: Number(parsed.weight),
+      bmi: numOrNull(parsed.bmi),
+      bodyFatPercentage: numOrNull(parsed.bodyFatPercentage, 0, 100),
+      bodyFatMass: numOrNull(parsed.bodyFatMass),
+      muscleMass: numOrNull(parsed.muscleMass),
+      bmr: numOrNull(parsed.bmr),
+      visceralFatLevel: numOrNull(parsed.visceralFatLevel),
+      inbodyScore: numOrNull(parsed.inbodyScore, 0, 100),
+      bodyWater: numOrNull(parsed.bodyWater),
+      boneMineral: numOrNull(parsed.boneMineral),
+      waistHipRatio: numOrNull(parsed.waistHipRatio),
+      segmentalMuscle: sanitizeSegment(parsed.segmentalMuscle),
+      segmentalFat: sanitizeSegment(parsed.segmentalFat),
+      confidence,
+      warnings: Array.isArray(parsed.warnings) ? parsed.warnings.filter((w): w is string => typeof w === 'string') : [],
+    };
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'Không thể đọc phiếu InBody. Vui lòng nhập thủ công hoặc thử lại.', cause: error });

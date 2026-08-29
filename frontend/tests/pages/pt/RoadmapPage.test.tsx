@@ -60,4 +60,48 @@ describe('RoadmapPage', () => {
       )
     );
   });
+
+  it('mở modal xem chi tiết lộ trình khi bấm nút Xem', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url.includes('/api/customers')) {
+        return { data: [{ _id: '507f1f77bcf86cd799439011', fullName: 'Hoàng Tuấn Anh', phone: '0912345678' }], message: '' };
+      }
+      if (url.includes('/api/roadmaps')) {
+        return {
+          data: [
+            {
+              _id: 'rd-1',
+              title: 'Lộ trình Hypertrophy 12 tuần',
+              status: 'PUBLISHED',
+              customerId: '507f1f77bcf86cd799439011',
+              phases: [{ order: 1, name: 'Tăng cơ', durationWeeks: 4, weeks: [{ week: 1, focus: 'Cơ ngực' }] }],
+              strategy: { estimatedWeeks: 12, sessionsPerWeek: 4, trainingSplit: 'Upper/Lower' },
+            },
+          ],
+          meta: { page: 1, limit: 6, total: 1, totalPages: 1 },
+          message: '',
+        };
+      }
+      return { data: [], message: '' };
+    });
+
+    render(<ToastProvider><RoadmapPage /></ToastProvider>);
+    expect(await screen.findByText('Lộ trình Hypertrophy 12 tuần')).toBeInTheDocument();
+
+    const viewButton = screen.getByRole('button', { name: /xem/i });
+    await user.click(viewButton);
+
+    expect(screen.getByRole('dialog', { name: 'Lộ trình Hypertrophy 12 tuần' })).toBeInTheDocument();
+    expect(screen.getByText('Định hướng Phương pháp & Dinh dưỡng')).toBeInTheDocument();
+
+    const closeButton = screen.getByRole('button', { name: 'Đóng' });
+    await user.click(closeButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Định hướng Phương pháp & Dinh dưỡng')).not.toBeInTheDocument();
+    });
+  });
 });
+
+

@@ -22,7 +22,7 @@ describe('AppShell', () => {
 
   it('hiển thị workspace InBody và Roadmap cho PT theo feature flags', () => {
     render(<MemoryRouter><AppShell user={{ username: 'pt-a', role: 'PT' }} features={{ OCR_INBODY: true, ROADMAP: true }}><div>Portal</div></AppShell></MemoryRouter>);
-    expect(screen.getByRole('link', { name: 'InBody OCR' })).toHaveAttribute('href', '/pt/inbody');
+    expect(screen.getByRole('link', { name: 'Chỉ số InBody' })).toHaveAttribute('href', '/pt/inbody');
     expect(screen.getByRole('link', { name: 'Roadmap' })).toHaveAttribute('href', '/pt/roadmaps');
   });
 

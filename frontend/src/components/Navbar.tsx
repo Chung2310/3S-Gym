@@ -51,16 +51,16 @@ const Navbar = () => {
       </div>
 
       {/* Main Navbar Header */}
-      <nav style={{ background: '#ffffff', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0, 59, 112, 0.08)', padding: '2px 0' }}>
+      <nav style={{ background: 'linear-gradient(135deg, #001e3d 0%, #002d5a 50%, #003b70 100%)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', padding: '2px 0' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '70px' }}>
           
           {/* Logo */}
-          <Link to="/" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center' }}>
+          <Link to="/" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
             <img 
-              src="/images/logo.png" 
+              src="/images/logo-white.png" 
               alt="3S Wellness Fitness & Yoga" 
               style={{ 
-                height: '70px', 
+                height: '56px', 
                 width: 'auto', 
                 objectFit: 'contain'
               }} 
@@ -69,35 +69,35 @@ const Navbar = () => {
 
           {/* Desktop Navigation Links */}
           <div className="desktop-nav-links" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <Link to="/" style={{ fontWeight: 700, color: 'var(--secondary-color)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <Link to="/" style={{ fontWeight: 700, color: '#38bdf8', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               TRANG CHỦ
             </Link>
-            <a href="#about" style={{ fontWeight: 600, color: 'var(--primary-color)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <a href="#about" style={{ fontWeight: 600, color: '#f1f5f9', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               GIỚI THIỆU
             </a>
-            <a href="#classes" style={{ fontWeight: 600, color: 'var(--primary-color)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <a href="#classes" style={{ fontWeight: 600, color: '#f1f5f9', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               BỘ MÔN
             </a>
-            <a href="#schedule" style={{ fontWeight: 600, color: 'var(--primary-color)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <a href="#schedule" style={{ fontWeight: 600, color: '#f1f5f9', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               LỊCH TẬP
             </a>
 
             {token ? (
               <>
-                <Link to="/consultation" style={{ color: 'var(--secondary-color)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <Link to="/consultation" style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   TRỢ LÝ PT
                 </Link>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,164,228,0.08)', padding: '6px 14px', borderRadius: '20px' }}>
-                  <UserIcon size={16} color="var(--primary-color)" />
-                  <span style={{ fontWeight: 700, color: 'var(--primary-color)', fontSize: '0.85rem' }}>{user?.username || 'admin'}</span>
-                  <button onClick={handleLogout} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-light)', display: 'flex', alignItems: 'center', marginLeft: '4px' }} title="Đăng xuất">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', padding: '6px 14px', borderRadius: '20px' }}>
+                  <UserIcon size={16} color="#38bdf8" />
+                  <span style={{ fontWeight: 700, color: '#ffffff', fontSize: '0.85rem' }}>{user?.username || 'admin'}</span>
+                  <button onClick={handleLogout} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#cbd5e1', display: 'flex', alignItems: 'center', marginLeft: '4px' }} title="Đăng xuất">
                     <LogOut size={16} />
                   </button>
                 </div>
               </>
             ) : (
-              <Link to="/login" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary-color)', fontWeight: 600, fontSize: '0.88rem', textTransform: 'uppercase' }}>
-                <LogIn size={16} color="var(--primary-color)" /> ĐĂNG NHẬP
+              <Link to="/login" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#ffffff', fontWeight: 600, fontSize: '0.88rem', textTransform: 'uppercase' }}>
+                <LogIn size={16} color="#38bdf8" /> ĐĂNG NHẬP
               </Link>
             )}
 
@@ -129,7 +129,7 @@ const Navbar = () => {
               background: 'none',
               border: 'none',
               padding: '8px',
-              color: '#003b70',
+              color: '#ffffff',
               cursor: 'pointer'
             }}
           >
@@ -140,30 +140,30 @@ const Navbar = () => {
 
         {/* Mobile Dropdown Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="mobile-nav-menu" style={{ background: '#ffffff', borderTop: '1px solid #e2e8f0', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-            <Link to="/" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 700, color: 'var(--secondary-color)', fontSize: '1rem', textTransform: 'uppercase' }}>
+          <div className="mobile-nav-menu" style={{ background: '#00264d', borderTop: '1px solid rgba(255,255,255,0.12)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}>
+            <Link to="/" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 700, color: '#38bdf8', fontSize: '1rem', textTransform: 'uppercase' }}>
               Trang Chủ
             </Link>
-            <a href="#about" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: 'var(--primary-color)', fontSize: '1rem' }}>
+            <a href="#about" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: '#ffffff', fontSize: '1rem' }}>
               Giới Thiệu
             </a>
-            <a href="#classes" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: 'var(--primary-color)', fontSize: '1rem' }}>
+            <a href="#classes" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: '#ffffff', fontSize: '1rem' }}>
               Các Bộ Môn
             </a>
-            <a href="#schedule" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: 'var(--primary-color)', fontSize: '1rem' }}>
+            <a href="#schedule" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: '#ffffff', fontSize: '1rem' }}>
               Lịch Tập Luyện
             </a>
 
-            <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.12)', margin: '4px 0' }} />
 
             {token ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <Link to="/consultation" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--secondary-color)', fontWeight: 800, fontSize: '1rem' }}>
+                <Link to="/consultation" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 800, fontSize: '1rem' }}>
                   <Bot size={18} /> TRỢ LÝ PT & INBODY
                 </Link>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#003b70', fontWeight: 700 }}>
-                    <UserIcon size={18} color="#00a4e4" /> {user?.username || 'admin'}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.08)', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 700 }}>
+                    <UserIcon size={18} color="#38bdf8" /> {user?.username || 'admin'}
                   </div>
                   <button onClick={handleLogout} style={{ border: 'none', background: 'none', color: '#ef4444', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
                     Đăng xuất
@@ -171,8 +171,8 @@ const Navbar = () => {
                 </div>
               </div>
             ) : (
-              <Link to="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary-color)', fontWeight: 700, fontSize: '1rem' }}>
-                <LogIn size={18} /> Đăng Nhập Hệ Thống
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 700, fontSize: '1rem' }}>
+                <LogIn size={18} color="#38bdf8" /> Đăng Nhập Hệ Thống
               </Link>
             )}
 

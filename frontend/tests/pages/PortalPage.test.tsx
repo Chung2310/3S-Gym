@@ -127,14 +127,14 @@ describe('PortalPage', () => {
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
 
     expect(screen.getByRole('tablist', { name: 'Nội dung khách hàng' })).toBeVisible();
-    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
     expect(screen.getByRole('tab', { name: 'Khách hàng' })).toHaveAttribute('aria-selected', 'true');
 
-    await user.click(screen.getByRole('tab', { name: 'InBody' }));
+    await user.click(screen.getByRole('tab', { name: 'Mục tiêu' }));
 
-    expect(screen.getByRole('tab', { name: 'InBody' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Mục tiêu' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: 'Khách hàng' })).toHaveAttribute('aria-selected', 'false');
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'customer-tab-inbody');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'customer-tab-goals');
   });
 
   it('PT sửa khách bằng popup và vẫn có thao tác cấp tài khoản riêng', async () => {
@@ -187,9 +187,9 @@ describe('PortalPage', () => {
   it('PT tạo nội dung bằng popup', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
-    await user.click(screen.getByRole('tab', { name: 'InBody' }));
+    await user.click(screen.getByRole('tab', { name: 'Mục tiêu' }));
     await user.click(screen.getByRole('button', { name: 'Tạo mới' }));
-    expect(screen.getByRole('dialog', { name: 'Tạo InBody' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Tạo mục tiêu' })).toBeInTheDocument();
   });
 
   it('PT không còn thấy tab giáo án cũ ở menu khách hàng', async () => {

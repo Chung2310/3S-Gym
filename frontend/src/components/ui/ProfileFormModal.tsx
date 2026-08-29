@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, type FormEventHandler, type ReactNode } from 'react';
+import { useEffect, useRef, type FormEventHandler, type ReactNode } from 'react';
 import { X } from 'lucide-react';
-import ConfirmModal from './ConfirmModal';
 
 export interface ProfileFormModalProps {
   open: boolean;
@@ -29,13 +28,9 @@ export default function ProfileFormModal({
   onSubmit,
   children,
 }: ProfileFormModalProps) {
-  const [confirmClose, setConfirmClose] = useState(false);
   const openerRef = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    if (open) setConfirmClose(false);
-  }, [open]);
 
-  const requestClose = () => (dirty ? setConfirmClose(true) : onClose());
+  const requestClose = () => onClose();
   const requestCloseRef = useRef(requestClose);
   requestCloseRef.current = requestClose;
 
@@ -116,15 +111,6 @@ export default function ProfileFormModal({
           </form>
         </section>
       </div>
-      <ConfirmModal
-        open={confirmClose}
-        title="Bỏ các thay đổi?"
-        description="Các thông tin chưa lưu sẽ bị mất."
-        confirmLabel="Bỏ thay đổi"
-        danger
-        onClose={() => setConfirmClose(false)}
-        onConfirm={onClose}
-      />
     </>
   );
 }

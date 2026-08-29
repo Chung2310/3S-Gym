@@ -68,13 +68,15 @@ export const workoutPlanSchemas = { create: { body: Joi.object({ ...workoutField
 const macros = Joi.object({ protein: Joi.number().min(0).required(), carbs: Joi.number().min(0).required(), fat: Joi.number().min(0).required() }).messages(commonMessages);
 const nutritionFields = { customerId: objectId, title: Joi.string().trim(), targetCalories: Joi.number().positive(), macros, bmr: Joi.number().min(0).allow(null), tdee: Joi.number().min(0).allow(null), menu: Joi.array(), notes: Joi.string().allow('', null) };
 export const nutritionPlanSchemas = { create: { body: Joi.object({ ...nutritionFields, customerId: objectId.required(), title: nutritionFields.title.required(), targetCalories: nutritionFields.targetCalories.required(), macros: macros.required() }).messages(commonMessages) }, update: { body: nonEmptyPatch({ ...nutritionFields, ...systemFields }) } } satisfies Record<string, RequestValidationSchema>;
-const week = Joi.object({ week: Joi.number().integer().min(1).required(), focus: Joi.string().trim().required(), sessionTargets: Joi.number().min(0).allow(null) }).messages(commonMessages);
+const sessionSchema = Joi.object({ sessionNumber: Joi.number().min(1), name: Joi.string().allow('', null), focus: Joi.string().allow('', null), exercises: Joi.array().items(Joi.string()) }).unknown(true);
+const week = Joi.object({ week: Joi.number().integer().min(1).required(), focus: Joi.string().trim().required(), sessionTargets: Joi.number().min(0).allow(null), sessions: Joi.array().items(sessionSchema) }).messages(commonMessages);
 const phase = Joi.object({ order: Joi.number().integer().min(1).required(), name: Joi.string().trim().required(), durationWeeks: Joi.number().integer().min(1).required(), goals: Joi.array().items(Joi.string()), weeks: Joi.array().items(week) }).messages(commonMessages);
 const phases = Joi.array().min(1).items(phase).custom((value: Array<{ order: number }>, helpers) => new Set(value.map((item) => item.order)).size === value.length ? value : helpers.error('array.unique'));
-export const listRoadmapsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId, status: Joi.string().valid('DRAFT', 'PUBLISHED') }).messages(commonMessages) };
+export const listRoadmapsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId, status: Joi.string().valid('DRAFT', 'PUBLISHED'), search: Joi.string().trim().allow('') }).messages(commonMessages) };
 const roadmapBaseline = Joi.object().pattern(Joi.string(), Joi.number()).messages(commonMessages);
-export const createRoadmapSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), title: Joi.string().trim().required(), baseline: roadmapBaseline, phases: phases.required() }).messages(commonMessages) };
-export const updateRoadmapSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ title: Joi.string().trim(), baseline: roadmapBaseline, phases, customerId: Joi.forbidden(), ...systemFields }) };
+const roadmapStrategy = Joi.object().unknown(true);
+export const createRoadmapSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), title: Joi.string().trim().required(), baseline: roadmapBaseline, strategy: roadmapStrategy, phases: phases.required() }).messages(commonMessages) };
+export const updateRoadmapSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ title: Joi.string().trim(), baseline: roadmapBaseline, strategy: roadmapStrategy, phases, customerId: Joi.forbidden(), ...systemFields }) };
 const exerciseVideo = Joi.object({
   title: Joi.string().trim().max(120).required(),
   url: Joi.string().trim().uri({ scheme: ['http', 'https'] }).max(2048).required(),

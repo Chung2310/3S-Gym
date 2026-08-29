@@ -48,8 +48,10 @@ it('tải template, mở form điền sẵn và xóa templateId khỏi URL', asy
 
   await waitFor(() => expect(screen.getByLabelText('Tên giáo án')).toHaveValue(template.title));
   expect(screen.getByLabelText('Tên buổi 1')).toHaveValue('Buổi thân trên');
-  await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/pt/customer-workout-plans'));
-  expect(screen.getByTestId('location')).not.toHaveTextContent('templateId');
+  await waitFor(() => {
+    expect(screen.getByTestId('location')).toHaveTextContent('/pt/customer-workout-plans');
+    expect(screen.getByTestId('location')).not.toHaveTextContent('templateId');
+  });
 });
 
 it('thông báo lỗi, làm sạch URL và giữ module hoạt động khi template không hợp lệ', async () => {

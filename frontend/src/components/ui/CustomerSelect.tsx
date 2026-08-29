@@ -6,7 +6,7 @@ import type { Customer } from '../../types';
 export interface CustomerSelectProps {
   label?: string;
   name?: string;
-  value: string;
+  value?: string | any;
   onChange: (customerId: string) => void;
   required?: boolean;
   placeholder?: string;
@@ -22,7 +22,7 @@ export interface CustomerSelectProps {
 export default function CustomerSelect({
   label = 'Khách hàng',
   name = 'customerId',
-  value,
+  value = '',
   onChange,
   required = false,
   placeholder = 'Tìm và chọn học viên (theo tên hoặc SĐT)...',
@@ -41,6 +41,10 @@ export default function CustomerSelect({
   const [hasLoaded, setHasLoaded] = useState(Boolean(initialCustomers && initialCustomers.length > 0));
   const wrapperRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const stringValue = typeof value === 'object' && value !== null
+    ? String((value as { _id?: string; id?: string })._id || (value as { _id?: string; id?: string }).id || '')
+    : typeof value === 'string' ? value : '';
 
   // Sync initialCustomers if provided
   useEffect(() => {
@@ -76,8 +80,13 @@ export default function CustomerSelect({
 
   // Selected customer object
   const selectedCustomer = useMemo(
-    () => customers.find((c) => c._id === value || c.id === value),
-    [customers, value]
+    () => {
+      if (typeof value === 'object' && value !== null && ('fullName' in value || '_id' in value)) {
+        return value as Customer;
+      }
+      return customers.find((c) => c._id === stringValue || c.id === stringValue);
+    },
+    [customers, value, stringValue]
   );
 
   // Filtered customers based on search text (Name, Phone, Email)
@@ -145,7 +154,7 @@ export default function CustomerSelect({
         id={name}
         name={name}
         aria-label={effectiveAriaLabel}
-        value={value}
+        value={stringValue}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         required={required}
         readOnly={readOnly}
@@ -244,10 +253,10 @@ export default function CustomerSelect({
               </button>
             )}
           </div>
-        ) : value ? (
+        ) : stringValue ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontSize: '0.86rem', flex: 1 }}>
             <User size={15} style={{ color: '#0284c7' }} />
-            <span style={{ fontWeight: 600 }}>{value}</span>
+            <span style={{ fontWeight: 600 }}>{stringValue}</span>
             {!disabled && !readOnly && (
               <button
                 type="button"
