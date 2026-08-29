@@ -448,29 +448,38 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       {/* Top Banner & Quick Controls */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #003b70 0%, #00a4e4 100%)',
+          background: 'linear-gradient(135deg, #003b70 0%, #002244 100%)',
           color: '#ffffff',
-          borderRadius: '14px',
-          padding: '16px 20px',
-          boxShadow: '0 4px 15px rgba(0, 59, 112, 0.15)',
+          borderRadius: '16px',
+          padding: '18px 22px',
+          boxShadow: '0 4px 20px rgba(0, 59, 112, 0.18)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#bae6fd', fontWeight: 800 }}>
-                Trợ Lý Lên Thực Đơn AI
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#38bdf8', fontWeight: 800 }}>
+                THIẾT KẾ THỰC ĐƠN CƠM VIỆT
               </span>
-              <span style={{ background: '#38bdf8', color: '#0f172a', fontSize: '0.65rem', fontWeight: 800, padding: '1px 6px', borderRadius: '4px' }}>
-                FLUX.2 & Qwen 3.8
-              </span>
+              {meals.length > 0 && (
+                <span style={{ background: '#10b981', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                  {meals.length} Bữa Ăn • {totalKcal} kcal
+                </span>
+              )}
             </div>
-            <h2 style={{ margin: '2px 0 0', fontSize: '1.2rem', color: '#ffffff', fontWeight: 800 }}>
-              {selectedCustomer ? `Thiết Kế Thực Đơn: ${selectedCustomer.fullName}` : 'Thiết Kế Thực Đơn Dinh Dưỡng Cá Nhân Hóa'}
+            <h2 style={{ margin: '4px 0 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: 800 }}>
+              {selectedCustomer ? `Thực Đơn: ${selectedCustomer.fullName}` : 'Thiết Kế Thực Đơn Dinh Dưỡng'}
             </h2>
+            {meals.length > 0 && (
+              <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.76rem', color: '#93c5fd', flexWrap: 'wrap' }}>
+                <span>Đạm (P): <strong style={{ color: '#ffffff' }}>{totalProtein}g</strong></span>
+                <span>Tinh bột (C): <strong style={{ color: '#ffffff' }}>{totalCarbs}g</strong></span>
+                <span>Chất béo (F): <strong style={{ color: '#ffffff' }}>{totalFat}g</strong></span>
+              </div>
+            )}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               type="button"
               onClick={() => setShowConfigStudio(!showConfigStudio)}
@@ -479,7 +488,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                 color: showConfigStudio ? '#38bdf8' : '#003b70',
                 border: 'none',
                 borderRadius: '8px',
-                padding: '8px 14px',
+                padding: '9px 14px',
                 fontWeight: 700,
                 fontSize: '0.82rem',
                 cursor: 'pointer',
@@ -488,51 +497,51 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                 gap: '6px',
               }}
             >
-              <Sliders size={14} /> {showConfigStudio ? 'Thu Gọn Cấu Hình AI' : 'Mở Cấu Hình Nhu Cầu AI'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSwapperOpen(true)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <ArrowRightLeft size={14} /> Đổi Món Nhanh
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowPoster(!showPoster)}
-              style={{
-                background: showPoster ? '#0f172a' : 'rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <ImageIcon size={14} /> {showPoster ? 'Ẩn Poster Đồ Họa' : 'Xem Poster AI'}
+              <Sliders size={14} /> {showConfigStudio ? 'Thu Gọn Cấu Hình' : 'Cấu Hình Nhu Cầu AI'}
             </button>
 
             {meals.length > 0 && (
               <>
+                <button
+                  type="button"
+                  onClick={() => setSwapperOpen(true)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    padding: '9px 14px',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <ArrowRightLeft size={14} /> Đổi Món
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPoster(!showPoster)}
+                  style={{
+                    background: showPoster ? '#0f172a' : 'rgba(255, 255, 255, 0.15)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    padding: '9px 14px',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <ImageIcon size={14} /> {showPoster ? 'Ẩn Poster' : 'Xem Poster'}
+                </button>
+
                 <button
                   type="button"
                   disabled={saving}
@@ -542,7 +551,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                     color: '#ffffff',
                     border: '1px solid rgba(255, 255, 255, 0.4)',
                     borderRadius: '8px',
-                    padding: '8px 14px',
+                    padding: '9px 14px',
                     fontWeight: 700,
                     fontSize: '0.82rem',
                     cursor: saving ? 'not-allowed' : 'pointer',
@@ -552,7 +561,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                   }}
                   title="Lưu bản nháp vào CSDL để chỉnh sửa tiếp"
                 >
-                  <Save size={14} /> {saving ? 'Đang lưu...' : 'Lưu Nháp'}
+                  <Save size={14} /> {saving ? 'Lưu...' : 'Lưu Nháp'}
                 </button>
 
                 <button
@@ -564,7 +573,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
-                    padding: '8px 16px',
+                    padding: '9px 16px',
                     fontWeight: 800,
                     fontSize: '0.82rem',
                     cursor: saving ? 'not-allowed' : 'pointer',
@@ -575,7 +584,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                   }}
                   title="Lưu vào CSDL và gửi trực tiếp cho học viên áp dụng trên Portal"
                 >
-                  <Send size={14} /> {saving ? 'Đang gửi...' : 'Lưu & Gửi Cho Học Viên'}
+                  <Send size={14} /> {saving ? 'Gửi...' : 'Lưu & Gửi Học Viên'}
                 </button>
               </>
             )}

@@ -18,9 +18,8 @@ it('giữ manual fallback khi AI lỗi', async () => {
     </ToastProvider>
   );
   await user.type(screen.getByLabelText('Mã khách hàng dinh dưỡng'), 'customer-1');
-  await user.click(screen.getByRole('button', { name: 'Mở trợ lý AI' }));
-  await user.type(screen.getByLabelText('Yêu cầu cho AI'), 'Tạo thực đơn giảm mỡ an toàn');
-  await user.click(screen.getByRole('button', { name: 'Tạo bản nháp AI' }));
+  await user.click(screen.getByRole('button', { name: /2\. Thiết Kế Thực Đơn/i }));
+  await user.click(screen.getByRole('button', { name: /Sinh Thực Đơn AI/i }));
   expect(await screen.findByText('AI tạm thời không khả dụng')).toBeVisible();
   await user.click(screen.getByRole('button', { name: /4\. Nhật Ký/i }));
   expect(screen.getByRole('button', { name: 'Lưu nhật ký' })).toBeVisible();
