@@ -23,6 +23,12 @@ export interface WorkoutTemplate {
   sessions: WorkoutTemplateSession[];
   status?: string;
   version?: number;
+  muscleGroups?: string[];
+  defaultSets?: number;
+  defaultReps?: string;
+  defaultWeight?: string;
+  defaultTempo?: string;
+  technicalNotes?: string;
 }
 
 export interface CustomerWorkoutPlanExercise {
@@ -54,4 +60,28 @@ export interface CustomerWorkoutPlan extends CustomerWorkoutPlanDraft {
   _id: string;
   status: 'DRAFT' | 'PUBLISHED';
   version?: number;
+}
+
+export interface CustomerWorkoutPlanSnapshot {
+  _id: string;
+  title: string;
+  goal: string;
+  level: string;
+  durationDays: number;
+  lifecycleStatus: 'ACTIVE' | 'ARCHIVED';
+  assignedAt: string;
+  archivedAt?: string | null;
+  muscleGroups?: string[];
+  defaultSets?: number;
+  defaultReps?: string;
+  defaultWeight?: string;
+  defaultTempo?: string;
+  technicalNotes?: string;
+  scheduledExercises?: Array<Record<string, unknown>>;
+  unscheduledExercises?: Array<Record<string, unknown>>;
+}
+
+export interface CustomerWorkoutPlanState {
+  active: CustomerWorkoutPlanSnapshot | null;
+  history: CustomerWorkoutPlanSnapshot[];
 }

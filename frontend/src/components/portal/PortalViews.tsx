@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Dumbbell, Eye, Package, Pencil, Phone, Plus, RefreshCw, RotateCcw, Ruler, Salad, Send, Target, Trash2, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { Eye, Package, Pencil, Phone, Plus, RefreshCw, RotateCcw, Ruler, Salad, Send, Target, Trash2, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import ConfirmModal from '../ui/ConfirmModal';
 import ContentFormModal from '../ui/ContentFormModal';
 import CustomerAccountModal from '../ui/CustomerAccountModal';
@@ -39,7 +39,6 @@ interface PtTabItem { value: PtTab; label: string; icon: LucideIcon }
 const ptTabs: PtTabItem[] = [
   { value: 'customers', label: 'Khách hàng', icon: Users },
   { value: 'goals', label: 'Mục tiêu', icon: Target },
-  { value: 'workout-plans', label: 'Giáo án', icon: Dumbbell },
   { value: 'nutrition-plans', label: 'Dinh dưỡng', icon: Salad },
 ];
 

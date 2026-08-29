@@ -72,6 +72,9 @@ it('supports template detail, archive and deletion of an unused template', async
   expect((await request(app).get(`/api/workout-templates/${id}`).set('Authorization', `Bearer ${token}`)).body.data._id).toBe(id);
   const archived = await request(app).patch(`/api/workout-templates/${id}/archive`).set('Authorization', `Bearer ${token}`);
   expect(archived.body.data.status).toBe('ARCHIVED');
+  const edited = await request(app).patch(`/api/workout-templates/${id}`).set('Authorization', `Bearer ${token}`).send({ title: 'Temporary Template Updated' });
+  expect(edited.status).toBe(200);
+  expect(edited.body.data).toMatchObject({ title: 'Temporary Template Updated', status: 'ARCHIVED' });
   expect((await request(app).delete(`/api/workout-templates/${id}`).set('Authorization', `Bearer ${token}`)).status).toBe(200);
 });
 
@@ -85,4 +88,48 @@ it('lists workout sessions and allows correcting or deleting body measurements',
   expect(updated.status).toBe(200);
   expect(updated.body.data.weight).toBe(68.8);
   expect((await request(app).delete(`/api/body-measurements/${id}`).set('Authorization', `Bearer ${token}`)).status).toBe(200);
+});
+
+it('stores a studio schedule and rejects overlapping exercises', async () => {
+  const scheduledExercises = [
+    { dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10', restSeconds: 60 },
+    { dayNumber: 1, startMinute: 540, durationMinutes: 30, name: 'Row', sets: 3, reps: '12', restSeconds: 45 },
+  ];
+  const created = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
+    title: 'Studio Plan', goal: 'STRENGTH', level: 'BEGINNER', durationDays: 7, scheduledExercises,
+    muscleGroups: ['Chân', 'Lưng'], defaultSets: 4, defaultReps: '8-12', defaultWeight: '60-70% 1RM', defaultTempo: '3-1-1-0', technicalNotes: 'Giữ thân người ổn định.',
+  });
+  expect(created.status).toBe(201);
+  expect(created.body.data).toMatchObject({ durationDays: 7, scheduledExercises, muscleGroups: ['Chân', 'Lưng'], defaultSets: 4, defaultReps: '8-12', defaultWeight: '60-70% 1RM', defaultTempo: '3-1-1-0', technicalNotes: 'Giữ thân người ổn định.' });
+  expect(created.body.data.sessions).toEqual([{ name: 'Ngày 1', exercises: [expect.objectContaining({ name: 'Squat' }), expect.objectContaining({ name: 'Row' })] }]);
+
+  const overlap = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
+    title: 'Overlap Plan', goal: 'STRENGTH', level: 'BEGINNER', durationDays: 7,
+    scheduledExercises: [scheduledExercises[0], { ...scheduledExercises[1], startMinute: 525 }],
+  });
+  expect(overlap.status).toBe(400);
+});
+
+it('stores unscheduled studio exercises without adding them to compatible sessions', async () => {
+  const scheduled = { dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10', restSeconds: 60 };
+  const unscheduled = { name: 'Legacy Row', durationMinutes: 45, sets: 4, reps: '8', weight: '40kg', rpe: 8, rir: 2, tempo: '3-1-1', restSeconds: 90, notes: 'Giữ lưng thẳng' };
+  const created = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
+    title: 'Studio Draft', goal: 'STRENGTH', level: 'INTERMEDIATE', durationDays: 7,
+    scheduledExercises: [scheduled], unscheduledExercises: [unscheduled],
+  });
+  expect(created.status).toBe(201);
+  expect(created.body.data.unscheduledExercises).toEqual([expect.objectContaining(unscheduled)]);
+  expect(created.body.data.sessions).toEqual([{ name: 'Ngày 1', exercises: [expect.objectContaining({ name: 'Squat' })] }]);
+});
+
+it.each([
+  ['off the 15 minute grid', { dayNumber: 1, startMinute: 481, durationMinutes: 60 }],
+  ['past durationDays', { dayNumber: 8, startMinute: 480, durationMinutes: 60 }],
+  ['past the 24 hour boundary', { dayNumber: 1, startMinute: 1425, durationMinutes: 30 }],
+])('rejects a studio exercise %s', async (_caseName, schedule) => {
+  const response = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
+    title: 'Invalid Studio', goal: 'STRENGTH', level: 'BEGINNER', durationDays: 7,
+    scheduledExercises: [{ ...schedule, name: 'Invalid exercise', sets: 3, reps: '10' }],
+  });
+  expect(response.status).toBe(400);
 });

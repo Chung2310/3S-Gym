@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Bell, BookOpen, Bot, CalendarDays, ChartNoAxesCombined, ClipboardList, Dumbbell, HeartPulse, LayoutDashboard, Map, Ruler, Salad, Search, Users } from 'lucide-react';
+import { BookOpen, Bot, CalendarDays, ChartNoAxesCombined, HeartPulse, LayoutDashboard, Map, Ruler, Salad, Search, Users } from 'lucide-react';
 import type { FeatureKey, FeatureState, User, UserRole } from '../types';
 
 export type NavigationSection = 'Tổng quan' | 'Vận hành' | 'Tri thức & trợ lý' | 'Tài khoản';
@@ -12,8 +12,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/pt/customers', label: 'Khách hàng', section: 'Vận hành', icon: Users, roles: ['PT'], matchChildren: true },
   { path: '/pt/inbody', label: 'Chỉ số InBody', section: 'Vận hành', icon: Ruler, roles: ['PT'], feature: 'OCR_INBODY', matchChildren: true },
   { path: '/pt/roadmaps', label: 'Roadmap', section: 'Vận hành', icon: Map, roles: ['PT'], feature: 'ROADMAP', matchChildren: true },
-  { path: '/pt/exercises', label: 'Thư viện bài tập', section: 'Vận hành', icon: Dumbbell, roles: ['PT'], feature: 'EXERCISE_LIBRARY', matchChildren: true },
-  { path: '/pt/workout-plans', label: 'Giáo án', section: 'Vận hành', icon: ClipboardList, roles: ['PT'], feature: 'EXERCISE_LIBRARY', matchChildren: true },
+  { path: '/pt/my-workout-plans', label: 'Giáo án của tôi', section: 'Vận hành', icon: BookOpen, roles: ['PT'], feature: 'EXERCISE_LIBRARY', matchChildren: true },
   { path: '/pt/progress', label: 'Tiến độ', section: 'Vận hành', icon: ChartNoAxesCombined, roles: ['PT'], feature: 'PROGRESS', matchChildren: true },
   { path: '/pt/nutrition', label: 'Dinh dưỡng', section: 'Vận hành', icon: Salad, roles: ['PT'], feature: 'NUTRITION_AI', matchChildren: true },
   { path: '/pt/care', label: 'Chăm sóc', section: 'Vận hành', icon: HeartPulse, roles: ['PT'], feature: 'CARE', matchChildren: true },
