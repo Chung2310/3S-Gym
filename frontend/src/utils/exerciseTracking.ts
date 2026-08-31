@@ -1,14 +1,8 @@
 import type { Exercise, TrackingPrescription, TrackingType } from '../types';
 
 export function defaultPrescriptionFor(type: TrackingType): TrackingPrescription {
-  switch (type) {
-    case 'STRENGTH':
-    case 'BODYWEIGHT': return { sets: 3, reps: '10', restSeconds: 60 };
-    case 'CARDIO': return { durationMinutes: 20 };
-    case 'INTERVAL': return { rounds: 6, workSeconds: 30, restSeconds: 30 };
-    case 'MOBILITY': return { durationMinutes: 5, side: 'BOTH' };
-    default: return {};
-  }
+  void type;
+  return {};
 }
 
 export function planExerciseFromLibrary(exercise: Exercise) {

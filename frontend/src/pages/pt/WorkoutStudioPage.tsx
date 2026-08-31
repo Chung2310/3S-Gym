@@ -114,12 +114,12 @@ export default function WorkoutStudioPage() {
         setInspectorOpen(true);
         setStudioView('inspector');
       }
-      return toast.error(`Vui lòng chọn cách ghi nhận cho ${invalid.name}.`);
+      return toast.error(`Bài tập ${invalid.name} chưa có cách ghi nhận. Vui lòng cập nhật trong Quản lý bài tập rồi thêm lại vào giáo án.`);
     }
     setSaving(true);
     try {
       const scheduledExercises = items.map(({ id: _id, ...item }) => item);
-      const unscheduledExercises = unscheduled.map(({ id: _id, dayNumber: _dayNumber, startMinute: _startMinute, ...item }) => item);
+      const unscheduledExercises = unscheduled.map(({ id: _id, weekNumber: _weekNumber, dayNumber: _dayNumber, startMinute: _startMinute, ...item }) => item);
       const payload = { title, goal, level, durationDays, ...metadata, scheduledExercises, unscheduledExercises, ...(generatedExercises.length ? { generatedExercises } : {}) };
       const result = customerMode ? await api.patch<{ _id: string }>(`/api/customers/${customerId}/workout-plans/${planId}`, payload) : templateId ? await api.patch<{ _id: string }>(`/api/workout-templates/${templateId}`, payload) : await api.post<{ _id: string }>('/api/workout-templates', payload);
       toast.success(result.message);
