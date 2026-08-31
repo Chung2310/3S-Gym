@@ -20,6 +20,7 @@ import {
   Utensils,
   Moon,
   ClipboardCheck,
+  Bot,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -171,9 +172,6 @@ export default function PtDashboardPage() {
             <Activity size={24} className="text-sky-500" />
             <span>Bảng điều khiển Huấn luyện viên (PT)</span>
           </h1>
-          <p className="pt-dash-subtitle">
-            Theo dõi tiến độ InBody (BF-AT), tôn vinh học viên bứt phá và xử lý cảnh báo chăm sóc kịp thời.
-          </p>
         </div>
         <button
           type="button"
@@ -463,12 +461,12 @@ export default function PtDashboardPage() {
                             <span>InBody</span>
                           </Link>
                           <Link
-                            to="/pt/care"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#9a3412', background: '#fff7ed', border: '1px solid #fed7aa', textDecoration: 'none' }}
-                            title="Mở hồ sơ chăm sóc"
+                            to="/pt/assistant"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#003b70', background: '#f8fafc', border: '1px solid #cbd5e1', textDecoration: 'none' }}
+                            title="Hỏi Trợ lý AI"
                           >
-                            <HeartPulse size={12} />
-                            <span>Chăm sóc</span>
+                            <Bot size={12} color="#003b70" />
+                            <span>Hỏi AI</span>
                           </Link>
                         </div>
                       </td>
@@ -610,7 +608,7 @@ export default function PtDashboardPage() {
               <span>CẢNH BÁO: HỌC VIÊN CẦN QUAN TÂM &amp; KHÔNG THAY ĐỔI</span>
             </h2>
             <span className="pt-section-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
-              🚨 Cần can thiệp chăm sóc
+              🚨 Cần can thiệp điều chỉnh
             </span>
           </div>
           <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
@@ -652,73 +650,44 @@ export default function PtDashboardPage() {
                   </span>
                 </div>
 
-                {/* Alert Body */}
-                <div className="pt-alert-body">
-                  {/* Checklist of Root Causes */}
-                  <div className="pt-checklist-box">
-                    <div className="pt-checklist-title">
-                      <HelpCircle size={14} />
-                      <span>Nguyên nhân PT cần kiểm tra ngay:</span>
+                {/* Alert Body Tinh Gọn */}
+                <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+                  <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '10px', padding: '10px 12px', fontSize: '0.78rem', color: '#991b1b', lineHeight: 1.45 }}>
+                    <div style={{ fontWeight: 750, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+                      <AlertTriangle size={13} color="#dc2626" />
+                      <span>Vấn đề cần lưu ý:</span>
                     </div>
-                    <div className="pt-checklist-item">
-                      <Clock size={12} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
-                      <span><strong>Tần suất tập:</strong> Kiểm tra học viên có nghỉ tập nhiều hoặc ngắt quãng?</span>
-                    </div>
-                    <div className="pt-checklist-item">
-                      <Utensils size={12} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
-                      <span><strong>Chế độ ăn:</strong> Lượng Calorie nạp vào, đồ ngọt, rượu bia, thiếu Protein?</span>
-                    </div>
-                    <div className="pt-checklist-item">
-                      <Moon size={12} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
-                      <span><strong>Ngủ nghỉ:</strong> Thời gian ngủ &lt; 7h hoặc stress cao làm tăng tích mỡ?</span>
-                    </div>
-                    <div className="pt-checklist-item">
-                      <ClipboardCheck size={12} style={{ flexShrink: 0, marginTop: '2px', color: '#dc2626' }} />
-                      <span><strong>Tuân thủ giáo án:</strong> Tập đúng form, đủ hiệp và cường độ tạ không?</span>
-                    </div>
+                    <span>Học viên có dấu hiệu chững tiến độ hoặc vi phạm tần suất tập luyện gần đây.</span>
                   </div>
 
-                  {/* Suggested Improvements */}
-                  <div className="pt-tips-box">
-                    <div className="pt-tips-title">
-                      <Sparkles size={14} />
-                      <span>Gợi ý hướng xử lý cho Huấn luyện viên:</span>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: '10px', padding: '10px 12px', fontSize: '0.78rem', color: '#166534', lineHeight: 1.45 }}>
+                    <div style={{ fontWeight: 750, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
+                      <Sparkles size={13} color="#16a34a" />
+                      <span>Gợi ý xử lý:</span>
                     </div>
-                    {c.improvementTips && c.improvementTips.length > 0 ? (
-                      c.improvementTips.map((tip, idx) => (
-                        <div key={idx} className="pt-tips-item">
-                          <span>👉</span>
-                          <span>{tip}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="pt-tips-item">
-                        <span>👉</span>
-                        <span>Hẹn gặp 1-1 kiểm tra nhật ký ăn uống và điều chỉnh giáo án tuần tới.</span>
-                      </div>
-                    )}
+                    <span>{c.improvementTips && c.improvementTips.length > 0 ? c.improvementTips[0] : 'Hẹn đo InBody lại và kiểm tra nhật ký ăn uống tuần tới.'}</span>
                   </div>
                 </div>
 
-                {/* Alert Footer Actions */}
-                <div className="pt-alert-footer">
-                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                    {c.openAlerts ? `⚠️ Đang có ${c.openAlerts} cảnh báo mở` : 'ℹ️ Cần theo dõi thêm'}
+                {/* Alert Footer Thoáng Đãng */}
+                <div style={{ padding: '12px 18px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
+                    {c.openAlerts ? `⚠️ Cảnh báo tiến độ` : 'ℹ️ Cần theo dõi thêm'}
                   </span>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                     <Link
-                      to="/pt/care"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#fff', background: '#dc2626', textDecoration: 'none', border: '0' }}
+                      to="/pt/assistant"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, color: '#fff', background: '#003b70', textDecoration: 'none', border: '0', transition: 'all 0.15s ease' }}
                     >
-                      <HeartPulse size={12} />
-                      <span>Mở Chăm sóc</span>
+                      <Bot size={13} />
+                      <span>Hỏi Trợ lý AI</span>
                     </Link>
                     <Link
                       to="/pt/inbody"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 12px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#003b70', background: '#f0f9ff', border: '1px solid #bae6fd', textDecoration: 'none' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, color: '#003b70', background: '#ffffff', border: '1px solid #cbd5e1', textDecoration: 'none', transition: 'all 0.15s ease' }}
                     >
-                      <Ruler size={12} />
-                      <span>Đo InBody mới</span>
+                      <Ruler size={13} />
+                      <span>Đo InBody</span>
                     </Link>
                   </div>
                 </div>

@@ -4,13 +4,12 @@ import Pagination from '../../components/ui/Pagination';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/ToastProvider';
 import { api } from '../../services/api';
-import type { PaginationMeta } from '../../types';
+import type { Exercise, PaginationMeta } from '../../types';
 import { errorMessage } from '../../types';
 
 // Components (mảnh UI)
 import ExerciseFilter from '../../components/exercises/ExerciseFilter';
 import ExerciseFormModal from '../../components/exercises/ExerciseFormModal';
-import type { Exercise } from '../../types';
 import ExerciseLibraryCard from '../../components/exercises/ExerciseLibraryCard';
 
 export default function ExerciseLibraryPage() {
@@ -26,6 +25,7 @@ export default function ExerciseLibraryPage() {
   const [deleteExercise, setDeleteExercise] = useState<Exercise | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const hasFilters = Boolean(muscleGroup || level || trackingType);
 
   // === DATA FETCHING ===
   const load = useCallback(async (page = 1) => {
@@ -66,33 +66,46 @@ export default function ExerciseLibraryPage() {
 
   // === LẮP RÁP COMPONENTS ===
   return (
-    <section className="space-y-5">
-      <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_24px_rgba(0,59,112,0.05)] sm:flex-row sm:items-center sm:justify-between">
+    <section className="module-page exercise-page" aria-label="Thư viện bài tập">
+      <header className="module-header exercise-header">
         <div>
-          <p className="mb-1 font-montserrat text-xs font-bold uppercase tracking-[0.16em] text-secondary">Workout resources</p>
-          <h1 className="font-oswald text-3xl font-bold uppercase text-primary">Thư viện bài tập</h1>
-          <p className="mt-2 font-montserrat text-sm text-slate-600">Quản lý bài tập cá nhân và nội dung dùng chung trong một thư viện thống nhất.</p>
+          <h1 className="module-heading">Thư viện bài tập</h1>
         </div>
-        <button type="button" className="button button-primary shrink-0" onClick={() => setFormExercise(null)}>
-          <Plus size={18} /> Tạo bài tập
-        </button>
+        <div className="module-actions">
+          <span className="exercise-count">{meta.total ?? items.length} bài tập</span>
+          <button type="button" className="button button-primary" onClick={() => setFormExercise(null)}>
+            <Plus size={18} aria-hidden="true" /> Tạo bài tập
+          </button>
+        </div>
       </header>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_6px_20px_rgba(0,59,112,0.04)] sm:p-6">
-        <ExerciseFilter
-          muscleGroup={muscleGroup}
-          level={level}
-          trackingType={trackingType}
-          onMuscleGroupChange={setMuscleGroup}
-          onLevelChange={setLevel}
-          onTrackingTypeChange={setTrackingType}
-          onFilter={() => void load()}
-          onClear={() => { setMuscleGroup(''); setLevel(''); setTrackingType(''); }}
-        />
+      <ExerciseFilter
+        muscleGroup={muscleGroup}
+        level={level}
+        trackingType={trackingType}
+        onMuscleGroupChange={setMuscleGroup}
+        onLevelChange={setLevel}
+        onTrackingTypeChange={setTrackingType}
+        onFilter={() => void load()}
+        onClear={() => { setMuscleGroup(''); setLevel(''); setTrackingType(''); }}
+      />
 
-      </div>
-
-      {loading ? <div aria-label="Đang tải bài tập" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 3 }, (_, index) => <div key={index} className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white p-5 motion-reduce:animate-none"><div className="size-10 rounded-xl bg-slate-100" /><div className="mt-4 h-6 w-2/3 rounded bg-slate-200" /><div className="mt-7 h-20 rounded bg-slate-100" /></div>)}</div> : items.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{items.map((item) => <ExerciseLibraryCard key={item._id} exercise={item} onEdit={setFormExercise} onDelete={setDeleteExercise} />)}</div> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center font-montserrat"><Dumbbell className="mx-auto mb-3 text-slate-300" size={30} /><h2 className="font-oswald text-lg font-bold uppercase text-primary">Chưa tìm thấy bài tập</h2><p className="mt-2 text-sm text-slate-500">Thử đổi bộ lọc hoặc tạo bài tập đầu tiên của bạn.</p></div>}
+      {loading ? (
+        <div className="exercise-grid" aria-label="Đang tải bài tập">
+          {Array.from({ length: 6 }, (_, index) => <div className="module-skeleton exercise-card-skeleton" key={index} />)}
+        </div>
+      ) : items.length ? (
+        <div className="exercise-grid" role="list" aria-label="Danh sách bài tập">
+          {items.map((item) => <div className="exercise-grid-item" role="listitem" key={item._id}><ExerciseLibraryCard exercise={item} onEdit={setFormExercise} onDelete={setDeleteExercise} /></div>)}
+        </div>
+      ) : (
+        <div className={`module-empty exercise-empty ${hasFilters ? 'module-filtered-empty' : ''}`}>
+          <Dumbbell className="exercise-empty-icon" aria-hidden="true" />
+          <h2>{hasFilters ? 'Không có bài tập phù hợp' : 'Chưa có bài tập'}</h2>
+          <p>{hasFilters ? 'Xóa bộ lọc để xem toàn bộ thư viện.' : 'Tạo bài tập đầu tiên để bắt đầu xây dựng thư viện.'}</p>
+          {hasFilters && <button type="button" className="button button-secondary" onClick={() => { setMuscleGroup(''); setLevel(''); setTrackingType(''); }}>Xóa bộ lọc</button>}
+        </div>
+      )}
       <Pagination page={meta.page || 1} totalPages={meta.totalPages || 0} onPageChange={load} />
 
       <ExerciseFormModal

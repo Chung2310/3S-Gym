@@ -70,13 +70,9 @@ export default function ProgressPage() {
   return (
     <section className="space-y-6 pb-[calc(2rem+env(safe-area-inset-bottom))] font-montserrat">
       <header className="border-b border-slate-200 pb-5">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-secondary">Customer journey</p>
-        <h1 className="mt-1 font-oswald text-3xl font-bold uppercase tracking-tight text-primary sm:text-4xl">
+        <h1 className="font-oswald text-3xl font-bold uppercase tracking-tight text-primary sm:text-4xl">
           Tiến độ khách hàng
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-          Tổng quan toàn bộ học viên được phân công và truy cập nhanh từng hành trình tập luyện.
-        </p>
       </header>
 
       {overviewLoading && items.length === 0 && <ProgressSkeleton />}

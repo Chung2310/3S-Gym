@@ -22,20 +22,20 @@ export default function ExerciseFilter({
   onClear,
 }: ExerciseFilterProps) {
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_13rem_17rem_auto_auto] xl:items-center">
-      <div className="relative min-w-0">
-        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+    <div className="module-toolbar exercise-toolbar xl:!grid-cols-[minmax(0,1fr)_11rem_15rem_auto_auto]" role="search" aria-label="Bộ lọc bài tập">
+      <div className="exercise-filter-search">
+        <Search size={16} className="exercise-filter-search-icon" aria-hidden="true" />
         <input
           aria-label="Nhóm cơ"
           value={muscleGroup}
           onChange={(e) => onMuscleGroupChange(e.target.value)}
           placeholder="Lọc theo nhóm cơ..."
-          className="min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 font-montserrat text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus-visible:border-secondary focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-secondary/20"
+          className="exercise-filter-input"
         />
         {muscleGroup && (
           <button
             type="button"
-            className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-md text-slate-400 transition hover:bg-slate-200 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+            className="exercise-filter-clear-input"
             onClick={() => onMuscleGroupChange('')}
             aria-label="Xóa lọc nhóm cơ"
           >
@@ -45,7 +45,7 @@ export default function ExerciseFilter({
       </div>
 
       <select
-        className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 font-montserrat text-sm text-slate-700 outline-none transition focus-visible:border-secondary focus-visible:ring-2 focus-visible:ring-secondary/20"
+        className="exercise-filter-select"
         aria-label="Cấp độ"
         value={level}
         onChange={(e) => onLevelChange(e.target.value)}
@@ -56,16 +56,27 @@ export default function ExerciseFilter({
         <option value="ADVANCED">Nâng cao</option>
       </select>
 
-      <select className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 font-montserrat text-sm text-slate-700 outline-none transition focus-visible:border-secondary focus-visible:ring-2 focus-visible:ring-secondary/20" aria-label="Cách ghi nhận" value={trackingType} onChange={(event) => onTrackingTypeChange(event.target.value)}>
-        <option value="">Tất cả cách ghi nhận</option><option value="UNCLASSIFIED">Chưa phân loại</option><option value="STRENGTH">Sức mạnh · mức tạ</option><option value="BODYWEIGHT">Trọng lượng cơ thể</option><option value="CARDIO">Cardio</option><option value="INTERVAL">Interval</option><option value="MOBILITY">Mobility</option>
+      <select
+        className="exercise-filter-select"
+        aria-label="Cách ghi nhận"
+        value={trackingType}
+        onChange={(event) => onTrackingTypeChange(event.target.value)}
+      >
+        <option value="">Tất cả cách ghi nhận</option>
+        <option value="UNCLASSIFIED">Chưa phân loại</option>
+        <option value="STRENGTH">Sức mạnh · mức tạ</option>
+        <option value="BODYWEIGHT">Trọng lượng cơ thể</option>
+        <option value="CARDIO">Cardio</option>
+        <option value="INTERVAL">Interval</option>
+        <option value="MOBILITY">Mobility</option>
       </select>
 
-      <button type="button" className="button button-secondary min-h-11" onClick={onFilter}>
+      <button type="button" className="button button-secondary exercise-filter-submit" onClick={onFilter}>
         <RefreshCw size={15} /> Lọc bài tập
       </button>
 
       {(muscleGroup || level || trackingType) && (
-        <button type="button" className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-3 font-montserrat text-xs font-semibold text-slate-600 transition hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary" onClick={onClear}>
+        <button type="button" className="exercise-filter-reset" onClick={onClear}>
           <RotateCcw size={13} /> Xóa lọc
         </button>
       )}

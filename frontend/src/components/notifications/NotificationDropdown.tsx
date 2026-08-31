@@ -9,8 +9,8 @@ import type { Notification } from './NotificationList';
 const destinations: Record<string, string> = {
   calendarEvents: '/calendar',
   progressReports: '/me',
-  careTask: '/pt/care',
-  careAlert: '/pt/care',
+  careTask: '/pt/dashboard',
+  careAlert: '/pt/dashboard',
 };
 
 interface NotificationDropdownProps {

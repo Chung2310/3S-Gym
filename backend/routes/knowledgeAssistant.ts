@@ -7,7 +7,7 @@ import { addConversationMessageSchema, createConversationSchema, createKnowledge
 
 const router = express.Router();
 const knowledgeBase = [authenticate, authorize('ADMIN'), requireFeature('KNOWLEDGE_BASE')] as const;
-const assistantBase = [authenticate, authorize('PT'), requireFeature('PT_ASSISTANT')] as const;
+const assistantBase = [authenticate, authorize('PT', 'CUSTOMER', 'ADMIN')] as const;
 /* legacy manual validators
 const idValidator = (req: Request): ValidationIssue[] => mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'Mã bản ghi không hợp lệ.' }];
 const knowledgeBody = (req: Request): ValidationIssue[] => ['title', 'topic', 'content'].flatMap((field) => typeof req.body[field] === 'string' && req.body[field].trim() ? [] : [{ field, message: `Trường ${field} là bắt buộc.` }]);

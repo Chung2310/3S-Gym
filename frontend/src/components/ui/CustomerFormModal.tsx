@@ -89,7 +89,7 @@ export default function CustomerFormModal({ open, customer, onClose, onSaved }: 
   return <ProfileFormModal
     open={open}
     title={editing ? 'Sửa khách hàng' : 'Thêm khách hàng'}
-    description="Nhập thông tin hồ sơ và chỉ số ban đầu của khách hàng."
+    description=""
     dirty={dirty}
     loading={loading}
     submitLabel={editing ? 'Lưu thay đổi' : 'Tạo khách hàng'}

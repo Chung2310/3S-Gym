@@ -29,23 +29,23 @@ function parseProposal(raw: string): WorkoutProposal {
   return proposal as WorkoutProposal;
 }
 
-export async function createWorkoutProposal(user: AuthenticatedUser, customerId: string): Promise<WorkoutProposal> {
+export async function createWorkoutProposal(user: AuthenticatedUser, customerId: string, requestKey: string): Promise<WorkoutProposal> {
   const customer = await CustomerProfile.findOne({ _id: customerId, assignedPtId: user.id }).lean();
   if (!customer) throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền tạo giáo án cho học viên này.' });
   const [goal, inbody] = await Promise.all([
     Goal.findOne({ customerId: customer._id }).sort({ createdAt: -1 }).lean(),
     InBodyRecord.findOne({ customerId: customer._id }).sort({ measurementDate: -1, createdAt: -1 }).lean(),
   ]);
-  const raw = await generateText(`Trả về duy nhất JSON đề xuất giáo án 4-12 tuần cho học viên ${customer.fullName}. Mục tiêu: ${goal?.title || customer.initialGoal || 'chưa có'}. InBody: ${inbody ? `cân nặng ${inbody.weight}, mỡ ${inbody.bodyFatPercentage ?? 'chưa có'}` : 'chưa có'}. Sức khỏe: ${customer.medicalNotes || 'không có'}. JSON gồm durationWeeks, sessionsPerWeek, minutesPerSession, level, trainingMethod, trainingSplit, priorityMuscleGroups, restrictions.`);
+  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-proposal` }, `Trả về duy nhất JSON đề xuất giáo án 4-12 tuần cho học viên ${customer.fullName}. Mục tiêu: ${goal?.title || customer.initialGoal || 'chưa có'}. InBody: ${inbody ? `cân nặng ${inbody.weight}, mỡ ${inbody.bodyFatPercentage ?? 'chưa có'}` : 'chưa có'}. Sức khỏe: ${customer.medicalNotes || 'không có'}. JSON gồm durationWeeks, sessionsPerWeek, minutesPerSession, level, trainingMethod, trainingSplit, priorityMuscleGroups, restrictions.`);
   return parseProposal(raw);
 }
 
-export async function generateWorkoutDraft(user: AuthenticatedUser, input: WorkoutGenerationInput) {
+export async function generateWorkoutDraft(user: AuthenticatedUser, input: WorkoutGenerationInput, requestKey: string) {
   const customer = await CustomerProfile.findOne({ _id: input.customerId, assignedPtId: user.id }).lean();
   if (!customer) throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền tạo giáo án cho học viên này.' });
   const proposal = input.proposal;
   if (proposal.durationWeeks < 4 || proposal.durationWeeks > 12) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Chu kỳ AI phải từ 4 đến 12 tuần.' });
-  const raw = await generateText(`Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises, generatedExercises. Mỗi scheduledExercises có weekNumber, dayNumber, startMinute, durationMinutes, name, trackingType và prescription đúng loại. trackingType chỉ là STRENGTH, BODYWEIGHT, CARDIO, INTERVAL hoặc MOBILITY. Cấu hình đã duyệt: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}.`);
+  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-draft` }, `Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises, generatedExercises. Mỗi scheduledExercises có weekNumber, dayNumber, startMinute, durationMinutes, name, trackingType và prescription đúng loại. trackingType chỉ là STRENGTH, BODYWEIGHT, CARDIO, INTERVAL hoặc MOBILITY. Cấu hình đã duyệt: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}.`);
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về giáo án hợp lệ.' });
   let draft: any;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { User, Phone, Award, ShieldCheck, Upload, Trash2 } from 'lucide-react';
+import { User, Award, ShieldCheck, Upload } from 'lucide-react';
 import FormField from './FormField';
 import ProfileFormModal from './ProfileFormModal';
 import { useToast } from './ToastProvider';
@@ -118,7 +118,6 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const payload: Record<string, any> = {
-      role: 'PT',
       fullName: form.fullName.trim(),
       phone: form.phone.trim(),
       email: form.email?.trim() || null,
@@ -133,14 +132,13 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
         .map((value) => value.trim())
         .filter(Boolean),
       bio: form.bio?.trim() || '',
-      status: form.status || 'ACTIVE',
     };
 
-    if (form.username?.trim()) {
+    if (!editing) {
+      payload.role = 'PT';
       payload.username = form.username.trim();
-    }
-    if (form.password) {
-      payload.password = form.password;
+      payload.password = form.password.trim();
+      payload.status = form.status || 'ACTIVE';
     }
 
     try {
@@ -162,7 +160,7 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
     <ProfileFormModal
       open={open}
       title={editing ? 'Cập nhật hồ sơ Huấn luyện viên' : 'Thêm Huấn luyện viên mới'}
-      description="Thiết lập thông tin hồ sơ chuyên môn, liên hệ và tài khoản đăng nhập cho PT."
+      description=""
       dirty={dirty}
       loading={loading}
       submitLabel={editing ? 'Lưu thay đổi' : 'Tạo Huấn luyện viên'}
@@ -217,7 +215,7 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
                       fontSize: '0.82rem',
                     }}
                   >
-                    <Upload size={14} /> {uploading ? 'Đang tải lên Cloudinary...' : 'Chọn ảnh tải lên'}
+                    <Upload size={14} /> {uploading ? 'Đang tải lên...' : 'Chọn ảnh tải lên'}
                   </label>
                   <input
                     id="avatar-file-upload"
@@ -231,53 +229,78 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
                     <button
                       type="button"
                       className="button button-secondary"
+                      onClick={() => setForm((c) => ({ ...c, avatarUrl: '' }))}
                       style={{
-                        margin: 0,
-                        color: '#ef4444',
-                        borderColor: '#fee2e2',
                         height: '34px',
                         padding: '0 10px',
+                        color: '#dc2626',
+                        borderColor: '#fca5a5',
                         fontSize: '0.82rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
                       }}
-                      onClick={() => setForm((c) => ({ ...c, avatarUrl: '' }))}
                     >
-                      <Trash2 size={13} /> Xóa ảnh
+                      Xóa ảnh
                     </button>
                   )}
                 </div>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Định dạng PNG, JPG. Dung lượng tối đa 8MB.</span>
               </div>
             </div>
           </div>
 
-          <FormField label="Họ và tên" name="fullName" value={form.fullName} onChange={change} required placeholder="Ví dụ: Nguyễn Văn Tuấn" />
-          <FormField label="Ngày sinh" name="dateOfBirth" type="date" max={new Date().toISOString().slice(0, 10)} value={form.dateOfBirth} onChange={change} />
-          <FormField label="Giới tính" name="gender" as="select" value={form.gender} onChange={change}>
+          <FormField
+            label="Họ và tên"
+            name="fullName"
+            value={form.fullName}
+            onChange={change}
+            required
+            placeholder="Ví dụ: Nguyễn Văn Tuấn"
+          />
+          <FormField
+            label="Số điện thoại"
+            name="phone"
+            value={form.phone}
+            onChange={change}
+            required
+            placeholder="0912 345 678"
+          />
+          <FormField
+            label="Email liên hệ"
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={change}
+            placeholder="coach@3sgym.vn"
+          />
+          <FormField
+            label="Ngày sinh"
+            name="dateOfBirth"
+            type="date"
+            value={form.dateOfBirth}
+            onChange={change}
+          />
+          <FormField
+            label="Giới tính"
+            name="gender"
+            as="select"
+            value={form.gender}
+            onChange={change}
+          >
             <option value="MALE">Nam</option>
             <option value="FEMALE">Nữ</option>
             <option value="OTHER">Khác</option>
           </FormField>
-        </div>
-      </section>
-
-      {/* Section 2: Liên hệ */}
-      <section className="profile-form-section">
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Phone size={16} color="var(--secondary-color)" /> Thông tin liên hệ
-        </h3>
-        <div className="profile-form-grid">
-          <FormField label="Số điện thoại" name="phone" value={form.phone} onChange={change} required placeholder="0912 345 678" />
-          <FormField label="Email" name="email" type="email" value={form.email} onChange={change} placeholder="coach@3sgym.vn" />
           <div className="grid-full-width">
-            <FormField label="Địa chỉ" name="address" value={form.address} onChange={change} placeholder="Địa chỉ thường trú / tạm trú..." />
+            <FormField
+              label="Địa chỉ"
+              name="address"
+              value={form.address}
+              onChange={change}
+              placeholder="Địa chỉ liên hệ..."
+            />
           </div>
         </div>
       </section>
 
-      {/* Section 3: Chuyên môn & Bằng cấp */}
+      {/* Section 2: Chuyên môn & Bằng cấp */}
       <section className="profile-form-section">
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Award size={16} color="var(--secondary-color)" /> Chuyên môn & Bằng cấp
@@ -326,37 +349,39 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
         </div>
       </section>
 
-      {/* Section 4: Tài khoản đăng nhập */}
-      <section className="profile-form-section">
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <ShieldCheck size={16} color="var(--secondary-color)" /> Tài khoản & Trạng thái
-        </h3>
-        <div className="profile-form-grid">
-          <FormField
-            label="Tên đăng nhập"
-            name="username"
-            value={form.username}
-            onChange={change}
-            readOnly={editing}
-            required
-            placeholder="pt_tuan"
-          />
-          <FormField
-            label={editing ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu ban đầu'}
-            name="password"
-            type="password"
-            minLength={6}
-            value={form.password}
-            onChange={change}
-            required={!editing}
-            placeholder={editing ? '••••••••' : 'Tối thiểu 6 ký tự'}
-          />
-          <FormField label="Trạng thái tài khoản" name="status" as="select" value={form.status} onChange={change}>
-            <option value="ACTIVE">Hoạt động (ACTIVE)</option>
-            <option value="LOCKED">Tạm khóa (LOCKED)</option>
-          </FormField>
-        </div>
-      </section>
+      {/* Section 3: Cấp tài khoản đăng nhập (Chỉ hiển thị khi thêm PT mới) */}
+      {!editing && (
+        <section className="profile-form-section">
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ShieldCheck size={16} color="var(--secondary-color)" /> Cấp tài khoản đăng nhập
+          </h3>
+          <div className="profile-form-grid">
+            <FormField
+              label="Tên đăng nhập"
+              name="username"
+              value={form.username}
+              onChange={change}
+              required
+              placeholder="pt_tuan"
+            />
+            <FormField
+              label="Mật khẩu ban đầu"
+              name="password"
+              type="password"
+              minLength={8}
+              autoComplete="new-password"
+              value={form.password}
+              onChange={change}
+              required
+              placeholder="Tối thiểu 8 ký tự"
+            />
+            <FormField label="Trạng thái tài khoản" name="status" as="select" value={form.status} onChange={change}>
+              <option value="ACTIVE">Hoạt động (ACTIVE)</option>
+              <option value="LOCKED">Tạm khóa (LOCKED)</option>
+            </FormField>
+          </div>
+        </section>
+      )}
     </ProfileFormModal>
   );
 }

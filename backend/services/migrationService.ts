@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import mongoose, { type Model } from 'mongoose';
 import ActivityCalorie from '../models/ActivityCalorie.js';
+import AiBillingPolicy from '../models/AiBillingPolicy.js';
+import CreditPricing from '../models/CreditPricing.js';
+import CreditWallet from '../models/CreditWallet.js';
 import FeatureFlag from '../models/FeatureFlag.js';
 import Goal from '../models/Goal.js';
 import InBodyRecord from '../models/InBodyRecord.js';
@@ -9,12 +12,16 @@ import MigrationRecord from '../models/MigrationRecord.js';
 import NutritionFormula from '../models/NutritionFormula.js';
 import NutritionPlan from '../models/NutritionPlan.js';
 import Roadmap from '../models/Roadmap.js';
+import User from '../models/User.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import { downExerciseTrackingTypes, upExerciseTrackingTypes } from '../migrations/002-exercise-tracking-types.js';
+import { AI_TASK_TYPES, type AiTaskType } from './creditTypes.js';
+import { ensureWallet } from './creditWalletService.js';
 
 interface VersionedContent { version?: number; status?: string }
 interface MigrationChange { model: string; versionIds: string[]; statusIds: string[] }
+interface CreditMigrationMetadata { walletIds: string[]; pricingIds: string[]; policyIds: string[] }
 interface MigrationDefinition {
   version: string;
   name: string;
@@ -66,8 +73,71 @@ async function downContentDefaults(metadata: Record<string, unknown>) {
   }
 }
 
+const defaultPolicy = (taskType: AiTaskType) => ({
+  taskType,
+  enabled: true,
+  maxReservationCredits: taskType === 'IMAGE_GENERATION' ? 50 : 20,
+  fallbackCredits: taskType === 'IMAGE_GENERATION' ? 10 : 1,
+  markupBasisPoints: 12_500,
+  minBillableCredits: 1,
+});
+
+async function ensureCreditReferenceData(): Promise<Pick<CreditMigrationMetadata, 'pricingIds' | 'policyIds'>> {
+  await Promise.all([CreditPricing.createIndexes(), AiBillingPolicy.createIndexes()]);
+  const pricing = await CreditPricing.updateOne(
+    { key: 'GLOBAL' },
+    { $setOnInsert: { key: 'GLOBAL', vndPerCredit: 1_000, usdToVnd: 26_000 } },
+    { upsert: true },
+  );
+  const policies = await Promise.all(AI_TASK_TYPES.map((taskType) => AiBillingPolicy.updateOne(
+    { taskType },
+    { $setOnInsert: defaultPolicy(taskType) },
+    { upsert: true },
+  )));
+  return {
+    pricingIds: pricing.upsertedId ? [String(pricing.upsertedId)] : [],
+    policyIds: policies.flatMap((result) => result.upsertedId ? [String(result.upsertedId)] : []),
+  };
+}
+
+async function applyCreditWalletsAndPricing({ dryRun }: { dryRun: boolean }): Promise<Record<string, unknown>> {
+  const users = await User.find().select({ _id: 1 }).lean();
+  const existingWalletUserIds = new Set((await CreditWallet.find({ userId: { $in: users.map((user) => user._id) } }).distinct('userId')).map(String));
+  const missingWalletUserIds = users.map((user) => String(user._id)).filter((id) => !existingWalletUserIds.has(id));
+  const pricingMissing = !(await CreditPricing.exists({ key: 'GLOBAL' }));
+  const existingTaskTypes = new Set((await AiBillingPolicy.find({ taskType: { $in: AI_TASK_TYPES } }).distinct('taskType')).map(String));
+  const missingTaskTypes = AI_TASK_TYPES.filter((taskType) => !existingTaskTypes.has(taskType));
+  const counts = {
+    creditWallets: { matched: missingWalletUserIds.length, modified: missingWalletUserIds.length },
+    creditPricing: { matched: pricingMissing ? 1 : 0, modified: pricingMissing ? 1 : 0 },
+    aiBillingPolicies: { matched: missingTaskTypes.length, modified: missingTaskTypes.length },
+  };
+  if (dryRun) return { counts, walletIds: [], pricingIds: [], policyIds: [] };
+
+  await CreditWallet.createIndexes();
+  const walletIds: string[] = [];
+  for (const userId of missingWalletUserIds) walletIds.push((await ensureWallet(userId)).id);
+  const seeded = await ensureCreditReferenceData();
+  return { counts, walletIds, ...seeded } satisfies CreditMigrationMetadata & { counts: typeof counts };
+}
+
+async function rollbackCreditWalletsAndPricing(metadata: Record<string, unknown>) {
+  const credit = metadata as unknown as CreditMigrationMetadata;
+  await Promise.all([
+    CreditWallet.deleteMany({ _id: { $in: credit.walletIds || [] } }),
+    CreditPricing.deleteMany({ _id: { $in: credit.pricingIds || [] } }),
+    AiBillingPolicy.deleteMany({ _id: { $in: credit.policyIds || [] } }),
+  ]);
+}
+
 const migrations: MigrationDefinition[] = [
   { version: '001-content-defaults', name: 'Add version and status defaults to legacy content', up: applyContentDefaults, down: downContentDefaults },
+  {
+    version: '002-credit-wallets-and-pricing',
+    name: 'Backfill credit wallets and seed billing policies',
+    up: applyCreditWalletsAndPricing,
+    down: rollbackCreditWalletsAndPricing,
+  },
   {
     version: '002-exercise-tracking-types',
     name: 'Add explicit tracking types to legacy exercises and workout plans',
@@ -172,6 +242,7 @@ async function seedReferenceData() {
     { name: 'Đi bộ nhanh / Đi bộ dốc máy (Incline Walk)', category: 'CARDIO', met: 4.5 },
   ];
   for (const activity of activities) await ActivityCalorie.updateOne({ name: activity.name }, { $set: { ...activity, active: true } }, { upsert: true });
+  await ensureCreditReferenceData();
 }
 
 export { runMigrations, migrateDown, migrationStatus, seedReferenceData };

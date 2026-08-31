@@ -52,3 +52,9 @@ service-account*.json
 service_account*.json
 .worktrees/
 .superpowers/
+
+# Local-only automated tests
+backend/tests/
+frontend/tests/
+**/*.test.ts
+**/*.test.tsx

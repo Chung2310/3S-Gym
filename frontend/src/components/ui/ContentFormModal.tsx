@@ -22,7 +22,7 @@ interface ContentFormState {
   protein: string | number; carbs: string | number; fat: string | number; menu: MealForm[]; notes: string;
 }
 export type ContentItem = Partial<ContentFormState> & { _id?: string; macros?: { protein?: number; carbs?: number; fat?: number } };
-interface ContentFormModalProps { open: boolean; resource: Resource; item?: ContentItem | null; onClose: () => void; onSaved: (data: unknown) => void }
+interface ContentFormModalProps { open: boolean; resource: Resource; item?: ContentItem | null; className?: string; onClose: () => void; onSaved: (data: unknown) => void }
 
 const empty: ContentFormState = { customerId: '', title: '', measurementDate: '', weight: '', bmi: '', bodyFatPercentage: '', bodyFatMass: '', muscleMass: '', bmr: '', visceralFatLevel: '', inbodyScore: '', strengths: '', priorities: '', recommendation: '', source: 'MANUAL', type: 'FAT_LOSS', targetValue: '', targetUnit: '', deadline: '', sessionsPerWeek: '3', cardioNotes: '', evaluationNotes: '', startDate: '', endDate: '', sessions: [], tdee: '', targetCalories: '', protein: '', carbs: '', fat: '', menu: [], notes: '' };
 const labels = { inbody: 'InBody', goals: 'mục tiêu', 'workout-plans': 'giáo án', 'nutrition-plans': 'dinh dưỡng' };
@@ -38,7 +38,7 @@ const extractCustomerId = (raw: unknown): string => {
   return '';
 };
 
-export default function ContentFormModal({ open, resource, item, onClose, onSaved }: ContentFormModalProps) {
+export default function ContentFormModal({ open, resource, item, className = '', onClose, onSaved }: ContentFormModalProps) {
   const toast = useToast();
   const [form, setForm] = useState(empty);
   const [initial, setInitial] = useState(empty);
@@ -108,7 +108,7 @@ export default function ContentFormModal({ open, resource, item, onClose, onSave
     } catch (error) { toast.error(errorMessage(error)); }
     finally { setLoading(false); }
   };
-  return <FormModal open={open} title={`${editing ? 'Sửa' : 'Tạo'} ${labels[resource]}`} dirty={dirty} loading={loading} onClose={onClose} onSubmit={submit} submitLabel={editing ? 'Lưu thay đổi' : 'Lưu bản nháp'}><section className="profile-form-section"><div className="profile-form-grid">
+  return <FormModal className={className} open={open} title={`${editing ? 'Sửa' : 'Tạo'} ${labels[resource]}`} dirty={dirty} loading={loading} onClose={onClose} onSubmit={submit} submitLabel={editing ? 'Lưu thay đổi' : 'Lưu bản nháp'}><section className="profile-form-section"><div className="profile-form-grid">
     <div className="grid-full-width">
       <CustomerSelect
         label="Học viên / Khách hàng"

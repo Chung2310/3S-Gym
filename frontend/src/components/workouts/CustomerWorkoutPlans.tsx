@@ -35,10 +35,13 @@ export default function CustomerWorkoutPlans() {
   }, [setSearchParams, templateId, toast]);
 
   return (
-    <section className="space-y-6">
-      <header>
-        <h1 className="font-oswald text-3xl font-bold uppercase text-primary">Giáo án khách hàng</h1>
-        <p className="mt-2 font-montserrat text-sm text-slate-600">Cá nhân hóa và công bố kế hoạch tập cho từng khách hàng.</p>
+    <section className="module-page workout-customer-plans" aria-label="Giáo án khách hàng">
+      <header className="module-header workout-customer-plan-header">
+        <div>
+          <p className="workout-eyebrow">Client programming</p>
+          <h1 className="module-heading">Giáo án khách hàng</h1>
+          <p className="module-description">Cá nhân hóa và công bố kế hoạch tập cho từng khách hàng.</p>
+        </div>
       </header>
 
       <CustomerWorkoutPlanPanel initialDraft={draft} />

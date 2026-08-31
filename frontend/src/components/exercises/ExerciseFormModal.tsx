@@ -2,8 +2,7 @@
 import FormModal from '../ui/FormModal';
 import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
-import { errorMessage } from '../../types';
-import type { Exercise, TrackingType } from '../../types';
+import { errorMessage, type Exercise, type TrackingType } from '../../types';
 import ExerciseVideoFields, { type ExerciseVideo } from './ExerciseVideoFields';
 
 interface ExerciseFormModalProps { open: boolean; exercise?: Exercise | null; onClose: () => void; onSaved: () => void }
@@ -33,13 +32,22 @@ export default function ExerciseFormModal({ open, exercise, onClose, onSaved }: 
     finally { setLoading(false); }
   };
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
-  return <FormModal open={open} title={exercise ? 'Sửa bài tập' : 'Tạo bài tập'} dirty={Object.values(form).some(Boolean)} loading={loading || uploading} submitLabel="Lưu bài tập" onClose={onClose} onSubmit={submit}><div className="form-grid">
-    <label className="field"><span>Tên bài tập</span><input aria-label="Tên bài tập" placeholder="Ví dụ: Barbell Squat" value={form.name} onChange={(event) => change('name', event.target.value)} required /></label>
-    <label className="field"><span>Nhóm cơ</span><input aria-label="Nhóm cơ" placeholder="Ví dụ: Chân" value={form.muscleGroup} onChange={(event) => change('muscleGroup', event.target.value)} required /></label>
-    <label className="field"><span>Cấp độ</span><select aria-label="Cấp độ" value={form.level} onChange={(event) => change('level', event.target.value)}><option value="BEGINNER">Cơ bản</option><option value="INTERMEDIATE">Trung cấp</option><option value="ADVANCED">Nâng cao</option></select></label>
-    <label className="field"><span>Cách ghi nhận</span><select aria-label="Cách ghi nhận" value={form.defaultTrackingType} onChange={(event) => change('defaultTrackingType', event.target.value)} required><option value="" disabled>Chọn cách ghi nhận...</option><option value="STRENGTH">Sức mạnh · mức tạ</option><option value="BODYWEIGHT">Trọng lượng cơ thể</option><option value="CARDIO">Cardio · quãng đường/thời gian</option><option value="INTERVAL">Interval · hiệp làm/nghỉ</option><option value="MOBILITY">Mobility · thời lượng/biên độ</option></select></label>
-    {!exercise && <label className="field"><span>Phạm vi</span><select aria-label="Phạm vi" value={form.scope} onChange={(event) => change('scope', event.target.value)}><option value="PRIVATE">Riêng tư</option><option value="GLOBAL">Dùng chung</option></select></label>}
-    <label className="field"><span>Thiết bị</span><input aria-label="Thiết bị" value={form.equipment} onChange={(event) => change('equipment', event.target.value)} placeholder="Phân cách bằng dấu phẩy" /></label>
-    <label className="field"><span>Kỹ thuật</span><textarea aria-label="Kỹ thuật" placeholder="Mô tả cách thực hiện đúng..." value={form.technique} onChange={(event) => change('technique', event.target.value)} /></label>
-  </div><ExerciseVideoFields videos={form.videos} onChange={(videos) => setForm((current) => ({ ...current, videos }))} onUploadingChange={setUploading} /></FormModal>;
+  return <FormModal className="module-modal exercise-form-modal" open={open} title={exercise ? 'Sửa bài tập' : 'Tạo bài tập'} dirty={Object.values(form).some(Boolean)} loading={loading || uploading} submitLabel="Lưu bài tập" onClose={onClose} onSubmit={submit}><div className="module-form exercise-form">
+    <section className="exercise-form-section" aria-labelledby="exercise-form-basics">
+      <div className="exercise-form-section-heading"><h3 id="exercise-form-basics">Thông tin cơ bản</h3><p>Tên, nhóm cơ và phạm vi sử dụng của bài tập.</p></div>
+      <div className="module-field-grid">
+        <label className="module-field"><span>Tên bài tập</span><input aria-label="Tên bài tập" placeholder="Ví dụ: Barbell Squat" value={form.name} onChange={(event) => change('name', event.target.value)} required /></label>
+        <label className="module-field"><span>Nhóm cơ</span><input aria-label="Nhóm cơ" placeholder="Ví dụ: Chân" value={form.muscleGroup} onChange={(event) => change('muscleGroup', event.target.value)} required /></label>
+        <label className="module-field"><span>Cấp độ</span><select aria-label="Cấp độ" value={form.level} onChange={(event) => change('level', event.target.value)}><option value="BEGINNER">Cơ bản</option><option value="INTERMEDIATE">Trung cấp</option><option value="ADVANCED">Nâng cao</option></select></label>
+        <label className="module-field"><span>Cách ghi nhận</span><select aria-label="Cách ghi nhận" value={form.defaultTrackingType} onChange={(event) => change('defaultTrackingType', event.target.value)} required><option value="" disabled>Chọn cách ghi nhận...</option><option value="STRENGTH">Sức mạnh · mức tạ</option><option value="BODYWEIGHT">Trọng lượng cơ thể</option><option value="CARDIO">Cardio · quãng đường/thời gian</option><option value="INTERVAL">Interval · hiệp làm/nghỉ</option><option value="MOBILITY">Mobility · thời lượng/biên độ</option></select></label>
+        {!exercise && <label className="module-field"><span>Phạm vi</span><select aria-label="Phạm vi" value={form.scope} onChange={(event) => change('scope', event.target.value)}><option value="PRIVATE">Riêng tư</option><option value="GLOBAL">Dùng chung</option></select></label>}
+      </div>
+    </section>
+    <section className="exercise-form-section" aria-labelledby="exercise-form-technique">
+      <div className="exercise-form-section-heading"><h3 id="exercise-form-technique">Thiết bị & kỹ thuật</h3><p>Ghi rõ yêu cầu chuẩn bị và chỉ dẫn thực hiện.</p></div>
+      <label className="module-field"><span>Thiết bị</span><input aria-label="Thiết bị" value={form.equipment} onChange={(event) => change('equipment', event.target.value)} placeholder="Phân cách bằng dấu phẩy" /></label>
+      <label className="module-field"><span>Kỹ thuật</span><textarea aria-label="Kỹ thuật" placeholder="Mô tả cách thực hiện đúng..." value={form.technique} onChange={(event) => change('technique', event.target.value)} /></label>
+    </section>
+    <ExerciseVideoFields videos={form.videos} onChange={(videos) => setForm((current) => ({ ...current, videos }))} onUploadingChange={setUploading} />
+  </div></FormModal>;
 }

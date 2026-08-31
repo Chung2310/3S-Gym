@@ -146,8 +146,13 @@ export default function UserFormModal({
     if (form.username?.trim()) {
       payload.username = form.username.trim();
     }
-    if (form.password) {
-      payload.password = form.password;
+    const trimmedPassword = form.password?.trim() || '';
+    if (trimmedPassword.length > 0) {
+      if (trimmedPassword.length < 8) {
+        toast.error('Mật khẩu phải có ít nhất 8 ký tự.');
+        return;
+      }
+      payload.password = trimmedPassword;
     }
 
     try {
@@ -172,7 +177,7 @@ export default function UserFormModal({
     <ProfileFormModal
       open={open}
       title={modalTitle}
-      description="Nhập thông tin hồ sơ và thiết lập tài khoản cho người dùng."
+      description=""
       dirty={dirty}
       loading={loading}
       submitLabel={editing ? 'Lưu thay đổi' : 'Tạo người dùng'}
@@ -347,7 +352,9 @@ export default function UserFormModal({
             label={editing ? 'Mật khẩu mới (bỏ trống nếu không đổi)' : 'Mật khẩu ban đầu'}
             name="password"
             type="password"
-            minLength={6}
+            minLength={8}
+            autoComplete="new-password"
+            placeholder={editing ? 'Để trống nếu không đổi' : 'Tối thiểu 8 ký tự'}
             value={form.password}
             onChange={change}
             required={!editing}

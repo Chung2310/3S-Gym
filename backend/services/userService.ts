@@ -8,6 +8,8 @@ import WorkoutPlan from '../models/WorkoutPlan.js';
 import NutritionPlan from '../models/NutritionPlan.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
+import { ensureWallet } from './creditWalletService.js';
+import { withTransaction } from './transactionService.js';
 
 export interface UserPayload {
   username: string; password: string; role: UserRole; fullName?: string; email?: string;
@@ -24,12 +26,16 @@ async function createUser(payload: UserPayload) {
   const existing = await User.exists({ username: payload.username.trim() });
   if (existing) throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'Tên đăng nhập đã tồn tại.' });
   const password = await bcrypt.hash(payload.password, 10);
-  return User.create({
-    username: payload.username.trim(), password, role: payload.role, fullName: payload.fullName || '',
-    email: payload.email || undefined, avatarUrl: payload.avatarUrl || '', dateOfBirth: payload.dateOfBirth || null,
-    gender: payload.gender || 'OTHER', phone: payload.phone || undefined, address: payload.address || '',
-    specialization: payload.specialization || '', yearsOfExperience: payload.yearsOfExperience ?? 0,
-    certificates: payload.certificates || [], bio: payload.bio || '', status: payload.status || 'ACTIVE',
+  return withTransaction(async (session) => {
+    const [user] = await User.create([{
+      username: payload.username.trim(), password, role: payload.role, fullName: payload.fullName || '',
+      email: payload.email || undefined, avatarUrl: payload.avatarUrl || '', dateOfBirth: payload.dateOfBirth || null,
+      gender: payload.gender || 'OTHER', phone: payload.phone || undefined, address: payload.address || '',
+      specialization: payload.specialization || '', yearsOfExperience: payload.yearsOfExperience ?? 0,
+      certificates: payload.certificates || [], bio: payload.bio || '', status: payload.status || 'ACTIVE',
+    }], { session });
+    await ensureWallet(user.id, session);
+    return user;
   });
 }
 
@@ -61,7 +67,7 @@ async function updatePt(id: string, payload: UpdatePtPayload): Promise<UserDocum
     const value = payload[field];
     if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
   }
-  if (payload.password) user.password = await bcrypt.hash(payload.password, 10);
+  if (payload.password && payload.password.trim()) user.password = await bcrypt.hash(payload.password.trim(), 10);
   await user.save();
   return user;
 }
@@ -92,7 +98,9 @@ async function deletePt(id: string): Promise<void> {
 async function ensureBootstrapAdmin({ username, password, fullName = 'Quản lý 3S' }: { username?: string; password?: string; fullName?: string }) {
   if (!username || !password) return null;
   const existing = await User.findOne({ role: 'ADMIN' });
-  return existing || createUser({ username, password, fullName, role: 'ADMIN' });
+  if (!existing) return createUser({ username, password, fullName, role: 'ADMIN' });
+  await ensureWallet(existing.id);
+  return existing;
 }
 
 export { createUser, listUsers, updatePt, deletePt, ensureBootstrapAdmin };

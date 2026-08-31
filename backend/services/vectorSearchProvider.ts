@@ -2,16 +2,23 @@ import KnowledgeChunk from '../models/KnowledgeChunk.js';
 import KnowledgeDocument from '../models/KnowledgeDocument.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
-import { cosineSimilarity, embedText } from './embeddingProvider.js';
+import { cosineSimilarity, embedText, embedTextBillable } from './embeddingProvider.js';
+import type { AiBillingContext } from './creditTypes.js';
 import type { PipelineStage } from 'mongoose';
 import { APP_POLICY } from '../config/env.js';
 
 export interface VectorFilters { status?: 'PUBLISHED'; topic?: string }
 export interface VectorHit { documentId: string; title?: string; topic: string; content: string; score: number }
 
-export async function searchVectors(query: string, filters: VectorFilters, limit: number): Promise<VectorHit[]> {
+export function searchVectors(context: AiBillingContext, query: string, filters: VectorFilters, limit: number): Promise<VectorHit[]>;
+export function searchVectors(query: string, filters: VectorFilters, limit: number): Promise<VectorHit[]>;
+export async function searchVectors(context: AiBillingContext | string, queryOrFilters: string | VectorFilters, filtersOrLimit: VectorFilters | number, maybeLimit?: number): Promise<VectorHit[]> {
+  const billed = typeof context !== 'string';
+  const query = billed ? queryOrFilters as string : context;
+  const filters = (billed ? filtersOrLimit : queryOrFilters) as VectorFilters;
+  const limit = (billed ? maybeLimit : filtersOrLimit) as number;
   const mode = process.env.NODE_ENV === 'production' ? 'atlas' : 'local';
-  const queryVector = embedText(query);
+  const queryVector = billed ? await embedTextBillable(context, query) : embedText(query);
   if (mode === 'atlas') {
     const index = APP_POLICY.VECTOR_SEARCH_INDEX;
     try {
