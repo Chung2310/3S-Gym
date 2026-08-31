@@ -10,8 +10,8 @@ export interface NotificationItem {
 export const notificationDestinations: Record<string, string> = {
   calendarEvents: '/calendar',
   progressReports: '/me',
-  careTask: '/pt/care',
-  careAlert: '/pt/care',
+  careTask: '/pt/dashboard',
+  careAlert: '/pt/dashboard',
 };
 
 export function notificationDestination(resourceType: string): string | undefined {
