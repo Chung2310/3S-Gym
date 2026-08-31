@@ -267,7 +267,7 @@ export default function CustomerSessions({ journey }: CustomerSessionsProps) {
           ) : (
             <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '10px', padding: '24px', textAlign: 'center' }}>
               <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b' }}>
-                Chưa có nhật ký buổi tập. Khi bạn hoàn thành buổi tập cùng Huấn luyện viên, kết quả chi tiết từng bài và mức tạ thực tế sẽ được lưu tại đây!
+                Chưa có nhật ký buổi tập. Khi bạn hoàn thành buổi tập cùng Huấn luyện viên, các chỉ số thực tế phù hợp với từng bài sẽ được lưu tại đây!
               </p>
             </div>
           )}

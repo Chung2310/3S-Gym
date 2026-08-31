@@ -35,6 +35,7 @@ async function list(user: AuthenticatedUser, query: Record<string, unknown>) {
   const filter: QueryFilter<IExercise> = { ...access };
   if (typeof query.muscleGroup === 'string') filter.muscleGroup = query.muscleGroup;
   if (typeof query.level === 'string') filter.level = query.level as IExercise['level'];
+  if (typeof query.defaultTrackingType === 'string') filter.defaultTrackingType = query.defaultTrackingType as IExercise['defaultTrackingType'];
   if (typeof query.keyword === 'string' && query.keyword.trim()) filter.name = { $regex: query.keyword.trim(), $options: 'i' };
   const [items, total] = await Promise.all([Exercise.find(filter).sort({ name: 1 }).skip((page - 1) * limit).limit(limit).lean(), Exercise.countDocuments(filter)]);
   return { items: items.map((item) => normalizeExerciseVideos(user, item)), meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };

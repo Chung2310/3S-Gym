@@ -2,6 +2,7 @@ import type {
   CustomerWorkoutPlanDraft,
   WorkoutTemplate,
 } from '../types/workout';
+import { normalizePlanExercise } from '../utils/exerciseTracking';
 
 export function workoutTemplateToDraft(template: WorkoutTemplate): CustomerWorkoutPlanDraft {
   return {
@@ -11,16 +12,15 @@ export function workoutTemplateToDraft(template: WorkoutTemplate): CustomerWorko
     endDate: '',
     sessions: template.sessions.map((session) => ({
       name: session.name,
-      exercises: session.exercises.map((exercise) => ({
-        name: exercise.name,
-        sets: exercise.sets || 3,
-        reps: exercise.reps || '',
-        weight: '',
-        rest: exercise.restSeconds ? `${exercise.restSeconds} giây` : '',
-        tempo: '',
-        notes: '',
-        exerciseId: exercise.exerciseId,
-      })),
+      exercises: session.exercises.map((exercise) => {
+        const normalized = normalizePlanExercise(exercise);
+        return {
+          name: normalized.name,
+          ...(normalized.exerciseId ? { exerciseId: normalized.exerciseId } : {}),
+          trackingType: normalized.trackingType,
+          prescription: { ...normalized.prescription },
+        };
+      }),
     })),
   };
 }

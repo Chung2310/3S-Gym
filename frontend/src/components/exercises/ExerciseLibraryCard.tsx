@@ -1,5 +1,5 @@
 import { Dumbbell, Film, Pencil, Trash2 } from 'lucide-react';
-import type { Exercise } from './ExerciseFormModal';
+import { TRACKING_TYPE_LABELS, type Exercise } from '../../types';
 
 interface Props {
   exercise: Exercise;
@@ -32,6 +32,12 @@ export default function ExerciseLibraryCard({ exercise, onEdit, onDelete }: Prop
         <div><dt>Nhóm cơ</dt><dd>{exercise.muscleGroup}</dd></div>
         <div><dt>Cấp độ</dt><dd><span className={`exercise-level ${levelClass}`}>{levelLabels[exercise.level] || exercise.level}</span></dd></div>
       </dl>
+
+      <div className="border-b border-slate-100 py-3">
+        <span className={`exercise-badge ${exercise.defaultTrackingType && exercise.defaultTrackingType !== 'UNCLASSIFIED' ? 'is-global' : 'border-amber-200 bg-amber-50 !text-amber-700'}`}>
+          {TRACKING_TYPE_LABELS[exercise.defaultTrackingType ?? 'UNCLASSIFIED']}
+        </span>
+      </div>
 
       <div className="exercise-card-video">
         <p className="exercise-card-video-heading"><Film size={14} aria-hidden="true" /> {exercise.videos?.length || 0} video</p>

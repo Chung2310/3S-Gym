@@ -1,6 +1,7 @@
 import { Types, type ClientSession } from 'mongoose';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import WorkoutSession from '../models/WorkoutSession.js';
+import WorkoutPlan from '../models/WorkoutPlan.js';
 import BodyMeasurement from '../models/BodyMeasurement.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import PtPackage from '../models/PtPackage.js';
@@ -8,11 +9,12 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { withTransaction } from './transactionService.js';
+import { assertCompatibleResult, normalizePlanExercise } from './exerciseTrackingService.js';
 
 interface TemplatePayload { title: string; goal: string; level: string; durationDays?: number; muscleGroups?: string[]; defaultSets?: number; defaultReps?: string; defaultWeight?: string; defaultTempo?: string; technicalNotes?: string; scheduledExercises?: Array<Record<string, unknown>>; unscheduledExercises?: Array<Record<string, unknown>>; sessions?: Array<Record<string, unknown>> }
 interface SessionPayload {
-  customerId: string; templateId: string; sessionIndex: number; performedAt: string; attendance: 'PRESENT' | 'ABSENT' | 'LATE';
-  idempotencyKey: string; exerciseLogs?: Array<Record<string, unknown>>; absenceReason?: string; feeling?: string; notes?: string;
+  customerId: string; workoutPlanId: string; workoutPlanVersion: number; sessionIndex: number; performedAt: string; attendance: 'PRESENT' | 'ABSENT' | 'LATE';
+  idempotencyKey: string; exerciseResults?: Array<{ exerciseId?: string; exerciseIndex: number; result: Record<string, unknown>; notes?: string }>; absenceReason?: string; feeling?: string; notes?: string;
 }
 interface MeasurementPayload { customerId: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements?: Record<string, number> }
 
@@ -70,7 +72,6 @@ async function deleteTemplate(user: AuthenticatedUser, id: string) { const templ
 async function createSession(user: AuthenticatedUser, payload: SessionPayload) {
   const ptId = new Types.ObjectId(user.id);
   const customerId = new Types.ObjectId(payload.customerId);
-  const templateId = new Types.ObjectId(payload.templateId);
   const existing = await WorkoutSession.findOne({ ptId, idempotencyKey: payload.idempotencyKey });
   if (existing) return { session: existing, created: false };
   try {
@@ -78,13 +79,37 @@ async function createSession(user: AuthenticatedUser, payload: SessionPayload) {
       const duplicate = await WorkoutSession.findOne({ ptId, idempotencyKey: payload.idempotencyKey }).session(mongoSession);
       if (duplicate) return { session: duplicate, created: false };
       await customerFor(user, String(payload.customerId), mongoSession);
-      const template = await WorkoutTemplate.findOne({ _id: templateId, ownerPtId: ptId }).session(mongoSession).lean();
-      if (!template) throw fail('Không tìm thấy giáo án mẫu.', 404);
-      const selectedSession = template.sessions[Number(payload.sessionIndex)];
-      if (!selectedSession) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Buổi tập trong giáo án không hợp lệ.' });
+      const plan = await WorkoutPlan.findOne({ _id: payload.workoutPlanId, customerId, ptId }).session(mongoSession).lean();
+      if (!plan) throw fail('Không tìm thấy giáo án đang gán cho khách hàng.', 404);
+      if (plan.lifecycleStatus !== 'ACTIVE') throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Giáo án này không còn được áp dụng. Vui lòng tải lại giáo án hiện tại.' });
+      if (plan.version !== payload.workoutPlanVersion) throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Giáo án đã được cập nhật. Vui lòng tải lại trước khi ghi buổi tập.' });
+      const selectedRawSession = (plan.sessions as unknown as Array<{ name: string; exercises: Array<Record<string, unknown>> }>)[Number(payload.sessionIndex)];
+      if (!selectedRawSession) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Buổi tập trong giáo án không hợp lệ.' });
+      const selectedSession = { name: selectedRawSession.name, exercises: selectedRawSession.exercises.map((exercise) => {
+        const normalized = normalizePlanExercise(exercise);
+        return { ...(normalized.exerciseId ? { exerciseId: normalized.exerciseId } : {}), name: normalized.name, trackingType: normalized.trackingType, prescription: { ...normalized.prescription } };
+      }) };
+      const exerciseResults = payload.exerciseResults || [];
+      if (payload.attendance === 'ABSENT' && exerciseResults.length) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Buổi vắng không được có kết quả bài tập.' });
+      if (payload.attendance !== 'ABSENT' && exerciseResults.length !== selectedSession.exercises.length) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng ghi kết quả cho đầy đủ bài tập trong buổi đã chọn.' });
+      const resultByIndex = new Map<number, typeof exerciseResults[number]>();
+      for (const input of exerciseResults) {
+        if (!Number.isInteger(input.exerciseIndex) || input.exerciseIndex < 0 || input.exerciseIndex >= selectedSession.exercises.length || resultByIndex.has(input.exerciseIndex)) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Kết quả bài tập không khớp với giáo án.' });
+        resultByIndex.set(input.exerciseIndex, input);
+      }
+      const exerciseLogs = payload.attendance === 'ABSENT' ? [] : selectedSession.exercises.map((rawExercise: Record<string, unknown>, exerciseIndex: number) => {
+        const exercise = normalizePlanExercise(rawExercise);
+        const input = resultByIndex.get(exerciseIndex)!;
+        if (input.exerciseId && String(input.exerciseId) !== String(exercise.exerciseId || '')) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Bài tập gửi lên không khớp với giáo án.' });
+        let result;
+        try { result = assertCompatibleResult(exercise.trackingType, input.result || {}); }
+        catch (error) { throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: error instanceof Error ? error.message : 'Kết quả bài tập không hợp lệ.' }); }
+        return { ...(exercise.exerciseId ? { exerciseId: exercise.exerciseId } : {}), name: exercise.name, trackingType: exercise.trackingType, prescribedSnapshot: { ...exercise.prescription }, result, notes: input.notes || '' };
+      });
       const [createdSession] = await WorkoutSession.create([{
-        ...payload, ptId: user.id,
-        planSnapshot: { templateId: template._id, title: template.title, version: template.version, session: selectedSession },
+        customerId, ptId, workoutPlanId: plan._id, workoutPlanVersion: plan.version, performedAt: payload.performedAt,
+        attendance: payload.attendance, absenceReason: payload.absenceReason, feeling: payload.feeling, notes: payload.notes, idempotencyKey: payload.idempotencyKey,
+        planSnapshot: { workoutPlanId: plan._id, title: plan.title, version: plan.version, sessionIndex: payload.sessionIndex, session: selectedSession }, exerciseLogs,
       }], { session: mongoSession });
       if (payload.attendance === 'PRESENT' || payload.attendance === 'LATE') {
         const selectedPackage = await PtPackage.findOne({ customerId, status: 'ACTIVE', remainingSessions: { $gt: 0 } })

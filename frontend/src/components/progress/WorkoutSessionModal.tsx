@@ -2,17 +2,7 @@ import { ClipboardList } from 'lucide-react';
 import type { CustomerJourneyDto, CustomerProgressOverview } from '../../types/progress';
 import ProgressEmptyState from './ProgressEmptyState';
 import ProgressModal from './ProgressModal';
-import WorkoutSessionLogger from './WorkoutSessionLogger';
-
-type ActivePlan = {
-  _id: string;
-  sourceTemplateId?: string;
-  title: string;
-  sessions?: Array<{
-    name: string;
-    exercises?: Array<{ name: string; sets?: number; reps?: string | number }>;
-  }>;
-};
+import WorkoutSessionLogger, { type WorkoutLoggerActivePlan } from './WorkoutSessionLogger';
 
 export default function WorkoutSessionModal({
   item,
@@ -27,7 +17,7 @@ export default function WorkoutSessionModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const activePlan = journey?.plans.active as ActivePlan | null | undefined;
+  const activePlan = journey?.plans.active as unknown as WorkoutLoggerActivePlan | null | undefined;
   return (
     <ProgressModal
       open={Boolean(item)}
