@@ -10,6 +10,11 @@ const exerciseSources = [
   'frontend/src/components/exercises/ExerciseFormModal.tsx',
   'frontend/src/components/exercises/ExerciseVideoFields.tsx',
 ].map((path) => readFileSync(path, 'utf8')).join('\n');
+const workoutTemplateSources = [
+  'frontend/src/components/workouts/MyWorkoutPlans.tsx',
+  'frontend/src/components/workouts/WorkoutTemplateList.tsx',
+  'frontend/src/components/workouts/WorkoutTemplateCard.tsx',
+].map((path) => readFileSync(path, 'utf8')).join('\n');
 
 describe('index CSS redesign contract', () => {
   it('defines the shared module foundation and approved breakpoints', () => {
@@ -30,5 +35,11 @@ describe('index CSS redesign contract', () => {
     expect(exerciseSources).not.toMatch(/style=\{\{/);
     expect(exerciseSources).not.toMatch(/(?:sm:|md:|lg:|xl:|rounded-|bg-|text-slate-|border-slate-|shadow-\[|["'`\s](?:flex|grid|gap-\d+|p-\d+|px-\d+|py-\d+)(?=["'`\s]))/);
     for (const selector of ['.exercise-page', '.exercise-toolbar', '.exercise-grid', '.exercise-card', '.exercise-form-section']) expect(css).toContain(selector);
+  });
+
+  it('keeps workout template styling in semantic index CSS classes', () => {
+    expect(workoutTemplateSources).not.toMatch(/style=\{\{/);
+    expect(workoutTemplateSources).not.toMatch(/(?:sm:|md:|lg:|xl:|rounded-|bg-|text-slate-|border-slate-|shadow-\[|["'`\s](?:flex|grid|gap-\d+|p-\d+|px-\d+|py-\d+)(?=["'`\s]))/);
+    for (const selector of ['.workout-page', '.workout-toolbar', '.workout-template-grid', '.workout-template-card']) expect(css).toContain(selector);
   });
 });
