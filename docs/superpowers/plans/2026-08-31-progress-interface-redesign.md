@@ -180,7 +180,7 @@ git commit -m "feat: add shared progress interface primitives"
 - Consumes: all Task 1 primitives and the existing `CustomerJourneyDto`.
 - Produces: `PtProgressWorkspace({ journey, onRefresh })` with the existing public props; no route/API change.
 
-- [ ] **Step 1: Add failing workspace tests**
+- [x] **Step 1: Add failing workspace tests**
 
 Extend the existing fixture to assert the shared KPI snapshot and all three quick actions. Click each quick action and assert its target tab panel content.
 
@@ -194,7 +194,7 @@ await user.click(screen.getByRole('button', { name: 'Tạo báo cáo' }));
 expect(screen.getByRole('button', { name: 'Tạo báo cáo tự động' })).toBeVisible();
 ```
 
-- [ ] **Step 2: Add failing page integration tests**
+- [x] **Step 2: Add failing page integration tests**
 
 Mock `api.get`. Cover initial no-selection state, selection-triggered loading, resolved workspace, rejected request with retry, and clearing the selection. Supply customers directly to `CustomerSelect` by mocking it as a simple labelled `<select>` so the test targets `ProgressPage` instead of the selector internals.
 
@@ -209,7 +209,7 @@ vi.mock('../../../src/components/ui/CustomerSelect', () => ({
 }));
 ```
 
-- [ ] **Step 3: Run PT tests and confirm RED**
+- [x] **Step 3: Run PT tests and confirm RED**
 
 ```powershell
 npx vitest run frontend/tests/components/progress/ProgressWorkspace.test.tsx frontend/tests/pages/pt/ProgressPage.test.tsx
@@ -217,7 +217,7 @@ npx vitest run frontend/tests/components/progress/ProgressWorkspace.test.tsx fro
 
 Expected: FAIL because snapshot, three quick actions, skeleton, inline error/retry, and no-selection empty state are absent.
 
-- [ ] **Step 4: Implement PT page states**
+- [x] **Step 4: Implement PT page states**
 
 Add `error: string | null` while retaining current data during refresh. Initial request renders `ProgressSkeleton`; a rejected initial request renders `ProgressEmptyState` with a retry button; a failed refresh keeps `journey`. Clearing the selected customer clears journey and error. Use `ProgressSection` around the selector and `ProgressEmptyState` before selection.
 
@@ -242,7 +242,7 @@ const load = useCallback(async (targetId?: string) => {
 }, [customerId, toast]);
 ```
 
-- [ ] **Step 5: Implement PT workspace composition**
+- [x] **Step 5: Implement PT workspace composition**
 
 Render identity, `ProgressSnapshot`, quick actions, and accessible tabs. Keep the current tab names and child components. Quick actions only call `setTab`.
 
@@ -253,13 +253,13 @@ Render identity, `ProgressSnapshot`, quick actions, and accessible tabs. Keep th
 <button type="button" onClick={() => setTab('Báo cáo')}>Tạo báo cáo</button>
 ```
 
-- [ ] **Step 6: Run PT tests and confirm GREEN**
+- [x] **Step 6: Run PT tests and confirm GREEN**
 
 Run the command from Step 3.
 
 Expected: all PT page/workspace tests pass.
 
-- [ ] **Step 7: Commit the PT shell**
+- [x] **Step 7: Commit the PT shell**
 
 ```powershell
 git add frontend/src/pages/pt/ProgressPage.tsx frontend/src/components/progress/PtProgressWorkspace.tsx frontend/tests/components/progress/ProgressWorkspace.test.tsx frontend/tests/pages/pt/ProgressPage.test.tsx
