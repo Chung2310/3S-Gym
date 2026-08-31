@@ -6,6 +6,7 @@ import ProgressCharts from '../../../src/components/progress/ProgressCharts';
 describe('ProgressCharts', () => {
   it('hiển thị empty state khi chưa đủ hai điểm dữ liệu', () => {
     render(<ProgressCharts measurements={[{ _id: 'm1', measuredAt: '2026-08-01', weight: 70 }]} />);
+    expect(screen.getByRole('region', { name: 'Biểu đồ tiến độ' })).toBeVisible();
     expect(screen.getByLabelText('Biểu đồ cân nặng')).toHaveTextContent('Không đủ dữ liệu');
   });
 

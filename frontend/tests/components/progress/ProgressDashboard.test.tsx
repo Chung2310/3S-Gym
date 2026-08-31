@@ -11,24 +11,24 @@ const items = [
 ] as unknown as CustomerProgressOverview[];
 
 it('filters assigned customers and exposes separate detail and workout actions', async () => {
-  const user = userEvent.setup(); const onView = vi.fn(); const onLog = vi.fn();
+  const user = userEvent.setup();
+  const onView = vi.fn();
+  const onLog = vi.fn();
   render(<ProgressDashboard items={items} onView={onView} onLogWorkout={onLog} />);
+
   expect(screen.getByText('2 khách hàng')).toBeVisible();
   await user.type(screen.getByPlaceholderText('Tìm theo tên hoặc số điện thoại...'), '0901');
-  expect(screen.getByText('Nguyễn An')).toBeVisible(); expect(screen.queryByText('Trần Bình')).not.toBeInTheDocument();
+  expect(screen.getByText('Nguyễn An')).toBeVisible();
+  expect(screen.queryByText('Trần Bình')).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Xem tiến độ Nguyễn An' }));
   await user.click(screen.getByRole('button', { name: 'Ghi nhận buổi tập Nguyễn An' }));
-  expect(onView).toHaveBeenCalledWith(items[0]); expect(onLog).toHaveBeenCalledWith(items[0]);
+  expect(onView).toHaveBeenCalledWith(items[0]);
+  expect(onLog).toHaveBeenCalledWith(items[0]);
 });
 
-it('uses the shared legacy progress groups for summary metrics and customer information', () => {
+it('uses semantic summary metrics and customer information groups', () => {
   render(<ProgressDashboard items={items} onView={vi.fn()} onLogWorkout={vi.fn()} />);
-
   const summary = screen.getByRole('region', { name: 'Tổng quan tiến độ' });
-  expect(summary).toHaveClass('progress-metrics');
-  expect(within(summary).getAllByRole('group')).toHaveLength(4);
-
-  const customerInfo = screen.getByRole('group', { name: 'Thông tin tiến độ của Nguyễn An' });
-  expect(customerInfo).toHaveClass('progress-customer-stats');
-  expect(customerInfo.querySelectorAll('.progress-stat')).toHaveLength(4);
+  expect(within(summary).getAllByRole('article')).toHaveLength(4);
+  expect(screen.getByRole('group', { name: 'Thông tin tiến độ của Nguyễn An' })).toBeVisible();
 });
