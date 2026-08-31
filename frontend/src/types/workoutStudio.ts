@@ -1,4 +1,5 @@
 import type { WorkoutTemplate } from '../components/workouts/WorkoutTemplateList';
+import type { TrackingPrescription, TrackingType } from './exerciseTracking';
 
 export interface ScheduledExercise {
   id: string;
@@ -16,6 +17,8 @@ export interface ScheduledExercise {
   tempo?: string;
   restSeconds?: number;
   notes?: string;
+  trackingType?: TrackingType;
+  prescription?: TrackingPrescription;
 }
 
 export interface TemplateMetadata {
