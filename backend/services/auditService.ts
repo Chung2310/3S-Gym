@@ -11,7 +11,7 @@ interface AuditInput {
   metadata?: Record<string, unknown>;
 }
 
-const allowedMetadataKeys = new Set(['fromPtId', 'toPtId', 'version', 'reasonCode']);
+const allowedMetadataKeys = new Set(['fromPtId', 'toPtId', 'version', 'reasonCode', 'credits', 'amountVnd', 'gateway', 'taskType', 'billingShortfall']);
 function sanitizeMetadata(metadata?: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(metadata || {}).filter(([key, value]) => allowedMetadataKeys.has(key) && ['string', 'number', 'boolean'].includes(typeof value)));
 }
