@@ -44,20 +44,14 @@ export default function ProgressSnapshot({
   ];
 
   return (
-    <section aria-labelledby={titleId} className="space-y-4 font-montserrat">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-secondary">Snapshot hiện tại</p>
-          <h2 id={titleId} className="mt-1 font-oswald text-2xl font-bold uppercase tracking-tight text-primary sm:text-3xl">
-            {title}
-          </h2>
-        </div>
-        <p className="max-w-md text-xs leading-5 text-slate-500">
-          Tổng hợp trực tiếp từ lịch sử tập luyện và dữ liệu cơ thể đã ghi nhận.
-        </p>
+    <section aria-labelledby={titleId} className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <h3 id={titleId} className="text-base font-bold text-[#003b70] m-0 tracking-tight">
+          {title}
+        </h3>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="pt-metrics-banner">
         {metrics.map((metric) => (
           <ProgressMetricCard key={metric.label} {...metric} />
         ))}

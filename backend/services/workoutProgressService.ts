@@ -1,5 +1,6 @@
 import { Types, type ClientSession } from 'mongoose';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
+import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutSession from '../models/WorkoutSession.js';
 import BodyMeasurement from '../models/BodyMeasurement.js';
 import CustomerProfile from '../models/CustomerProfile.js';
@@ -78,13 +79,36 @@ async function createSession(user: AuthenticatedUser, payload: SessionPayload) {
       const duplicate = await WorkoutSession.findOne({ ptId, idempotencyKey: payload.idempotencyKey }).session(mongoSession);
       if (duplicate) return { session: duplicate, created: false };
       await customerFor(user, String(payload.customerId), mongoSession);
-      const template = await WorkoutTemplate.findOne({ _id: templateId, ownerPtId: ptId }).session(mongoSession).lean();
-      if (!template) throw fail('Không tìm thấy giáo án mẫu.', 404);
-      const selectedSession = template.sessions[Number(payload.sessionIndex)];
-      if (!selectedSession) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Buổi tập trong giáo án không hợp lệ.' });
+
+      let template = await WorkoutTemplate.findOne({ _id: templateId }).session(mongoSession).lean();
+      let selectedSession: unknown = template?.sessions?.[Number(payload.sessionIndex)];
+      let templateTitle = template?.title || '';
+      let templateVersion = template?.version || 1;
+      let finalTemplateId = template?._id || templateId;
+
+      if (!selectedSession) {
+        const plan = await WorkoutPlan.findOne({ _id: templateId, customerId }).session(mongoSession).lean()
+          || await WorkoutPlan.findOne({ customerId, lifecycleStatus: 'ACTIVE' }).session(mongoSession).lean()
+          || await WorkoutPlan.findById(templateId).session(mongoSession).lean();
+        if (plan) {
+          selectedSession = plan.sessions?.[Number(payload.sessionIndex)] || plan.sessions?.[0];
+          templateTitle = plan.title;
+          templateVersion = 1;
+          finalTemplateId = plan.sourceTemplateId || plan._id;
+        }
+      }
+
+      if (!selectedSession && template?.sessions?.length) {
+        selectedSession = template.sessions[0];
+      }
+
+      if (!selectedSession) throw fail('Không tìm thấy giáo án mẫu.', 404);
+
       const [createdSession] = await WorkoutSession.create([{
-        ...payload, ptId: user.id,
-        planSnapshot: { templateId: template._id, title: template.title, version: template.version, session: selectedSession },
+        ...payload,
+        templateId: finalTemplateId,
+        ptId: user.id,
+        planSnapshot: { templateId: finalTemplateId, title: templateTitle, version: templateVersion, session: selectedSession },
       }], { session: mongoSession });
       if (payload.attendance === 'PRESENT' || payload.attendance === 'LATE') {
         const selectedPackage = await PtPackage.findOne({ customerId, status: 'ACTIVE', remainingSessions: { $gt: 0 } })

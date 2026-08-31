@@ -32,7 +32,6 @@ export default function WorkoutSessionModal({
     <ProgressModal
       open={Boolean(item)}
       title={`Ghi nhận buổi tập · ${item?.customer.fullName || ''}`}
-      description="Kết quả thực tế được lấy theo giáo án đang áp dụng."
       loading={loading}
       onClose={onClose}
     >
