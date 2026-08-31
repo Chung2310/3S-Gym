@@ -2,6 +2,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateImage } from '../services/imageProvider.js';
 
+const billing = vi.hoisted(() => ({ last: undefined as unknown, withAiBilling: vi.fn(async (_context: unknown, invoke: () => Promise<unknown>) => {
+  const result = await invoke() as { value: unknown }; billing.last = result; return result.value;
+}) }));
+vi.mock('../services/aiBillingService.js', () => ({ withAiBilling: billing.withAiBilling }));
+const imageContext = { userId: 'user', taskType: 'IMAGE_GENERATION' as const, requestKey: 'provider-image' };
+
 // Stub fetch
 const mockFetchResponse = {
   ok: true,
@@ -15,6 +21,7 @@ beforeEach(() => {
   vi.mocked(fetch).mockClear();
   mockFetchResponse.json.mockReset();
   mockFetchResponse.ok = true;
+  billing.last = undefined;
 });
 afterEach(() => {
   delete process.env.OPENROUTER_API_KEY;
@@ -29,7 +36,7 @@ describe('imageProvider — FLUX.2 Klein 4B', () => {
       usage: { prompt_tokens: 0, completion_tokens: 1048576, total_tokens: 1048576, cost: 0.014 },
     });
 
-    const result = await generateImage({
+    const result = await generateImage(imageContext, {
       prompt: 'A grilled chicken plate with brown rice',
       aspectRatio: '4:3',
       outputFormat: 'jpeg',
@@ -51,12 +58,13 @@ describe('imageProvider — FLUX.2 Klein 4B', () => {
     expect(result.b64Json).toBe('dGVzdC1pbWFnZS1kYXRh');
     expect(result.mediaType).toBe('image/jpeg');
     expect(result.cost).toBe(0.014);
+    expect(billing.last).toMatchObject({ provider: 'openrouter', usage: { outputTokens: 1048576, providerCostMicrousd: 14_000 } });
   });
 
   it('ném AppError 503 khi thiếu OPENROUTER_API_KEY', async () => {
     delete process.env.OPENROUTER_API_KEY;
 
-    await expect(generateImage({ prompt: 'test' })).rejects.toMatchObject({
+    await expect(generateImage(imageContext, { prompt: 'test' })).rejects.toMatchObject({
       status: 503,
     });
   });

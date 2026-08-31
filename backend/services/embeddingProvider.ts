@@ -1,3 +1,6 @@
+import { withAiBilling } from './aiBillingService.js';
+import type { AiBillingContext } from './creditTypes.js';
+
 const DIMENSIONS = 128;
 
 function normalize(value: string) {
@@ -25,4 +28,10 @@ export function cosineSimilarity(left: number[], right: number[]) {
   let score = 0;
   for (let index = 0; index < length; index += 1) score += left[index] * right[index];
   return score;
+}
+
+export function embedTextBillable(context: AiBillingContext, value: string) {
+  return withAiBilling(context, async () => ({
+    value: embedText(value), usage: {}, provider: 'local', model: `hash-embedding-${DIMENSIONS}`,
+  }));
 }
