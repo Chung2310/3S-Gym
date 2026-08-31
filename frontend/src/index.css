@@ -1791,3 +1791,53 @@ a {
   .progress-card-actions { grid-template-columns: 1fr; }
   .progress-modal-title, .progress-workspace-title, .progress-plan-title, .progress-form-title { font-size: 1.25rem; }
 }
+
+/* Clinical Performance module foundation */
+.module-page { display: grid; gap: 20px; color: #16324a; font-family: Montserrat, sans-serif; }
+.module-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 22px 24px; border: 1px solid #dce8f0; border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgba(0, 59, 112, .06); }
+.module-heading { margin: 0; color: var(--primary-color); font-family: Oswald, sans-serif; font-size: clamp(1.65rem, 2.5vw, 2rem); font-weight: 700; line-height: 1.08; text-transform: uppercase; text-wrap: balance; }
+.module-description { max-width: 65ch; margin: 7px 0 0; color: #64748b; font-size: .875rem; line-height: 1.55; text-wrap: pretty; }
+.module-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.module-toolbar { display: grid; gap: 14px; padding: 18px 20px; border: 1px solid #dce8f0; border-radius: 14px; background: #fff; box-shadow: 0 4px 16px rgba(0, 59, 112, .04); }
+.module-card { min-width: 0; border: 1px solid #dce8f0; border-radius: 14px; background: #fff; box-shadow: 0 5px 18px rgba(0, 59, 112, .05); transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.module-card:hover { border-color: #b9dff0; box-shadow: 0 10px 28px rgba(0, 59, 112, .09); transform: translateY(-2px); }
+.module-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; }
+.module-form { display: grid; gap: 18px; }
+.module-field { display: grid; gap: 7px; color: #405b6f; font-size: .78rem; font-weight: 700; }
+.module-field :is(input, select, textarea) { width: 100%; min-height: 44px; border: 1px solid #cbdbe5; border-radius: 10px; background: #fff; color: #16324a; }
+.module-field-error { margin: 0; color: #b42318; font-size: .75rem; font-weight: 700; }
+.module-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.module-modal { width: min(720px, calc(100vw - 32px)); max-height: min(88dvh, 900px); overflow: hidden; }
+.module-skeleton { border-radius: 12px; background: linear-gradient(90deg, #eef4f7 25%, #f8fbfc 50%, #eef4f7 75%); background-size: 200% 100%; animation: module-skeleton 1.4s ease infinite; }
+.module-empty, .module-error { display: grid; min-height: 220px; place-items: center; gap: 8px; padding: 32px; border: 1px dashed #bfd2df; border-radius: 14px; background: #f8fbfc; text-align: center; }
+.module-filtered-empty { border-color: #a8cedf; background: #f1f9fc; }
+.module-error { border-color: #fecaca; background: #fff7f7; color: #991b1b; }
+.module-page :is(button, a, input, select, textarea):focus-visible { outline: 3px solid rgba(0, 164, 228, .28); outline-offset: 2px; }
+.module-page button:active { transform: translateY(1px); }
+.module-page button:disabled, .module-page [aria-disabled="true"] { cursor: not-allowed; opacity: .58; }
+
+@keyframes module-skeleton { to { background-position-x: -200%; } }
+
+@media (max-width: 639px) {
+  .module-header { align-items: stretch; padding: 18px; }
+  .module-header, .module-actions { flex-direction: column; }
+  .module-actions > * { width: 100%; min-height: 44px; }
+  .module-field-grid { grid-template-columns: 1fr; }
+  .module-modal { width: 100vw; max-height: 94dvh; border-radius: 20px 20px 0 0; }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .module-field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .module-page { gap: 24px; }
+}
+
+@media (min-width: 1280px) {
+  .module-page { gap: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .module-page *, .module-page *::before, .module-page *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
