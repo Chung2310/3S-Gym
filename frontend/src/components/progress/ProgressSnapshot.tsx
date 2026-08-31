@@ -13,6 +13,8 @@ export default function ProgressSnapshot({
   title = 'Tổng quan tiến độ',
 }: ProgressSnapshotProps) {
   const titleId = useId();
+  const totalSessions = analytics.totalSessions
+    ?? analytics.attendance.present + analytics.attendance.late + analytics.attendance.absent;
   const metrics = [
     {
       label: 'Tỷ lệ tham gia',
@@ -22,9 +24,9 @@ export default function ProgressSnapshot({
       featured: true,
     },
     {
-      label: 'Tổng volume',
-      value: `${analytics.totalVolume.toLocaleString('vi-VN')} kg`,
-      hint: 'Tổng khối lượng set hoàn thành',
+      label: 'Tổng buổi tập',
+      value: `${totalSessions.toLocaleString('vi-VN')} buổi`,
+      hint: 'Tổng số buổi trong giai đoạn đang xem',
       icon: Dumbbell,
     },
     {

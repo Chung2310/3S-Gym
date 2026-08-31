@@ -1,217 +1,196 @@
-import { useState } from 'react';
-import {
-  Activity,
-  Award,
-  BookOpen,
-  Calendar,
-  Camera,
-  Dumbbell,
-  FileText,
-  LineChart,
-} from 'lucide-react';
+import { useId, useState } from 'react';
+import { CalendarDays, Camera, ClipboardList, Dumbbell } from 'lucide-react';
 import type { CustomerJourneyDto } from '../../types';
 import AchievementList from '../progress/AchievementList';
 import ProgressCharts from '../progress/ProgressCharts';
+import ProgressEmptyState from '../progress/ProgressEmptyState';
 import ProgressOverview from '../progress/ProgressOverview';
+import ProgressSection from '../progress/ProgressSection';
 import WorkoutSessionDetail from '../progress/WorkoutSessionDetail';
 import CustomerProgress from './CustomerProgress';
 
-type TabId = 'overview' | 'sessions' | 'charts' | 'calendar' | 'achievements' | 'reports';
+const tabs = [
+  'Tổng quan',
+  'Lịch & buổi tập',
+  'Chỉ số cơ thể',
+  'Thành tích',
+  'Ảnh tiến độ',
+  'Giáo án',
+  'Báo cáo',
+] as const;
 
-export default function CustomerJourney({ journey }: { journey: CustomerJourneyDto }) {
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+type JourneyTab = typeof tabs[number];
 
-  const tabs: Array<{ id: TabId; label: string; icon: typeof Activity; count?: number }> = [
-    { id: 'overview', label: 'Chỉ số & Giáo án', icon: Activity },
-    { id: 'sessions', label: 'Buổi tập', icon: Dumbbell, count: journey.sessions.length },
-    { id: 'charts', label: 'Biểu đồ cơ thể', icon: LineChart },
-    { id: 'calendar', label: 'Lịch tập', icon: Calendar, count: journey.calendar.length },
-    { id: 'achievements', label: 'Thành tích & Ảnh', icon: Award, count: journey.photos.length + journey.analytics.achievements.length },
-    { id: 'reports', label: 'Báo cáo', icon: FileText, count: journey.reports.length },
-  ];
+function SchedulePanel({ journey }: { journey: CustomerJourneyDto }) {
+  return (
+    <div className="space-y-4">
+      <ProgressSection
+        title="Lịch tập"
+        description="Các lịch hẹn tập luyện đã được sắp xếp cho khách hàng."
+        count={journey.calendar.length}
+      >
+        {journey.calendar.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {journey.calendar.map((event) => (
+              <article
+                className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
+                key={String(event._id)}
+              >
+                <h3 className="font-bold text-slate-900">{String(event.title)}</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {new Date(String(event.startsAt)).toLocaleString('vi-VN')}
+                </p>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <ProgressEmptyState
+            icon={CalendarDays}
+            title="Chưa có lịch tập"
+            description="Lịch tập sắp tới sẽ xuất hiện tại đây."
+          />
+        )}
+      </ProgressSection>
+
+      <ProgressSection
+        title="Buổi đã tập"
+        description="Kết quả thực tế của các buổi đã được ghi nhận."
+        count={journey.sessions.length}
+      >
+        {journey.sessions.length > 0 ? (
+          <div className="space-y-3">
+            {journey.sessions.map((session) => (
+              <WorkoutSessionDetail session={session} key={session._id} />
+            ))}
+          </div>
+        ) : (
+          <ProgressEmptyState
+            icon={Dumbbell}
+            title="Chưa có buổi tập"
+            description="Buổi tập đầu tiên sẽ xuất hiện sau khi PT ghi nhận."
+          />
+        )}
+      </ProgressSection>
+    </div>
+  );
+}
+
+function PhotosPanel({ journey }: { journey: CustomerJourneyDto }) {
+  return (
+    <ProgressSection
+      title="Ảnh tiến độ"
+      description="Các mốc hình thể đã được ghi nhận trong hành trình."
+      count={journey.photos.length}
+    >
+      {journey.photos.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {journey.photos.map((photo) => (
+            <img
+              className="aspect-[3/4] w-full rounded-2xl object-cover ring-1 ring-slate-200"
+              src={String(photo.photoUrl)}
+              alt={`Ảnh tiến độ ${String(photo.stage)}`}
+              key={String(photo._id)}
+            />
+          ))}
+        </div>
+      ) : (
+        <ProgressEmptyState
+          icon={Camera}
+          title="Chưa có ảnh tiến độ"
+          description="Ảnh Before, Progress và After sẽ xuất hiện tại đây."
+        />
+      )}
+    </ProgressSection>
+  );
+}
+
+function PlansPanel({ journey }: { journey: CustomerJourneyDto }) {
+  const hasPlans = Boolean(journey.plans.active) || journey.plans.history.length > 0;
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* 1. Thanh Tab Cố Định (Sticky Top) — Dùng class .workout-tabs từ index.css */}
-      <div className="workout-tabs" role="tablist" aria-label="Danh mục tiến độ">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              role="tab"
-              type="button"
-              aria-selected={isActive}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <Icon size={16} />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && tab.count > 0 && (
-                <span className="badge-tag">
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 2. Nội dung từng phần — Sử dụng hoàn toàn class có sẵn từ index.css */}
-      <div className="flex flex-col gap-5 min-h-[340px] mt-1">
-        {/* Tab 1: Chỉ số & Giáo án */}
-        {activeTab === 'overview' && (
-          <div className="flex flex-col gap-4">
-            <ProgressOverview analytics={journey.analytics} />
-
-            {/* Giáo án đang áp dụng — dùng profile-form-section, pt-detail-info-card, pt-detail-chips từ index.css */}
-            {journey.plans.active && (
-              <div className="profile-form-section">
-                <h3>
-                  <BookOpen size={16} />
-                  <span>Giáo án đang áp dụng</span>
-                </h3>
-                <div className="pt-detail-info-card">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[11px] font-bold text-slate-500 uppercase">
-                        Tên giáo án
-                      </div>
-                      <div className="text-base font-bold text-[#003b70] mt-0.5">
-                        {String(journey.plans.active.title)}
-                      </div>
-                    </div>
-                    {Array.isArray((journey.plans.active as { sessions?: unknown[] })?.sessions) && (
-                      <div className="pt-detail-chip">
-                        {((journey.plans.active as { sessions?: unknown[] }).sessions || []).length} Buổi tập
-                      </div>
-                    )}
-                  </div>
-
-                  {Array.isArray((journey.plans.active as { sessions?: Array<{ name?: string }> })?.sessions) && (
-                    <div className="pt-detail-chips mt-3">
-                      {(journey.plans.active as { sessions?: Array<{ name?: string }> }).sessions?.map((s, idx) => (
-                        <span key={idx} className="pt-detail-chip">
-                          <Dumbbell size={13} />
-                          <span>{s.name || `Buổi ${idx + 1}`}</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Giáo án trước đây */}
-            {journey.plans.history.length > 0 && (
-              <div className="profile-form-section">
-                <h3>
-                  <span>Giáo án trước đây</span>
-                </h3>
-                <div className="pt-detail-grid">
-                  {journey.plans.history.map((plan) => (
-                    <div key={String(plan._id)} className="pt-detail-info-card">
-                      <div className="font-bold text-[#003b70] text-sm">
-                        {String(plan.title)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab 2: Lịch sử buổi tập */}
-        {activeTab === 'sessions' && (
-          <div>
-            {journey.sessions.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                {journey.sessions.map((session) => (
-                  <WorkoutSessionDetail session={session} key={session._id} />
-                ))}
-              </div>
-            ) : (
-              <div className="pt-detail-info-card text-center p-6 text-slate-500">
-                Chưa có buổi tập nào được ghi nhận.
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab 3: Biểu đồ chỉ số cơ thể */}
-        {activeTab === 'charts' && (
-          <ProgressCharts measurements={journey.measurements} />
-        )}
-
-        {/* Tab 4: Lịch tập & Buổi hẹn */}
-        {activeTab === 'calendar' && (
-          <div className="profile-form-section">
-            <h3>
-              <Calendar size={16} />
-              <span>Lịch tập & Buổi hẹn ({journey.calendar.length})</span>
-            </h3>
-            {journey.calendar.length > 0 ? (
-              <div className="pt-detail-grid">
-                {journey.calendar.map((event) => (
-                  <article key={String(event._id)} className="pt-detail-info-card">
-                    <div className="font-bold text-slate-800 text-sm">
-                      {String(event.title)}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1.5">
-                      {new Date(String(event.startsAt)).toLocaleString('vi-VN')}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="pt-detail-info-card text-slate-500 italic">
-                Chưa có lịch hẹn nào.
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab 5: Thành tích & Ảnh tiến độ */}
-        {activeTab === 'achievements' && (
-          <div className="flex flex-col gap-4">
-            <AchievementList achievements={journey.analytics.achievements} />
-
-            {/* Ảnh tiến độ */}
-            <div className="profile-form-section">
-              <h3>
-                <Camera size={16} />
-                <span>Ảnh tiến độ ({journey.photos.length})</span>
+    <ProgressSection
+      title="Giáo án"
+      description="Giáo án đang áp dụng và lịch sử giáo án của khách hàng."
+    >
+      {hasPlans ? (
+        <div className="space-y-3">
+          {journey.plans.active && (
+            <article className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-secondary">Đang áp dụng</p>
+              <h3 className="mt-1 font-oswald text-xl font-bold uppercase text-primary">
+                {String(journey.plans.active.title)}
               </h3>
-              {journey.photos.length > 0 ? (
-                <div className="pt-grid">
-                  {journey.photos.map((photo) => (
-                    <div key={String(photo._id)} className="pt-card overflow-hidden">
-                      <img
-                        className="w-full aspect-[3/4] object-cover"
-                        src={String(photo.photoUrl)}
-                        alt={`Ảnh tiến độ ${String(photo.stage)}`}
-                      />
-                      <div className="p-2.5 bg-slate-50 font-bold text-xs text-[#003b70]">
-                        {String(photo.stage || 'Ảnh tiến độ')}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="pt-detail-info-card text-slate-500 italic">
-                  Chưa có ảnh tiến độ định kỳ.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+            </article>
+          )}
+          {journey.plans.history.map((plan) => (
+            <article
+              className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
+              key={String(plan._id)}
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Đã lưu trữ</p>
+              <h3 className="mt-1 font-bold text-slate-900">{String(plan.title)}</h3>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <ProgressEmptyState
+          icon={ClipboardList}
+          title="Chưa có giáo án"
+          description="Giáo án sẽ xuất hiện sau khi được gán cho khách hàng."
+        />
+      )}
+    </ProgressSection>
+  );
+}
 
-        {/* Tab 6: Báo cáo tiến độ */}
-        {activeTab === 'reports' && (
-          <CustomerProgress reports={journey.reports} />
-        )}
+function JourneyPanel({ activeTab, journey }: { activeTab: JourneyTab; journey: CustomerJourneyDto }) {
+  if (activeTab === 'Tổng quan') return <ProgressOverview analytics={journey.analytics} />;
+  if (activeTab === 'Lịch & buổi tập') return <SchedulePanel journey={journey} />;
+  if (activeTab === 'Chỉ số cơ thể') return <ProgressCharts measurements={journey.measurements} />;
+  if (activeTab === 'Thành tích') return <AchievementList achievements={journey.analytics.achievements} />;
+  if (activeTab === 'Ảnh tiến độ') return <PhotosPanel journey={journey} />;
+  if (activeTab === 'Giáo án') return <PlansPanel journey={journey} />;
+  return <CustomerProgress reports={journey.reports} />;
+}
+
+export default function CustomerJourney({ journey }: { journey: CustomerJourneyDto }) {
+  const [activeTab, setActiveTab] = useState<JourneyTab>('Tổng quan');
+  const tabsId = useId();
+  const activeIndex = tabs.indexOf(activeTab);
+
+  return (
+    <section className="space-y-4 font-montserrat">
+      <div
+        className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-100/80 p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label="Chi tiết tiến độ khách hàng"
+      >
+        {tabs.map((tab, index) => (
+          <button
+            id={`${tabsId}-tab-${index}`}
+            type="button"
+            className={activeTab === tab
+              ? 'min-h-11 shrink-0 whitespace-nowrap rounded-xl bg-white px-4 text-sm font-bold text-primary shadow-[0_3px_10px_rgba(0,59,112,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary'
+              : 'min-h-11 shrink-0 whitespace-nowrap rounded-xl px-4 text-sm font-semibold text-slate-600 transition hover:bg-white/70 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary motion-reduce:transition-none'}
+            role="tab"
+            aria-selected={activeTab === tab}
+            aria-controls={`${tabsId}-panel-${index}`}
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
-    </div>
+
+      <div
+        id={`${tabsId}-panel-${activeIndex}`}
+        className="min-w-0"
+        role="tabpanel"
+        aria-labelledby={`${tabsId}-tab-${activeIndex}`}
+      >
+        <JourneyPanel activeTab={activeTab} journey={journey} />
+      </div>
+    </section>
   );
 }

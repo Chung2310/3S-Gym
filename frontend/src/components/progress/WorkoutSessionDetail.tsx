@@ -1,10 +1,11 @@
 import { Calendar, Dumbbell, MessageSquare, StickyNote } from 'lucide-react';
 import type { WorkoutSessionDto } from '../../types';
+import { exerciseRpes, exerciseVolume } from '../../utils/sessionTracking';
+import TrackingResultSummary from './tracking/TrackingResultSummary';
 
 export default function WorkoutSessionDetail({ session }: { session: WorkoutSessionDto }) {
-  const sets = session.exerciseLogs.flatMap((exercise) => exercise.sets.filter((set) => set.completed));
-  const volume = sets.reduce((sum, set) => sum + (set.weight || 0) * (set.reps || 0), 0);
-  const rpes = sets.map((set) => set.rpe).filter((value): value is number => typeof value === 'number');
+  const volume = session.exerciseLogs.reduce((sum, exercise) => sum + exerciseVolume(exercise), 0);
+  const rpes = session.exerciseLogs.flatMap(exerciseRpes);
   const averageRpe = rpes.length
     ? Math.round((rpes.reduce((sum, value) => sum + value, 0) / rpes.length) * 10) / 10
     : null;
@@ -37,32 +38,12 @@ export default function WorkoutSessionDetail({ session }: { session: WorkoutSess
       </header>
 
       {/* Exercises List */}
-      <div className="flex flex-col gap-3">
+      <div className="space-y-3">
         {session.exerciseLogs.map((exercise) => (
-          <section
-            className="rounded-xl border border-slate-100 bg-slate-50/60 p-3.5"
-            key={exercise.name}
-          >
-            <h4 className="text-xs font-bold text-slate-800 mb-2">{exercise.name}</h4>
-            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 list-none p-0 m-0">
-              {exercise.sets.map((set, index) => (
-                <li
-                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 shadow-2xs"
-                  key={index}
-                >
-                  <span className="font-semibold text-slate-500">Set {index + 1}</span>
-                  <span className="font-bold text-slate-800">
-                    {set.weight ?? '—'} kg × {set.reps ?? '—'} reps
-                    {typeof set.rpe === 'number' ? ` · RPE ${set.rpe}` : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {exercise.notes && (
-              <p className="mt-2 text-xs text-slate-500 leading-relaxed bg-white/80 p-2 rounded-lg border border-slate-100">
-                {exercise.notes}
-              </p>
-            )}
+          <section className="rounded-xl border border-slate-200 bg-slate-50/70 p-4" key={exercise.name}>
+            <h4 className="font-bold text-slate-900">{exercise.name}</h4>
+            <div className="mt-3"><TrackingResultSummary exercise={exercise} /></div>
+            {exercise.notes && <p className="mt-3 text-sm leading-6 text-slate-600">{exercise.notes}</p>}
           </section>
         ))}
       </div>

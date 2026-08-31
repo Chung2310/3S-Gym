@@ -37,6 +37,30 @@ function snapshotFields(template: Record<string, any>) {
   };
 }
 
+function sessionsFromSchedule(items: Array<Record<string, unknown>>) {
+  const groups = new Map<string, { weekNumber: number; dayNumber: number; exercises: Array<Record<string, unknown>> }>();
+  for (const item of [...items].sort((a, b) => Number(a.weekNumber || 1) - Number(b.weekNumber || 1) || Number(a.dayNumber) - Number(b.dayNumber) || Number(a.startMinute) - Number(b.startMinute))) {
+    const weekNumber = Number(item.weekNumber || 1); const dayNumber = Number(item.dayNumber); const key = `${weekNumber}:${dayNumber}`;
+    const exercise = { ...item }; delete exercise.weekNumber; delete exercise.dayNumber; delete exercise.startMinute; delete exercise.durationMinutes;
+    const group = groups.get(key) || { weekNumber, dayNumber, exercises: [] }; group.exercises.push(exercise); groups.set(key, group);
+  }
+  const multipleWeeks = [...groups.values()].some((group) => group.weekNumber > 1);
+  return [...groups.values()].map((group) => ({ name: multipleWeeks ? `Tuần ${group.weekNumber} · Ngày ${group.dayNumber}` : `Ngày ${group.dayNumber}`, exercises: group.exercises }));
+}
+
+function exercisesFromPlan(plan: Record<string, any>) {
+  return [
+    ...(plan.scheduledExercises || []),
+    ...(plan.unscheduledExercises || []),
+    ...(plan.sessions || []).flatMap((session: Record<string, any>) => session.exercises || []),
+  ] as Array<Record<string, any>>;
+}
+
+function assertClassifiedPlan(plan: Record<string, any>) {
+  const exercise = exercisesFromPlan(plan).find((item) => !item.trackingType || item.trackingType === 'UNCLASSIFIED');
+  if (exercise) throw fail(`Hãy phân loại cách ghi nhận cho bài tập "${String(exercise.name || 'Chưa đặt tên')}" trước khi lưu giáo án.`, 400);
+}
+
 async function supportsTransactions() {
   const hello = await mongoose.connection.db?.command({ hello: 1 });
   return Boolean(hello?.setName || hello?.msg === 'isdbgrid');
@@ -57,7 +81,7 @@ async function assignWithoutTransaction(user: AuthenticatedUser, customerId: str
   try {
     active.set({
       ...snapshotFields(template), ptId: new Types.ObjectId(user.id), lifecycleStatus: 'ACTIVE', assignedAt: now,
-      archivedAt: null, status: 'DRAFT', publishedAt: null,
+      archivedAt: null, status: 'DRAFT', publishedAt: null, version: active.version + 1,
     });
     return await active.save();
   } catch (error) {
@@ -79,6 +103,7 @@ export async function assignCustomerWorkoutPlan(user: AuthenticatedUser, custome
   await assertCustomerAccess(user, customerId);
   const template = await WorkoutTemplate.findOne({ _id: templateId, ownerPtId: user.id }).lean();
   if (!template) throw fail('Không tìm thấy giáo án mẫu.', 404);
+  assertClassifiedPlan(template);
   const now = new Date();
   if (!(await supportsTransactions())) return assignWithoutTransaction(user, customerId, template, now);
   const session = await mongoose.startSession();
@@ -105,7 +130,10 @@ export async function getCustomerWorkoutPlan(user: AuthenticatedUser, customerId
 export async function updateCustomerWorkoutPlan(user: AuthenticatedUser, customerId: string, planId: string, payload: Record<string, unknown>) {
   const plan = await getCustomerWorkoutPlan(user, customerId, planId);
   if (plan.get('lifecycleStatus') !== 'ACTIVE') throw fail('Không thể sửa giáo án đã lưu trong lịch sử.', 409);
+  assertClassifiedPlan({ ...plan.toObject(), ...payload });
   const mutable = ['title', 'goal', 'level', 'durationDays', 'muscleGroups', 'defaultSets', 'defaultReps', 'defaultWeight', 'defaultTempo', 'technicalNotes', 'scheduledExercises', 'unscheduledExercises', 'sessions'];
   for (const field of mutable) if (Object.prototype.hasOwnProperty.call(payload, field)) plan.set(field, payload[field]);
+  if (Array.isArray(payload.scheduledExercises) && !Object.prototype.hasOwnProperty.call(payload, 'sessions')) plan.set('sessions', sessionsFromSchedule(payload.scheduledExercises));
+  plan.set('version', Number(plan.get('version') || 1) + 1);
   return plan.save();
 }

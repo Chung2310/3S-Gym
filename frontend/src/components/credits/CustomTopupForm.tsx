@@ -23,7 +23,7 @@ export default function CustomTopupForm({
         <span>Số tiền tùy chọn</span>
       </label>
       <p className="hint">
-        Tối thiểu 10.000đ, tối đa 50.000.000đ (bội số của 1.000đ).
+        Tối thiểu 10.000đ, tối đa 50.000.000đ .
       </p>
       <input
         aria-label="Số tiền nạp tùy chọn"

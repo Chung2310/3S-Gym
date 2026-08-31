@@ -6,6 +6,7 @@ import { api } from '../../services/api';
 import type { PaginationMeta } from '../../types';
 import { errorMessage } from '../../types';
 import WorkoutTemplateCard from './WorkoutTemplateCard';
+import type { TrackingPrescription, TrackingType } from '../../types';
 
 export interface WorkoutTemplate {
   [key: string]: unknown;
@@ -17,7 +18,7 @@ export interface WorkoutTemplate {
   status: 'ACTIVE' | 'ARCHIVED';
   sessions: Array<{
     name: string;
-    exercises: Array<{ exerciseId?: string; name: string; sets?: number; reps?: string; weight?: string; rpe?: number; rir?: number; tempo?: string; restSeconds?: number; notes?: string }>;
+    exercises: Array<{ exerciseId?: string; name: string; trackingType?: TrackingType; prescription?: TrackingPrescription; sets?: number; reps?: string; weight?: string; rpe?: number; rir?: number; tempo?: string; restSeconds?: number; notes?: string }>;
   }>;
   durationDays?: number;
   muscleGroups?: string[];
