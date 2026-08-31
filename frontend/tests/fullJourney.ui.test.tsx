@@ -13,11 +13,9 @@ vi.mock('../src/services/api', () => ({
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
-it('PT đi từ CRM sang Care bằng navigation', async () => {
+it('PT đi từ CRM sang Trợ lý PT 3S bằng navigation', async () => {
   vi.mocked(api.get).mockImplementation(async (path) => {
-    if (path === '/api/features/me') return { data: { CARE: true }, message: '' };
-    if (path.startsWith('/api/care/today'))
-      return { data: { overdueTasks: [], dueTodayTasks: [], openAlerts: [] }, message: '' };
+    if (path === '/api/features/me') return { data: {}, message: '' };
     return { data: [], meta: { page: 1, totalPages: 0 }, message: '' };
   });
   const user = userEvent.setup();
@@ -34,8 +32,8 @@ it('PT đi từ CRM sang Care bằng navigation', async () => {
     </MemoryRouter>
   );
   expect(await screen.findByRole('heading', { name: 'Khách hàng của tôi' })).toBeVisible();
-  await user.click(await screen.findByRole('link', { name: 'Chăm sóc' }));
-  expect(await screen.findByRole('heading', { name: 'Việc cần làm hôm nay' })).toBeVisible();
+  await user.click(await screen.findByRole('link', { name: 'Trợ lý PT 3S' }));
+  expect(await screen.findByRole('heading', { name: 'Trợ lý PT 3S' })).toBeVisible();
 });
 
 it('chặn route khi feature tắt', async () => {
