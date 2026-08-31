@@ -1946,6 +1946,7 @@ a {
 .studio-week-list { padding-bottom: 10px; border-bottom: 1px solid #e3edf3; }
 .studio-day-navigation { display: flex; min-width: 0; align-items: center; gap: 8px; }
 .studio-week-list button, .studio-day-list button, .studio-day-arrow { min-width: 44px; min-height: 44px; flex: 0 0 auto; border: 1px solid #d7e5ed; border-radius: 9px; background: #fff; color: #526b7e; font: inherit; font-size: .74rem; font-weight: 800; cursor: pointer; }
+.studio-week-list button, .studio-day-list button { padding: 0 16px; white-space: nowrap; }
 .studio-week-list button[aria-current="true"], .studio-day-list button[aria-current="true"] { border-color: var(--secondary-color); background: #e6f7fd; color: var(--primary-color); }
 .studio-week-list button:hover, .studio-day-list button:hover, .studio-day-arrow:hover:not(:disabled) { border-color: #8dcce5; color: var(--primary-color); }
 .studio-day-list { flex: 1; }
@@ -2029,6 +2030,9 @@ a {
 .studio-scheduled-content { position: absolute; inset: 0; display: grid; align-content: start; gap: 3px; overflow: hidden; padding: 7px 10px; border-radius: inherit; pointer-events: none; }
 .studio-scheduled-content strong { overflow: hidden; font-size: .76rem; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .studio-scheduled-content > span { font-size: .66rem; font-variant-numeric: tabular-nums; }
+.studio-scheduled-item.is-compact .studio-scheduled-content { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 8px; }
+.studio-scheduled-item.is-compact .studio-scheduled-content strong { min-width: 0; line-height: 1rem; }
+.studio-scheduled-item.is-compact .studio-scheduled-content > span { flex: 0 0 auto; line-height: 1; white-space: nowrap; }
 .studio-scheduled-item.is-selected { border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(0, 164, 228, .18), 0 10px 22px rgba(0, 59, 112, .12); }
 .studio-scheduled-item.is-preview { opacity: .62; }
 .studio-scheduled-item.is-preview.is-valid { border-color: #22c55e; }

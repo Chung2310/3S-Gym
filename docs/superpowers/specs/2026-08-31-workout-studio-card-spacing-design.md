@@ -15,11 +15,11 @@ Improve readability in Workout Studio by giving week/day navigation cards more h
 
 ## Selected Approach
 
-Use statically discoverable Tailwind utilities directly in the affected React components. This follows the project's Tailwind-first policy and avoids expanding the legacy global CSS that already has substantial local changes.
+Use the existing semantic `.studio-*` class contract and add narrowly scoped rules to `frontend/src/index.css`. Workout Studio has a repository-enforced semantic CSS contract that is more specific than the general Tailwind-first policy.
 
 ### Week and day navigation
 
-- Week buttons receive `whitespace-nowrap` and wider horizontal padding.
+- Week buttons receive semantic CSS with `white-space: nowrap` and wider horizontal padding.
 - Day buttons receive the same treatment for consistent visual spacing.
 - Existing minimum touch size, active state, hover state, and horizontal overflow behavior remain unchanged.
 
@@ -34,8 +34,9 @@ Use statically discoverable Tailwind utilities directly in the affected React co
 
 ## Components
 
-- `frontend/src/pages/pt/WorkoutStudioPage.tsx`: week navigation button utilities only.
-- `frontend/src/components/workout-studio/StudioDayNavigator.tsx`: day navigation button utilities only.
+- `frontend/src/index.css`: week/day padding and compact scheduled-card rules.
+- `frontend/src/pages/pt/WorkoutStudioPage.tsx`: unchanged semantic week navigation markup.
+- `frontend/src/components/workout-studio/StudioDayNavigator.tsx`: unchanged semantic day navigation markup.
 - `frontend/src/components/workout-studio/DayTimeline.tsx`: conditional compact scheduled-card content.
 - `frontend/tests/pages/WorkoutStudioPage.test.tsx`: local-only visual contract regression coverage.
 
