@@ -2,6 +2,8 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { APP_POLICY, getEnv } from '../config/env.js';
 import { fetchWithTimeout } from './providerRequest.js';
+import { withAiBilling } from './aiBillingService.js';
+import type { AiBillingContext, ProviderResult, ProviderUsage } from './creditTypes.js';
 
 interface AiCallOptions {
   temperature?: number;
@@ -13,7 +15,18 @@ interface AiCallOptions {
 /**
  * Hàm gọi API nền tảng OpenRouter với cơ chế retry tự động khi gặp 429
  */
-async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Promise<string> {
+function normalizedUsage(usage: { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown; cost?: unknown } | undefined): ProviderUsage {
+  const integer = (value: unknown) => Number.isSafeInteger(value) && Number(value) >= 0 ? Number(value) : undefined;
+  const result: ProviderUsage = { inputTokens: integer(usage?.prompt_tokens), outputTokens: integer(usage?.completion_tokens), totalTokens: integer(usage?.total_tokens) };
+  if (usage?.cost !== undefined) {
+    const cost = Number(usage.cost);
+    if (!Number.isFinite(cost) || cost < 0) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI provider trả về chi phí không hợp lệ.' });
+    result.providerCostMicrousd = Math.round(cost * 1_000_000);
+  }
+  return result;
+}
+
+async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Promise<ProviderResult<string>> {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) {
     throw new AppError({
@@ -67,6 +80,7 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
       const data = (await response.json()) as {
         choices?: Array<{ message?: { content?: string; reasoning?: string } }>;
         error?: { message?: string; code?: number | string };
+        usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown; cost?: unknown };
       };
 
       if (!response.ok || data.error) {
@@ -85,7 +99,7 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
       if (!content || !content.trim()) {
         throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI provider không trả nội dung' });
       }
-      return content.trim();
+      return { value: content.trim(), provider: 'openrouter', model, usage: normalizedUsage(data.usage) };
     } catch (err: any) {
       const isRateLimit = err?.status === 503 || err?.code === ERROR_CODES.UNAVAILABLE;
       if (isRateLimit) {
@@ -110,11 +124,18 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
   });
 }
 
+async function billOrLegacy(context: AiBillingContext | string, prompt: string | undefined, options: AiCallOptions) {
+  if (typeof context === 'string') return (await callOpenRouter(context, options)).value;
+  return withAiBilling(context, () => callOpenRouter(prompt!, options));
+}
+
 /**
  * 1. Tác vụ chuyên biệt: Sinh Thực Đơn Dinh Dưỡng Chi Tiết
  */
-export async function generateNutritionDraft(prompt: string): Promise<string> {
-  return callOpenRouter(prompt, {
+export function generateNutritionDraft(context: AiBillingContext, prompt: string): Promise<string>;
+export function generateNutritionDraft(prompt: string): Promise<string>;
+export async function generateNutritionDraft(context: AiBillingContext | string, prompt?: string): Promise<string> {
+  return billOrLegacy(context, prompt, {
     temperature: 0.1,
     maxTokens: 8192,
     reasoningEffort: 'none',
@@ -124,8 +145,10 @@ export async function generateNutritionDraft(prompt: string): Promise<string> {
 /**
  * 2. Tác vụ chuyên biệt: Phân Tích Cơ Thể & Năng Lượng Chuyển Hóa
  */
-export async function generateNutritionAnalysis(prompt: string): Promise<string> {
-  return callOpenRouter(prompt, {
+export function generateNutritionAnalysis(context: AiBillingContext, prompt: string): Promise<string>;
+export function generateNutritionAnalysis(prompt: string): Promise<string>;
+export async function generateNutritionAnalysis(context: AiBillingContext | string, prompt?: string): Promise<string> {
+  return billOrLegacy(context, prompt, {
     temperature: 0.1,
     maxTokens: 4096,
     reasoningEffort: 'none',
@@ -135,8 +158,10 @@ export async function generateNutritionAnalysis(prompt: string): Promise<string>
 /**
  * 3. Tác vụ chuyên biệt: Thiết Kế Giáo Án Huấn Luyện (Workout Plan)
  */
-export async function generateWorkoutDraft(prompt: string): Promise<string> {
-  return callOpenRouter(prompt, {
+export function generateWorkoutDraft(context: AiBillingContext, prompt: string): Promise<string>;
+export function generateWorkoutDraft(prompt: string): Promise<string>;
+export async function generateWorkoutDraft(context: AiBillingContext | string, prompt?: string): Promise<string> {
+  return billOrLegacy(context, prompt, {
     temperature: 0.1,
     maxTokens: 8192,
     reasoningEffort: 'none',
@@ -146,8 +171,10 @@ export async function generateWorkoutDraft(prompt: string): Promise<string> {
 /**
  * 4. Tác vụ chuyên biệt: Sinh Lộ Trình Huấn Luyện Dài Hạn (Roadmap)
  */
-export async function generateRoadmapDraft(prompt: string): Promise<string> {
-  return callOpenRouter(prompt, {
+export function generateRoadmapDraft(context: AiBillingContext, prompt: string): Promise<string>;
+export function generateRoadmapDraft(prompt: string): Promise<string>;
+export async function generateRoadmapDraft(context: AiBillingContext | string, prompt?: string): Promise<string> {
+  return billOrLegacy(context, prompt, {
     temperature: 0.1,
     maxTokens: 8192,
     reasoningEffort: 'none',
@@ -157,8 +184,10 @@ export async function generateRoadmapDraft(prompt: string): Promise<string> {
 /**
  * 5. Tác vụ chuyên biệt: Trợ Lý PT & Trả Lời Câu Hỏi Nghiệp Vụ
  */
-export async function generateAssistantAdvice(prompt: string): Promise<string> {
-  return callOpenRouter(prompt, {
+export function generateAssistantAdvice(context: AiBillingContext, prompt: string): Promise<string>;
+export function generateAssistantAdvice(prompt: string): Promise<string>;
+export async function generateAssistantAdvice(context: AiBillingContext | string, prompt?: string): Promise<string> {
+  return billOrLegacy(context, prompt, {
     temperature: 0.2,
     maxTokens: 4096,
     reasoningEffort: 'none',
@@ -168,8 +197,10 @@ export async function generateAssistantAdvice(prompt: string): Promise<string> {
 /**
  * Hàm chung sinh văn bản (Tương thích ngược)
  */
-export async function generateText(prompt: string): Promise<string> {
-  return callOpenRouter(prompt, {
+export function generateText(context: AiBillingContext, prompt: string): Promise<string>;
+export function generateText(prompt: string): Promise<string>;
+export async function generateText(context: AiBillingContext | string, prompt?: string): Promise<string> {
+  return billOrLegacy(context, prompt, {
     temperature: 0.1,
     maxTokens: 8192,
     reasoningEffort: 'none',

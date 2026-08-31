@@ -34,6 +34,18 @@ export interface AppEnv {
   AUTH_RATE_LIMIT_PER_15M: number;
   AI_RATE_LIMIT_PER_MINUTE: number;
   OCR_MAX_FILE_BYTES: number;
+  APP_URL?: string;
+  VNPAY_TMN_CODE?: string;
+  VNPAY_HASH_SECRET?: string;
+  VNPAY_PAYMENT_URL?: string;
+  VNPAY_RETURN_URL?: string;
+  VNPAY_IPN_URL?: string;
+  MOMO_PARTNER_CODE?: string;
+  MOMO_ACCESS_KEY?: string;
+  MOMO_SECRET_KEY?: string;
+  MOMO_API_URL?: string;
+  MOMO_REDIRECT_URL?: string;
+  MOMO_IPN_URL?: string;
 }
 
 let currentEnvironment: AppEnv | undefined;
@@ -56,6 +68,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   const port = Number(source.PORT || 5000);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error('PORT không hợp lệ.');
 
+  const optional = (key: string) => source[key]?.trim() || undefined;
   currentEnvironment = {
     NODE_ENV: nodeEnvironment,
     MONGODB_URI: source.MONGODB_URI?.trim() || 'mongodb://127.0.0.1:27017/3s-gym-test',
@@ -71,6 +84,18 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     AUTH_RATE_LIMIT_PER_15M: APP_POLICY.AUTH_RATE_LIMIT_PER_15M,
     AI_RATE_LIMIT_PER_MINUTE: APP_POLICY.AI_RATE_LIMIT_PER_MINUTE,
     OCR_MAX_FILE_BYTES: APP_POLICY.OCR_MAX_FILE_BYTES,
+    APP_URL: optional('APP_URL'),
+    VNPAY_TMN_CODE: optional('VNPAY_TMN_CODE'),
+    VNPAY_HASH_SECRET: optional('VNPAY_HASH_SECRET'),
+    VNPAY_PAYMENT_URL: optional('VNPAY_PAYMENT_URL'),
+    VNPAY_RETURN_URL: optional('VNPAY_RETURN_URL'),
+    VNPAY_IPN_URL: optional('VNPAY_IPN_URL'),
+    MOMO_PARTNER_CODE: optional('MOMO_PARTNER_CODE'),
+    MOMO_ACCESS_KEY: optional('MOMO_ACCESS_KEY'),
+    MOMO_SECRET_KEY: optional('MOMO_SECRET_KEY'),
+    MOMO_API_URL: optional('MOMO_API_URL'),
+    MOMO_REDIRECT_URL: optional('MOMO_REDIRECT_URL'),
+    MOMO_IPN_URL: optional('MOMO_IPN_URL'),
   };
   return currentEnvironment;
 }

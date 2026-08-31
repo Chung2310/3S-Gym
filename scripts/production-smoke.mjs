@@ -40,8 +40,8 @@ async function runProductionSmoke(sourceEnv = process.env) {
   let memoryServer;
   const env = buildSmokeEnvironment(sourceEnv);
   if (!env.MONGODB_URI) {
-    const { MongoMemoryServer } = await import('mongodb-memory-server');
-    memoryServer = await MongoMemoryServer.create();
+    const { MongoMemoryReplSet } = await import('mongodb-memory-server');
+    memoryServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     env.MONGODB_URI = memoryServer.getUri();
     env.MONGODB_USER = '';
     env.MONGODB_PASSWORD = '';

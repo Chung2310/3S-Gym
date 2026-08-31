@@ -30,7 +30,7 @@ function cleanNaturalText(text: string): string {
     .trim();
 }
 
-export async function createSuggestion(user: AuthenticatedUser, payload: { customerId?: string; scenario: string; requestType: string; history?: Array<{ role: string; content: string }> }) {
+export async function createSuggestion(user: AuthenticatedUser, payload: { customerId?: string; scenario: string; requestType: string; history?: Array<{ role: string; content: string }> }, requestKey: string) {
   let customer = null;
   if (payload.customerId) {
     customer = await CustomerProfile.findById(payload.customerId).lean();
@@ -39,14 +39,13 @@ export async function createSuggestion(user: AuthenticatedUser, payload: { custo
   } else if (user.role === 'CUSTOMER') {
     customer = await CustomerProfile.findOne({ userId: new Types.ObjectId(user.id) }).lean();
   }
-
   // Tự động đọc chỉ số InBody mới nhất nếu có học viên
   let latestInBody = null;
   if (customer?._id) {
     latestInBody = await InBodyRecord.findOne({ customerId: customer._id }).sort({ measurementDate: -1, createdAt: -1 }).lean();
   }
 
-  const sources = await searchPublished(payload.scenario, 5);
+  const sources = await searchPublished(user, payload.scenario, 5, requestKey);
 
   let profileContext = '';
   if (customer) {
@@ -111,8 +110,9 @@ HỆ THỐNG NGUYÊN TẮC PHẢN HỒI (CỰC KỲ QUAN TRỌNG):
 
   let rawContent = '';
   try {
-    rawContent = await generateText(prompt);
+    rawContent = await generateText({ userId: user.id, taskType: 'TEXT_ASSISTANT', requestKey: `${requestKey}:text-assistant` }, prompt);
   } catch (aiErr) {
+    if (aiErr instanceof AppError && aiErr.code === ERROR_CODES.INSUFFICIENT_CREDITS) throw aiErr;
     const s = payload.scenario.toLowerCase();
     if (s.includes('squat') || s.includes('deadlift') || s.includes('bench') || s.includes('đau lưng') || s.includes('gối')) {
       rawContent = `Chào bạn, đối với kỹ thuật chuyển động và bảo vệ khớp xương trong tập luyện, bạn cần chú ý các nguyên tắc quan trọng sau:\n\n- Về kỹ thuật cơ bản: Luôn gồng chặt cơ bụng (Bracing) bằng cách hít sâu vào bụng và siết cứng ổ bụng trước mỗi lần chuyển động để bảo vệ cột sống thắt lưng.\n- Trục khớp và tư thế: Giữ bàn chân bám chắc 3 điểm tiếp xúc trên mặt sàn (gót chân, gốc ngón cái, gốc ngón út). Đảm bảo hướng đầu gối luôn mở theo hướng mũi chân, tránh để gối chụm vào trong.\n- Phạm vi chuyển động: Chỉ hạ tạ sâu đến mức bạn vẫn kiểm soát được lưng thẳng, không để xương cụt bị cụp (butt wink) hoặc võng lưng quá mức.\n- Phục hồi và giãn cơ: Dành 5 đến 10 phút sau buổi tập để giãn cơ đùi trước, cơ mông và cơ gập hông để giảm căng thẳng cho khớp gối và vùng lưng dưới.`;
@@ -173,7 +173,7 @@ export async function createConversation(user: AuthenticatedUser, payload: { cus
   });
 }
 export async function listConversations(user: AuthenticatedUser, query: Record<string, unknown>) { const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = { ptId: new Types.ObjectId(user.id) }; if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId); const [items, total] = await Promise.all([AssistantConversation.find(filter).sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), AssistantConversation.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
-export async function addConversationMessage(user: AuthenticatedUser, id: string, payload: { content: string; requestType: string }) {
+export async function addConversationMessage(user: AuthenticatedUser, id: string, payload: { content: string; requestType: string }, requestKey: string) {
   const conversation = await AssistantConversation.findOne({ _id: id, ptId: new Types.ObjectId(user.id) });
   if (!conversation) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy hội thoại.' });
   const rawMessages = Array.isArray(conversation.messages) ? conversation.messages : [];
@@ -186,7 +186,7 @@ export async function addConversationMessage(user: AuthenticatedUser, id: string
     scenario: payload.content,
     requestType: payload.requestType || 'GENERAL',
     history,
-  });
+  }, requestKey);
   const now = new Date();
   conversation.messages.push(
     { role: 'USER', content: payload.content, createdAt: now },

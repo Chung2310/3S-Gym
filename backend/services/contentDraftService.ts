@@ -49,7 +49,7 @@ function parseJson(text: string): Record<string, unknown> {
 /**
  * 1. TÁC VỤ RIÊNG BIỆT: TẠO THỰC ĐƠN DINH DƯỠNG CHI TIẾT
  */
-export async function createNutritionDraft(user: AuthenticatedUser, customerId: string, request: string) {
+export async function createNutritionDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string) {
   const customer = await CustomerProfile.findById(customerId).lean();
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
   if (String(customer.assignedPtId) !== user.id && user.role !== 'ADMIN') {
@@ -116,7 +116,7 @@ Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown giải thí
   "notes": "Lời khuyên dinh dưỡng, chế biến và thời điểm uống nước..."
 }`;
 
-  const raw = await generateNutritionDraft(prompt);
+  const raw = await generateNutritionDraft({ userId: user.id, taskType: 'TEXT_NUTRITION', requestKey: `${requestKey}:text-nutrition` }, prompt);
   const generated = parseJson(raw);
   const plan = {
     ...generated,
@@ -134,7 +134,7 @@ Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown giải thí
 /**
  * 2. TÁC VỤ RIÊNG BIỆT: TẠO GIÁO ÁN TẬP LUYỆN (WORKOUT DRAFT)
  */
-export async function createWorkoutDraft(user: AuthenticatedUser, customerId: string, request: string) {
+export async function createWorkoutDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string) {
   const customer = await CustomerProfile.findById(customerId).lean();
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
   if (String(customer.assignedPtId) !== user.id && user.role !== 'ADMIN') {
@@ -145,7 +145,7 @@ export async function createWorkoutDraft(user: AuthenticatedUser, customerId: st
 Yêu cầu từ PT: ${request}.
 Trả về DUY NHẤT 1 JSON object hợp lệ gồm: title, sessions (buổi tập, bài tập, sets, reps, restSeconds, targetRpe).`;
 
-  const raw = await generateWorkoutDraft(prompt);
+  const raw = await generateWorkoutDraft({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout` }, prompt);
   const generated = parseJson(raw);
   const plan = {
     ...generated,
@@ -163,7 +163,7 @@ Trả về DUY NHẤT 1 JSON object hợp lệ gồm: title, sessions (buổi t�
 /**
  * 3. TÁC VỤ RIÊNG BIỆT: TẠO LỘ TRÌNH HUẤN LUYỆN DÀI HẠN (ROADMAP DRAFT)
  */
-export async function createRoadmapDraft(user: AuthenticatedUser, customerId: string, request: string) {
+export async function createRoadmapDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string) {
   const customer = await CustomerProfile.findById(customerId).lean();
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
   if (String(customer.assignedPtId) !== user.id && user.role !== 'ADMIN') {
@@ -258,7 +258,7 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trú
   }
 }`;
 
-  const raw = await generateRoadmapDraft(prompt);
+  const raw = await generateRoadmapDraft({ userId: user.id, taskType: 'TEXT_ROADMAP', requestKey: `${requestKey}:text-roadmap` }, prompt);
   const generated = parseJson(raw) as any;
 
   // Chuẩn hóa tự động đảm bảo tất cả các tuần từ 1 đến hết chu kỳ hiển thị đầy đủ, không bị đứt quãng
@@ -313,14 +313,14 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trú
 /**
  * Hàm điều phối chung tạo Draft (Tương thích ngược)
  */
-export async function createDraft(user: AuthenticatedUser, kind: 'nutrition' | 'workout' | 'roadmap', customerId: string, request: string) {
+export async function createDraft(user: AuthenticatedUser, kind: 'nutrition' | 'workout' | 'roadmap', customerId: string, request: string, requestKey: string) {
   if (kind === 'nutrition') {
-    return createNutritionDraft(user, customerId, request);
+    return createNutritionDraft(user, customerId, request, requestKey);
   }
   if (kind === 'workout') {
-    return createWorkoutDraft(user, customerId, request);
+    return createWorkoutDraft(user, customerId, request, requestKey);
   }
-  return createRoadmapDraft(user, customerId, request);
+  return createRoadmapDraft(user, customerId, request, requestKey);
 }
 
 export interface NutritionAnalysisPayload {
@@ -341,7 +341,7 @@ export interface NutritionAnalysisPayload {
 /**
  * 4. TÁC VỤ RIÊNG BIỆT: PHÂN TÍCH THỂ TRẠNG & TÍNH TOÁN NĂNG LƯỢNG MACROS BẰNG AI
  */
-export async function analyzeNutritionByAi(user: AuthenticatedUser, payload: NutritionAnalysisPayload) {
+export async function analyzeNutritionByAi(user: AuthenticatedUser, payload: NutritionAnalysisPayload, requestKey: string) {
   let customerName = 'Khách hàng';
   let customerGender = payload.gender || 'MALE';
   let customerWeight = payload.weight || 65;
@@ -426,6 +426,6 @@ QUY TẮC BẮT BUỘC:
   }
 }`;
 
-  const raw = await generateNutritionAnalysis(prompt);
+  const raw = await generateNutritionAnalysis({ userId: user.id, taskType: 'TEXT_NUTRITION', requestKey: `${requestKey}:text-nutrition-analysis` }, prompt);
   return parseJson(raw);
 }
