@@ -12,17 +12,17 @@ export async function getConversation(user: AuthenticatedUser, id: string) { con
 export async function listSuggestions(user: AuthenticatedUser, query: Record<string, unknown>) { const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = { ptId: new Types.ObjectId(user.id) }; if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId); if (['PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED'].includes(String(query.reviewStatus))) filter.reviewStatus = query.reviewStatus; const [items, total] = await Promise.all([AssistantSuggestion.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), AssistantSuggestion.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
 export async function getSuggestion(user: AuthenticatedUser, id: string) { const item = await AssistantSuggestion.findOne({ _id: id, ptId: new Types.ObjectId(user.id) }); if (!item) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy đề xuất.' }); return item; }
 export async function applySuggestion(user: AuthenticatedUser, id: string) { const item = await AssistantSuggestion.findOne({ _id: id, ptId: new Types.ObjectId(user.id), reviewStatus: 'APPROVED', appliedAt: null }); if (!item) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy đề xuất đã duyệt và chưa sử dụng.' }); item.appliedAt = new Date(); await item.save(); await recordAudit({ actor: user, action: 'ASSISTANT_SUGGESTION_APPLIED', resourceType: 'assistantSuggestion', resourceId: id, customerId: item.customerId }); return item; }
-export async function createSuggestion(user: AuthenticatedUser, payload: { customerId?: string; scenario: string; requestType: string }) {
+export async function createSuggestion(user: AuthenticatedUser, payload: { customerId?: string; scenario: string; requestType: string }, requestKey: string) {
   let customer = null;
   if (payload.customerId) {
     customer = await CustomerProfile.findById(payload.customerId).lean();
     if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
     if (user.role === 'PT' && String(customer.assignedPtId) !== user.id) throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền sử dụng dữ liệu khách hàng này.' });
   }
-  const sources = await searchPublished(payload.scenario, 5);
+  const sources = await searchPublished(user, payload.scenario, 5, requestKey);
   const customerContext = customer ? `Khách: ${customer.fullName}. ` : '';
   const prompt = `Bạn là trợ lý PT 3S chuyên môn cao, ngắn gọn, súc tích, thực tế. Không chẩn đoán y khoa. ${customerContext}Câu hỏi/Tình huống: ${payload.scenario}. Nguồn đã duyệt: ${sources.map((s) => `${s.title}: ${s.content}`).join('\n')}. Tạo câu trả lời/đề xuất chuẩn xác cho PT.`;
-  const content = await generateText(prompt);
+  const content = await generateText({ userId: user.id, taskType: 'TEXT_ASSISTANT', requestKey: `${requestKey}:text-assistant` }, prompt);
   return AssistantSuggestion.create({
     customerId: customer?._id,
     ptId: user.id,
@@ -57,14 +57,14 @@ export async function createConversation(user: AuthenticatedUser, payload: { cus
   });
 }
 export async function listConversations(user: AuthenticatedUser, query: Record<string, unknown>) { const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = { ptId: new Types.ObjectId(user.id) }; if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId); const [items, total] = await Promise.all([AssistantConversation.find(filter).sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), AssistantConversation.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
-export async function addConversationMessage(user: AuthenticatedUser, id: string, payload: { content: string; requestType: string }) {
+export async function addConversationMessage(user: AuthenticatedUser, id: string, payload: { content: string; requestType: string }, requestKey: string) {
   const conversation = await AssistantConversation.findOne({ _id: id, ptId: new Types.ObjectId(user.id) });
   if (!conversation) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy hội thoại.' });
   const suggestion = await createSuggestion(user, {
     customerId: conversation.customerId ? String(conversation.customerId) : undefined,
     scenario: payload.content,
     requestType: payload.requestType || 'GENERAL',
-  });
+  }, requestKey);
   const now = new Date();
   conversation.messages.push(
     { role: 'USER', content: payload.content, createdAt: now },
