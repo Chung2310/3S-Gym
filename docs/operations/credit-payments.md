@@ -4,6 +4,8 @@
 
 Runbook này áp dụng cho ví credit AI, VNPay và MoMo. Việc redirect trình duyệt chỉ phục vụ trải nghiệm người dùng; chỉ IPN/webhook đã xác minh chữ ký mới có quyền cộng credit.
 
+MongoDB phải chạy dưới dạng replica set hoặc cluster hỗ trợ transaction. Đây là điều kiện bắt buộc để thay đổi balance, ledger, payment order và audit được commit nguyên tử.
+
 ## Chuẩn bị môi trường
 
 Sao chép các biến từ `.env.example` và cấu hình độc lập từng cổng. Một cổng thiếu bất kỳ biến bắt buộc nào sẽ bị vô hiệu trong API/UI, nhưng ứng dụng và cổng còn lại vẫn hoạt động.

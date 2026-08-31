@@ -13,6 +13,8 @@ import User, { type UserDocument } from '../models/User.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import FeatureFlag from '../models/FeatureFlag.js';
 import PtPackage from '../models/PtPackage.js';
+import CreditWallet from '../models/CreditWallet.js';
+import { runMigrations } from '../services/migrationService.js';
 
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
 let mongo: MongoMemoryReplSet; let adminToken: string; let ptToken: string; let customerToken: string; let customerId: string;
@@ -26,6 +28,8 @@ beforeAll(async () => {
   await PtPackage.create({ customerId: customer.id, name: '20 sessions', totalSessions: 20, usedSessions: 0, remainingSessions: 20, startDate: '2026-08-01', endDate: '2026-12-01', status: 'ACTIVE' });
   const keys = ['OCR_INBODY', 'ROADMAP', 'EXERCISE_LIBRARY', 'PROGRESS', 'CARE', 'DASHBOARD', 'KNOWLEDGE_BASE', 'PT_ASSISTANT'];
   await FeatureFlag.insertMany(keys.map((key) => ({ key, enabled: true, roles: ['ADMIN', 'PT'] })));
+  await runMigrations();
+  await CreditWallet.updateMany({ userId: { $in: [admin._id, pt._id] } }, { $set: { availableCredits: 100 } });
   adminToken = tokenFor(admin); ptToken = tokenFor(pt); customerToken = tokenFor(customerUser); customerId = customer.id;
 });
 afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); });
