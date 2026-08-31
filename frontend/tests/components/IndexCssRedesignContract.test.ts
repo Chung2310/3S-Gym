@@ -99,6 +99,21 @@ describe('index CSS redesign contract', () => {
     expect(css).not.toContain('.studio-timeline-header { top: var(--studio-sticky-header-offset); }');
   });
 
+  it('stacks mobile Studio detail panels above the view tabs', () => {
+    const workspaceStart = css.indexOf('/* Workout Studio responsive workspace */');
+    const tabletStart = css.indexOf('@media (min-width: 640px) and (max-width: 1023px)', workspaceStart);
+    const desktopStart = css.indexOf('@media (min-width: 1024px)', tabletStart);
+    const tabletCss = css.slice(tabletStart, desktopStart);
+    const zIndexOf = (selector: string) => Number(tabletCss.match(new RegExp(`${selector}\\s*\\{[^}]*z-index:\\s*(\\d+);`))?.[1]);
+
+    const tabsZIndex = zIndexOf('\\.studio-view-tabs');
+    const backdropZIndex = zIndexOf('\\.studio-panel-backdrop');
+    const panelZIndex = zIndexOf('\\.studio-library-region,[\\s\\S]*?\\.studio-inspector-region');
+
+    expect(backdropZIndex).toBeGreaterThan(tabsZIndex);
+    expect(panelZIndex).toBeGreaterThan(backdropZIndex);
+  });
+
   it('does not retain orphaned workout presentation selectors', () => {
     for (const selector of ['.studio-meta {', '.studio-days {', '.studio-grid {', '.studio-timeline-wrap', '.studio-exercise-card', '.exercise-video-section', '.exercise-video-card', '.exercise-video-links']) expect(css).not.toContain(selector);
   });
