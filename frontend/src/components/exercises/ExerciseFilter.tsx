@@ -24,7 +24,7 @@ export default function ExerciseFilter({
   onClear,
 }: ExerciseFilterProps) {
   return (
-    <div className="module-toolbar exercise-toolbar xl:!grid-cols-[minmax(0,1fr)_11rem_15rem_auto_auto]" role="search" aria-label="Bộ lọc bài tập">
+    <div className="module-toolbar exercise-toolbar" role="search" aria-label="Bộ lọc bài tập">
       <div className="exercise-filter-search">
         <Search size={16} className="exercise-filter-search-icon" aria-hidden="true" />
         <input
