@@ -144,12 +144,9 @@ export default function RoadmapPage() {
     <section style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
       {/* Header section */}
       <div className="section-header">
-        <div>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={24} color="var(--secondary-color)" /> Quản lý Lộ trình (Roadmap)
-          </h1>
-          <p>Lộ trình huấn luyện khoa học theo Phase & Checkpoints kết hợp InBody và Mục tiêu học viên.</p>
-        </div>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+          <Sparkles size={24} color="var(--secondary-color)" /> Quản lý Lộ trình (Roadmap)
+        </h1>
         <button
           className="button button-primary"
           onClick={() => {

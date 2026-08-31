@@ -178,9 +178,6 @@ export default function PtManagementView() {
             </div>
             <span>Quản lý Huấn luyện viên (PT)</span>
           </h2>
-          <p className="text-xs text-slate-500 m-0 mt-1 leading-relaxed">
-            Hồ sơ chuyên môn, chứng chỉ đào tạo và trạng thái hoạt động của đội ngũ PT 3S Gym.
-          </p>
         </div>
         <button
           className="button button-primary"

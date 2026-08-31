@@ -172,9 +172,6 @@ export default function PtDashboardPage() {
             <Activity size={24} className="text-sky-500" />
             <span>Bảng điều khiển Huấn luyện viên (PT)</span>
           </h1>
-          <p className="pt-dash-subtitle">
-            Theo dõi tiến độ InBody (BF-AT), tôn vinh học viên bứt phá và xử lý cảnh báo chăm sóc kịp thời.
-          </p>
         </div>
         <button
           type="button"

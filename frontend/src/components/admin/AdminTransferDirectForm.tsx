@@ -133,9 +133,6 @@ export default function AdminTransferDirectForm({
           <h3 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 750, color: '#003b70' }}>
             Tạo lệnh điều chuyển trực tiếp (Admin Force)
           </h3>
-          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-            Quyền Quản trị viên cho phép đổi Huấn luyện viên phụ trách ngay lập tức và lưu nhật ký hệ thống.
-          </span>
         </div>
       </div>
 

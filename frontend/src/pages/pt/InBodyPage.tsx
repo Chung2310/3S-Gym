@@ -184,9 +184,6 @@ export default function InBodyPage() {
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>
             <Activity color="#0284c7" size={24} style={{ flexShrink: 0 }} /> Theo Dõi & Phân Tích InBody
           </h1>
-          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.84rem', lineHeight: 1.45 }}>
-            Tự động nhận diện phiếu đo hoặc nhập tay, theo dõi tiến độ thể trạng và gợi ý định hướng tập luyện cho hội viên.
-          </p>
         </div>
         <div className="inbody-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
           <button

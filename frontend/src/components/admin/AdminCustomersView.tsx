@@ -149,14 +149,9 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-        <div>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#003b70', margin: '0 0 4px' }}>
-            Quản lý toàn bộ khách hàng
-          </h2>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-            Danh sách tất cả khách hàng của mọi Huấn luyện viên (PT) trong hệ thống 3S Gym.
-          </p>
-        </div>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#003b70', margin: 0 }}>
+          Quản lý toàn bộ khách hàng
+        </h2>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {onOpenTransferTab && (
