@@ -23,6 +23,7 @@ router.delete('/knowledge/:id', ...knowledgeBase, validate(knowledgeIdSchema), c
 router.patch('/knowledge/:id/publish', ...knowledgeBase, validate(knowledgeIdSchema), controller.publishKnowledge);
 router.patch('/knowledge/:id/unpublish', ...knowledgeBase, validate(knowledgeIdSchema), controller.unpublishKnowledge);
 router.post('/knowledge/:id/index', ...knowledgeBase, validate(knowledgeIdSchema), controller.indexKnowledge);
+router.post('/knowledge/seed-standard', ...knowledgeBase, controller.seedStandardKnowledge);
 
 router.get('/assistant/conversations', ...assistantBase, validate(listConversationsSchema), controller.listConversations);
 router.post('/assistant/conversations', ...assistantBase, validate(createConversationSchema), controller.createConversation);

@@ -51,17 +51,48 @@ export default function AdminKnowledgePage() {
     }
   };
 
+  const handleSeedStandard = async () => {
+    try {
+      const result = await api.post('/api/knowledge/seed-standard', {});
+      toast.success(result.message || 'Đã nạp trọn bộ 10 tri thức chuẩn 3S-Gym!');
+      void load();
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  };
+
   // === LẮP RÁP COMPONENTS ===
   return (
     <section>
-      <div className="section-header">
+      <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1>Kho tri thức</h1>
-          <p>Tài liệu đã duyệt dùng làm nguồn trích dẫn cho PT Assistant.</p>
+          <h1 style={{ color: '#003b70', margin: 0 }}>Kho tri thức</h1>
+          <p style={{ margin: '4px 0 0', color: '#64748b' }}>
+            Tài liệu đã duyệt dùng làm nguồn trích dẫn RAG cho PT Assistant và Cố vấn Chuyên môn.
+          </p>
         </div>
-        <button className="button button-primary" onClick={() => setEditor(null)}>
-          Tạo tài liệu
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={handleSeedStandard}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 700,
+              fontSize: '0.86rem',
+              background: '#f0fdf4',
+              color: '#15803d',
+              borderColor: '#bbf7d0',
+            }}
+          >
+            ⚡ Nạp 10 Tri thức Chuẩn 3S-Gym
+          </button>
+          <button className="button button-primary" onClick={() => setEditor(null)}>
+            Tạo tài liệu
+          </button>
+        </div>
       </div>
 
       {editor !== undefined && (

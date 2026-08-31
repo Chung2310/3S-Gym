@@ -7,11 +7,11 @@ const knowledgeFields = { title: Joi.string().trim(), topic: Joi.string().trim()
 export const createKnowledgeSchema: RequestValidationSchema = { body: Joi.object({ title: knowledgeFields.title.required(), topic: knowledgeFields.topic.required(), content: knowledgeFields.content.required(), effectiveAt: knowledgeFields.effectiveAt }).messages(commonMessages) };
 export const updateKnowledgeSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...knowledgeFields, status: Joi.forbidden(), version: Joi.forbidden(), publishedAt: Joi.forbidden() }) };
 export const knowledgeIdSchema: RequestValidationSchema = { params: idParams() };
-export const listConversationsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId }).messages(commonMessages) };
-export const createConversationSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), title: Joi.string().trim().required() }).messages(commonMessages) };
+export const listConversationsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId.allow('', null) }).messages(commonMessages) };
+export const createConversationSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.allow('', null), title: Joi.string().trim().required() }).messages(commonMessages) };
 export const addConversationMessageSchema: RequestValidationSchema = { params: idParams(), body: Joi.object({ content: Joi.string().trim().required(), requestType: Joi.string().trim().required() }).messages(commonMessages) };
-export const createSuggestionSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), scenario: Joi.string().trim().required(), requestType: Joi.string().trim().required() }).messages(commonMessages) };
-export const listSuggestionsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId, reviewStatus: Joi.string().valid('PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED') }).messages(commonMessages) };
+export const createSuggestionSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.allow('', null), scenario: Joi.string().trim().required(), requestType: Joi.string().trim().required() }).messages(commonMessages) };
+export const listSuggestionsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId.allow('', null), reviewStatus: Joi.string().valid('PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED') }).messages(commonMessages) };
 export const contentDraftSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), request: Joi.string().trim().min(10).required() }).messages(commonMessages) };
 export const nutritionAnalysisSchema: RequestValidationSchema = {
   body: Joi.object({
