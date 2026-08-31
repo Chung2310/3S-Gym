@@ -34,8 +34,9 @@ it('allows only one concurrent runner to apply a migration version', async () =>
 
   const results = await Promise.all([runMigrations(), runMigrations()]);
 
-  expect(results.flatMap((result) => result.applied)).toEqual(['001-content-defaults']);
+  expect(results.flatMap((result) => result.applied).sort()).toEqual(['001-content-defaults', '002-exercise-tracking-types']);
   expect(await MigrationRecord.countDocuments({ version: '001-content-defaults', status: 'APPLIED' })).toBe(1);
+  expect(await MigrationRecord.countDocuments({ version: '002-exercise-tracking-types', status: 'APPLIED' })).toBe(1);
 });
 
 it('takes over an expired migration lock', async () => {
@@ -51,7 +52,7 @@ it('takes over an expired migration lock', async () => {
     updatedAt: new Date(),
   });
 
-  await expect(runMigrations()).resolves.toEqual({ applied: ['001-content-defaults'] });
+  await expect(runMigrations()).resolves.toEqual({ applied: ['001-content-defaults', '002-exercise-tracking-types'] });
   await expect(MigrationRecord.findOne({ version: '001-content-defaults' }).lean()).resolves.toMatchObject({
     status: 'APPLIED',
   });

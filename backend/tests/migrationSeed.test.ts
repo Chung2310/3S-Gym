@@ -9,6 +9,7 @@ import { migrateDown, migrationStatus, runMigrations, seedReferenceData } from '
 
 let mongo: MongoMemoryServer;
 beforeAll(async () => { mongo = await MongoMemoryServer.create(); await mongoose.connect(mongo.getUri()); });
+beforeEach(async () => { await mongoose.connection.db?.dropDatabase(); });
 afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); });
 
 it('migration and reference seed are idempotent', async () => {
@@ -22,15 +23,15 @@ it('migration and reference seed are idempotent', async () => {
   expect(await ActivityCalorie.countDocuments()).toBeGreaterThanOrEqual(3);
 });
 
-it('tracks migration version and rolls back only fields added by migration', async () => {
-  await migrateDown();
+it('tracks migration versions and rolls back only fields added by each migration', async () => {
   await KnowledgeDocument.collection.insertOne({ title: 'Rollback legacy', topic: 'GENERAL', content: 'Rollback content', createdAt: new Date(), updatedAt: new Date() });
   const first = await runMigrations();
   const second = await runMigrations();
-  expect(first.applied).toContain('001-content-defaults');
+  expect(first.applied).toEqual(['001-content-defaults', '002-exercise-tracking-types']);
   expect(second.applied).toHaveLength(0);
   expect(await migrationStatus()).toEqual(expect.arrayContaining([expect.objectContaining({ version: '001-content-defaults', status: 'APPLIED' })]));
 
+  expect((await migrateDown()).rolledBack).toBe('002-exercise-tracking-types');
   const rolledBack = await migrateDown();
   expect(rolledBack.rolledBack).toBe('001-content-defaults');
   const legacy = await KnowledgeDocument.collection.findOne({ title: 'Rollback legacy' });
@@ -52,7 +53,8 @@ it('remains idempotent when the migration index has not been created yet', async
   const first = await runMigrations();
   const second = await runMigrations();
 
-  expect(first.applied).toEqual(['001-content-defaults']);
+  expect(first.applied).toEqual(['001-content-defaults', '002-exercise-tracking-types']);
   expect(second.applied).toEqual([]);
   expect(await MigrationRecord.countDocuments({ version: '001-content-defaults' })).toBe(1);
+  expect(await MigrationRecord.countDocuments({ version: '002-exercise-tracking-types' })).toBe(1);
 });
