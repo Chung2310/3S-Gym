@@ -17,27 +17,27 @@ export default function PtProgressWorkspace({ journey, onRefresh }: { journey: C
   const [tab, setTab] = useState<Tab>('Tổng quan');
   const activePlan = journey.plans.active as ActivePlan | null;
 
-  return <section className="space-y-5">
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  return <section className="progress-workspace">
+    <div className="progress-workspace-header">
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Đang theo dõi</p>
-        <h2 className="font-oswald text-2xl font-bold uppercase text-primary">{journey.customer.fullName}</h2>
+        <p className="progress-workspace-kicker">Đang theo dõi</p>
+        <h2 className="progress-workspace-title">{journey.customer.fullName}</h2>
       </div>
-      <button type="button" className="button button-primary min-h-11" onClick={() => setTab('Buổi tập')}>
+      <button type="button" className="button button-primary progress-workspace-button" onClick={() => setTab('Buổi tập')}>
         <Dumbbell size={17} /> Ghi nhận buổi tập
       </button>
     </div>
 
-    <div className="flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Khu vực tiến độ">
-      {tabs.map((item) => <button className={tab === item ? 'min-h-11 whitespace-nowrap rounded-lg bg-white px-4 text-sm font-bold text-primary shadow-sm' : 'min-h-11 whitespace-nowrap rounded-lg px-4 text-sm font-semibold text-slate-600 hover:bg-white/70'} role="tab" aria-selected={tab === item} key={item} onClick={() => setTab(item)}>{item}</button>)}
+    <div className="progress-tabs" role="tablist" aria-label="Khu vực tiến độ">
+      {tabs.map((item) => <button className={tab === item ? 'progress-tab progress-tab-active' : 'progress-tab'} role="tab" aria-selected={tab === item} key={item} onClick={() => setTab(item)}>{item}</button>)}
     </div>
 
     {tab === 'Tổng quan' && <ProgressOverview analytics={journey.analytics} />}
-    {tab === 'Buổi tập' && <div className="space-y-4"><WorkoutSessionLogger customerId={journey.customer._id} activePlan={activePlan} onSaved={onRefresh} />{journey.sessions.map((session) => <WorkoutSessionDetail session={session} key={session._id} />)}</div>}
-    {tab === 'Chỉ số cơ thể' && <div className="space-y-4"><MeasurementForm customerId={journey.customer._id} onSaved={onRefresh} /><ProgressCharts measurements={journey.measurements} /></div>}
+    {tab === 'Buổi tập' && <div className="progress-workspace-section"><WorkoutSessionLogger customerId={journey.customer._id} activePlan={activePlan} onSaved={onRefresh} />{journey.sessions.map((session) => <WorkoutSessionDetail session={session} key={session._id} />)}</div>}
+    {tab === 'Chỉ số cơ thể' && <div className="progress-workspace-section"><MeasurementForm customerId={journey.customer._id} onSaved={onRefresh} /><ProgressCharts measurements={journey.measurements} /></div>}
     {tab === 'Thành tích' && <AchievementList achievements={journey.analytics.achievements} />}
-    {tab === 'Ảnh tiến độ' && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{journey.photos.map((photo) => <img className="aspect-[3/4] w-full rounded-xl object-cover" src={String(photo.photoUrl)} alt={`Ảnh tiến độ ${String(photo.stage)}`} key={String(photo._id)} />)}</div>}
-    {tab === 'Giáo án' && <div className="space-y-3"><h2 className="font-oswald text-2xl font-bold uppercase text-primary">{String(activePlan?.title || 'Chưa có giáo án')}</h2>{journey.plans.history.map((plan) => <article className="rounded-lg border border-slate-200 bg-white p-4" key={String(plan._id)}>{String(plan.title)}</article>)}</div>}
+    {tab === 'Ảnh tiến độ' && <div className="progress-photo-grid">{journey.photos.map((photo) => <img className="progress-photo" src={String(photo.photoUrl)} alt={`Ảnh tiến độ ${String(photo.stage)}`} key={String(photo._id)} />)}</div>}
+    {tab === 'Giáo án' && <div className="progress-plan-list"><h2 className="progress-plan-title">{String(activePlan?.title || 'Chưa có giáo án')}</h2>{journey.plans.history.map((plan) => <article className="progress-plan-card" key={String(plan._id)}>{String(plan.title)}</article>)}</div>}
     {tab === 'Báo cáo' && <ProgressReportGenerator customerId={journey.customer._id} onSaved={onRefresh} />}
   </section>;
 }

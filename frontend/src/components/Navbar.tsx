@@ -89,7 +89,13 @@ const Navbar = () => {
                 </Link>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.12)', padding: '6px 14px', borderRadius: '20px' }}>
                   <UserIcon size={16} color="#38bdf8" />
-                  <span style={{ fontWeight: 700, color: '#ffffff', fontSize: '0.85rem' }}>{user?.username || 'admin'}</span>
+                  <Link
+                    to="/portal"
+                    aria-label={`Mở trang làm việc của ${user?.username || 'admin'}`}
+                    className="rounded-sm text-sm font-bold text-white transition-colors hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary motion-reduce:transition-none"
+                  >
+                    {user?.username || 'admin'}
+                  </Link>
                   <button onClick={handleLogout} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#cbd5e1', display: 'flex', alignItems: 'center', marginLeft: '4px' }} title="Đăng xuất">
                     <LogOut size={16} />
                   </button>
@@ -122,8 +128,11 @@ const Navbar = () => {
 
           {/* Mobile Hamburger Menu Button */}
           <button
+            type="button"
             className="mobile-nav-toggle"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
+            aria-expanded={mobileMenuOpen}
             style={{
               display: 'none',
               background: 'none',
@@ -162,8 +171,16 @@ const Navbar = () => {
                   <Bot size={18} /> TRỢ LÝ PT & INBODY
                 </Link>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.08)', padding: '10px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 700 }}>
-                    <UserIcon size={18} color="#38bdf8" /> {user?.username || 'admin'}
+                  <div className="flex items-center gap-2 font-bold text-white">
+                    <UserIcon size={18} color="#38bdf8" />
+                    <Link
+                      to="/portal"
+                      onClick={() => setMobileMenuOpen(false)}
+                      aria-label={`Mở trang làm việc của ${user?.username || 'admin'}`}
+                      className="rounded-sm transition-colors hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary motion-reduce:transition-none"
+                    >
+                      {user?.username || 'admin'}
+                    </Link>
                   </div>
                   <button onClick={handleLogout} style={{ border: 'none', background: 'none', color: '#ef4444', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer' }}>
                     Đăng xuất

@@ -14,7 +14,8 @@ it('adds an exercise to a proportional day timeline and prevents overlap', async
   const user = userEvent.setup();
   render(<MemoryRouter><ToastProvider><WorkoutStudioPage /></ToastProvider></MemoryRouter>);
   expect(screen.getByText('Đã lưu')).toBeVisible();
-  const exercise = await screen.findByRole('button', { name: 'SquatLEGS' });
+  expect(screen.getByRole('region', { name: 'Workout Studio' })).toBeVisible();
+  const exercise = await screen.findByRole('button', { name: 'Thêm bài Squat' });
   await user.click(exercise);
   expect(screen.getByLabelText('Ngày của bài tập')).toBeVisible();
   expect(screen.getByLabelText('Giờ bắt đầu')).toBeVisible();
@@ -32,16 +33,16 @@ it('adds an exercise to a proportional day timeline and prevents overlap', async
   await user.click(screen.getByRole('button', { name: 'Tăng thời lượng 15 phút' }));
   expect(screen.getByRole('button', { name: /Squat.*08:00.*08:45/ })).toHaveStyle({ height: '60px' });
   await user.click(screen.getByRole('button', { name: 'Giảm thời lượng 15 phút' }));
-  expect(screen.queryByRole('button', { name: /SquatLEGS/ })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /Barbell RowBACK/ })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Thêm bài Squat' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Thêm bài Barbell Row' })).toBeVisible();
   await user.clear(screen.getByLabelText(/T.m b.i t.p/));
   await user.selectOptions(screen.getByLabelText('Lọc nhóm cơ'), 'LEGS');
-  expect(screen.getByRole('button', { name: /SquatLEGS/ })).toBeVisible();
-  expect(screen.queryByRole('button', { name: /Barbell RowBACK/ })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Thêm bài Squat' })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Thêm bài Barbell Row' })).not.toBeInTheDocument();
   await user.selectOptions(screen.getByLabelText('Lọc nhóm cơ'), '');
   await user.selectOptions(screen.getByLabelText('Lọc cấp độ bài tập'), 'INTERMEDIATE');
-  expect(screen.queryByRole('button', { name: /SquatLEGS/ })).not.toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /Barbell RowBACK/ })).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Thêm bài Squat' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Thêm bài Barbell Row' })).toBeVisible();
 });
 
 it('automatically recommends library exercises from the free-text plan goal', async () => {
@@ -52,10 +53,10 @@ it('automatically recommends library exercises from the free-text plan goal', as
   const user = userEvent.setup();
   render(<MemoryRouter><ToastProvider><WorkoutStudioPage /></ToastProvider></MemoryRouter>);
 
-  await screen.findByRole('button', { name: /Đẩy ngựcNgực/ });
+  await screen.findByRole('button', { name: 'Thêm bài Đẩy ngực' });
   await user.type(screen.getByLabelText('Mục tiêu'), 'Phát triển cơ ngực');
 
-  expect(screen.getByRole('heading', { name: 'Đề xuất cho giáo án' })).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Gợi ý cho giáo án' })).toBeVisible();
   await user.click(screen.getByRole('button', { name: 'Thêm bài đề xuất Đẩy ngực' }));
   expect(screen.getByRole('button', { name: /Đẩy ngực.*08:00–09:00/ })).toBeVisible();
 });
@@ -64,7 +65,7 @@ it('moves a scheduled card with pointer events for touch devices', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: [{ _id: 'squat', name: 'Squat', muscleGroup: 'LEGS', level: 'BEGINNER', scope: 'PRIVATE' }], message: '' });
   const user = userEvent.setup();
   render(<MemoryRouter><ToastProvider><WorkoutStudioPage /></ToastProvider></MemoryRouter>);
-  await user.click(await screen.findByRole('button', { name: /SquatLEGS/ }));
+  await user.click(await screen.findByRole('button', { name: 'Thêm bài Squat' }));
   const studio = screen.getByRole('button', { name: 'Đóng thuộc tính' }).closest('section');
   expect(studio).toHaveClass('inspector-open');
   await user.click(screen.getByRole('button', { name: 'Đóng thuộc tính' }));
@@ -102,7 +103,7 @@ it('asks with the professional modal before discarding changes from the back but
   function Location() { return <output data-testid="back-location">{useLocation().pathname}</output>; }
   render(<MemoryRouter initialEntries={['/pt/my-workout-plans/new']}><ToastProvider><Location /><Routes><Route path="/pt/my-workout-plans/new" element={<WorkoutStudioPage />} /><Route path="/pt/my-workout-plans" element={<p>Danh sách giáo án</p>} /></Routes></ToastProvider></MemoryRouter>);
   await user.type(screen.getByLabelText('Tên giáo án'), 'Draft');
-  await user.click(screen.getByRole('button', { name: /Danh sách/ }));
+  await user.click(screen.getByRole('button', { name: 'Về danh sách giáo án' }));
   expect(screen.getByRole('dialog', { name: 'Bỏ thay đổi chưa lưu?' })).toBeVisible();
   expect(screen.getByTestId('back-location')).toHaveTextContent('/pt/my-workout-plans/new');
   await user.click(screen.getByRole('button', { name: 'Bỏ thay đổi' }));
@@ -113,7 +114,7 @@ it('asks with the professional modal before shortening a plan that has affected 
   vi.mocked(api.get).mockResolvedValue({ data: [{ _id: 'squat', name: 'Squat', muscleGroup: 'LEGS', level: 'BEGINNER', scope: 'PRIVATE' }], message: '' });
   const user = userEvent.setup();
   render(<MemoryRouter><ToastProvider><WorkoutStudioPage /></ToastProvider></MemoryRouter>);
-  await user.click(await screen.findByRole('button', { name: /SquatLEGS/ }));
+  await user.click(await screen.findByRole('button', { name: 'Thêm bài Squat' }));
   await user.selectOptions(screen.getByLabelText(/Ngày của bài tập/), '7');
 
   const durationInput = screen.getByLabelText(/Số ngày giáo án/);
@@ -146,7 +147,7 @@ it('moves a selected card by 15 minutes with the keyboard and saves a new studio
   await user.type(screen.getByLabelText('Ghi chú kỹ thuật chung'), 'Giữ thân người ổn định.');
   await user.type(screen.getByLabelText('Tên giáo án'), 'Studio A');
   await user.type(screen.getByLabelText('Mục tiêu'), 'Tăng cơ');
-  await user.click(await screen.findByRole('button', { name: /SquatLEGS/ }));
+  await user.click(await screen.findByRole('button', { name: 'Thêm bài Squat' }));
   expect(screen.getByRole('tab', { name: 'Bài tập' })).toHaveAttribute('aria-selected', 'true');
   const card = screen.getByRole('button', { name: /Squat.*08:00–09:00/ });
   card.focus();
@@ -168,7 +169,7 @@ it('preserves complete legacy exercise details in the unscheduled tray when savi
   vi.mocked(api.patch).mockResolvedValue({ data: { _id: 'legacy-plan' }, message: 'Đã lưu.' });
   const user = userEvent.setup();
   render(<MemoryRouter initialEntries={['/pt/my-workout-plans/legacy-plan/edit']}><ToastProvider><Routes><Route path="/pt/my-workout-plans/:templateId/edit" element={<WorkoutStudioPage />} /></Routes></ToastProvider></MemoryRouter>);
-  await user.click(await screen.findByRole('button', { name: 'SquatLEGS' }));
+  await user.click(await screen.findByRole('button', { name: 'Thêm bài Squat' }));
   await user.click(screen.getByRole('button', { name: 'Lưu giáo án' }));
   expect(api.patch).toHaveBeenCalledWith('/api/workout-templates/legacy-plan', expect.objectContaining({
     unscheduledExercises: [expect.objectContaining({ name: 'Legacy Row', durationMinutes: 60, sets: 4, reps: '8', weight: '40kg', rpe: 8, rir: 2, tempo: '3-1-1', restSeconds: 90, notes: 'Giữ lưng thẳng' })],
