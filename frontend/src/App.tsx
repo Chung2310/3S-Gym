@@ -37,7 +37,7 @@ function MainContent() {
             path="/login"
             element={session ? <Navigate to={destinationForRole()} replace /> : <LoginPage />}
           />
-          <Route path="/consultation" element={<ProtectedRoute><Navigate to="/pt/nutrition-assistant" replace /></ProtectedRoute>} />
+          <Route path="/consultation" element={<ProtectedRoute><Navigate to="/pt/assistant" replace /></ProtectedRoute>} />
           <Route path="/portal/*" element={<ProtectedRoute><PortalRoutes /></ProtectedRoute>} />
           <Route path="/*" element={<ProtectedRoute><PortalRoutes /></ProtectedRoute>} />
         </Routes>

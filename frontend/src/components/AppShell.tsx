@@ -139,7 +139,7 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
         { path: '/pt/customers', label: 'Học viên', icon: Users },
         { path: '/pt/inbody', label: 'InBody', icon: Ruler },
         { path: '/pt/my-workout-plans', label: 'Giáo án', icon: BookOpen },
-        { path: '/pt/nutrition-assistant', label: 'Trợ lý AI', icon: Bot },
+        { path: '/pt/assistant', label: 'Trợ lý AI', icon: Bot },
       ];
       return (
         <nav className="portal-bottom-nav" aria-label="Thanh điều hướng nhanh">
@@ -174,16 +174,16 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
 
     // ADMIN Role
     const adminTabs = [
-      { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard, exact: true },
-      { path: '/admin?tab=pts', label: 'HLV PT', icon: Users },
-      { path: '/admin?tab=users', label: 'Tài khoản', icon: Users },
-      { path: '/admin?tab=packages', label: 'Gói tập', icon: BookOpen },
+      { path: '/admin', label: 'Quản trị', icon: LayoutDashboard, exact: true },
+      { path: '/admin/customers', label: 'Khách hàng', icon: Users },
+      { path: '/admin/transfers', label: 'Điều chuyển', icon: Users },
+      { path: '/admin/users', label: 'Tài khoản', icon: Users },
     ];
     return (
       <nav className="portal-bottom-nav" aria-label="Thanh điều hướng nhanh">
         {adminTabs.map((tab) => {
           const Icon = tab.icon;
-          const active = tab.path === '/admin' ? location.pathname === '/admin' && !location.search : location.pathname + location.search === tab.path;
+          const active = tab.exact ? location.pathname === tab.path : location.pathname.startsWith(tab.path);
           return (
             <Link
               key={tab.path}

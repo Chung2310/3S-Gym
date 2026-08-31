@@ -17,6 +17,9 @@ import CarePage from '../pages/pt/CarePage';
 import PtAssistantPage from '../pages/pt/PtAssistantPage';
 import KnowledgeSearchPage from '../pages/pt/KnowledgeSearchPage';
 import AdminKnowledgePage from '../pages/admin/AdminKnowledgePage';
+import AdminCustomersPage from '../pages/admin/AdminCustomersPage';
+import AdminTransfersPage from '../pages/admin/AdminTransfersPage';
+import AdminUsersPage from '../pages/admin/AdminUsersPage';
 import CustomerPortalPage from '../pages/customer/CustomerPortalPage';
 import NotificationsPage from '../pages/common/NotificationsPage';
 import ConsultationTool from '../pages/ConsultationTool';
@@ -58,6 +61,30 @@ function PortalContent({ user }: { user: User }) {
           }
         />
         <Route
+          path="admin/customers"
+          element={
+            <FeatureRoute user={user} roles={['ADMIN']}>
+              <AdminCustomersPage />
+            </FeatureRoute>
+          }
+        />
+        <Route
+          path="admin/transfers"
+          element={
+            <FeatureRoute user={user} roles={['ADMIN']}>
+              <AdminTransfersPage />
+            </FeatureRoute>
+          }
+        />
+        <Route
+          path="admin/users"
+          element={
+            <FeatureRoute user={user} roles={['ADMIN']}>
+              <AdminUsersPage />
+            </FeatureRoute>
+          }
+        />
+        <Route
           path="pt/knowledge-search"
           element={
             <FeatureRoute user={user} roles={['PT']} feature="KNOWLEDGE_BASE">
@@ -68,7 +95,7 @@ function PortalContent({ user }: { user: User }) {
         <Route
           path="pt/assistant"
           element={
-            <FeatureRoute user={user} roles={['PT']} feature="PT_ASSISTANT">
+            <FeatureRoute user={user} roles={['PT']}>
               <PtAssistantPage />
             </FeatureRoute>
           }
@@ -132,14 +159,7 @@ function PortalContent({ user }: { user: User }) {
             </FeatureRoute>
           }
         />
-        <Route
-          path="pt/nutrition-assistant"
-          element={
-            <FeatureRoute user={user} roles={['PT']}>
-              <ConsultationTool />
-            </FeatureRoute>
-          }
-        />
+        <Route path="pt/nutrition-assistant" element={<Navigate to="/pt/assistant" replace />} />
         <Route
           path="pt/nutrition"
           element={
@@ -148,14 +168,7 @@ function PortalContent({ user }: { user: User }) {
             </FeatureRoute>
           }
         />
-        <Route
-          path="pt/care"
-          element={
-            <FeatureRoute user={user} roles={['PT']} feature="CARE">
-              <CarePage />
-            </FeatureRoute>
-          }
-        />
+        <Route path="pt/care" element={<Navigate to="/pt/dashboard" replace />} />
         <Route
           path="pt/dashboard"
           element={
@@ -177,6 +190,14 @@ function PortalContent({ user }: { user: User }) {
           element={
             <FeatureRoute user={user} roles={['PT']}>
               <PtCustomersPage />
+            </FeatureRoute>
+          }
+        />
+        <Route
+          path="me/assistant"
+          element={
+            <FeatureRoute user={user} roles={['CUSTOMER']}>
+              <PtAssistantPage />
             </FeatureRoute>
           }
         />
