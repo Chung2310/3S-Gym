@@ -27,6 +27,8 @@ export default function WorkoutStudioPage() {
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation>();
   const [items, setItems] = useState<ScheduledExercise[]>([]); const [unscheduled, setUnscheduled] = useState<ScheduledExercise[]>([]); const [selectedId, setSelectedId] = useState<string>(); const [saving, setSaving] = useState(false); const [dirty, setDirty] = useState(false); const [customerName, setCustomerName] = useState('');
   const [movePreview, setMovePreview] = useState<{ id: string; startMinute: number; valid: boolean }>(); const [inspectorOpen, setInspectorOpen] = useState(false); const [studioView, setStudioView] = useState<StudioView>('schedule'); const timelineWrapRef = useRef<HTMLElement>(null);
+  const studioViewTabs = useRef<Partial<Record<StudioView, HTMLButtonElement | null>>>({});
+  const studioPanelCloses = useRef<Partial<Record<StudioView, HTMLButtonElement | null>>>({});
   const [generatedExercises, setGeneratedExercises] = useState<unknown[]>([]);
   const selected = items.find((item) => item.id === selectedId); const dayItems = items.filter((item) => (item.weekNumber || 1) === activeWeek && item.dayNumber === activeDay); const totalMinutes = dayItems.reduce((sum, item) => sum + item.durationMinutes, 0);
   const muscleGroups = [...new Set(library.map((exercise) => exercise.muscleGroup))].sort();
@@ -58,6 +60,10 @@ export default function WorkoutStudioPage() {
   }, [templateId, customerMode, customerId, planId, toast]);
   useEffect(() => { const warn = (event: BeforeUnloadEvent) => { if (dirty) event.preventDefault(); }; window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn); }, [dirty]);
   useEffect(() => { if (selectedId) { setSidebarTab('exercise'); setInspectorOpen(true); } }, [selectedId]);
+  useEffect(() => {
+    if (studioView === 'schedule' || !window.matchMedia?.('(min-width: 640px) and (max-width: 1023px)').matches) return;
+    studioPanelCloses.current[studioView]?.focus();
+  }, [studioView]);
   useEffect(() => { if (!dirty) return; const guardInternalLink = (event: MouseEvent) => { if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; const target = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[href]') : null; if (!target || target.target === '_blank' || target.hasAttribute('download')) return; const destination = new URL(target.href, window.location.href); if (destination.origin !== window.location.origin) return; event.preventDefault(); event.stopPropagation(); setPendingConfirmation({ kind: 'navigate', destination: `${destination.pathname}${destination.search}${destination.hash}` }); }; document.addEventListener('click', guardInternalLink, true); return () => document.removeEventListener('click', guardInternalLink, true); }, [dirty]);
 
   const mutate = (next: ScheduledExercise[]) => { setItems(next); setDirty(true); };
@@ -95,6 +101,7 @@ export default function WorkoutStudioPage() {
     if (pending.kind === 'back' || pending.kind === 'navigate') navigate(pending.destination);
     if (pending.kind === 'duration') applyDurationDays(pending.nextDays);
   };
+  const closeStudioPanel = () => { const trigger = studioViewTabs.current[studioView]; setStudioView('schedule'); trigger?.focus(); };
   const dayButtons = useMemo(() => Array.from({ length: durationDays }, (_, index) => index + 1), [durationDays]);
 
   return <section aria-label="Workout Studio" className={`module-page workout-studio ${inspectorOpen ? 'inspector-open' : ''}`}>
@@ -104,20 +111,23 @@ export default function WorkoutStudioPage() {
       <StudioDayNavigator days={dayButtons} activeDay={activeDay} totalMinutes={totalMinutes} onChange={setActiveDay} />
     </nav>
     <div className="studio-view-tabs" role="tablist" aria-label="Khu vực thiết kế giáo án">
-      {([['schedule', 'Lịch tập'], ['library', 'Bài tập'], ['inspector', 'Thuộc tính']] as const).map(([view, label]) => <button key={view} type="button" role="tab" aria-selected={studioView === view} onClick={() => setStudioView(view)}>{label}</button>)}
+      {([['schedule', 'Lịch tập'], ['library', 'Bài tập'], ['inspector', 'Thuộc tính']] as const).map(([view, label]) => <button key={view} ref={(node) => { studioViewTabs.current[view] = node; }} type="button" role="tab" aria-selected={studioView === view} aria-controls={`studio-${view}-panel`} onClick={() => setStudioView(view)}>{label}</button>)}
     </div>
+    {studioView !== 'schedule' && <button type="button" className="studio-panel-backdrop" aria-label="Đóng bảng Studio" onClick={closeStudioPanel} />}
     <div className="studio-workspace">
-      <section className={`studio-library-region ${studioView === 'library' ? 'is-mobile-active' : ''}`} aria-label="Thư viện bài tập Studio">
+      <section id="studio-library-panel" className={`studio-library-region ${studioView === 'library' ? 'is-mobile-active' : ''}`} aria-label="Thư viện bài tập Studio">
+        <button ref={(node) => { studioPanelCloses.current.library = node; }} type="button" className="studio-panel-close" aria-label="Đóng thư viện bài tập" onClick={closeStudioPanel}>×</button>
         <ExercisePalette exercises={filteredLibrary} recommendations={recommendedExercises} unscheduled={unscheduled} query={exerciseQuery} muscleGroup={muscleGroup} level={exerciseLevel} muscleGroups={muscleGroups} onQueryChange={setExerciseQuery} onMuscleGroupChange={setMuscleGroup} onLevelChange={setExerciseLevel} onPlace={(exercise) => place(exercise, 480)} onPlaceUnscheduled={placeUnscheduled} />
       </section>
-      <section className={`studio-schedule-region ${studioView === 'schedule' ? 'is-mobile-active' : ''}`} aria-label="Lịch tập">
+      <section id="studio-schedule-panel" className={`studio-schedule-region ${studioView === 'schedule' ? 'is-mobile-active' : ''}`} aria-label="Lịch tập">
         <DayTimeline wrapperRef={timelineWrapRef} activeDay={activeDay} items={dayItems} selectedId={selectedId} preview={movePreview} onDrop={drop} onMoveStart={beginMove} onResizeStart={beginResize} onKeyboardMove={moveScheduled} onSelect={(id) => { setSelectedId(id); setInspectorOpen(true); setStudioView('inspector'); }} />
       </section>
-      <section className={`studio-inspector-region ${studioView === 'inspector' ? 'is-mobile-active' : ''}`} aria-label="Thuộc tính giáo án">
+      <section id="studio-inspector-panel" className={`studio-inspector-region ${studioView === 'inspector' ? 'is-mobile-active' : ''}`} aria-label="Thuộc tính giáo án">
+        <button ref={(node) => { studioPanelCloses.current.inspector = node; }} type="button" className="studio-panel-close" aria-label="Đóng thuộc tính giáo án" onClick={closeStudioPanel}>×</button>
         <StudioSidebar activeTab={sidebarTab} metadata={metadata} muscleGroupOptions={metadataMuscleGroups} readOnly={readOnly} selected={selected} days={dayButtons} onTabChange={setSidebarTab} onMetadataChange={(value) => { setMetadata(value); setDirty(true); }} onExerciseUpdate={updateSelected} onUnscheduled={() => { if (!selected) return; mutate(items.filter((item) => item.id !== selected.id)); setUnscheduled((current) => [...current, selected]); setSelectedId(undefined); setSidebarTab('template'); setStudioView('schedule'); }} />
       </section>
     </div>
-    {selected && <button type="button" aria-label="Đóng thuộc tính" className="studio-inspector-close" onClick={() => { setSelectedId(undefined); setSidebarTab('template'); setInspectorOpen(false); setStudioView('schedule'); }}>×</button>}
+    {selected && <button type="button" aria-label="Bỏ chọn bài tập" className="studio-selection-clear" onClick={() => { setSelectedId(undefined); setSidebarTab('template'); setInspectorOpen(false); setStudioView('schedule'); }}>×</button>}
     <ConfirmModal open={Boolean(pendingConfirmation)} title={pendingConfirmation?.kind === 'back' ? 'Bỏ thay đổi chưa lưu?' : pendingConfirmation?.kind === 'navigate' ? 'Rời Studio?' : 'Giảm số ngày giáo án?'} description={pendingConfirmation?.kind === 'duration' ? `${pendingConfirmation.affectedCount} bài tập ở các ngày bị cắt sẽ chuyển về Chưa xếp lịch.` : 'Các chỉnh sửa chưa lưu trong Studio sẽ bị mất.'} danger={pendingConfirmation?.kind !== 'duration'} confirmLabel={pendingConfirmation?.kind === 'back' ? 'Bỏ thay đổi' : pendingConfirmation?.kind === 'navigate' ? 'Rời Studio' : 'Tiếp tục'} onClose={() => setPendingConfirmation(undefined)} onConfirm={confirmPendingAction} />
   </section>;
 }

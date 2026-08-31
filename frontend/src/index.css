@@ -1870,7 +1870,7 @@ a {
 .exercise-video-heading > div { min-width: 0; }
 .exercise-video-item { display: grid; gap: 12px; padding: 14px; border: 1px solid #d8e7ef; border-radius: 10px; background: #fff; }
 .exercise-video-wide { grid-column: 1 / -1; }
-.exercise-video-remove { min-height: 38px; justify-self: end; }
+.exercise-video-remove { min-height: 44px; justify-self: end; }
 .exercise-upload-state { min-height: 38px; padding: 9px 11px; border: 1px dashed #b8ceda; border-radius: 9px; background: #f7fafb; color: #526b7e; }
 
 @media (max-width: 639px) {
@@ -1964,6 +1964,10 @@ a {
 .workout-wizard-summary-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .workout-wizard-summary-heading strong { color: var(--primary-color); font-family: Oswald, sans-serif; font-size: 1rem; text-transform: uppercase; }
 .workout-wizard-summary-heading span { color: #526b7e; font-size: .74rem; font-weight: 750; }
+.workout-wizard-review { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.workout-wizard-review > div { padding: 11px 12px; border: 1px solid #dce8f0; border-radius: 10px; background: #fff; }
+.workout-wizard-review dt { color: #718391; font-size: .68rem; font-weight: 750; }
+.workout-wizard-review dd { margin: 4px 0 0; color: #16324a; font-size: .8rem; font-weight: 800; }
 .workout-wizard-error { min-height: 72px; place-items: start; align-content: center; padding: 14px 16px; text-align: left; }
 .workout-wizard-actions { padding: 14px 20px; border-top: 1px solid #dce8f0; }
 .workout-wizard-actions .button:disabled { cursor: wait; opacity: .62; }
@@ -1996,6 +2000,7 @@ a {
   .workout-ai-wizard { width: 100vw; max-height: 94dvh; border-radius: 20px 20px 0 0; }
   .workout-wizard-body { max-height: calc(94dvh - 164px); }
   .workout-wizard-progress { display: flex; overflow-x: auto; padding-bottom: 6px; }
+  .workout-wizard-review { grid-template-columns: 1fr; }
   .workout-customer-plan-toolbar { grid-template-columns: 1fr; }
   .workout-customer-plan-card { padding: 16px; }
   .workout-customer-plan-card-header { align-items: stretch; flex-direction: column; }
@@ -2004,11 +2009,12 @@ a {
 }
 
 /* Workout Studio responsive workspace */
-.workout-studio { display: grid; min-width: 0; gap: 16px; }
+.workout-studio { --studio-sticky-header-offset: 176px; display: grid; min-width: 0; gap: 16px; }
 .studio-view-tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid #dce8f0; border-radius: 12px; background: #edf5f8; }
 .studio-view-tabs [role="tab"] { min-height: 44px; flex: 1; border: 0; border-radius: 9px; background: transparent; color: #526b7e; font: inherit; font-size: .78rem; font-weight: 800; cursor: pointer; }
 .studio-view-tabs [role="tab"]:focus-visible { outline: 3px solid rgba(0, 156, 215, .3); outline-offset: 2px; }
 .studio-view-tabs [aria-selected="true"] { background: #fff; color: var(--primary-color); box-shadow: 0 2px 8px rgba(0, 59, 112, .1); }
+.studio-panel-close, .studio-panel-backdrop { display: none; }
 .studio-workspace { display: grid; min-width: 0; gap: 14px; }
 .studio-library-region, .studio-schedule-region, .studio-inspector-region { min-width: 0; border: 1px solid #dce8f0; border-radius: 14px; background: #fff; }
 
@@ -2018,10 +2024,12 @@ a {
 }
 
 @media (min-width: 640px) and (max-width: 1023px) {
-  .studio-view-tabs { width: min(100%, 430px); margin-left: auto; }
+  .studio-view-tabs { position: sticky; z-index: 50; top: 12px; width: min(100%, 430px); margin-left: auto; }
   .studio-workspace { grid-template-columns: minmax(0, 1fr); }
   .studio-library-region, .studio-inspector-region { display: none; position: fixed; z-index: 40; inset: 84px 0 0 auto; width: min(390px, 88vw); padding-bottom: env(safe-area-inset-bottom); overflow-y: auto; box-shadow: -18px 0 42px rgba(0, 34, 66, .18); }
   .studio-workspace > .is-mobile-active:not(.studio-schedule-region) { display: block; }
+  .studio-panel-backdrop { position: fixed; z-index: 35; inset: 0; display: block; width: 100%; border: 0; background: rgba(0, 34, 66, .28); cursor: default; }
+  .studio-panel-close { position: sticky; z-index: 2; top: 10px; display: grid; width: 44px; height: 44px; margin: 10px 10px 0 auto; place-items: center; border: 0; border-radius: 50%; background: var(--primary-color); color: #fff; font: inherit; font-size: 1.2rem; cursor: pointer; box-shadow: 0 8px 18px rgba(0, 34, 66, .2); }
 }
 
 @media (min-width: 1024px) {
@@ -2036,14 +2044,14 @@ a {
 /* Workout Studio controls */
 .studio-header { position: static; display: grid; gap: 14px; padding: 18px 20px; border: 1px solid #dce8f0; border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgba(0, 59, 112, .06); }
 .studio-header-command { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 12px; }
-.studio-back-button { display: inline-flex; min-height: 40px; align-items: center; gap: 6px; padding: 8px 11px; border: 1px solid #d3e1e9; border-radius: 9px; background: #fff; color: #526b7e; font: inherit; font-size: .75rem; font-weight: 800; cursor: pointer; }
+.studio-back-button { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; padding: 8px 11px; border: 1px solid #d3e1e9; border-radius: 9px; background: #fff; color: #526b7e; font: inherit; font-size: .75rem; font-weight: 800; cursor: pointer; }
 .studio-back-button:hover { border-color: #8dcce5; background: #f1faff; color: var(--primary-color); }
 .studio-header-title { min-width: 0; }
 .studio-header-title p { margin: 0; color: var(--secondary-color); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .studio-header-title h1 { margin: 2px 0 0; color: var(--primary-color); font-family: Oswald, sans-serif; font-size: 1.35rem; text-transform: uppercase; }
 .studio-header-fields { display: grid; grid-template-columns: 2fr 2fr 1fr 1fr; gap: 10px; padding-top: 14px; border-top: 1px solid #e5edf2; }
 .studio-header-fields label, .studio-metadata-grid label { display: grid; gap: 6px; color: #526b7e; font-size: .72rem; font-weight: 800; }
-.studio-header-fields :is(input, select), .studio-metadata-grid :is(input, textarea), .studio-palette :is(input, select) { width: 100%; min-height: 42px; border: 1px solid #cbdbe7; border-radius: 9px; background: #fff; color: #16324a; font: inherit; font-size: .78rem; outline: none; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+.studio-header-fields :is(input, select), .studio-metadata-grid :is(input, textarea), .studio-palette :is(input, select) { width: 100%; min-height: 44px; border: 1px solid #cbdbe7; border-radius: 9px; background: #fff; color: #16324a; font: inherit; font-size: .78rem; outline: none; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
 .studio-header-fields :is(input, select), .studio-metadata-grid :is(input, textarea) { padding: 9px 10px; }
 .studio-header-fields :is(input, select):focus-visible, .studio-metadata-grid :is(input, textarea):focus-visible, .studio-palette :is(input, select):focus-visible { border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(0, 156, 215, .14); }
 .studio-header-fields :is(input, select):disabled, .studio-metadata-grid :is(input, textarea):disabled { cursor: not-allowed; background: #eef3f6; color: #718391; }
@@ -2112,7 +2120,7 @@ a {
 .studio-exercise-badge.is-beginner { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
 .studio-exercise-badge.is-intermediate { border-color: #fde68a; background: #fffbeb; color: #92400e; }
 .studio-exercise-badge.is-advanced { border-color: #fecaca; background: #fff1f2; color: #9f1239; }
-.studio-add-button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 8px; background: #e6f7fd; color: var(--primary-color); cursor: pointer; }
+.studio-add-button { display: grid; width: 44px; height: 44px; place-items: center; border: 0; border-radius: 9px; background: #e6f7fd; color: var(--primary-color); cursor: pointer; }
 .studio-add-button:hover { background: var(--secondary-color); color: #fff; }
 .studio-add-button.is-danger { background: #fee2e2; color: #b42318; }
 .studio-add-button svg { width: 15px; height: 15px; }
@@ -2132,7 +2140,7 @@ a {
 
 @media (min-width: 1024px) {
   .studio-header { position: sticky; z-index: 20; top: 12px; }
-  .studio-palette { position: sticky; top: 12px; max-height: calc(100dvh - 24px); overflow: hidden; }
+  .studio-palette { position: sticky; top: var(--studio-sticky-header-offset); max-height: calc(100dvh - var(--studio-sticky-header-offset) - 12px); overflow: hidden; }
 }
 
 /* Workout Studio timeline and inspector */
@@ -2146,14 +2154,15 @@ a {
 .studio-hour-grid { position: absolute; inset: 0; display: grid; grid-template-rows: repeat(24, 80px) 1px; pointer-events: none; }
 .studio-hour { position: relative; right: auto; left: auto; height: auto; border-top: 1px solid #dbe7ee; color: #718391; font-size: .68rem; font-variant-numeric: tabular-nums; }
 .studio-hour span { position: absolute; top: 0; right: auto; left: 8px; width: 48px; color: inherit; text-align: right; transform: translateY(-50%); }
-.studio-scheduled-item { position: absolute; top: var(--studio-item-top); right: 10px; left: 68px; display: grid; height: var(--studio-item-height); align-content: start; gap: 3px; overflow: hidden; padding: 7px 10px; touch-action: none; border: 1px solid #86c7df; border-left: 4px solid var(--secondary-color); border-radius: 10px; background: #effaff; color: #16324a; font: inherit; text-align: left; cursor: grab; box-shadow: 0 5px 16px rgba(0, 59, 112, .08); }
-.studio-scheduled-item strong { overflow: hidden; font-size: .76rem; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.studio-scheduled-item span { font-size: .66rem; font-variant-numeric: tabular-nums; }
+.studio-scheduled-item { position: absolute; top: var(--studio-item-top); right: 10px; left: 68px; display: grid; height: var(--studio-item-height); overflow: visible; padding: 0; touch-action: none; border: 1px solid #86c7df; border-left: 4px solid var(--secondary-color); border-radius: 10px; background: #effaff; color: #16324a; font: inherit; text-align: left; cursor: grab; box-shadow: 0 5px 16px rgba(0, 59, 112, .08); }
+.studio-scheduled-content { position: absolute; inset: 0; display: grid; align-content: start; gap: 3px; overflow: hidden; padding: 7px 10px; border-radius: inherit; pointer-events: none; }
+.studio-scheduled-content strong { overflow: hidden; font-size: .76rem; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.studio-scheduled-content > span { font-size: .66rem; font-variant-numeric: tabular-nums; }
 .studio-scheduled-item.is-selected { border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(0, 164, 228, .18), 0 10px 22px rgba(0, 59, 112, .12); }
 .studio-scheduled-item.is-preview { opacity: .62; }
 .studio-scheduled-item.is-preview.is-valid { border-color: #22c55e; }
 .studio-scheduled-item.is-preview.is-invalid { border-color: #ef4444; }
-.studio-resize-handle { position: absolute; right: 0; bottom: 0; left: 0; min-height: 12px; cursor: ns-resize; }
+.studio-resize-handle { position: absolute; z-index: 2; right: 0; bottom: 0; left: 0; min-height: 12px; cursor: ns-resize; }
 .studio-resize-handle::after { position: absolute; right: 12px; bottom: 4px; left: 12px; height: 2px; border-radius: 999px; background: #77b9d2; content: ""; }
 
 .studio-sidebar { position: static; display: grid; gap: 12px; max-height: none; padding: 14px; overflow: visible; }
@@ -2180,14 +2189,16 @@ a {
 .studio-inspector-empty p { margin: 0; color: #718391; font-size: .72rem; line-height: 1.55; }
 .studio-unscheduled { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #e3edf3; }
 .studio-unscheduled-item { min-height: 44px; padding: 10px 12px; border: 1px dashed #b8ceda; border-radius: 9px; background: #f8fbfc; }
-.studio-inspector-close { position: fixed; z-index: 45; top: 92px; right: 14px; display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 50%; background: var(--primary-color); color: #fff; font: inherit; font-size: 1.15rem; cursor: pointer; box-shadow: 0 8px 18px rgba(0, 34, 66, .24); }
+.studio-selection-clear { position: fixed; z-index: 45; top: 92px; right: 14px; display: grid; width: 44px; height: 44px; place-items: center; border: 0; border-radius: 50%; background: var(--primary-color); color: #fff; font: inherit; font-size: 1.15rem; cursor: pointer; box-shadow: 0 8px 18px rgba(0, 34, 66, .24); }
 
 @media (max-width: 1023px) {
   .studio-inspector-region, .studio-library-region { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   .workout-studio .studio-inspector { position: static; inset: auto; z-index: auto; display: grid; max-height: none; overflow: visible; box-shadow: none; }
+  .studio-scheduled-item::before { position: absolute; top: 50%; right: -4px; left: -4px; height: max(44px, var(--studio-item-height)); transform: translateY(-50%); content: ""; }
 }
 
 @media (min-width: 1024px) {
-  .studio-sidebar { position: sticky; top: 12px; max-height: calc(100dvh - 24px); overflow-y: auto; }
-  .studio-inspector-close { display: none; }
+  .studio-timeline-header { top: var(--studio-sticky-header-offset); }
+  .studio-sidebar { position: sticky; top: var(--studio-sticky-header-offset); max-height: calc(100dvh - var(--studio-sticky-header-offset) - 12px); overflow-y: auto; }
+  .studio-selection-clear { display: none; }
 }
