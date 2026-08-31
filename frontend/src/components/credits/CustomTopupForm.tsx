@@ -20,7 +20,7 @@ export default function CustomTopupForm({
           checked={selected}
           onChange={onSelect}
         />
-        <span>Nhập số tiền nạp tùy chọn</span>
+        <span>Số tiền tùy chọn</span>
       </label>
       <p className="hint">
         Tối thiểu 10.000đ, tối đa 50.000.000đ (bội số của 1.000đ).
