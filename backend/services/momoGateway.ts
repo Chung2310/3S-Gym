@@ -13,6 +13,8 @@ function configuration(env: AppEnv): MomoConfig | null {
   return env as AppEnv & MomoConfig;
 }
 
+export function isMomoConfigured(env: AppEnv = getEnv()) { return configuration(env) !== null; }
+
 function hmac(raw: string, secret: string) { return createHmac('sha256', secret).update(raw).digest('hex'); }
 function equalHex(actual: string, expected: string) {
   if (!/^[a-f\d]+$/i.test(actual) || !/^[a-f\d]+$/i.test(expected)) return false;

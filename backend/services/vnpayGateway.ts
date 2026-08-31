@@ -10,6 +10,8 @@ function configuration(env: AppEnv): VnpayConfig | null {
   return env as AppEnv & VnpayConfig;
 }
 
+export function isVnpayConfigured(env: AppEnv = getEnv()) { return configuration(env) !== null; }
+
 function formatVnpayDate(date: Date) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',

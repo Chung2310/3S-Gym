@@ -45,8 +45,10 @@ const paymentOrderSchema = new Schema<IPaymentOrder>({
   grantIdempotencyKey: { type: String, required: true, unique: true, trim: true },
 }, { timestamps: true });
 
-paymentOrderSchema.index({ gateway: 1, gatewayTransactionId: 1 }, { unique: true, sparse: true });
+paymentOrderSchema.index(
+  { gateway: 1, gatewayTransactionId: 1 },
+  { unique: true, partialFilterExpression: { gatewayTransactionId: { $type: 'string' } } },
+);
 paymentOrderSchema.index({ userId: 1, createdAt: -1 });
 
 export default mongoose.model<IPaymentOrder>('PaymentOrder', paymentOrderSchema);
-
