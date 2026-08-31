@@ -27,6 +27,8 @@ it('adds an exercise to a proportional day timeline and prevents overlap', async
   await user.click(within(views).getByRole('tab', { name: 'Lịch tập' }));
   const exercise = await screen.findByRole('button', { name: 'Thêm bài Squat' });
   await user.click(exercise);
+  expect(screen.getByRole('complementary', { name: 'Thuộc tính bài tập đã chọn' })).toHaveClass('studio-inspector');
+  expect(screen.getByRole('button', { name: 'Bỏ khỏi lịch' })).toHaveClass('studio-inspector-danger');
   expect(screen.getByLabelText('Ngày của bài tập')).toBeVisible();
   expect(screen.getByLabelText('Giờ bắt đầu')).toBeVisible();
   expect(screen.getByLabelText('Thời lượng bài tập')).toBeVisible();
@@ -34,14 +36,14 @@ it('adds an exercise to a proportional day timeline and prevents overlap', async
     expect(screen.queryByLabelText(label)).not.toBeInTheDocument();
   }
   expect(screen.getByText('Chưa lưu')).toBeVisible();
-  expect(screen.getByRole('button', { name: /Squat.*08:00–09:00/ })).toHaveStyle({ top: '640px', height: '80px' });
+  expect(screen.getByRole('button', { name: /Squat.*08:00–09:00/ })).toHaveStyle('--studio-item-top: 640px; --studio-item-height: 80px');
   await user.click(exercise);
   expect(screen.getAllByRole('button', { name: /Squat.*08:00–09:00/ })).toHaveLength(1);
   fireEvent.change(screen.getByLabelText('Thời lượng bài tập'), { target: { value: '30' } });
-  expect(screen.getByRole('button', { name: /Squat.*08:00–08:30/ })).toHaveStyle({ height: '40px' });
+  expect(screen.getByRole('button', { name: /Squat.*08:00–08:30/ })).toHaveStyle('--studio-item-height: 40px');
   await user.type(screen.getByLabelText('Tìm bài tập'), 'row');
   await user.click(screen.getByRole('button', { name: 'Tăng thời lượng 15 phút' }));
-  expect(screen.getByRole('button', { name: /Squat.*08:00.*08:45/ })).toHaveStyle({ height: '60px' });
+  expect(screen.getByRole('button', { name: /Squat.*08:00.*08:45/ })).toHaveStyle('--studio-item-height: 60px');
   await user.click(screen.getByRole('button', { name: 'Giảm thời lượng 15 phút' }));
   expect(screen.queryByRole('button', { name: 'Thêm bài Squat' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Thêm bài Barbell Row' })).toBeVisible();

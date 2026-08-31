@@ -28,6 +28,11 @@ const workoutStudioControlSources = [
   'frontend/src/components/workout-studio/StudioDayNavigator.tsx',
   'frontend/src/components/workout-studio/ExercisePalette.tsx',
 ].map((path) => readFileSync(path, 'utf8')).join('\n');
+const studioTimeline = readFileSync('frontend/src/components/workout-studio/DayTimeline.tsx', 'utf8');
+const studioInspectorSources = [
+  'frontend/src/components/workout-studio/ExerciseInspector.tsx',
+  'frontend/src/components/workout-studio/StudioSidebar.tsx',
+].map((path) => readFileSync(path, 'utf8')).join('\n');
 
 describe('index CSS redesign contract', () => {
   it('defines the shared module foundation and approved breakpoints', () => {
@@ -72,5 +77,14 @@ describe('index CSS redesign contract', () => {
     expect(workoutStudioControlSources).not.toMatch(/style=\{\{/);
     expect(workoutStudioControlSources).not.toMatch(/(?:sm:|md:|lg:|xl:|min-\[|!gap|!grid|rounded-|bg-|text-slate-|border-slate-|shadow-\[|["'`\s](?:flex|grid|gap-\d+|p-\d+|px-\d+|py-\d+)(?=["'`\s]))/);
     for (const selector of ['.studio-header', '.studio-save-state', '.studio-metadata', '.studio-period-navigation', '.studio-palette', '.studio-exercise-option']) expect(css).toContain(selector);
+  });
+
+  it('uses typed data-only positioning and semantic timeline controls', () => {
+    expect(studioTimeline).toContain("'--studio-item-top'");
+    expect(studioTimeline).toContain("'--studio-item-height'");
+    expect(studioTimeline).not.toContain('style={{ top:');
+    expect(`${studioTimeline}\n${studioInspectorSources}`).not.toMatch(/style=\{\{\s*(?:top|height|background|color|padding)/);
+    expect(`${studioTimeline}\n${studioInspectorSources}`).not.toMatch(/(?:rounded-|bg-|text-slate-|border-slate-|shadow-\[|sm:|md:|lg:|xl:|min-\[|max-\[|!block)/);
+    for (const selector of ['.studio-hour-grid', '.studio-scheduled-item', '.studio-sidebar', '.studio-inspector-duration', '.studio-inspector-danger']) expect(css).toContain(selector);
   });
 });
