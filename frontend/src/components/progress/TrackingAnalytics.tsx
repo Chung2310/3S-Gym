@@ -25,8 +25,9 @@ const pace = (seconds: number | null) => {
   return `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')} /km`;
 };
 
-export default function TrackingAnalytics({ analytics }: { analytics: TrackingAnalyticsDto }) {
+export default function TrackingAnalytics({ analytics }: { analytics?: TrackingAnalyticsDto }) {
   const titleId = useId();
+  if (!analytics) return null;
   const sections: TrackingSection[] = [
     {
       key: 'strength',
