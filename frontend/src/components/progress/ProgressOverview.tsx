@@ -1,2 +1,28 @@
+import { AlertTriangle } from 'lucide-react';
 import type { JourneyAnalytics } from '../../types';
-export default function ProgressOverview({ analytics }: { analytics: JourneyAnalytics }) { const cards = [['Tỷ lệ tham gia', analytics.attendance.rate === null ? '—' : `${analytics.attendance.rate}%`], ['Tổng volume', `${analytics.totalVolume.toLocaleString('vi-VN')} kg`], ['RPE trung bình', analytics.averageRpe ?? '—'], ['Chuỗi tập', `${analytics.streakWeeks} tuần`]]; return <section className="space-y-4"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label,value]) => <article className="rounded-xl border border-slate-200 bg-white p-4" key={label}><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p><p className="mt-2 font-oswald text-3xl font-bold text-primary">{value}</p></article>)}</div>{analytics.dataQuality.reasons.map((reason) => <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" key={reason}>{reason}</p>)}</section>; }
+import ProgressSection from './ProgressSection';
+import ProgressSnapshot from './ProgressSnapshot';
+
+export default function ProgressOverview({ analytics }: { analytics: JourneyAnalytics }) {
+  return (
+    <div className="space-y-4">
+      <ProgressSnapshot analytics={analytics} />
+      {analytics.dataQuality.reasons.length > 0 && (
+        <ProgressSection
+          title="Chất lượng dữ liệu"
+          description="Các lưu ý cần xử lý để báo cáo tiến độ chính xác hơn."
+          count={analytics.dataQuality.reasons.length}
+        >
+          <ul className="space-y-2">
+            {analytics.dataQuality.reasons.map((reason) => (
+              <li className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950" key={reason}>
+                <AlertTriangle className="mt-0.5 shrink-0" size={17} aria-hidden="true" />
+                <span>{reason}</span>
+              </li>
+            ))}
+          </ul>
+        </ProgressSection>
+      )}
+    </div>
+  );
+}

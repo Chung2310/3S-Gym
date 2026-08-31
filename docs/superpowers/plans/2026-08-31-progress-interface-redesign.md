@@ -284,7 +284,7 @@ git commit -m "feat: redesign PT progress workspace"
 - Consumes: `ProgressSection` and `ProgressEmptyState` from Task 1.
 - Produces: the same exported component props and the same API calls/payloads as before.
 
-- [ ] **Step 1: Add focused accessibility assertions**
+- [x] **Step 1: Add focused accessibility assertions**
 
 Add assertions only where markup contracts change: named sections for overview/charts/reports, explicit empty-state heading for missing plan/achievements, and labelled form regions. Do not assert raw Tailwind class strings.
 
@@ -293,7 +293,7 @@ expect(screen.getByRole('region', { name: 'Biểu đồ tiến độ' })).toBeVi
 expect(screen.getByRole('heading', { name: 'Chưa có giáo án đang áp dụng' })).toBeVisible();
 ```
 
-- [ ] **Step 2: Run the existing PT component suite and confirm RED for new assertions**
+- [x] **Step 2: Run the existing PT component suite and confirm RED for new assertions**
 
 ```powershell
 npx vitest run frontend/tests/components/progress
@@ -301,7 +301,7 @@ npx vitest run frontend/tests/components/progress
 
 Expected: existing behavior tests pass; newly added semantic assertions fail.
 
-- [ ] **Step 3: Replace legacy presentation with shared sections**
+- [x] **Step 3: Replace legacy presentation with shared sections**
 
 Keep all handlers and payload construction unchanged. Replace legacy `button`, `panel`, generic nested cards, and inconsistent headings in the seven active components with static Tailwind utilities and Task 1 primitives. Reformat one-line JSX into readable blocks. Every modified input/textarea retains an explicit placeholder or accessible label.
 
@@ -314,7 +314,7 @@ Keep all handlers and payload construction unchanged. Replace legacy `button`, `
 </ProgressSection>
 ```
 
-- [ ] **Step 4: Verify no inline style or legacy panel classes remain in active PT files**
+- [x] **Step 4: Verify no inline style or legacy panel classes remain in active PT files**
 
 ```powershell
 rg -n "style=|className=\"(?:panel|field|button )" frontend/src/pages/pt/ProgressPage.tsx frontend/src/components/progress/PtProgressWorkspace.tsx frontend/src/components/progress/ProgressOverview.tsx frontend/src/components/progress/WorkoutSessionLogger.tsx frontend/src/components/progress/WorkoutSessionDetail.tsx frontend/src/components/progress/MeasurementForm.tsx frontend/src/components/progress/ProgressCharts.tsx frontend/src/components/progress/AchievementList.tsx frontend/src/components/progress/ProgressReportGenerator.tsx
@@ -322,13 +322,13 @@ rg -n "style=|className=\"(?:panel|field|button )" frontend/src/pages/pt/Progres
 
 Expected: no matches.
 
-- [ ] **Step 5: Run the full focused PT component suite**
+- [x] **Step 5: Run the full focused PT component suite**
 
 Run the command from Step 2.
 
 Expected: all files under `frontend/tests/components/progress` pass.
 
-- [ ] **Step 6: Commit PT tab presentation**
+- [x] **Step 6: Commit PT tab presentation**
 
 ```powershell
 git add frontend/src/components/progress frontend/tests/components/progress

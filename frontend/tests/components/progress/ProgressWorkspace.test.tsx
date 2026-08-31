@@ -15,7 +15,11 @@ it('provides all seven PT progress areas', async () => {
   expect(screen.getByRole('heading', { name: 'Dữ liệu hành trình' })).toBeVisible();
   for (const name of ['Tổng quan', 'Buổi tập', 'Chỉ số cơ thể', 'Thành tích', 'Ảnh tiến độ', 'Giáo án', 'Báo cáo']) expect(screen.getByRole('tab', { name })).toBeVisible();
   await user.click(screen.getByRole('tab', { name: 'Báo cáo' }));
+  expect(screen.getByRole('region', { name: 'Báo cáo tiến độ' })).toBeVisible();
   expect(screen.getByRole('button', { name: 'Tạo báo cáo tự động' })).toBeVisible();
+
+  await user.click(screen.getByRole('tab', { name: 'Thành tích' }));
+  expect(screen.getByRole('heading', { name: 'Chưa có thành tích' })).toBeVisible();
 });
 
 it('moves directly to measurement and report workflows from quick actions', async () => {
