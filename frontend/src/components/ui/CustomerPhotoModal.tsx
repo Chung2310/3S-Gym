@@ -355,55 +355,63 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
   if (!open || !customer) return null;
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="photo-modal-title">
-      <div className="modal-content" style={{ maxWidth: '1000px', width: '96%', maxHeight: '94vh', display: 'flex', flexDirection: 'column', background: '#ffffff', color: '#0f172a', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 38, 77, 0.45)' }}>
+    <div className="modal-backdrop photo-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="photo-modal-title">
+      <div className="modal-content photo-modal-box" style={{ maxWidth: '1020px', width: '96%', maxHeight: '94vh', display: 'flex', flexDirection: 'column', background: '#ffffff', color: '#0f172a', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0, 38, 77, 0.45)', overflow: 'hidden' }}>
         {/* Header */}
-        <div className="modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
-          <div>
-            <h2 id="photo-modal-title" style={{ fontSize: '1.25rem', fontWeight: 700, color: '#003b70', margin: 0 }}>
-              Ảnh Before / After: {customer.fullName}
-            </h2>
-            <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#475569' }}>
-              Theo dõi sự thay đổi vóc dáng qua các giai đoạn và đối chiếu ảnh trực quan đa góc độ.
-            </p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>
-              <button
-                type="button"
-                className={`button ${activeTab === 'gallery' ? 'button-primary' : 'button-ghost'}`}
-                style={{ padding: '6px 14px', fontSize: '0.84rem' }}
-                onClick={() => setActiveTab('gallery')}
-              >
-                <ImageIcon size={15} style={{ marginRight: '6px' }} /> Thư viện ảnh ({items.length})
-              </button>
-              <button
-                type="button"
-                className={`button ${activeTab === 'compare' ? 'button-primary' : 'button-ghost'}`}
-                style={{ padding: '6px 14px', fontSize: '0.84rem' }}
-                onClick={() => setActiveTab('compare')}
-              >
-                <Sliders size={15} style={{ marginRight: '6px' }} /> So sánh Before / After
-              </button>
+        <div className="modal-header photo-modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Top Title & Close Row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Camera size={16} style={{ color: '#0284c7' }} />
+                </div>
+                <h2 id="photo-modal-title" style={{ fontSize: '1.15rem', fontWeight: 800, color: '#003b70', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Ảnh Before / After: {customer.fullName}
+                </h2>
+              </div>
+              <p className="photo-modal-subtitle" style={{ margin: '3px 0 0 36px', fontSize: '0.8rem', color: '#64748b' }}>
+                Theo dõi tiến độ vóc dáng & đối chiếu ảnh trực quan đa góc độ
+              </p>
             </div>
-            <button type="button" className="icon-button" onClick={onClose} aria-label="Đóng">
-              <X size={20} />
+            <button type="button" className="icon-button" onClick={onClose} aria-label="Đóng" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f1f5f9', flexShrink: 0 }}>
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Tab Switcher Row */}
+          <div className="photo-tab-switcher" style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '10px', width: '100%', maxWidth: '440px' }}>
+            <button
+              type="button"
+              className={`button ${activeTab === 'gallery' ? 'button-primary' : 'button-ghost'}`}
+              style={{ flex: 1, padding: '7px 12px', fontSize: '0.82rem', justifyContent: 'center' }}
+              onClick={() => setActiveTab('gallery')}
+            >
+              <ImageIcon size={15} style={{ marginRight: '6px' }} /> Thư viện ảnh ({items.length})
+            </button>
+            <button
+              type="button"
+              className={`button ${activeTab === 'compare' ? 'button-primary' : 'button-ghost'}`}
+              style={{ flex: 1, padding: '7px 12px', fontSize: '0.82rem', justifyContent: 'center' }}
+              onClick={() => setActiveTab('compare')}
+            >
+              <Sliders size={15} style={{ marginRight: '6px' }} /> So sánh Before / After
             </button>
           </div>
         </div>
 
         {/* Body Content */}
-        <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+        <div className="photo-modal-body" style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
           {activeTab === 'gallery' && (
             <div>
               {/* Top Filter & Upload Button */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="photo-gallery-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: 'auto' }}>
                   <select
                     className="filter-select"
                     value={stageFilter}
                     onChange={(e) => setStageFilter(e.target.value)}
-                    style={{ minWidth: '160px' }}
+                    style={{ minWidth: '150px' }}
                     aria-label="Lọc theo giai đoạn"
                   >
                     <option value="">Tất cả giai đoạn</option>
@@ -413,7 +421,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                   </select>
                 </div>
                 {!showUploadForm && (
-                  <button type="button" className="button button-primary" onClick={() => setShowUploadForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <button type="button" className="button button-primary photo-upload-btn" onClick={() => setShowUploadForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Plus size={16} /> Tải nhiều ảnh mới
                   </button>
                 )}
@@ -815,26 +823,27 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
             <div>
               {/* Compare Mode Header & Mode Switcher */}
               <div
+                className="photo-compare-toolbar"
                 style={{
                   background: '#f8fafc',
                   border: '1px solid #e2e8f0',
                   borderRadius: '12px',
-                  padding: '14px 18px',
-                  marginBottom: '18px',
+                  padding: '12px 16px',
+                  marginBottom: '16px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
-                  gap: '12px',
+                  gap: '10px',
                 }}
               >
                 {/* View Mode Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#003b70', marginRight: '4px' }}>Chế độ xem:</span>
+                <div className="photo-compare-modes" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#003b70', marginRight: '4px' }}>Chế độ xem:</span>
                   <button
                     type="button"
                     className={`button ${compareViewType === 'sideBySide' ? 'button-primary' : 'button-ghost'}`}
-                    style={{ padding: '5px 12px', fontSize: '0.82rem' }}
+                    style={{ padding: '5px 10px', fontSize: '0.8rem' }}
                     onClick={() => setCompareViewType('sideBySide')}
                   >
                     Song song (2 cột)
@@ -842,7 +851,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                   <button
                     type="button"
                     className={`button ${compareViewType === 'slider' ? 'button-primary' : 'button-ghost'}`}
-                    style={{ padding: '5px 12px', fontSize: '0.82rem' }}
+                    style={{ padding: '5px 10px', fontSize: '0.8rem' }}
                     onClick={() => setCompareViewType('slider')}
                   >
                     Thanh trượt lồng nhau
@@ -850,7 +859,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                   <button
                     type="button"
                     className={`button ${compareViewType === 'multiAngle' ? 'button-primary' : 'button-ghost'}`}
-                    style={{ padding: '5px 12px', fontSize: '0.82rem' }}
+                    style={{ padding: '5px 10px', fontSize: '0.8rem' }}
                     onClick={() => setCompareViewType('multiAngle')}
                   >
                     Trọn bộ 3 góc (360°)
@@ -858,7 +867,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                   <button
                     type="button"
                     className={`button ${compareViewType === 'timeline' ? 'button-primary' : 'button-ghost'}`}
-                    style={{ padding: '5px 12px', fontSize: '0.82rem' }}
+                    style={{ padding: '5px 10px', fontSize: '0.8rem' }}
                     onClick={() => setCompareViewType('timeline')}
                   >
                     Dòng thời gian ({items.length})
@@ -867,7 +876,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
 
                 {/* Quick actions: Angle Filter & Auto-Pair */}
                 {(compareViewType === 'sideBySide' || compareViewType === 'slider') && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div className="photo-compare-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <select
                       className="filter-select"
                       value={compareAngle}
@@ -891,7 +900,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                       onClick={() => autoPairPhotos()}
                       title="Tự động chọn ảnh đầu tiên và ảnh mới nhất"
                     >
-                      ⚡ Tự ghép Before & After
+                      ⚡ Ghép tự động
                     </button>
 
                     <button
@@ -910,10 +919,11 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
               {/* Selectors Bar for both Side-by-Side and Slider views */}
               {(compareViewType === 'sideBySide' || compareViewType === 'slider') && (
                 <div
+                  className="photo-compare-selectors"
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '16px',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '12px',
                     marginBottom: '16px',
                   }}
                 >
@@ -969,17 +979,18 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       {/* Delta Stats Badge */}
                       <div
+                        className="photo-compare-delta-badge"
                         style={{
                           background: '#f8fafc',
                           border: '1px solid #cbd5e1',
                           borderRadius: '10px',
-                          padding: '12px 18px',
+                          padding: '10px 16px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-around',
-                          fontSize: '0.9rem',
+                          fontSize: '0.88rem',
                           flexWrap: 'wrap',
-                          gap: '10px',
+                          gap: '8px',
                         }}
                       >
                         <div>
@@ -996,30 +1007,30 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                             style={{
                               background: selectedAfter.weight <= selectedBefore.weight ? '#16a34a' : '#ea580c',
                               color: '#fff',
-                              padding: '3px 12px',
+                              padding: '2px 10px',
                               borderRadius: '20px',
                               fontWeight: 700,
-                              fontSize: '0.84rem',
+                              fontSize: '0.8rem',
                             }}
                           >
                             Thay đổi: {(selectedAfter.weight - selectedBefore.weight).toFixed(1)} kg
                           </div>
                         )}
                         {selectedBefore.takenDate && selectedAfter.takenDate && (
-                          <span style={{ color: '#64748b', fontSize: '0.82rem' }}>
+                          <span style={{ color: '#64748b', fontSize: '0.8rem' }}>
                             Khoảng cách: {Math.max(0, Math.round((new Date(selectedAfter.takenDate).getTime() - new Date(selectedBefore.takenDate).getTime()) / (1000 * 3600 * 24)))} ngày
                           </span>
                         )}
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div className="photo-compare-side-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                         {/* Before Card */}
                         <div style={{ border: '2px solid #0284c7', borderRadius: '12px', overflow: 'hidden', background: '#0f172a' }}>
-                          <div style={{ background: '#0284c7', color: '#fff', padding: '8px 14px', fontWeight: 700, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ background: '#0284c7', color: '#fff', padding: '8px 14px', fontWeight: 700, fontSize: '0.86rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>TRƯỚC (BEFORE) • {ANGLE_LABELS[selectedBefore.angle] || selectedBefore.angle}</span>
                             <span>{new Date(selectedBefore.takenDate).toLocaleDateString('vi-VN')}</span>
                           </div>
-                          <div style={{ height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setZoomPhoto(selectedBefore)}>
+                          <div className="photo-compare-img-box" style={{ height: '380px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setZoomPhoto(selectedBefore)}>
                             <img src={selectedBefore.photoUrl} alt="Before" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                           </div>
                           <div style={{ background: '#ffffff', padding: '10px 14px', fontSize: '0.84rem' }}>
@@ -1030,11 +1041,11 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
 
                         {/* After Card */}
                         <div style={{ border: '2px solid #16a34a', borderRadius: '12px', overflow: 'hidden', background: '#0f172a' }}>
-                          <div style={{ background: '#16a34a', color: '#fff', padding: '8px 14px', fontWeight: 700, fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ background: '#16a34a', color: '#fff', padding: '8px 14px', fontWeight: 700, fontSize: '0.86rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>SAU (AFTER) • {ANGLE_LABELS[selectedAfter.angle] || selectedAfter.angle}</span>
                             <span>{new Date(selectedAfter.takenDate).toLocaleDateString('vi-VN')}</span>
                           </div>
-                          <div style={{ height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setZoomPhoto(selectedAfter)}>
+                          <div className="photo-compare-img-box" style={{ height: '380px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => setZoomPhoto(selectedAfter)}>
                             <img src={selectedAfter.photoUrl} alt="After" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                           </div>
                           <div style={{ background: '#ffffff', padding: '10px 14px', fontSize: '0.84rem' }}>
@@ -1045,9 +1056,9 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                       </div>
                     </div>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '50px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-                      <Sliders size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
-                      <h4 style={{ margin: '0 0 6px', color: '#334155' }}>Vui lòng chọn 2 ảnh để so sánh</h4>
+                    <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                      <Sliders size={32} style={{ color: '#94a3b8', margin: '0 auto 10px' }} />
+                      <h4 style={{ margin: '0 0 4px', color: '#334155' }}>Vui lòng chọn 2 ảnh để so sánh</h4>
                       <p style={{ margin: 0, fontSize: '0.86rem', color: '#64748b' }}>
                         Chọn 1 ảnh ở giai đoạn Trước (Before) và 1 ảnh ở giai đoạn Sau (After) để thấy sự khác biệt.
                       </p>

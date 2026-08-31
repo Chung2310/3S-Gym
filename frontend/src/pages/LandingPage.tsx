@@ -11,32 +11,39 @@ import {
   ChevronDown,
   Camera
 } from 'lucide-react';
+import SeoHead from '../components/SeoHead';
 
 const LandingPage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   const bannerImages = [
     { 
       src: '/images/banner_reception.jpg', 
+      alt: 'Sảnh tiếp đón phòng tập 3S Gym cao cấp tại Bắc Ninh',
       tag: 'TỔ HỢP THỂ THAO CAO CẤP 3S BẮC NINH',
       title: 'BUILD YOUR BODY STRONG', 
       subtitle: 'GYM - YOGA - ZUMBA - KICKFIT & Giãn Cơ Trị Liệu Tại Tầng 5 Tòa VNPT - 33 Lý Thái Tổ' 
     },
     { 
       src: '/images/banner_yoga1.jpg', 
+      alt: 'Lớp Yoga trị liệu chuyên sâu cùng Master Ấn Độ tại 3S Gym Bắc Ninh',
       tag: 'YOGA CHUYÊN SÂU & GIÃN CƠ TRỊ LIỆU',
       title: 'RECOVER & BALANCE YOUR MIND', 
       subtitle: 'Cân Bằng Thân - Tâm - Trí, Đỉnh Cao Phục Hồi Năng Lượng Cùng Master Ấn Độ' 
     },
     { 
       src: '/images/banner_yoga2.jpg', 
+      alt: 'Lớp Zumba Dance đốt calo sôi động tại 3S Gym Bắc Ninh',
       tag: 'ZUMBA DANCE & KICKFIT CHUYÊN NGHIỆP',
       title: 'BURN CALORIES & BE FIT', 
       subtitle: 'Đốt Cháy 800+ Calo Sảng Khoái Theo Vũ Điệu Âm Nhạc & Khả Năng Tự Vệ Đỉnh Cao' 
     },
     { 
       src: '/images/banner_yoga3.jpg', 
+      alt: 'Huấn luyện viên PT cá nhân hướng dẫn tập kháng lực tại 3S Gym Bắc Ninh',
       tag: 'TẬP LUYỆN KHÁNG LỰC VỚI PT CHUYÊN SÂU',
       title: 'TRANSFORM YOUR BODY TODAY', 
       subtitle: 'Giáo Án Cá Nhân Hóa Chuẩn Y Khoa - Đội Ngũ HLV PT Đồng Hành 1-On-1' 
@@ -76,6 +83,27 @@ const LandingPage = () => {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % bannerImages.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + bannerImages.length) % bannerImages.length);
 
+  // Xử lý vuốt màn hình cảm ứng trên điện thoại (Touch Swipe)
+  const minSwipeDistance = 45;
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe) {
+      nextSlide();
+    } else if (isRightSwipe) {
+      prevSlide();
+    }
+  };
+
   const toggleFaq = (idx: number) => {
     setActiveFaq(activeFaq === idx ? null : idx);
   };
@@ -104,12 +132,12 @@ const LandingPage = () => {
   ];
 
   const galleryImages = [
-    { src: '/images/banner_reception.jpg', title: 'Sảnh Lễ Tân & Đón Tiếp Sang Trọng', tag: 'Khu Vực Tiếp Đón', delay: 'delay-100' },
-    { src: '/images/banner_yoga1.jpg', title: 'Lớp Yoga Trị Liệu & Phục Hồi Thân - Tâm', tag: 'Yoga Master', delay: 'delay-200' },
-    { src: '/images/login_bg.jpg', title: 'Tập Luyện Kickfit & Đối Kháng Chuyên Nghiệp', tag: 'Kickfit / Boxing', delay: 'delay-300' },
-    { src: '/images/banner_yoga2.jpg', title: 'Luyện Tập Dẻo Dai & Tăng Độ Linh Hoạt', tag: 'Giãn Cơ Trị Liệu', delay: 'delay-100' },
-    { src: '/images/banner_yoga3.jpg', title: 'Lớp GroupX & Vũ Điệu Zumba Sôi Động', tag: 'Zumba Cardio', delay: 'delay-200' },
-    { src: '/images/gym_pt_instruction.jpg', title: 'HLV PT 3S Gym Đồng Hành Hướng Dẫn Tập Luyện 1-On-1', tag: 'Gym & PT 1-1', delay: 'delay-300' }
+    { src: '/images/banner_reception.jpg', alt: 'Sảnh lễ tân phòng tập 3S Gym Bắc Ninh tiếp đón hội viên', title: 'Sảnh Lễ Tân & Đón Tiếp Sang Trọng', tag: 'Khu Vực Tiếp Đón', delay: 'delay-100' },
+    { src: '/images/banner_yoga1.jpg', alt: 'Lớp Yoga trị liệu phục hồi cột sống tại 3S Gym Bắc Ninh', title: 'Lớp Yoga Trị Liệu & Phục Hồi Thân - Tâm', tag: 'Yoga Master', delay: 'delay-200' },
+    { src: '/images/login_bg.jpg', alt: 'Lớp Kickfit Boxing đối kháng chuyên nghiệp tại 3S Gym Bắc Ninh', title: 'Tập Luyện Kickfit & Đối Kháng Chuyên Nghiệp', tag: 'Kickfit / Boxing', delay: 'delay-300' },
+    { src: '/images/banner_yoga2.jpg', alt: 'Bài tập giãn cơ trị liệu tăng độ dẻo dai tại 3S Gym Bắc Ninh', title: 'Luyện Tập Dẻo Dai & Tăng Độ Linh Hoạt', tag: 'Giãn Cơ Trị Liệu', delay: 'delay-100' },
+    { src: '/images/banner_yoga3.jpg', alt: 'Lớp Zumba Cardio vũ điệu sôi động đốt mỡ tại 3S Gym Bắc Ninh', title: 'Lớp GroupX & Vũ Điệu Zumba Sôi Động', tag: 'Zumba Cardio', delay: 'delay-200' },
+    { src: '/images/gym_pt_instruction.jpg', alt: 'HLV PT 3S Gym hướng dẫn hội viên tập luyện cá nhân 1-on-1', title: 'HLV PT 3S Gym Đồng Hành Hướng Dẫn Tập Luyện 1-On-1', tag: 'Gym & PT 1-1', delay: 'delay-300' }
   ];
 
   const workflowSteps = [
@@ -135,14 +163,35 @@ const LandingPage = () => {
     {
       q: 'Giờ mở cửa của phòng tập 3S Gym như thế nào?',
       a: 'Phòng Gym mở cửa đón hội viên từ 05:30 sáng đến 21:00 tối tất cả các ngày trong tuần (kể cả Thứ 7 & Chủ Nhật).'
+    },
+    {
+      q: '3S Gym có dịch vụ PT cá nhân không?',
+      a: 'Có! 3S Gym sở hữu đội ngũ Huấn luyện viên cá nhân (PT) được đào tạo chuẩn quốc tế, đồng hành 1-on-1 với giáo án cá nhân hóa dựa trên phân tích chỉ số InBody và mục tiêu riêng của từng hội viên.'
+    },
+    {
+      q: '3S Gym có lớp Yoga cho người mới bắt đầu không?',
+      a: '3S Gym cung cấp lớp Yoga Therapy nhiều cấp độ từ cơ bản đến nâng cao, do Master đến từ Ấn Độ trực tiếp hướng dẫn. Lớp Yoga cơ bản phù hợp cho người mới, tập trung giãn cơ trị liệu và cân bằng Thân - Tâm - Trí.'
+    },
+    {
+      q: 'Phòng tập 3S Gym Bắc Ninh có gì khác biệt so với các phòng gym khác?',
+      a: '3S Gym là tổ hợp thể thao cao cấp duy nhất tại Bắc Ninh tích hợp 4 bộ môn: Gym, Yoga, Zumba và Kickfit trong cùng một không gian. 100% máy móc nhập khẩu chuẩn quốc tế, hệ thống AI phân tích chỉ số InBody và giáo án dinh dưỡng cá nhân hóa cho từng hội viên.'
     }
   ];
 
   return (
     <div className="landing-page" style={{ overflowX: 'hidden', background: '#f8fafc' }}>
-      
+      <SeoHead />
+
+      {/* SEO: Single fixed h1 for consistent heading hierarchy */}
+      <h1 className="sr-only">3S Wellness Fitness & Yoga — Phòng Tập Gym & Yoga Cao Cấp Hàng Đầu Bắc Ninh</h1>
+
       {/* 4-IMAGE SLIDESHOW HERO BANNER SECTION */}
-      <section style={{ position: 'relative', width: '100%', height: '620px', overflow: 'hidden', background: '#020b18' }}>
+      <section 
+        className="banner-hero-section"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         {bannerImages.map((banner, index) => (
           <div 
             key={index}
@@ -157,7 +206,7 @@ const LandingPage = () => {
           >
             <img 
               src={banner.src} 
-              alt={banner.title} 
+              alt={banner.alt} 
               style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.38)' }} 
             />
 
@@ -177,32 +226,32 @@ const LandingPage = () => {
                     <ShieldCheck size={16} /> {banner.tag}
                   </div>
 
-                  <h1 style={{ fontSize: 'clamp(1.75rem, 5vw, 3.5rem)', lineHeight: '1.15', marginBottom: '16px', fontFamily: "'Be Vietnam Pro', sans-serif", fontWeight: 900, letterSpacing: '-0.5px', textTransform: 'uppercase', wordBreak: 'break-word' }}>
+                  <p role="heading" aria-level={2} style={{ fontSize: 'clamp(1.75rem, 5vw, 3.5rem)', lineHeight: '1.15', marginBottom: '16px', fontFamily: "'Be Vietnam Pro', sans-serif", fontWeight: 900, letterSpacing: '-0.5px', textTransform: 'uppercase', wordBreak: 'break-word', margin: '0 0 16px 0' }}>
                     {banner.title.split(' ')[0]} {banner.title.split(' ')[1]} <span style={{ color: 'var(--secondary-color)' }}>{banner.title.split(' ').slice(2).join(' ')}</span>
-                  </h1>
+                  </p>
 
-                  <p style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.15rem)', color: '#cbd5e1', lineHeight: 1.6, marginBottom: '28px', maxWidth: '650px' }}>
+                  <p style={{ fontSize: 'clamp(0.88rem, 2.2vw, 1.15rem)', color: '#cbd5e1', lineHeight: 1.6, marginBottom: '24px', maxWidth: '650px' }}>
                     {banner.subtitle}
                   </p>
 
-                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <a 
                       href="#about" 
                       style={{ 
                         display: 'inline-flex', 
                         alignItems: 'center', 
-                        gap: '8px', 
-                        padding: '14px 32px', 
+                        gap: '6px', 
+                        padding: '12px 26px', 
                         borderRadius: '30px', 
                         border: '1.5px solid rgba(255,255,255,0.4)', 
                         background: 'rgba(0,0,0,0.4)', 
                         color: 'white', 
                         fontWeight: 700, 
-                        fontSize: '0.95rem',
+                        fontSize: '0.9rem',
                         transition: 'all 0.3s ease' 
                       }}
                     >
-                      Xem Thêm <ChevronRight size={18} />
+                      Xem Thêm <ChevronRight size={16} />
                     </a>
 
                     <a 
@@ -210,18 +259,18 @@ const LandingPage = () => {
                       style={{ 
                         display: 'inline-flex', 
                         alignItems: 'center', 
-                        gap: '8px', 
-                        padding: '14px 36px', 
+                        gap: '6px', 
+                        padding: '12px 28px', 
                         borderRadius: '30px', 
                         background: 'linear-gradient(135deg, #00a4e4, #0082c5)', 
                         color: 'white', 
                         fontWeight: 700, 
-                        fontSize: '0.95rem',
+                        fontSize: '0.9rem',
                         boxShadow: '0 6px 20px rgba(0,164,228,0.4)',
                         transition: 'all 0.3s ease' 
                       }}
                     >
-                      Đăng Ký Tập <ChevronRight size={18} />
+                      Đăng Ký Tập <ChevronRight size={16} />
                     </a>
                   </div>
 
@@ -231,10 +280,10 @@ const LandingPage = () => {
           </div>
         ))}
 
-        {/* Navigation Arrows */}
+        {/* Navigation Arrows (Tự động ẩn trên mobile để không đè vào chữ) */}
         <button 
           onClick={prevSlide}
-          style={{ position: 'absolute', left: '24px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', padding: '14px', borderRadius: '50%', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          className="banner-nav-arrow prev"
           title="Banner trước"
         >
           <ChevronLeft size={22} />
@@ -242,14 +291,14 @@ const LandingPage = () => {
 
         <button 
           onClick={nextSlide}
-          style={{ position: 'absolute', right: '24px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', padding: '14px', borderRadius: '50%', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          className="banner-nav-arrow next"
           title="Banner tiếp theo"
         >
           <ChevronRight size={22} />
         </button>
 
         {/* Slide Indicator Dots */}
-        <div style={{ position: 'absolute', bottom: '90px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '10px', zIndex: 10 }}>
+        <div className="banner-dots-container">
           {bannerImages.map((_, idx) => (
             <button
               key={idx}
@@ -304,32 +353,32 @@ const LandingPage = () => {
       {/* SECTION: GIỚI THIỆU 3S GYM BẮC NINH */}
       <section id="about" style={{ padding: '60px 0 80px', background: 'white' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'center' }}>
+          <div className="landing-about-grid">
             
             <div className="reveal-left" style={{ position: 'relative' }}>
               <img 
                 src="/images/banner_reception.jpg" 
-                alt="3S Gym Reception" 
-                style={{ width: '100%', borderRadius: '20px', boxShadow: '0 12px 36px rgba(0,0,0,0.1)' }} 
+                alt="Sảnh tiếp đón phòng tập 3S Gym Bắc Ninh" 
+                style={{ width: '100%', borderRadius: '20px', boxShadow: '0 12px 36px rgba(0,0,0,0.1)', objectFit: 'cover' }} 
               />
-              <div style={{ position: 'absolute', bottom: '-20px', right: '-20px', background: 'var(--primary-color)', color: 'white', padding: '24px 30px', borderRadius: '16px', boxShadow: '0 8px 24px rgba(0,59,112,0.3)', textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1, color: 'var(--secondary-color)' }}>5+</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '4px', textTransform: 'uppercase' }}>Năm Đồng Hành</div>
+              <div className="landing-about-badge">
+                <div className="badge-number" style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1, color: 'var(--secondary-color)' }}>5+</div>
+                <div className="badge-text" style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '4px', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Năm Đồng Hành</div>
               </div>
             </div>
 
             <div className="reveal-right">
-              <div style={{ color: 'var(--secondary-color)', fontWeight: 800, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+              <div style={{ color: 'var(--secondary-color)', fontWeight: 800, fontSize: 'clamp(0.78rem, 2vw, 0.9rem)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
                 VỀ THƯƠNG HIỆU 3S GYM
               </div>
-              <h2 style={{ fontSize: '2.4rem', color: 'var(--primary-color)', fontWeight: 800, fontFamily: "'Be Vietnam Pro', sans-serif", lineHeight: 1.25, marginBottom: '20px' }}>
+              <h2 style={{ fontSize: 'clamp(1.5rem, 3.8vw, 2.4rem)', color: 'var(--primary-color)', fontWeight: 800, fontFamily: "'Be Vietnam Pro', sans-serif", lineHeight: 1.25, marginBottom: '20px', wordBreak: 'break-word' }}>
                 Tổ Hợp Thể Thao Cao Cấp Hàng Đầu Tại Bắc Ninh
               </h2>
-              <p style={{ fontSize: '0.95rem', color: '#475569', lineHeight: 1.7, marginBottom: '24px' }}>
+              <p style={{ fontSize: 'clamp(0.88rem, 2vw, 0.95rem)', color: '#475569', lineHeight: 1.7, marginBottom: '24px' }}>
                 3S Wellness Fitness & Yoga sở hữu không gian rộng rãi tại Tầng 5 Tòa nhà VNPT - 33 Lý Thái Tổ. Chúng tôi mang đến môi trường tập luyện văn minh, trang thiết bị nhập khẩu hiện đại cùng đội ngũ HLV cá nhân (PT) tận tâm.
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '32px' }}>
+              <div className="landing-about-features">
                 {[
                   '100% Máy móc nhập khẩu',
                   'Đội ngũ HLV PT chuẩn quốc tế',
@@ -337,12 +386,12 @@ const LandingPage = () => {
                   'Hỗ trợ đo InBody & Tư vấn AI'
                 ].map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', fontWeight: 700, color: 'var(--primary-color)' }}>
-                    <CheckCircle2 size={18} color="var(--secondary-color)" /> {item}
+                    <CheckCircle2 size={18} color="var(--secondary-color)" style={{ flexShrink: 0 }} /> <span>{item}</span>
                   </div>
                 ))}
               </div>
 
-              <a href="tel:0889926222" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '0.95rem', borderRadius: '30px' }}>
+              <a href="tel:0889926222" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '0.95rem', borderRadius: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                 GỌI TƯ VẤN HOTLINE
               </a>
             </div>
@@ -358,7 +407,7 @@ const LandingPage = () => {
             <div style={{ color: 'var(--secondary-color)', fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               <Camera size={18} /> THƯ VIỆN HÌNH ẢNH THỰC TẾ
             </div>
-            <h2 style={{ fontSize: '2.4rem', color: 'var(--primary-color)', fontWeight: 900, fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+            <h2 style={{ fontSize: 'clamp(1.5rem, 3.8vw, 2.4rem)', color: 'var(--primary-color)', fontWeight: 900, fontFamily: "'Be Vietnam Pro', sans-serif", wordBreak: 'break-word' }}>
               Không Gian Tập Luyện Đẳng Cấp Tại 3S Wellness
             </h2>
             <p style={{ color: '#64748b', fontSize: '0.95rem', marginTop: '10px' }}>
@@ -366,7 +415,7 @@ const LandingPage = () => {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             {galleryImages.map((img, idx) => (
               <div 
                 key={idx}
@@ -382,7 +431,7 @@ const LandingPage = () => {
               >
                 <img 
                   src={img.src} 
-                  alt={img.title} 
+                  alt={img.alt} 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                 />
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(to top, rgba(0, 38, 74, 0.88) 0%, rgba(0,0,0,0.1) 60%)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '20px' }}>
@@ -406,7 +455,7 @@ const LandingPage = () => {
             <div style={{ color: 'var(--secondary-color)', fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '8px' }}>
               LỘ TRÌNH 4 BƯỚC ĐỒNG HÀNH
             </div>
-            <h2 style={{ fontSize: '2.4rem', color: 'var(--primary-color)', fontWeight: 900, fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+            <h2 style={{ fontSize: 'clamp(1.5rem, 3.8vw, 2.4rem)', color: 'var(--primary-color)', fontWeight: 900, fontFamily: "'Be Vietnam Pro', sans-serif", wordBreak: 'break-word' }}>
               Quy Trình Tập Luyện Chuẩn Y Khoa
             </h2>
           </div>
@@ -447,7 +496,7 @@ const LandingPage = () => {
             <div style={{ color: 'var(--secondary-color)', fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '8px' }}>
               GIẢI ĐÁP THẮC MẮC
             </div>
-            <h2 style={{ fontSize: '2.3rem', color: 'var(--primary-color)', fontWeight: 900, fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+            <h2 style={{ fontSize: 'clamp(1.4rem, 3.8vw, 2.3rem)', color: 'var(--primary-color)', fontWeight: 900, fontFamily: "'Be Vietnam Pro', sans-serif", wordBreak: 'break-word' }}>
               Câu Hỏi Thường Gặp Của Hội Viên
             </h2>
           </div>
@@ -504,9 +553,9 @@ const LandingPage = () => {
       {/* FOOTER */}
       <footer style={{ background: '#001a33', color: '#94a3b8', padding: '60px 0 30px', borderTop: '3px solid var(--secondary-color)' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '40px', marginBottom: '40px' }}>
+          <div className="landing-footer-grid">
             <div>
-              <img src="/images/logo-white.png" alt="3S Wellness Fitness & Yoga Logo" style={{ height: '126px', width: 'auto', objectFit: 'contain', marginBottom: '16px' }} />
+              <img src="/images/logo-white.png" alt="3S Wellness Fitness & Yoga Logo" style={{ height: '80px', width: 'auto', objectFit: 'contain', marginBottom: '16px' }} />
               <p style={{ fontSize: '0.9rem', lineHeight: 1.6, maxWidth: '400px' }}>
                 Tổ hợp thể thao cao cấp 3S Wellness Fitness & Yoga Bắc Ninh. Nâng tầm sức khỏe và vóc dáng cho cộng đồng.
               </p>

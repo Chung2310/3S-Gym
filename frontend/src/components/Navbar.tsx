@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, LogOut, User as UserIcon, MapPin, Phone, Menu, X, Bot } from 'lucide-react';
+import { clearSession } from '../services/session';
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,8 +19,7 @@ const Navbar = () => {
   })();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearSession();
     navigate('/');
     setMobileMenuOpen(false);
   };
@@ -51,7 +51,7 @@ const Navbar = () => {
       </div>
 
       {/* Main Navbar Header */}
-      <nav style={{ background: 'linear-gradient(135deg, #001e3d 0%, #002d5a 50%, #003b70 100%)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', padding: '2px 0' }}>
+      <nav aria-label="Menu chính" style={{ background: 'linear-gradient(135deg, #001e3d 0%, #002d5a 50%, #003b70 100%)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', padding: '2px 0' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '70px' }}>
           
           {/* Logo */}

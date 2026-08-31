@@ -1,12 +1,27 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
-import { Bell, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import {
+  Bell,
+  BookOpen,
+  Bot,
+  CalendarDays,
+  ChevronRight,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Ruler,
+  Salad,
+  Users,
+  X
+} from 'lucide-react';
 import { clearSession } from '../services/session';
 import { api } from '../services/api';
 import { navigationForPath, visibleNavigation, type NavigationSection } from '../config/portalNavigation';
 import type { FeatureState, User, UserRole } from '../types';
 import NotificationDropdown from './notifications/NotificationDropdown';
+import { useMobile } from '../hooks/useMobile';
 
 const roleNames: Record<UserRole, string> = {
   ADMIN: 'Quản lý hệ thống',
@@ -44,6 +59,7 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
   const [collapsed, setCollapsed] = useState(initialSidebarCollapsed);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const isMobile = useMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const items = visibleNavigation(user, features);
@@ -86,8 +102,116 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
   const toggleLabel = collapsed ? 'Mở rộng menu' : 'Thu gọn menu';
   const displayName = user.fullName || user.username || 'Người dùng';
 
+  // Định nghĩa các Quick Nav tabs đáy màn hình cho từng vai trò trên mobile
+  const renderMobileBottomNav = () => {
+    if (user.role === 'CUSTOMER') {
+      const customerTabs = [
+        { path: '/me', label: 'Hành trình', icon: LayoutDashboard, exact: true },
+        { path: '/me/sessions', label: 'Lịch tập', icon: CalendarDays },
+        { path: '/me/workouts', label: 'Giáo án', icon: BookOpen },
+        { path: '/me/nutrition', label: 'Dinh dưỡng', icon: Salad },
+        { path: '/me/inbody', label: 'InBody', icon: Ruler },
+      ];
+      return (
+        <nav className="portal-bottom-nav" aria-label="Thanh điều hướng nhanh">
+          {customerTabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = tab.exact ? location.pathname === tab.path : location.pathname.startsWith(tab.path);
+            return (
+              <Link
+                key={tab.path}
+                to={tab.path}
+                className={`portal-bottom-nav-item ${active ? 'active' : ''}`}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => setOpen(false)}
+              >
+                <Icon size={19} aria-hidden="true" />
+                <span>{tab.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      );
+    }
+
+    if (user.role === 'PT') {
+      const ptTabs = [
+        { path: '/pt/customers', label: 'Học viên', icon: Users },
+        { path: '/pt/inbody', label: 'InBody', icon: Ruler },
+        { path: '/pt/my-workout-plans', label: 'Giáo án', icon: BookOpen },
+        { path: '/pt/nutrition-assistant', label: 'Trợ lý AI', icon: Bot },
+      ];
+      return (
+        <nav className="portal-bottom-nav" aria-label="Thanh điều hướng nhanh">
+          {ptTabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = location.pathname.startsWith(tab.path);
+            return (
+              <Link
+                key={tab.path}
+                to={tab.path}
+                className={`portal-bottom-nav-item ${active ? 'active' : ''}`}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => setOpen(false)}
+              >
+                <Icon size={19} aria-hidden="true" />
+                <span>{tab.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            className={`portal-bottom-nav-item ${open ? 'active' : ''}`}
+            onClick={() => setOpen((prev) => !prev)}
+            aria-label="Xem thêm menu"
+          >
+            <Menu size={19} aria-hidden="true" />
+            <span>Thêm</span>
+          </button>
+        </nav>
+      );
+    }
+
+    // ADMIN Role
+    const adminTabs = [
+      { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard, exact: true },
+      { path: '/admin?tab=pts', label: 'HLV PT', icon: Users },
+      { path: '/admin?tab=users', label: 'Tài khoản', icon: Users },
+      { path: '/admin?tab=packages', label: 'Gói tập', icon: BookOpen },
+    ];
+    return (
+      <nav className="portal-bottom-nav" aria-label="Thanh điều hướng nhanh">
+        {adminTabs.map((tab) => {
+          const Icon = tab.icon;
+          const active = tab.path === '/admin' ? location.pathname === '/admin' && !location.search : location.pathname + location.search === tab.path;
+          return (
+            <Link
+              key={tab.path}
+              to={tab.path}
+              className={`portal-bottom-nav-item ${active ? 'active' : ''}`}
+              aria-current={active ? 'page' : undefined}
+              onClick={() => setOpen(false)}
+            >
+              <Icon size={19} aria-hidden="true" />
+              <span>{tab.label}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          className={`portal-bottom-nav-item ${open ? 'active' : ''}`}
+          onClick={() => setOpen((prev) => !prev)}
+          aria-label="Xem thêm menu"
+        >
+          <Menu size={19} aria-hidden="true" />
+          <span>Thêm</span>
+        </button>
+      </nav>
+    );
+  };
+
   return (
-    <div className={`portal-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className={`portal-shell ${collapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'has-bottom-nav' : ''}`}>
       <aside className={`portal-sidebar ${open ? 'mobile-open' : ''} ${collapsed ? 'sidebar-collapsed' : ''}`}>
         <div
           className="portal-brand"
@@ -252,7 +376,11 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
         </header>
 
         <main className="portal-content">{children}</main>
+
+        {/* Bottom Navigation Bar for Native-like Mobile UX */}
+        {isMobile && renderMobileBottomNav()}
       </div>
     </div>
   );
 }
+

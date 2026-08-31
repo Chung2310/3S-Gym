@@ -71,5 +71,23 @@ describe('AppShell', () => {
     expect(screen.getByText('Lan Nguyen')).toBeInTheDocument();
     expect(screen.getByText('Huấn luyện viên')).toBeInTheDocument();
   });
+
+  it('hiển thị thanh Bottom Navigation tiện lợi trên mobile cho Customer', () => {
+    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 500 });
+    render(
+      <MemoryRouter>
+        <AppShell user={{ username: 'khach-a', role: 'CUSTOMER' }}>
+          <div>Portal</div>
+        </AppShell>
+      </MemoryRouter>
+    );
+
+    const bottomNav = screen.getByRole('navigation', { name: 'Thanh điều hướng nhanh' });
+    expect(bottomNav).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Hành trình' })).toHaveAttribute('href', '/me');
+    expect(screen.getByRole('link', { name: 'Lịch tập' })).toHaveAttribute('href', '/me/sessions');
+    expect(screen.getByRole('link', { name: 'Giáo án' })).toHaveAttribute('href', '/me/workouts');
+  });
 });
+
 
