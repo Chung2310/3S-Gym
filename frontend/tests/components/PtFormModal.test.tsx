@@ -27,13 +27,15 @@ it('gửi API cập nhật khi lưu popup sửa PT', async () => {
   expect(onSaved).toHaveBeenCalledWith(pt);
 });
 
-it('đóng popup ngay khi bấm Hủy dù có dữ liệu đã thay đổi', async () => {
+it('không gửi password khi để trống trong form sửa PT', async () => {
   const user = userEvent.setup();
-  const onClose = vi.fn();
-  render(<ToastProvider><PtFormModal open pt={pt} onClose={onClose} onSaved={vi.fn()} /></ToastProvider>);
+  vi.mocked(api.patch).mockResolvedValue({ message: 'Cập nhật hồ sơ PT thành công.', data: pt });
+  render(<ToastProvider><PtFormModal open pt={pt} onClose={vi.fn()} onSaved={vi.fn()} /></ToastProvider>);
 
-  await user.type(screen.getByLabelText('Giới thiệu bản thân & Triết lý huấn luyện'), 'Có thay đổi');
-  await user.click(screen.getByRole('button', { name: 'Hủy' }));
+  await user.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
 
-  expect(onClose).toHaveBeenCalledOnce();
+  expect(api.patch).toHaveBeenCalledWith(
+    '/api/users/pt-1',
+    expect.not.objectContaining({ password: expect.anything() })
+  );
 });

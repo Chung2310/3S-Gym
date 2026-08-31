@@ -139,8 +139,13 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
     if (form.username?.trim()) {
       payload.username = form.username.trim();
     }
-    if (form.password) {
-      payload.password = form.password;
+    const trimmedPassword = form.password?.trim() || '';
+    if (trimmedPassword.length > 0) {
+      if (trimmedPassword.length < 8) {
+        toast.error('Mật khẩu phải có ít nhất 8 ký tự.');
+        return;
+      }
+      payload.password = trimmedPassword;
     }
 
     try {
@@ -162,7 +167,7 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
     <ProfileFormModal
       open={open}
       title={editing ? 'Cập nhật hồ sơ Huấn luyện viên' : 'Thêm Huấn luyện viên mới'}
-      description="Thiết lập thông tin hồ sơ chuyên môn, liên hệ và tài khoản đăng nhập cho PT."
+      description=""
       dirty={dirty}
       loading={loading}
       submitLabel={editing ? 'Lưu thay đổi' : 'Tạo Huấn luyện viên'}
@@ -345,11 +350,12 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
             label={editing ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu ban đầu'}
             name="password"
             type="password"
-            minLength={6}
+            minLength={8}
+            autoComplete="new-password"
             value={form.password}
             onChange={change}
             required={!editing}
-            placeholder={editing ? '••••••••' : 'Tối thiểu 6 ký tự'}
+            placeholder={editing ? 'Để trống nếu không đổi' : 'Tối thiểu 8 ký tự'}
           />
           <FormField label="Trạng thái tài khoản" name="status" as="select" value={form.status} onChange={change}>
             <option value="ACTIVE">Hoạt động (ACTIVE)</option>

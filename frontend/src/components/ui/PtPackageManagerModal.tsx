@@ -145,7 +145,7 @@ export default function PtPackageManagerModal({ open, customer, onClose }: PtPac
   };
 
   return <>
-    <FormModal open={open} title={`Gói PT của ${customer?.fullName || 'khách hàng'}`} description="Tạo và quản lý số buổi tập của khách hàng." dirty={Boolean(form.name || form.totalSessions || form.startDate || form.endDate)} loading={loading} submitLabel={editing ? 'Lưu thay đổi' : 'Thêm gói PT'} onClose={onClose} onSubmit={submit}>
+    <FormModal open={open} title={`Gói PT của ${customer?.fullName || 'khách hàng'}`} description="" dirty={Boolean(form.name || form.totalSessions || form.startDate || form.endDate)} loading={loading} submitLabel={editing ? 'Lưu thay đổi' : 'Thêm gói PT'} onClose={onClose} onSubmit={submit}>
       {templates.length > 0 && !editing && (
         <div style={{ background: '#f0f9ff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #bae6fd', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem', fontWeight: 700, color: '#0369a1', marginBottom: '8px' }}>
