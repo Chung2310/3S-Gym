@@ -87,4 +87,8 @@ describe('index CSS redesign contract', () => {
     expect(`${studioTimeline}\n${studioInspectorSources}`).not.toMatch(/(?:rounded-|bg-|text-slate-|border-slate-|shadow-\[|sm:|md:|lg:|xl:|min-\[|max-\[|!block)/);
     for (const selector of ['.studio-hour-grid', '.studio-scheduled-item', '.studio-sidebar', '.studio-inspector-duration', '.studio-inspector-danger']) expect(css).toContain(selector);
   });
+
+  it('does not retain orphaned workout presentation selectors', () => {
+    for (const selector of ['.studio-meta {', '.studio-days {', '.studio-grid {', '.studio-timeline-wrap', '.studio-exercise-card', '.exercise-video-section', '.exercise-video-card', '.exercise-video-links']) expect(css).not.toContain(selector);
+  });
 });
