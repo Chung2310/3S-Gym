@@ -2041,3 +2041,33 @@ a {
   .workout-customer-plan-card-header .button { width: 100%; min-height: 44px; }
   .workout-customer-plan-form { width: 100vw; }
 }
+
+/* Workout Studio responsive workspace */
+.workout-studio { display: grid; min-width: 0; gap: 16px; }
+.studio-view-tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid #dce8f0; border-radius: 12px; background: #edf5f8; }
+.studio-view-tabs [role="tab"] { min-height: 44px; flex: 1; border: 0; border-radius: 9px; background: transparent; color: #526b7e; font: inherit; font-size: .78rem; font-weight: 800; cursor: pointer; }
+.studio-view-tabs [role="tab"]:focus-visible { outline: 3px solid rgba(0, 156, 215, .3); outline-offset: 2px; }
+.studio-view-tabs [aria-selected="true"] { background: #fff; color: var(--primary-color); box-shadow: 0 2px 8px rgba(0, 59, 112, .1); }
+.studio-workspace { display: grid; min-width: 0; gap: 14px; }
+.studio-library-region, .studio-schedule-region, .studio-inspector-region { min-width: 0; border: 1px solid #dce8f0; border-radius: 14px; background: #fff; }
+
+@media (max-width: 639px) {
+  .studio-workspace > section { display: none; }
+  .studio-workspace > .is-mobile-active { display: block; }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .studio-view-tabs { width: min(100%, 430px); margin-left: auto; }
+  .studio-workspace { grid-template-columns: minmax(0, 1fr); }
+  .studio-library-region, .studio-inspector-region { display: none; position: fixed; z-index: 40; inset: 84px 0 0 auto; width: min(390px, 88vw); padding-bottom: env(safe-area-inset-bottom); overflow-y: auto; box-shadow: -18px 0 42px rgba(0, 34, 66, .18); }
+  .studio-workspace > .is-mobile-active:not(.studio-schedule-region) { display: block; }
+}
+
+@media (min-width: 1024px) {
+  .studio-view-tabs { display: none; }
+  .studio-workspace { grid-template-columns: 18rem minmax(0, 1fr) 19rem; align-items: start; }
+}
+
+@media (min-width: 1280px) {
+  .studio-workspace { grid-template-columns: 18rem minmax(0, 1fr) 20rem; }
+}

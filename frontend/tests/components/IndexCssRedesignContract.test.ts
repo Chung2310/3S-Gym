@@ -21,6 +21,7 @@ const workoutFlowSources = [
   'frontend/src/components/workouts/CustomerWorkoutPlanModal.tsx',
   'frontend/src/components/workouts/CustomerWorkoutPlanPanel.tsx',
 ].map((path) => readFileSync(path, 'utf8')).join('\n');
+const workoutStudioPage = readFileSync('frontend/src/pages/pt/WorkoutStudioPage.tsx', 'utf8');
 
 describe('index CSS redesign contract', () => {
   it('defines the shared module foundation and approved breakpoints', () => {
@@ -53,5 +54,11 @@ describe('index CSS redesign contract', () => {
     expect(workoutFlowSources).not.toMatch(/style=\{\{/);
     expect(workoutFlowSources).not.toMatch(/(?:sm:|md:|lg:|xl:|rounded-|bg-|text-slate-|border-slate-|shadow-\[|["'`\s](?:flex|grid|gap-\d+|p-\d+|px-\d+|py-\d+)(?=["'`\s]))/);
     for (const selector of ['.workout-ai-wizard', '.workout-wizard-progress', '.workout-customer-plans', '.workout-customer-plan-card', '.workout-customer-plan-form']) expect(css).toContain(selector);
+  });
+
+  it('defines a semantic responsive shell for Workout Studio', () => {
+    expect(workoutStudioPage).not.toMatch(/style=\{\{/);
+    expect(workoutStudioPage).not.toMatch(/(?:sm:|md:|lg:|xl:|min-\[|!gap|!grid|rounded-|bg-|text-slate-|border-slate-|shadow-\[)/);
+    for (const selector of ['.studio-view-tabs', '.studio-workspace', '.studio-library-region', '.studio-schedule-region', '.studio-inspector-region']) expect(css).toContain(selector);
   });
 });

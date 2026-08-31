@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '../../src/components/ui/ToastProvider';
@@ -14,7 +14,15 @@ it('adds an exercise to a proportional day timeline and prevents overlap', async
   const user = userEvent.setup();
   render(<MemoryRouter><ToastProvider><WorkoutStudioPage /></ToastProvider></MemoryRouter>);
   expect(screen.getByText('Đã lưu')).toBeVisible();
-  expect(screen.getByRole('region', { name: 'Workout Studio' })).toBeVisible();
+  const studioPage = screen.getByRole('region', { name: 'Workout Studio' });
+  expect(studioPage).toHaveClass('module-page', 'workout-studio');
+  const views = screen.getByRole('tablist', { name: 'Khu vực thiết kế giáo án' });
+  expect(within(views).getByRole('tab', { name: 'Lịch tập' })).toHaveAttribute('aria-selected', 'true');
+  await user.click(within(views).getByRole('tab', { name: 'Bài tập' }));
+  expect(screen.getByRole('region', { name: 'Thư viện bài tập Studio' })).toHaveClass('is-mobile-active');
+  await user.click(within(views).getByRole('tab', { name: 'Thuộc tính' }));
+  expect(screen.getByRole('region', { name: 'Thuộc tính giáo án' })).toHaveClass('is-mobile-active');
+  await user.click(within(views).getByRole('tab', { name: 'Lịch tập' }));
   const exercise = await screen.findByRole('button', { name: 'Thêm bài Squat' });
   await user.click(exercise);
   expect(screen.getByLabelText('Ngày của bài tập')).toBeVisible();
@@ -148,7 +156,7 @@ it('moves a selected card by 15 minutes with the keyboard and saves a new studio
   await user.type(screen.getByLabelText('Tên giáo án'), 'Studio A');
   await user.type(screen.getByLabelText('Mục tiêu'), 'Tăng cơ');
   await user.click(await screen.findByRole('button', { name: 'Thêm bài Squat' }));
-  expect(screen.getByRole('tab', { name: 'Bài tập' })).toHaveAttribute('aria-selected', 'true');
+  expect(within(screen.getByRole('region', { name: 'Thuộc tính giáo án' })).getByRole('tab', { name: 'Bài tập' })).toHaveAttribute('aria-selected', 'true');
   const card = screen.getByRole('button', { name: /Squat.*08:00–09:00/ });
   card.focus();
   await user.keyboard('{ArrowDown}');
