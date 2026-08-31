@@ -50,11 +50,11 @@ it('mở Studio khi nhấn nút Tạo giáo án', async () => {
 it('mở Studio edit khi sửa giáo án', async () => {
   const user = userEvent.setup();
   render(<MemoryRouter initialEntries={['/pt/my-workout-plans']}><ToastProvider><Routes><Route path="/pt/my-workout-plans" element={<MyWorkoutPlans />} /><Route path="/pt/my-workout-plans/:templateId/edit" element={<Location />} /></Routes></ToastProvider></MemoryRouter>);
-  const editButtons = await screen.findAllByRole('button', { name: 'Sửa' });
-  expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toHaveClass('w-px', 'whitespace-nowrap', 'text-right');
-  expect(editButtons[0].closest('td')).toHaveClass('w-px', 'whitespace-nowrap', 'text-right');
-  expect(editButtons[0].parentElement).toHaveClass('md:flex-nowrap', 'md:whitespace-nowrap');
-  await user.click(editButtons[0]);
+  const card = await screen.findByRole('article', { name: template.title });
+  expect(card).toHaveClass('p-6');
+  expect(card).toHaveTextContent('1 buổi');
+  expect(card).toHaveTextContent('Cơ bản');
+  await user.click(screen.getByRole('button', { name: `Chỉnh sửa ${template.title}` }));
   expect(screen.getByTestId('location')).toHaveTextContent('/pt/my-workout-plans/template-1/edit');
 });
 
@@ -66,7 +66,7 @@ it('vẫn mở Studio edit cho giáo án đã lưu trữ', async () => {
     return { data: [], meta: { page: 1, totalPages: 0 }, message: '' };
   });
   render(<MemoryRouter initialEntries={['/pt/my-workout-plans']}><ToastProvider><Routes><Route path="/pt/my-workout-plans" element={<MyWorkoutPlans />} /><Route path="/pt/my-workout-plans/:templateId/edit" element={<Location />} /></Routes></ToastProvider></MemoryRouter>);
-  await user.click((await screen.findAllByRole('button', { name: 'Sửa' }))[0]);
+  await user.click(await screen.findByRole('button', { name: `Chỉnh sửa ${archivedTemplate.title}` }));
   expect(screen.getByTestId('location')).toHaveTextContent('/pt/my-workout-plans/template-archived/edit');
 });
 

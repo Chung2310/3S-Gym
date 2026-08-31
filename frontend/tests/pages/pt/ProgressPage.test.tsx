@@ -6,112 +6,83 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '../../../src/components/ui/ToastProvider';
 import ProgressPage from '../../../src/pages/pt/ProgressPage';
 import { api } from '../../../src/services/api';
-import type { CustomerJourneyDto } from '../../../src/types/progress';
+import type { CustomerJourneyDto, CustomerProgressOverview } from '../../../src/types/progress';
 
-vi.mock('../../../src/services/api', () => ({
-  api: { get: vi.fn() },
-}));
+vi.mock('../../../src/services/api', () => ({ api: { get: vi.fn(), post: vi.fn() } }));
 
-vi.mock('../../../src/components/ui/CustomerSelect', () => ({
-  default: ({ value, onChange }: { value: string; onChange: (id: string) => void }) => (
-    <select
-      aria-label="Chọn học viên"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    >
-      <option value="">Chọn học viên</option>
-      <option value="c1">Nguyễn An</option>
-    </select>
-  ),
-}));
-
+const analytics = {
+  totalVolume: 500,
+  averageRpe: 8,
+  attendance: { present: 1, late: 0, absent: 0, rate: 100 },
+  streakWeeks: 1,
+  bodyDeltas: { weight: -1 },
+  achievements: [],
+  dataQuality: { level: 'PARTIAL', reasons: [] },
+};
+const overview = {
+  customer: { _id: 'c1', fullName: 'Nguyễn An', phone: '0901', status: 'ACTIVE' },
+  sessionCount: 1,
+  lastSessionAt: '2026-08-29',
+  latestMeasurement: { weight: 68 },
+  analytics,
+} as CustomerProgressOverview;
 const journey = {
-  customer: { _id: 'c1', fullName: 'Nguyễn An', phone: '0909123456' },
+  customer: overview.customer,
   sessions: [],
   measurements: [],
   calendar: [],
   photos: [],
-  plans: { active: null, history: [] },
-  reports: [],
-  analytics: {
-    totalVolume: 4200,
-    averageRpe: 7.8,
-    attendance: { present: 6, late: 1, absent: 1, rate: 87.5 },
-    streakWeeks: 4,
-    achievements: [],
-    dataQuality: { level: 'COMPLETE', reasons: [] },
+  plans: {
+    active: { _id: 'p1', sourceTemplateId: 't1', title: 'Giáo án 12 tuần', sessions: [{ name: 'Buổi chân', exercises: [] }] },
+    history: [],
   },
+  reports: [],
+  analytics,
 } as unknown as CustomerJourneyDto;
 
-function renderPage() {
-  return render(
-    <ToastProvider>
-      <ProgressPage />
-    </ToastProvider>
-  );
-}
+const renderPage = () => render(<ToastProvider><ProgressPage /></ToastProvider>);
 
 describe('ProgressPage', () => {
   beforeEach(() => {
     vi.mocked(api.get).mockReset();
   });
 
-  it('guides the PT before a customer is selected', () => {
-    renderPage();
-
-    expect(screen.getByRole('heading', { name: 'Chọn học viên để xem tiến độ' })).toBeVisible();
-    expect(api.get).not.toHaveBeenCalled();
-  });
-
-  it('loads and renders the selected customer journey', async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: journey, message: 'Thành công' });
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.selectOptions(screen.getByLabelText('Chọn học viên'), 'c1');
-
-    expect(await screen.findByRole('heading', { name: 'Nguyễn An' })).toBeVisible();
-    expect(api.get).toHaveBeenCalledWith('/api/customers/c1/journey');
-    expect(screen.getAllByText('4.200 kg')).toHaveLength(1);
-  });
-
-  it('shows a shaped loading state while the first journey request is pending', async () => {
+  it('shows a shaped loading state before the overview resolves', () => {
     vi.mocked(api.get).mockImplementation(() => new Promise(() => undefined));
-    const user = userEvent.setup();
     renderPage();
-
-    await user.selectOptions(screen.getByLabelText('Chọn học viên'), 'c1');
-
     expect(screen.getByRole('status', { name: 'Đang tải dữ liệu tiến độ' })).toBeVisible();
   });
 
-  it('renders an inline retry after an initial failure', async () => {
-    vi.mocked(api.get)
-      .mockRejectedValueOnce(new Error('Mất kết nối'))
-      .mockResolvedValueOnce({ data: journey, message: 'Thành công' });
+  it('shows the assigned-customer dashboard and opens separate detail and workout dialogs', async () => {
+    vi.mocked(api.get).mockImplementation(async (path: string) => (
+      path === '/api/customers/progress-overview'
+        ? { data: [overview], message: '' }
+        : { data: journey, message: '' }
+    ));
     const user = userEvent.setup();
     renderPage();
 
-    await user.selectOptions(screen.getByLabelText('Chọn học viên'), 'c1');
-    const retry = await screen.findByRole('button', { name: 'Thử lại' });
-    await user.click(retry);
+    expect(await screen.findByText('Nguyễn An')).toBeVisible();
+    expect(api.get).toHaveBeenCalledWith('/api/customers/progress-overview');
+    await user.click(screen.getByRole('button', { name: 'Xem tiến độ Nguyễn An' }));
+    expect(await screen.findByRole('dialog', { name: 'Tiến độ Nguyễn An' })).toBeVisible();
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/customers/c1/journey'));
+    await user.click(screen.getByRole('button', { name: 'Đóng' }));
 
-    expect(await screen.findByRole('heading', { name: 'Nguyễn An' })).toBeVisible();
-    expect(api.get).toHaveBeenCalledTimes(2);
+    await user.click(screen.getByRole('button', { name: 'Ghi nhận buổi tập Nguyễn An' }));
+    expect(await screen.findByRole('dialog', { name: 'Ghi nhận buổi tập · Nguyễn An' })).toBeVisible();
   });
 
-  it('clears the loaded workspace when the selector is reset', async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: journey, message: 'Thành công' });
+  it('renders a retry action when the overview request fails', async () => {
+    vi.mocked(api.get)
+      .mockRejectedValueOnce(new Error('Mất kết nối'))
+      .mockResolvedValueOnce({ data: [overview], message: '' });
     const user = userEvent.setup();
     renderPage();
 
-    await user.selectOptions(screen.getByLabelText('Chọn học viên'), 'c1');
-    await screen.findByRole('heading', { name: 'Nguyễn An' });
-    await user.selectOptions(screen.getByLabelText('Chọn học viên'), '');
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Chọn học viên để xem tiến độ' })).toBeVisible();
-    });
-    expect(screen.queryByText('4.200 kg')).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Không thể tải tổng quan tiến độ' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Thử lại' }));
+    expect(await screen.findByText('Nguyễn An')).toBeVisible();
+    expect(api.get).toHaveBeenCalledTimes(2);
   });
 });

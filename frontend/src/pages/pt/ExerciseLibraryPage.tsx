@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
-import DataList, { type DataColumn } from '../../components/ui/DataList';
+import { Dumbbell, Plus } from 'lucide-react';
 import Pagination from '../../components/ui/Pagination';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/ToastProvider';
 import { api } from '../../services/api';
 import type { PaginationMeta } from '../../types';
@@ -10,6 +10,7 @@ import { errorMessage } from '../../types';
 // Components (mảnh UI)
 import ExerciseFilter from '../../components/exercises/ExerciseFilter';
 import ExerciseFormModal, { type Exercise } from '../../components/exercises/ExerciseFormModal';
+import ExerciseLibraryCard from '../../components/exercises/ExerciseLibraryCard';
 
 export default function ExerciseLibraryPage() {
   const toast = useToast();
@@ -20,9 +21,13 @@ export default function ExerciseLibraryPage() {
   const [muscleGroup, setMuscleGroup] = useState('');
   const [level, setLevel] = useState('');
   const [formExercise, setFormExercise] = useState<Exercise | null | undefined>(undefined);
+  const [deleteExercise, setDeleteExercise] = useState<Exercise | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // === DATA FETCHING ===
   const load = useCallback(async (page = 1) => {
+    setLoading(true);
     const query = new URLSearchParams({ page: String(page), limit: '20' });
     if (muscleGroup) query.set('muscleGroup', muscleGroup);
     if (level) query.set('level', level);
@@ -32,33 +37,45 @@ export default function ExerciseLibraryPage() {
       if (result.meta) setMeta(result.meta);
     } catch (error) {
       toast.error(errorMessage(error));
+    } finally {
+      setLoading(false);
     }
   }, [level, muscleGroup, toast]);
 
   useEffect(() => { void load(); }, [load]);
 
-  const columns: DataColumn<Exercise>[] = [
-    { key: 'name', label: 'Bài tập' },
-    { key: 'muscleGroup', label: 'Nhóm cơ' },
-    { key: 'level', label: 'Cấp độ' },
-    { key: 'scope', label: 'Phạm vi' },
-    { key: 'videos', label: 'Video', render: (item) => item.videos?.length ? <div className="exercise-video-links"><span>{item.videos.length} video</span>{item.videos.map((video, index) => <a key={`${video.url}-${index}`} href={video.url} target="_blank" rel="noopener noreferrer">{video.title}</a>)}</div> : <span>Chưa có</span> },
-  ];
+  const confirmDelete = async () => {
+    if (!deleteExercise) return;
+    setDeleting(true);
+    try {
+      const result = await api.delete(`/api/exercises/${deleteExercise._id}`);
+      toast.success(result.message);
+      const currentPage = meta.page || 1;
+      const targetPage = items.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
+      setDeleteExercise(null);
+      await load(targetPage);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // === LẮP RÁP COMPONENTS ===
   return (
-    <section>
-      <div className="section-header">
+    <section className="space-y-5">
+      <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_24px_rgba(0,59,112,0.05)] sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1>Thư viện bài tập</h1>
-          <p>Bài global và bài private của PT.</p>
+          <p className="mb-1 font-montserrat text-xs font-bold uppercase tracking-[0.16em] text-secondary">Workout resources</p>
+          <h1 className="font-oswald text-3xl font-bold uppercase text-primary">Thư viện bài tập</h1>
+          <p className="mt-2 font-montserrat text-sm text-slate-600">Quản lý bài tập cá nhân và nội dung dùng chung trong một thư viện thống nhất.</p>
         </div>
-        <button className="button button-primary" onClick={() => setFormExercise(null)}>
+        <button type="button" className="button button-primary shrink-0" onClick={() => setFormExercise(null)}>
           <Plus size={18} /> Tạo bài tập
         </button>
-      </div>
+      </header>
 
-      <div className="panel">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_6px_20px_rgba(0,59,112,0.04)] sm:p-6">
         <ExerciseFilter
           muscleGroup={muscleGroup}
           level={level}
@@ -68,22 +85,26 @@ export default function ExerciseLibraryPage() {
           onClear={() => { setMuscleGroup(''); setLevel(''); }}
         />
 
-        <DataList
-          items={items}
-          columns={columns}
-          renderActions={(item) => (item.scope === 'PRIVATE' ? (
-            <button className="text-button" onClick={() => setFormExercise(item)}>Sửa</button>
-          ) : null)}
-        />
-
-        <Pagination page={meta.page || 1} totalPages={meta.totalPages || 0} onPageChange={load} />
       </div>
+
+      {loading ? <div aria-label="Đang tải bài tập" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 3 }, (_, index) => <div key={index} className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white p-5 motion-reduce:animate-none"><div className="size-10 rounded-xl bg-slate-100" /><div className="mt-4 h-6 w-2/3 rounded bg-slate-200" /><div className="mt-7 h-20 rounded bg-slate-100" /></div>)}</div> : items.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{items.map((item) => <ExerciseLibraryCard key={item._id} exercise={item} onEdit={setFormExercise} onDelete={setDeleteExercise} />)}</div> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center font-montserrat"><Dumbbell className="mx-auto mb-3 text-slate-300" size={30} /><h2 className="font-oswald text-lg font-bold uppercase text-primary">Chưa tìm thấy bài tập</h2><p className="mt-2 text-sm text-slate-500">Thử đổi bộ lọc hoặc tạo bài tập đầu tiên của bạn.</p></div>}
+      <Pagination page={meta.page || 1} totalPages={meta.totalPages || 0} onPageChange={load} />
 
       <ExerciseFormModal
         open={formExercise !== undefined}
         exercise={formExercise}
         onClose={() => setFormExercise(undefined)}
         onSaved={() => { setFormExercise(undefined); void load(meta.page || 1); }}
+      />
+      <ConfirmModal
+        open={deleteExercise !== null}
+        title="Xóa bài tập"
+        description={deleteExercise ? `Bạn có chắc muốn xóa “${deleteExercise.name}”? Thao tác này không thể hoàn tác.` : undefined}
+        confirmLabel="Xóa bài tập"
+        danger
+        loading={deleting}
+        onClose={() => { if (!deleting) setDeleteExercise(null); }}
+        onConfirm={confirmDelete}
       />
     </section>
   );
