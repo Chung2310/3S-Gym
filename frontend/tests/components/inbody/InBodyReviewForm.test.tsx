@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -27,7 +27,7 @@ describe('InBodyScanModal', () => {
     const user = userEvent.setup();
     render(<ToastProvider><InBodyScanModal open onClose={vi.fn()} onConfirmed={vi.fn()} /></ToastProvider>);
 
-    const customerInput = screen.getByLabelText('Mã khách hàng');
+    const customerInput = screen.getByLabelText('Học viên / Khách hàng');
     const dateInput = screen.getByLabelText('Ngày đo');
     const imageInput = screen.getByLabelText('Ảnh phiếu InBody');
     await user.type(customerInput, draft.customerId);
@@ -54,7 +54,7 @@ describe('InBodyScanModal', () => {
     const onConfirmed = vi.fn();
     const user = userEvent.setup();
     render(<ToastProvider><InBodyScanModal open onClose={vi.fn()} onConfirmed={onConfirmed} /></ToastProvider>);
-    await user.type(screen.getByLabelText('Mã khách hàng'), draft.customerId);
+    await user.type(screen.getByLabelText('Học viên / Khách hàng'), draft.customerId);
     await user.type(screen.getByLabelText('Ngày đo'), '2026-08-30');
     await user.upload(screen.getByLabelText('Ảnh phiếu InBody'), new File(['image'], 'inbody.png', { type: 'image/png' }));
     await user.click(screen.getByRole('button', { name: 'Quét InBody' }));

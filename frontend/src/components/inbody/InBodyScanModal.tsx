@@ -121,7 +121,7 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
               <CustomerSelect
                 label="Học viên / Khách hàng"
                 name="customerId"
-                ariaLabel="Mã khách hàng"
+                ariaLabel="Học viên / Khách hàng"
                 value={customerId}
                 onChange={(selectedId) => setCustomerId(selectedId)}
                 required

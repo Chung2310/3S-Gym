@@ -56,13 +56,22 @@ const emptyForm: PtFormState = {
 };
 
 function formFromPt(pt?: PtRecord | null): PtFormState {
-  if (!pt) return emptyForm;
+  if (!pt) return { ...emptyForm };
   return {
-    ...emptyForm,
-    ...pt,
+    avatarUrl: (pt.avatarUrl as string) || '',
+    fullName: (pt.fullName as string) || '',
     dateOfBirth: pt.dateOfBirth ? String(pt.dateOfBirth).slice(0, 10) : '',
+    gender: (pt.gender as string) || 'OTHER',
+    phone: (pt.phone as string) || '',
+    email: (pt.email as string) || '',
+    address: (pt.address as string) || '',
+    specialization: (pt.specialization as string) || '',
+    yearsOfExperience: pt.yearsOfExperience != null ? pt.yearsOfExperience : 0,
     certificates: Array.isArray(pt.certificates) ? pt.certificates.join('\n') : typeof pt.certificates === 'string' ? pt.certificates : '',
+    bio: (pt.bio as string) || '',
+    username: (pt.username as string) || '',
     password: '',
+    status: (pt.status as string) || 'ACTIVE',
   };
 }
 
@@ -72,7 +81,7 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
   const [initial, setInitial] = useState<PtFormState>(emptyForm);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const editing = Boolean(pt?._id);
+  const editing = Boolean(pt?._id || pt?.id);
 
   const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -108,22 +117,37 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const completePayload = {
-      ...form,
+    const payload: Record<string, any> = {
       role: 'PT',
+      fullName: form.fullName.trim(),
+      phone: form.phone.trim(),
+      email: form.email?.trim() || null,
+      avatarUrl: form.avatarUrl?.trim() || null,
+      dateOfBirth: form.dateOfBirth ? form.dateOfBirth : null,
+      gender: form.gender || 'OTHER',
+      address: form.address?.trim() || '',
+      specialization: form.specialization?.trim() || '',
       yearsOfExperience: Number(form.yearsOfExperience || 0),
       certificates: form.certificates
         .split('\n')
         .map((value) => value.trim())
         .filter(Boolean),
+      bio: form.bio?.trim() || '',
+      status: form.status || 'ACTIVE',
     };
-    const { password, ...payloadWithoutPassword } = completePayload;
-    const payload = editing && !password ? payloadWithoutPassword : { ...payloadWithoutPassword, password };
+
+    if (form.username?.trim()) {
+      payload.username = form.username.trim();
+    }
+    if (form.password) {
+      payload.password = form.password;
+    }
 
     try {
       setLoading(true);
+      const targetId = pt?._id || pt?.id;
       const result = editing
-        ? await api.patch(`/api/users/${pt?._id}`, payload)
+        ? await api.patch(`/api/users/${targetId}`, payload)
         : await api.post('/api/users', payload);
       toast.success(result.message || (editing ? 'Cập nhật PT thành công' : 'Tạo PT mới thành công'));
       onSaved(result.data);

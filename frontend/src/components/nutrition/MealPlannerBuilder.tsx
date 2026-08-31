@@ -48,6 +48,7 @@ export default function MealPlannerBuilder({
   const [title, setTitle] = useState('');
   const [meals, setMeals] = useState<MealBlock[]>([]);
   const [dietAdviceNotes, setDietAdviceNotes] = useState('');
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
 
   // AI Configuration Studio State
   const [showConfigStudio, setShowConfigStudio] = useState(true);
@@ -92,6 +93,7 @@ export default function MealPlannerBuilder({
   // Sync editingPlan or new draft when props change
   useEffect(() => {
     if (editingPlan) {
+      setCurrentPlanId(editingPlan._id || editingPlan.id || null);
       if (editingPlan.title) setTitle(editingPlan.title);
       if (editingPlan.notes) setDietAdviceNotes(editingPlan.notes);
       if (editingPlan.targetCalories) setTargetKcalInput(String(editingPlan.targetCalories));
@@ -135,6 +137,7 @@ export default function MealPlannerBuilder({
         setShowConfigStudio(false);
       }
     } else if (appliedAiAnalysis) {
+      setCurrentPlanId(null);
       setTitle(`Thực Đơn ${appliedAiAnalysis.goalLabel} - ${selectedCustomer?.fullName || 'Học viên'}`);
       setTargetKcalInput(String(appliedAiAnalysis.targetCalories));
       if (appliedAiAnalysis.dietaryAdvice?.keyNotes) {
@@ -153,10 +156,12 @@ export default function MealPlannerBuilder({
       }
       setShowConfigStudio(true);
     } else if (appliedNutrition) {
+      setCurrentPlanId(null);
       setTitle(`Thực Đơn ${appliedNutrition.goalLabel} - ${selectedCustomer?.fullName || 'Học viên'}`);
       setTargetKcalInput(String(appliedNutrition.targetCalories));
       setShowConfigStudio(true);
     } else {
+      setCurrentPlanId(null);
       if (selectedCustomer?.fullName) {
         setTitle(`Thực Đơn Dinh Dưỡng - ${selectedCustomer.fullName}`);
       } else {
@@ -223,6 +228,10 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
 
       const draft = res.data;
       if (draft) {
+        const generatedId = (draft as any)._id || (draft as any).id;
+        if (generatedId) {
+          setCurrentPlanId(generatedId);
+        }
         if (draft.title) setTitle(draft.title);
         if (draft.advice) setDietAdviceNotes(draft.advice);
         if (Array.isArray(draft.menu) && draft.menu.length > 0) {
@@ -355,12 +364,13 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         notes: dietAdviceNotes || undefined,
       };
 
-      let planId = editingPlan?._id;
+      let planId = currentPlanId || editingPlan?._id || editingPlan?.id;
       if (planId) {
         await api.patch(`/api/nutrition-plans/${planId}`, payload);
       } else {
         const res = await api.post<any>('/api/nutrition-plans', payload);
         planId = res.data?._id || res.data?.id;
+        if (planId) setCurrentPlanId(planId);
       }
 
       if (publishToCustomer && planId) {

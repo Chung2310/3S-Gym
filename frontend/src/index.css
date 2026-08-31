@@ -778,8 +778,7 @@ a {
 .published-card h3 { margin: 6px 0; font-size: .9rem; }
 .modal-backdrop { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(4,22,38,.58); z-index: 9999; backdrop-filter: blur(4px); }
 
-/* Core Solid High-Contrast Modal Containers */
-.modal,
+/* Core Customer Select Dropdown Menu */
 .customer-select-dropdown {
   position: absolute;
   top: calc(100% + 4px);
@@ -791,6 +790,35 @@ a {
   border: 1px solid #e2e8f0;
   z-index: 50;
   overflow: hidden;
+}
+
+/* Core Dialog Modal Container */
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid #e2e8f0;
+  z-index: 50;
+}
+.modal h2 {
+  margin: 0 0 16px;
+  color: #003b70;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
 }
 
 /* ========================================================
@@ -1524,6 +1552,112 @@ a {
     padding: 12px !important;
   }
 }
+
+/* ========================================================
+   INBODY MODAL FORMS GRID SYSTEM
+   ======================================================== */
+.inbody-modal-top-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 14px;
+  align-items: start;
+}
+
+.inbody-form-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.inbody-form-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.inbody-form-row-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.inbody-form-row-5 {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.inbody-input-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 !important;
+}
+
+.inbody-input-label > span {
+  font-weight: 600;
+  color: #003b70;
+  font-size: 0.84rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-height: 20px;
+  line-height: 1.2;
+}
+
+.inbody-input-label input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.inbody-input-label input:focus {
+  border-color: #00a4e4;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 164, 228, 0.15);
+}
+
+@media (max-width: 860px) {
+  .inbody-form-row-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .inbody-modal-top-row {
+    grid-template-columns: 1fr;
+  }
+  .inbody-form-row-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .inbody-form-row-5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .inbody-form-row-2,
+  .inbody-form-row-3,
+  .inbody-form-row-4 {
+    grid-template-columns: 1fr;
+  }
+  .inbody-form-row-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
 
 
 

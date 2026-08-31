@@ -18,7 +18,6 @@ import PtAssistantPage from '../pages/pt/PtAssistantPage';
 import KnowledgeSearchPage from '../pages/pt/KnowledgeSearchPage';
 import AdminKnowledgePage from '../pages/admin/AdminKnowledgePage';
 import CustomerPortalPage from '../pages/customer/CustomerPortalPage';
-import CalendarPage from '../pages/common/CalendarPage';
 import NotificationsPage from '../pages/common/NotificationsPage';
 import ConsultationTool from '../pages/ConsultationTool';
 
@@ -47,14 +46,6 @@ function PortalContent({ user }: { user: User }) {
           element={
             <FeatureRoute user={user} roles={['PT']}>
               <ConsultationTool />
-            </FeatureRoute>
-          }
-        />
-        <Route
-          path="calendar"
-          element={
-            <FeatureRoute user={user} roles={['ADMIN', 'PT']}>
-              <CalendarPage role={user.role} />
             </FeatureRoute>
           }
         />

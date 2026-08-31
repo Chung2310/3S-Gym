@@ -182,7 +182,7 @@ export default function CustomerDetailModal({
         api.get<any[]>(`/api/customers/${customer._id}/consultations?limit=50`),
         api.get<any[]>(`/api/customers/${customer._id}/photos?limit=50`),
         api.get<any[]>(`/api/inbody?customerId=${customer._id}&limit=50`),
-        api.get<any>(`/api/workouts/sessions?customerId=${customer._id}&limit=50`),
+        api.get<any>(`/api/workout-sessions?customerId=${customer._id}&limit=50`),
       ]);
 
       if (resCustomer.status === 'fulfilled' && resCustomer.value.data) {

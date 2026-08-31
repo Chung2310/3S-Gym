@@ -101,7 +101,7 @@ export default function ContentFormModal({ open, resource, item, onClose, onSave
   return <FormModal open={open} title={`${editing ? 'Sửa' : 'Tạo'} ${labels[resource]}`} dirty={dirty} loading={loading} onClose={onClose} onSubmit={submit} submitLabel={editing ? 'Lưu thay đổi' : 'Lưu bản nháp'}><section className="profile-form-section"><div className="profile-form-grid">
     <div className="grid-full-width">
       <CustomerSelect
-        label="Mã khách hàng"
+        label="Học viên / Khách hàng"
         name="customerId"
         value={form.customerId}
         customers={initialCustomers}

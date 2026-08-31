@@ -20,12 +20,12 @@ export interface CustomerSelectProps {
 }
 
 export default function CustomerSelect({
-  label = 'Khách hàng',
+  label = 'Học viên / Khách hàng',
   name = 'customerId',
   value = '',
   onChange,
   required = false,
-  placeholder = 'Tìm và chọn học viên (theo tên hoặc SĐT)...',
+  placeholder = 'Tìm theo tên học viên, số điện thoại...',
   error,
   disabled = false,
   readOnly = false,
@@ -54,9 +54,9 @@ export default function CustomerSelect({
     }
   }, [initialCustomers]);
 
-  // Load customers from API lazily only when dropdown is opened
+  // Load customers from API automatically on mount or when opened
   useEffect(() => {
-    if (!open || hasLoaded || disabled || readOnly) return;
+    if (hasLoaded || disabled || readOnly) return;
     let active = true;
     const fetchCustomers = async () => {
       setLoading(true);
@@ -76,7 +76,33 @@ export default function CustomerSelect({
     return () => {
       active = false;
     };
-  }, [open, hasLoaded, disabled, readOnly]);
+  }, [hasLoaded, disabled, readOnly]);
+
+  // Fetch individual customer if stringValue is provided but not in list
+  useEffect(() => {
+    if (!stringValue || disabled || readOnly) return;
+    const exists = customers.some((c) => c._id === stringValue || c.id === stringValue);
+    if (exists) return;
+
+    let active = true;
+    const fetchSingleCustomer = async () => {
+      try {
+        const res = await api.get<Customer>(`/api/customers/${stringValue}`);
+        if (active && res.data) {
+          setCustomers((prev) => {
+            const alreadyIn = prev.some((c) => c._id === res.data._id || c.id === res.data._id);
+            return alreadyIn ? prev : [res.data, ...prev];
+          });
+        }
+      } catch {
+        // Ignore fallback
+      }
+    };
+    void fetchSingleCustomer();
+    return () => {
+      active = false;
+    };
+  }, [stringValue, customers, disabled, readOnly]);
 
   // Selected customer object
   const selectedCustomer = useMemo(
@@ -84,7 +110,7 @@ export default function CustomerSelect({
       if (typeof value === 'object' && value !== null && ('fullName' in value || '_id' in value)) {
         return value as Customer;
       }
-      return customers.find((c) => c._id === stringValue || c.id === stringValue);
+      return customers.find((c) => String(c._id) === String(stringValue) || String(c.id) === String(stringValue));
     },
     [customers, value, stringValue]
   );
@@ -131,7 +157,7 @@ export default function CustomerSelect({
     setSearch('');
   };
 
-  const effectiveAriaLabel = ariaLabel || label || 'Mã khách hàng';
+  const effectiveAriaLabel = ariaLabel || label || 'Học viên / Khách hàng';
 
   return (
     <div className={`field customer-select-container ${className}`} ref={wrapperRef} style={{ position: 'relative' }}>
@@ -255,8 +281,17 @@ export default function CustomerSelect({
           </div>
         ) : stringValue ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontSize: '0.86rem', flex: 1 }}>
-            <User size={15} style={{ color: '#0284c7' }} />
-            <span style={{ fontWeight: 600 }}>{stringValue}</span>
+            {loading ? (
+              <>
+                <Loader2 size={15} className="animate-spin" style={{ color: '#0284c7' }} />
+                <span style={{ color: '#64748b', fontStyle: 'italic' }}>Đang tải học viên...</span>
+              </>
+            ) : (
+              <>
+                <User size={15} style={{ color: '#0284c7' }} />
+                <span style={{ fontWeight: 600 }}>Học viên #{stringValue.slice(-6)}</span>
+              </>
+            )}
             {!disabled && !readOnly && (
               <button
                 type="button"

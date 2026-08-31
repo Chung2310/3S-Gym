@@ -21,7 +21,7 @@ describe('RoadmapPage', () => {
     const user = userEvent.setup();
     render(<ToastProvider><RoadmapPage /></ToastProvider>);
     await user.click(screen.getByRole('button', { name: 'Tạo roadmap' }));
-    await user.type(screen.getByLabelText('Mã khách hàng'), '507f1f77bcf86cd799439011');
+    await user.type(screen.getByLabelText('Học viên / Khách hàng'), '507f1f77bcf86cd799439011');
     await user.type(screen.getByLabelText('Tên roadmap'), 'Lộ trình 12 tuần');
     await user.type(screen.getByLabelText('Tên phase 1'), 'Nền tảng');
     await user.click(screen.getByRole('button', { name: 'Thêm phase' }));
@@ -38,7 +38,7 @@ describe('RoadmapPage', () => {
     const user = userEvent.setup();
     render(<ToastProvider><RoadmapPage /></ToastProvider>);
     await user.click(screen.getByRole('button', { name: 'Tạo roadmap' }));
-    await user.type(screen.getByLabelText('Mã khách hàng'), '507f1f77bcf86cd799439011');
+    await user.type(screen.getByLabelText('Học viên / Khách hàng'), '507f1f77bcf86cd799439011');
     await user.type(screen.getByLabelText('Tên roadmap'), 'Lộ trình 12 tuần');
     await user.type(screen.getByLabelText('Tên phase 1'), 'Nền tảng');
     await user.click(screen.getByRole('button', { name: 'Thêm tuần vào phase 1' }));

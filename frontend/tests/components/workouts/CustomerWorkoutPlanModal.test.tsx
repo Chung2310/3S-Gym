@@ -34,7 +34,7 @@ it('lưu bản nháp khách hàng từ dữ liệu template điền sẵn', asyn
     </ToastProvider>
   );
   expect(screen.getByLabelText('Tên giáo án')).toHaveValue('Full body');
-  await user.type(screen.getByLabelText('Mã khách hàng'), '507f1f77bcf86cd799439011');
+  await user.type(screen.getByLabelText('Học viên / Khách hàng'), '507f1f77bcf86cd799439011');
   await user.click(screen.getByRole('button', { name: 'Lưu bản nháp' }));
   await waitFor(() =>
     expect(api.post).toHaveBeenCalledWith(
