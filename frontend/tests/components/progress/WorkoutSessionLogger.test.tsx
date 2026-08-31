@@ -20,7 +20,7 @@ it('renders complete set details, volume, RPE, feeling and notes', () => {
   render(<WorkoutSessionDetail session={{ _id: 's1', performedAt: '2026-08-29', attendance: 'PRESENT', planSnapshot: { title: 'Strength', session: { name: 'Ngày 1' } }, exerciseLogs: [{ name: 'Squat', sets: [{ reps: 10, weight: 60, rpe: 8, completed: true }], notes: '' }], feeling: 'Khỏe', notes: 'Kỹ thuật ổn' }} />);
   expect(screen.getByText('Strength · Ngày 1')).toBeVisible();
   expect(screen.getByText('600 kg')).toBeVisible();
-  expect(screen.getByText('RPE 8')).toBeVisible();
+  expect(screen.getAllByText('RPE 8')).toHaveLength(2);
   expect(screen.getByText('Khỏe')).toBeVisible();
   expect(screen.getByText('Kỹ thuật ổn')).toBeVisible();
 });

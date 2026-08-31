@@ -5,7 +5,7 @@ import type { SessionTrackingType, TrackingPrescription, TrackingResult } from '
 
 export interface CircumferenceMeasurements { [key: string]: number | undefined; chest?: number; waist?: number; hips?: number; arm?: number; thigh?: number; calf?: number }
 export interface WorkoutSetLog { reps?: number; weight?: number; rpe?: number; rir?: number; completed: boolean }
-export interface WorkoutExerciseLog { exerciseId?: string; name: string; trackingType?: SessionTrackingType; prescribedSnapshot?: TrackingPrescription; result?: TrackingResult; sets: WorkoutSetLog[]; notes?: string }
+export interface WorkoutExerciseLog { exerciseId?: string; name: string; trackingType?: SessionTrackingType; prescribedSnapshot?: TrackingPrescription; result?: TrackingResult; sets?: WorkoutSetLog[]; notes?: string }
 export interface WorkoutSessionDto { _id: string; performedAt: string; attendance: 'PRESENT' | 'ABSENT' | 'LATE'; absenceReason?: string; workoutPlanId?: string; workoutPlanVersion?: number; planSnapshot: { title?: string; session?: { name?: string } }; exerciseLogs: WorkoutExerciseLog[]; feeling?: string; notes?: string }
 export interface BodyMeasurementDto { _id: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements: CircumferenceMeasurements }
 export type DataQualityLevel = 'COMPLETE' | 'PARTIAL' | 'INSUFFICIENT';
