@@ -1,11 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
-import { BookOpen, Bot, CalendarDays, ChartNoAxesCombined, HeartPulse, LayoutDashboard, Map, Ruler, Salad, Search, Users } from 'lucide-react';
+import { BookOpen, Bot, CalendarDays, ChartNoAxesCombined, HeartPulse, LayoutDashboard, Map, Ruler, Salad, Search, Users, WalletCards } from 'lucide-react';
 import type { FeatureKey, FeatureState, User, UserRole } from '../types';
 
 export type NavigationSection = 'Tổng quan' | 'Vận hành' | 'Tri thức & trợ lý' | 'Tài khoản';
 export interface NavigationItem { path: string; label: string; section: NavigationSection; icon: LucideIcon; roles: UserRole[]; feature?: FeatureKey; matchChildren?: boolean }
 
 export const portalNavigation: NavigationItem[] = [
+  { path: '/wallet', label: 'Ví credit', section: 'Tài khoản', icon: WalletCards, roles: ['ADMIN', 'PT', 'CUSTOMER'], matchChildren: true },
+  { path: '/admin/credits', label: 'Quản trị credit', section: 'Tài khoản', icon: WalletCards, roles: ['ADMIN'], matchChildren: true },
   { path: '/pt/dashboard', label: 'Dashboard PT', section: 'Tổng quan', icon: LayoutDashboard, roles: ['PT'], feature: 'DASHBOARD' },
   { path: '/admin', label: 'Quản lý PT', section: 'Vận hành', icon: Users, roles: ['ADMIN'], matchChildren: true },
   { path: '/pt/customers', label: 'Khách hàng', section: 'Vận hành', icon: Users, roles: ['PT'], matchChildren: true },

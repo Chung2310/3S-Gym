@@ -1,6 +1,8 @@
 import { API_BASE_URL } from '../config';
 import type { ApiErrorBody, ApiResult } from '../types';
 import { clearSession } from './session';
+export const CREDIT_WALLET_MUTATED_EVENT = '3s:credit-wallet-mutated';
+export const INSUFFICIENT_CREDITS_EVENT = '3s:insufficient-credits';
 
 export class ApiError extends Error {
   errors: Array<{ field: string; message: string }>;
@@ -23,9 +25,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<ApiR
   if (!response.ok || payload.success === false) {
     const errorBody = payload as ApiErrorBody;
     if (response.status === 401) clearSession();
-    throw new ApiError(errorBody.message || 'Không thể thực hiện yêu cầu.', response.status, errorBody.code, errorBody.requestId, errorBody.errors || []);
+    const error = new ApiError(errorBody.message || 'Không thể thực hiện yêu cầu.', response.status, errorBody.code, errorBody.requestId, errorBody.errors || []);
+    if (typeof window !== 'undefined' && error.code === 'INSUFFICIENT_CREDITS') {
+      window.dispatchEvent(new CustomEvent(INSUFFICIENT_CREDITS_EVENT, { detail: { message: error.message } }));
+    }
+    throw error;
   }
   if (!('data' in payload)) throw new ApiError('Phản hồi từ máy chủ không hợp lệ.', response.status);
+  if (typeof window !== 'undefined' && ['POST', 'PATCH', 'DELETE'].includes(String(options.method || 'GET').toUpperCase()) && (path.startsWith('/api/credits/') || path.startsWith('/api/admin/credit-'))) window.dispatchEvent(new Event(CREDIT_WALLET_MUTATED_EVENT));
   return { data: payload.data as T, meta: payload.meta as ApiResult<T>['meta'], message: typeof payload.message === 'string' ? payload.message : '', ...('summary' in payload ? { summary: payload.summary } : {}) };
 }
 export const api = {

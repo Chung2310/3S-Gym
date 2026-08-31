@@ -1,11 +1,24 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import AppShell from '../../src/components/AppShell';
+import { INSUFFICIENT_CREDITS_EVENT } from '../../src/services/api';
 
 describe('AppShell', () => {
+  it('hiển thị số dư và CTA nạp tiền khi API báo thiếu credit', () => {
+    render(<MemoryRouter><AppShell user={{ username: 'pt-minh', role: 'PT' }}><div>AI workspace</div></AppShell></MemoryRouter>);
+
+    expect(screen.getAllByRole('link', { name: 'Ví credit' })).toEqual(
+      expect.arrayContaining([expect.objectContaining({ textContent: '0 credit' })]),
+    );
+    act(() => window.dispatchEvent(new CustomEvent(INSUFFICIENT_CREDITS_EVENT, { detail: { message: 'Cần thêm 5 credit.' } })));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Cần thêm 5 credit.');
+    expect(screen.getByRole('link', { name: 'Nạp credit' })).toHaveAttribute('href', '/wallet');
+  });
+
   it('hiển thị vai trò và nội dung portal', () => {
     render(<MemoryRouter><AppShell user={{ username: 'pt-minh', fullName: 'PT Minh', role: 'PT' }}><div>Nội dung CRM</div></AppShell></MemoryRouter>);
     expect(screen.getByText('PT Minh')).toBeInTheDocument();

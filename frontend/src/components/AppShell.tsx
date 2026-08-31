@@ -14,14 +14,16 @@ import {
   Ruler,
   Salad,
   Users,
+  WalletCards,
   X
 } from 'lucide-react';
 import { clearSession } from '../services/session';
-import { api } from '../services/api';
+import { api, INSUFFICIENT_CREDITS_EVENT } from '../services/api';
 import { navigationForPath, visibleNavigation, type NavigationSection } from '../config/portalNavigation';
 import type { FeatureState, User, UserRole } from '../types';
 import NotificationDropdown from './notifications/NotificationDropdown';
 import { useMobile } from '../hooks/useMobile';
+import { useCreditWallet } from '../contexts/CreditWalletContext';
 
 const roleNames: Record<UserRole, string> = {
   ADMIN: 'Quản lý hệ thống',
@@ -59,11 +61,13 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
   const [collapsed, setCollapsed] = useState(initialSidebarCollapsed);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [creditError, setCreditError] = useState('');
   const isMobile = useMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const items = visibleNavigation(user, features);
   const current = navigationForPath(location.pathname, user, features);
+  const { wallet, loading: walletLoading } = useCreditWallet();
 
   useEffect(() => {
     let mounted = true;
@@ -82,6 +86,15 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
       mounted = false;
     };
   }, [location.pathname]);
+
+  useEffect(() => {
+    const showCreditError = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      setCreditError(detail?.message || 'Số dư credit không đủ để sử dụng tính năng AI này.');
+    };
+    window.addEventListener(INSUFFICIENT_CREDITS_EVENT, showCreditError);
+    return () => window.removeEventListener(INSUFFICIENT_CREDITS_EVENT, showCreditError);
+  }, []);
 
   const logout = () => {
     clearSession();
@@ -332,6 +345,10 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
           </nav>
 
           <div className="portal-header-actions">
+            <Link to="/wallet" aria-label="Ví credit" className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-bold text-primary transition hover:border-secondary hover:bg-white">
+              <WalletCards size={17} aria-hidden="true" />
+              <span>{walletLoading ? '… credit' : `${wallet?.availableCredits ?? 0} credit`}</span>
+            </Link>
             {/* Notification Bell with Dropdown */}
             <div className="portal-notification-wrap">
               <button
@@ -375,7 +392,25 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
           </div>
         </header>
 
-        <main className="portal-content">{children}</main>
+        <main className="portal-content">
+          {creditError && (
+            <div role="alert" className="mb-5 flex flex-col justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950 sm:flex-row sm:items-center">
+              <div>
+                <strong className="block text-sm">Không đủ credit</strong>
+                <span className="text-sm">{creditError}</span>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Link to="/wallet" onClick={() => setCreditError('')} className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">
+                  Nạp credit
+                </Link>
+                <button type="button" aria-label="Đóng cảnh báo credit" onClick={() => setCreditError('')} className="rounded-lg p-2 text-amber-800 hover:bg-amber-100">
+                  <X size={17} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          )}
+          {children}
+        </main>
 
         {/* Bottom Navigation Bar for Native-like Mobile UX */}
         {isMobile && renderMobileBottomNav()}
