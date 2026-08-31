@@ -23,5 +23,5 @@ export const createUserSchema: RequestValidationSchema = { body: Joi.object({
   yearsOfExperience: profileFields.yearsOfExperience, certificates: profileFields.certificates, bio: profileFields.bio,
   address: profileFields.address, specialization: profileFields.specialization, status: profileFields.status,
 }).messages(commonMessages) };
-export const updateUserSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...profileFields, username: Joi.string(), role: Joi.string().valid(...roles) }) };
+export const updateUserSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...profileFields, password: Joi.string().min(8).allow('', null).messages(commonMessages), username: Joi.string(), role: Joi.string().valid(...roles) }) };
 export const deleteUserSchema: RequestValidationSchema = { params: idParams() };

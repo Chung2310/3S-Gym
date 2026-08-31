@@ -61,7 +61,7 @@ async function updatePt(id: string, payload: UpdatePtPayload): Promise<UserDocum
     const value = payload[field];
     if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
   }
-  if (payload.password) user.password = await bcrypt.hash(payload.password, 10);
+  if (payload.password && payload.password.trim()) user.password = await bcrypt.hash(payload.password.trim(), 10);
   await user.save();
   return user;
 }
