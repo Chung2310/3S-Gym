@@ -34,8 +34,8 @@ it('PT đi từ CRM sang Care bằng navigation', async () => {
     </MemoryRouter>
   );
   expect(await screen.findByRole('heading', { name: 'Khách hàng của tôi' })).toBeVisible();
-  await user.click(await screen.findByRole('link', { name: 'Chăm sóc' }));
-  expect(await screen.findByRole('heading', { name: 'Việc cần làm hôm nay' })).toBeVisible();
+  await user.click(await screen.findByRole('link', { name: 'Trợ lý PT 3S' }));
+  expect(await screen.findByRole('heading', { name: 'Trợ lý PT 3S' })).toBeVisible();
 });
 
 it('chặn route khi feature tắt', async () => {

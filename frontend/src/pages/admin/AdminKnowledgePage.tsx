@@ -65,12 +65,7 @@ export default function AdminKnowledgePage() {
   return (
     <section>
       <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ color: '#003b70', margin: 0 }}>Kho tri thức</h1>
-          <p style={{ margin: '4px 0 0', color: '#64748b' }}>
-            Tài liệu đã duyệt dùng làm nguồn trích dẫn RAG cho PT Assistant và Cố vấn Chuyên môn.
-          </p>
-        </div>
+        <h1 style={{ color: '#003b70', margin: 0 }}>Kho tri thức</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"

@@ -19,10 +19,7 @@ export default function WorkoutPlansPage() {
   return (
     <section>
       <div className="section-header">
-        <div>
-          <h1>Giáo án</h1>
-          <p>Xây dựng giáo án mẫu và cá nhân hóa kế hoạch tập cho từng khách hàng.</p>
-        </div>
+        <h1 style={{ margin: 0 }}>Giáo án</h1>
       </div>
       <div className="browser-tabs" role="tablist" aria-label="Quản lý giáo án">
         <button type="button" role="tab" aria-selected={tab === 'templates'} onClick={() => setTab('templates')}>

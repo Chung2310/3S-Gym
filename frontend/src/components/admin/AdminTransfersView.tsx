@@ -113,14 +113,9 @@ export default function AdminTransfersView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-        <div>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#003b70', margin: '0 0 4px' }}>
-            Điều chuyển khách hàng (Customer Transfer)
-          </h2>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-            Thực hiện chuyển giao học viên giữa các Huấn luyện viên (PT) và theo dõi toàn bộ lịch sử luân chuyển.
-          </p>
-        </div>
+        <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#003b70', margin: 0 }}>
+          Điều chuyển khách hàng (Customer Transfer)
+        </h2>
 
         {/* Tab Toggle */}
         <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: '8px', padding: '3px', gap: '2px' }}>

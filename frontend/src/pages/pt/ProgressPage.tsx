@@ -24,10 +24,7 @@ export default function ProgressPage() {
   return (
     <section className="progress-page">
       <div className="progress-page-header">
-        <div>
-          <h1 className="progress-page-title">Tiến độ khách hàng</h1>
-          <p className="progress-page-description">Tổng quan toàn bộ khách hàng được phân công cho bạn.</p>
-        </div>
+        <h1 className="progress-page-title">Tiến độ khách hàng</h1>
       </div>
       {loading && !items.length ? <div className="progress-loading">Đang tải tổng quan tiến độ...</div> : <ProgressDashboard items={items} onView={(item) => void open(item, 'detail')} onLogWorkout={(item) => void open(item, 'workout')} />}
       <ProgressDetailModal item={detailItem} journey={detailItem ? journey : null} loading={loading} onClose={close} />
