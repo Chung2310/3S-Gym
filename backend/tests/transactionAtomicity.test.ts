@@ -3,7 +3,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import User from '../models/User.js';
 import CustomerProfile from '../models/CustomerProfile.js';
-import WorkoutTemplate from '../models/WorkoutTemplate.js';
+import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutSession from '../models/WorkoutSession.js';
 import PtPackage from '../models/PtPackage.js';
 import { createSession } from '../services/workoutProgressService.js';
@@ -19,15 +19,15 @@ import { publishReport } from '../services/operationsService.js';
 let mongo: MongoMemoryReplSet;
 let ptId: string;
 let customerId: string;
-let templateId: string;
+let workoutPlanId: string;
 
 beforeAll(async () => {
   mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongo.getUri());
   const pt = await User.create({ username: 'pt-atomicity', password: 'hashed-value', role: 'PT' });
   const customer = await CustomerProfile.create({ fullName: 'Khách Atomic', phone: '0908111001', assignedPtId: pt.id });
-  const template = await WorkoutTemplate.create({ ownerPtId: pt.id, title: 'Atomic Template', goal: 'STRENGTH', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [] }] });
-  ptId = pt.id; customerId = customer.id; templateId = template.id;
+  const plan = await WorkoutPlan.create({ customerId: customer.id, ptId: pt.id, title: 'Atomic Plan', goal: 'STRENGTH', level: 'BEGINNER', lifecycleStatus: 'ACTIVE', version: 1, sessions: [{ name: 'Day 1', exercises: [] }] });
+  ptId = pt.id; customerId = customer.id; workoutPlanId = plan.id;
   await WorkoutSession.syncIndexes();
 });
 
@@ -42,7 +42,7 @@ afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); });
 it('rolls back the workout session when package consumption fails', async () => {
   vi.spyOn(PtPackage, 'updateOne').mockRejectedValueOnce(new Error('package write failed'));
   await expect(createSession({ id: ptId, role: 'PT' }, {
-    customerId, templateId, sessionIndex: 0, performedAt: '2026-09-02', attendance: 'PRESENT', idempotencyKey: 'rollback-001',
+    customerId, workoutPlanId, workoutPlanVersion: 1, sessionIndex: 0, performedAt: '2026-09-02', attendance: 'PRESENT', exerciseResults: [], idempotencyKey: 'rollback-001',
   })).rejects.toThrow('package write failed');
 
   expect(await WorkoutSession.countDocuments({ idempotencyKey: 'rollback-001' })).toBe(0);

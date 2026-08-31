@@ -37,6 +37,17 @@ function snapshotFields(template: Record<string, any>) {
   };
 }
 
+function sessionsFromSchedule(items: Array<Record<string, unknown>>) {
+  const groups = new Map<string, { weekNumber: number; dayNumber: number; exercises: Array<Record<string, unknown>> }>();
+  for (const item of [...items].sort((a, b) => Number(a.weekNumber || 1) - Number(b.weekNumber || 1) || Number(a.dayNumber) - Number(b.dayNumber) || Number(a.startMinute) - Number(b.startMinute))) {
+    const weekNumber = Number(item.weekNumber || 1); const dayNumber = Number(item.dayNumber); const key = `${weekNumber}:${dayNumber}`;
+    const exercise = { ...item }; delete exercise.weekNumber; delete exercise.dayNumber; delete exercise.startMinute; delete exercise.durationMinutes;
+    const group = groups.get(key) || { weekNumber, dayNumber, exercises: [] }; group.exercises.push(exercise); groups.set(key, group);
+  }
+  const multipleWeeks = [...groups.values()].some((group) => group.weekNumber > 1);
+  return [...groups.values()].map((group) => ({ name: multipleWeeks ? `Tuần ${group.weekNumber} · Ngày ${group.dayNumber}` : `Ngày ${group.dayNumber}`, exercises: group.exercises }));
+}
+
 function exercisesFromPlan(plan: Record<string, any>) {
   return [
     ...(plan.scheduledExercises || []),
@@ -70,7 +81,7 @@ async function assignWithoutTransaction(user: AuthenticatedUser, customerId: str
   try {
     active.set({
       ...snapshotFields(template), ptId: new Types.ObjectId(user.id), lifecycleStatus: 'ACTIVE', assignedAt: now,
-      archivedAt: null, status: 'DRAFT', publishedAt: null,
+      archivedAt: null, status: 'DRAFT', publishedAt: null, version: active.version + 1,
     });
     return await active.save();
   } catch (error) {
@@ -122,5 +133,7 @@ export async function updateCustomerWorkoutPlan(user: AuthenticatedUser, custome
   assertClassifiedPlan({ ...plan.toObject(), ...payload });
   const mutable = ['title', 'goal', 'level', 'durationDays', 'muscleGroups', 'defaultSets', 'defaultReps', 'defaultWeight', 'defaultTempo', 'technicalNotes', 'scheduledExercises', 'unscheduledExercises', 'sessions'];
   for (const field of mutable) if (Object.prototype.hasOwnProperty.call(payload, field)) plan.set(field, payload[field]);
+  if (Array.isArray(payload.scheduledExercises) && !Object.prototype.hasOwnProperty.call(payload, 'sessions')) plan.set('sessions', sessionsFromSchedule(payload.scheduledExercises));
+  plan.set('version', Number(plan.get('version') || 1) + 1);
   return plan.save();
 }

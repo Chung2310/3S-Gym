@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import { TRACKING_TYPES } from '../types/exerciseTracking.js';
 const exerciseSchema = new mongoose.Schema({
-  exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, sets: { type: Number, min: 1, default: 3 }, reps: { type: String, default: '8-12' },
-  weight: { type: String, default: '' }, rest: { type: String, default: '' }, tempo: { type: String, default: '' }, notes: { type: String, default: '' },
+  exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, sets: { type: Number, min: 1 }, reps: String,
+  weight: String, rest: String, tempo: String, notes: String,
   trackingType: { type: String, enum: TRACKING_TYPES, default: 'UNCLASSIFIED' }, prescription: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
 }, { _id: false });
 const sessionSchema = new mongoose.Schema({ name: { type: String, required: true }, exercises: { type: [exerciseSchema], default: [] } }, { _id: false });

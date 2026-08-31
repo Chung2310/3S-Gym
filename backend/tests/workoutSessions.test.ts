@@ -3,7 +3,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import User from '../models/User.js';
 import CustomerProfile from '../models/CustomerProfile.js';
-import WorkoutTemplate from '../models/WorkoutTemplate.js';
+import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutSession from '../models/WorkoutSession.js';
 import PtPackage from '../models/PtPackage.js';
 import { createSession, updateSession } from '../services/workoutProgressService.js';
@@ -16,10 +16,10 @@ afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); });
 it('creates one session and consumes one package unit for concurrent retries', async () => {
   const pt = await User.create({ username: 'pt-concurrent-session', password: 'hashed-value', role: 'PT' });
   const customer = await CustomerProfile.create({ fullName: 'Khách Concurrent', phone: '0908111002', assignedPtId: pt.id });
-  const template = await WorkoutTemplate.create({ ownerPtId: pt.id, title: 'Concurrent Template', goal: 'STRENGTH', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [] }] });
+  const plan = await WorkoutPlan.create({ customerId: customer.id, ptId: pt.id, title: 'Concurrent Plan', goal: 'STRENGTH', level: 'BEGINNER', lifecycleStatus: 'ACTIVE', version: 1, sessions: [{ name: 'Day 1', exercises: [] }] });
   await PtPackage.create({ customerId: customer.id, name: 'Concurrent Package', totalSessions: 2, usedSessions: 0, remainingSessions: 2, startDate: '2026-08-01', endDate: '2026-12-01', status: 'ACTIVE' });
   await WorkoutSession.syncIndexes();
-  const payload = { customerId: customer.id, templateId: template.id, sessionIndex: 0, performedAt: '2026-09-02', attendance: 'PRESENT' as const, idempotencyKey: 'concurrent-001' };
+  const payload = { customerId: customer.id, workoutPlanId: plan.id, workoutPlanVersion: 1, sessionIndex: 0, performedAt: '2026-09-02', attendance: 'PRESENT' as const, exerciseResults: [], idempotencyKey: 'concurrent-001' };
 
   const settled = await Promise.allSettled([
     createSession({ id: pt.id, role: 'PT' }, payload), createSession({ id: pt.id, role: 'PT' }, payload),

@@ -41,9 +41,10 @@ it('runs Core through OCR, roadmap, workout, progress, care, knowledge and assis
   expect(roadmap.status).toBe(201);
   await request(app).patch(`/api/roadmaps/${roadmap.body.data._id}/publish`).set('Authorization', `Bearer ${ptToken}`).expect(200);
 
-  const template = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${ptToken}`).send({ title: 'Full body', goal: 'FAT_LOSS', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [{ name: 'Squat', sets: 3, reps: '10' }] }] });
+  const template = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${ptToken}`).send({ title: 'Full body', goal: 'FAT_LOSS', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [{ name: 'Squat', trackingType: 'STRENGTH', prescription: { sets: 3, reps: '10' } }] }] });
   expect(template.status).toBe(201);
-  await request(app).post('/api/workout-sessions').set('Authorization', `Bearer ${ptToken}`).send({ customerId, templateId: template.body.data._id, sessionIndex: 0, performedAt: '2026-09-02', attendance: 'PRESENT', idempotencyKey: 'full-journey-session-1' }).expect(201);
+  const assigned = await request(app).post(`/api/customers/${customerId}/workout-plans/assign`).set('Authorization', `Bearer ${ptToken}`).send({ templateId: template.body.data._id }).expect(201);
+  await request(app).post('/api/workout-sessions').set('Authorization', `Bearer ${ptToken}`).send({ customerId, workoutPlanId: assigned.body.data._id, workoutPlanVersion: assigned.body.data.version, sessionIndex: 0, performedAt: '2026-09-02', attendance: 'PRESENT', idempotencyKey: 'full-journey-session-1', exerciseResults: [{ exerciseIndex: 0, result: { sets: [{ reps: 10, weight: 20, completed: true }] } }] }).expect(201);
   await request(app).post('/api/body-measurements').set('Authorization', `Bearer ${ptToken}`).send({ customerId, measuredAt: '2026-08-01', weight: 70, bodyFatPercentage: 25, muscleMass: 28 }).expect(201);
   await request(app).post('/api/body-measurements').set('Authorization', `Bearer ${ptToken}`).send({ customerId, measuredAt: '2026-09-02', weight: 69, bodyFatPercentage: 24, muscleMass: 28.5 }).expect(201);
   expect((await request(app).get(`/api/progress/${customerId}`).set('Authorization', `Bearer ${ptToken}`)).body.data.measurements).toHaveLength(2);

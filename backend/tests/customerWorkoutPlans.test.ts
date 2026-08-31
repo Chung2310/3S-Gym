@@ -77,7 +77,7 @@ it('updates only the customer snapshot and rejects archived snapshots', async ()
   const updated = await request(app).patch(`/api/customers/${customerId}/workout-plans/${active.id}`).set('Authorization', `Bearer ${token}`).send({ title: 'Bản riêng của khách', defaultSets: 5, technicalNotes: 'Ghi chú riêng.' });
   expect(updated.status).toBe(200);
   expect(updated.body.data.title).toBe('Bản riêng của khách');
-  expect(updated.body.data).toMatchObject({ defaultSets: 5, technicalNotes: 'Ghi chú riêng.' });
+  expect(updated.body.data).toMatchObject({ defaultSets: 5, technicalNotes: 'Ghi chú riêng.', version: active.version + 1 });
   expect((await WorkoutTemplate.findById(templateId))?.title).toBe('Mẫu đã đổi');
   expect((await WorkoutTemplate.findById(templateId))?.defaultSets).toBe(4);
 });
@@ -103,4 +103,15 @@ it('stores plan tracking overrides independently from the source template', asyn
   expect(response.status).toBe(200);
   expect(response.body.data.sessions[0].exercises[0]).toMatchObject({ trackingType: 'BODYWEIGHT', prescription: { sets: 3, reps: '12' } });
   expect((await WorkoutTemplate.findById(templateId))!.sessions[0]).toMatchObject({ exercises: [expect.objectContaining({ trackingType: 'STRENGTH' })] });
+});
+
+it('rebuilds trusted sessions and increments the version when a studio schedule changes', async () => {
+  const active = await WorkoutPlan.findOne({ customerId, lifecycleStatus: 'ACTIVE' });
+  const response = await request(app).patch(`/api/customers/${customerId}/workout-plans/${active!.id}`).set('Authorization', `Bearer ${token}`).send({
+    scheduledExercises: [{ dayNumber: 2, startMinute: 480, durationMinutes: 30, name: 'Treadmill Run', trackingType: 'CARDIO', prescription: { durationMinutes: 20, distanceKm: 3 } }],
+  });
+
+  expect(response.status).toBe(200);
+  expect(response.body.data.version).toBe(active!.version + 1);
+  expect(response.body.data.sessions).toEqual([{ name: 'Ngày 2', exercises: [expect.objectContaining({ name: 'Treadmill Run', trackingType: 'CARDIO', prescription: { durationMinutes: 20, distanceKm: 3 } })] }]);
 });

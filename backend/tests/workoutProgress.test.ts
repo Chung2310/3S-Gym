@@ -30,14 +30,20 @@ it('tạo template có version và check-in giữ snapshot, trừ đúng một b
   expect(template.status).toBe(201);
   expect(template.body.data.version).toBe(1);
 
-  const payload = { customerId, templateId: template.body.data._id, sessionIndex: 0, performedAt: '2026-09-02', attendance: 'PRESENT', idempotencyKey: 'checkin-001', exerciseLogs: [{ name: 'Squat', sets: [{ reps: 10, weight: 20, rpe: 7 }] }] };
+  const assigned = await request(app).post(`/api/customers/${customerId}/workout-plans/assign`).set('Authorization', `Bearer ${token}`).send({ templateId: template.body.data._id });
+  expect(assigned.status).toBe(201);
+  const payload = { customerId, workoutPlanId: assigned.body.data._id, workoutPlanVersion: assigned.body.data.version, sessionIndex: 0, performedAt: '2026-09-02', attendance: 'PRESENT', idempotencyKey: 'checkin-001', exerciseResults: [{ exerciseIndex: 0, result: { sets: [{ reps: 10, weight: 20, rpe: 7, completed: true }] } }] };
   const first = await request(app).post('/api/workout-sessions').set('Authorization', `Bearer ${token}`).send(payload);
   expect(first.status).toBe(201);
   expect(first.body.data.planSnapshot.title).toBe('Full body A');
+  expect(first.body.data.exerciseLogs[0]).toMatchObject({ name: 'Squat', trackingType: 'STRENGTH', result: { sets: [{ reps: 10, weight: 20, rpe: 7, completed: true }] } });
 
   const retry = await request(app).post('/api/workout-sessions').set('Authorization', `Bearer ${token}`).send(payload);
   expect(retry.status).toBe(200);
   expect(retry.body.data._id).toBe(first.body.data._id);
+
+  const forged = await request(app).post('/api/workout-sessions').set('Authorization', `Bearer ${token}`).send({ ...payload, idempotencyKey: 'forged-session-001', planSnapshot: { title: 'Giả mạo' }, exerciseLogs: [{ name: 'Bài giả' }] });
+  expect(forged.status).toBe(400);
 
   const pkg = await PtPackage.findOne({ customerId }).lean();
   expect(pkg).toMatchObject({ usedSessions: 1, remainingSessions: 19 });
