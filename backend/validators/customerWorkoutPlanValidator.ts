@@ -1,9 +1,9 @@
 import Joi from 'joi';
 import type { RequestValidationSchema } from '../middlewares/validate.js';
+import { commonMessages, objectId } from './commonValidator.js';
 
-const objectId = Joi.string().hex().length(24);
-const params = Joi.object({ id: objectId.required() });
-const planParams = Joi.object({ id: objectId.required(), planId: objectId.required() });
+const params = Joi.object({ id: objectId.required() }).messages(commonMessages);
+const planParams = Joi.object({ id: objectId.required(), planId: objectId.required() }).messages(commonMessages);
 const classifiedTrackingType = Joi.string().valid('STRENGTH', 'BODYWEIGHT', 'CARDIO', 'INTERVAL', 'MOBILITY');
 const prescription = Joi.object().when('trackingType', {
   switch: [
@@ -49,6 +49,6 @@ const validateCustomerPlanSchedule = (value: Record<string, unknown>, helpers: J
 };
 
 export const listCustomerPlansSchema: RequestValidationSchema = { params };
-export const assignCustomerPlanSchema: RequestValidationSchema = { params, body: Joi.object({ templateId: objectId.required() }) };
+export const assignCustomerPlanSchema: RequestValidationSchema = { params, body: Joi.object({ templateId: objectId.required() }).messages(commonMessages) };
 export const getCustomerPlanSchema: RequestValidationSchema = { params: planParams };
-export const updateCustomerPlanSchema: RequestValidationSchema = { params: planParams, body: Joi.object({ title: Joi.string().trim().min(1), goal: Joi.string().trim().min(1), level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED'), durationDays: Joi.number().integer().min(1).max(365), muscleGroups: Joi.array().items(Joi.string().trim().min(1).max(100)).max(20), defaultSets: Joi.number().integer().min(1).max(100), defaultReps: Joi.string().trim().allow('').max(100), defaultWeight: Joi.string().trim().allow('').max(100), defaultTempo: Joi.string().trim().allow('').max(100), technicalNotes: Joi.string().trim().allow('').max(2000), scheduledExercises: Joi.array().items(scheduled), unscheduledExercises: Joi.array().items(unscheduled), sessions: Joi.array().items(planSession) }).min(1).custom(validateCustomerPlanSchedule) };
+export const updateCustomerPlanSchema: RequestValidationSchema = { params: planParams, body: Joi.object({ title: Joi.string().trim().min(1), goal: Joi.string().trim().min(1), level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED'), durationDays: Joi.number().integer().min(1).max(365), muscleGroups: Joi.array().items(Joi.string().trim().min(1).max(100)).max(20), defaultSets: Joi.number().integer().min(1).max(100), defaultReps: Joi.string().trim().allow('').max(100), defaultWeight: Joi.string().trim().allow('').max(100), defaultTempo: Joi.string().trim().allow('').max(100), technicalNotes: Joi.string().trim().allow('').max(2000), scheduledExercises: Joi.array().items(scheduled), unscheduledExercises: Joi.array().items(unscheduled), sessions: Joi.array().items(planSession) }).min(1).custom(validateCustomerPlanSchedule).messages(commonMessages) };

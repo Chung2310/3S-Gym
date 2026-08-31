@@ -18,6 +18,11 @@ export const FIELD_LABELS: Record<string, string> = {
   from: 'từ ngày',
   to: 'đến ngày',
   version: 'phiên bản',
+  date: 'ngày',
+  asOf: 'thời điểm tính toán',
+  key: 'khóa cấu hình',
+  active: 'trạng thái hoạt động',
+  sortOrder: 'thứ tự hiển thị',
 
   // Auth & Account
   username: 'tên đăng nhập',
@@ -30,22 +35,36 @@ export const FIELD_LABELS: Record<string, string> = {
   avatarUrl: 'ảnh đại diện',
   dateOfBirth: 'ngày sinh',
   gender: 'giới tính',
+  sex: 'giới tính',
+  age: 'tuổi',
   yearsOfExperience: 'số năm kinh nghiệm',
   certificates: 'chứng chỉ',
   bio: 'tiểu sử / giới thiệu',
   address: 'địa chỉ',
   specialization: 'chuyên môn',
+  userId: 'mã người dùng',
+  pilotUserIds: 'danh sách người dùng thử nghiệm',
 
-  // Customers & Transfers
+  // Customers & Transfers & Care
   customerId: 'mã khách hàng',
   toPtId: 'mã PT tiếp nhận',
   fromPtId: 'mã PT chuyển giao',
   ownerPtId: 'mã PT phụ trách',
   ptId: 'mã PT',
+  assignedPtId: 'mã PT được phân công',
   reason: 'lý do',
   source: 'nguồn',
   notes: 'ghi chú',
   consultationNotes: 'ghi chú tư vấn',
+  dueAt: 'hạn hoàn thành',
+  kind: 'loại',
+  result: 'kết quả',
+  medicalNotes: 'tiền sử / lưu ý y tế',
+  initialGoal: 'mục tiêu ban đầu',
+  internalNotes: 'ghi chú nội bộ',
+  customerStatus: 'trạng thái khách hàng',
+  height: 'chiều cao',
+  initialWeight: 'cân nặng ban đầu',
 
   // Exercises & Tracking
   exerciseId: 'mã bài tập',
@@ -117,6 +136,10 @@ export const FIELD_LABELS: Record<string, string> = {
   absenceReason: 'lý do vắng mặt',
   feeling: 'cảm nhận sau buổi tập',
   idempotencyKey: 'mã giao dịch (idempotencyKey)',
+  totalSessions: 'tổng số buổi tập',
+  usedSessions: 'số buổi đã tập',
+  startDate: 'ngày bắt đầu',
+  endDate: 'ngày kết thúc',
 
   // Goals & Roadmaps
   type: 'loại',
@@ -138,10 +161,13 @@ export const FIELD_LABELS: Record<string, string> = {
   // InBody & Health Metrics
   measurementDate: 'ngày đo',
   measuredAt: 'ngày đo',
+  weightKg: 'cân nặng (kg)',
+  heightCm: 'chiều cao (cm)',
   bmi: 'chỉ số BMI',
   bodyFatPercentage: 'tỷ lệ mỡ (%)',
   bodyFatMass: 'khối lượng mỡ (kg)',
   muscleMass: 'khối lượng cơ (kg)',
+  bodyFat: 'tỷ lệ mỡ (%)',
   bmr: 'chỉ số BMR',
   tdee: 'chỉ số TDEE',
   visceralFatLevel: 'mỡ nội tạng',
@@ -151,6 +177,11 @@ export const FIELD_LABELS: Record<string, string> = {
   waistHipRatio: 'tỷ lệ eo/hông',
   segmentalMuscle: 'phân bố cơ theo phân đoạn',
   segmentalFat: 'phân bố mỡ theo phân đoạn',
+  rightArm: 'tay phải',
+  leftArm: 'tay trái',
+  trunk: 'thân người',
+  rightLeg: 'chân phải',
+  leftLeg: 'chân trái',
   strengths: 'điểm mạnh',
   priorities: 'ưu tiên cải thiện',
   recommendation: 'đề xuất',
@@ -168,6 +199,34 @@ export const FIELD_LABELS: Record<string, string> = {
   calf: 'vòng bắp chân',
   measurements: 'số đo các vòng',
 
+  // Nutrition & Calculations
+  mealCount: 'số bữa ăn',
+  activityLevel: 'mức độ vận động',
+  timeframe: 'khoảng thời gian',
+  activityFactor: 'hệ số vận động',
+  fatLossFactor: 'hệ số giảm mỡ',
+  muscleGainFactor: 'hệ số tăng cơ',
+  proteinPerKg: 'lượng protein/kg thể trọng',
+  fatPerKg: 'lượng chất béo/kg thể trọng',
+  loggedAt: 'thời điểm ghi nhận',
+  calories: 'lượng calo',
+  met: 'chỉ số MET',
+  bodyType: 'tạng người',
+  dailySchedule: 'lịch sinh hoạt hàng ngày',
+  dietaryPreferences: 'thói quen ăn uống',
+  fitnessGoal: 'mục tiêu thể hình',
+  request: 'yêu cầu',
+
+  // Operations & Reports
+  fromDate: 'từ ngày',
+  toDate: 'đến ngày',
+  periodStart: 'ngày bắt đầu kỳ báo cáo',
+  periodEnd: 'ngày kết thúc kỳ báo cáo',
+  metrics: 'chỉ số đo lường',
+  sourceVersions: 'phiên bản dữ liệu',
+  startsAt: 'thời gian bắt đầu',
+  endsAt: 'thời gian kết thúc',
+
   // Credits & Billing
   gateway: 'cổng thanh toán',
   paymentGateway: 'cổng thanh toán',
@@ -176,6 +235,7 @@ export const FIELD_LABELS: Record<string, string> = {
   amountVnd: 'số tiền VNĐ',
   grantCredits: 'số credit',
   bonusCredits: 'credit thưởng',
+  credits: 'số credit',
   currency: 'loại tiền tệ',
   markupBasisPoints: 'tỷ lệ điều chỉnh (markup)',
   fallbackCredits: 'credit dự phòng',
@@ -187,7 +247,13 @@ export const FIELD_LABELS: Record<string, string> = {
   taskType: 'loại tác vụ AI',
   orderId: 'mã đơn hàng',
 
-  // Knowledge & AI
+  // Knowledge & AI & Upload
+  q: 'từ khóa tìm kiếm',
+  topic: 'chủ đề',
+  effectiveAt: 'ngày hiệu lực',
+  requestType: 'loại yêu cầu',
+  scenario: 'kịch bản',
+  reviewStatus: 'trạng thái kiểm duyệt',
   category: 'danh mục',
   tags: 'thẻ tags',
   content: 'nội dung',
@@ -197,6 +263,10 @@ export const FIELD_LABELS: Record<string, string> = {
   conversationId: 'mã cuộc hội thoại',
   message: 'tin nhắn',
   prompt: 'lời nhắc (prompt)',
+  items: 'danh sách món ăn',
+  seed: 'seed ngẫu nhiên',
+  imageBase64: 'chuỗi ảnh Base64',
+  mimetype: 'định dạng tệp tin',
 };
 
 export function formatFieldLabel(path: string): string {
@@ -246,11 +316,24 @@ const translators: Record<string, Translator> = {
   'number.max': (field, context) => `${field} phải nhỏ hơn hoặc bằng ${context.limit}.`,
   'number.min': (field, context) => `${field} phải lớn hơn hoặc bằng ${context.limit}.`,
   'number.positive': (field) => `${field} phải là số dương.`,
+  'number.multiple': (field, context) => `${field} phải là bội số của ${context.multiple}.`,
   'object.base': (field) => `${field} phải là một đối tượng.`,
   'object.length': (field, context) => `${field} phải có đúng ${context.limit} trường.`,
   'object.max': (field, context) => `${field} không được có quá ${context.limit} trường.`,
   'object.min': () => 'Vui lòng cung cấp ít nhất một trường cần cập nhật.',
   'object.unknown': (field) => `Trường "${field}" không được phép.`,
+  'object.xor': (_field, context) => {
+    const peers = Array.isArray(context.peers) ? context.peers.map((p) => formatFieldLabel(String(p))).join(', ') : '';
+    return peers ? `Chỉ được chọn 1 trong các trường: ${peers}.` : 'Không thể chọn đồng thời các trường xung đột.';
+  },
+  'object.oxor': (_field, context) => {
+    const peers = Array.isArray(context.peers) ? context.peers.map((p) => formatFieldLabel(String(p))).join(', ') : '';
+    return peers ? `Không được chọn đồng thời các trường: ${peers}.` : 'Không thể chọn đồng thời các trường xung đột.';
+  },
+  'object.missing': (_field, context) => {
+    const peers = Array.isArray(context.peers) ? context.peers.map((p) => formatFieldLabel(String(p))).join(', ') : '';
+    return peers ? `Vui lòng cung cấp ít nhất 1 trong các trường: ${peers}.` : 'Vui lòng cung cấp ít nhất một trường bắt buộc.';
+  },
   'string.alphanum': (field) => `${field} chỉ được chứa chữ và số.`,
   'string.base': (field) => `${field} phải là chuỗi ký tự.`,
   'string.email': () => 'Email không đúng định dạng.',
@@ -258,7 +341,7 @@ const translators: Record<string, Translator> = {
   'string.length': (field, context) => `${field} phải có đúng ${context.limit} ký tự.`,
   'string.max': (field, context) => `${field} không được vượt quá ${context.limit} ký tự.`,
   'string.min': (field, context) => `${field} phải có ít nhất ${context.limit} ký tự.`,
-  'string.pattern.base': (field) => `${field} không đúng định dạng.`,
+  'string.pattern.base': (field) => `${field} không đúng định dạng yêu cầu.`,
   'string.uri': (field) => `${field} phải là đường dẫn URL hợp lệ.`,
   'string.objectId': (field) => `${field} không phải mã ObjectId hợp lệ.`,
 };
