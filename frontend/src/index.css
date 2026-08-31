@@ -1985,3 +1985,59 @@ a {
   .workout-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .workout-template-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Workout AI and customer plans */
+.workout-ai-wizard { width: min(780px, calc(100vw - 32px)); max-height: min(90dvh, 920px); border: 1px solid #d7e5ed; border-radius: 16px; background: #fff; box-shadow: 0 24px 64px rgba(4, 22, 38, .28); }
+.workout-wizard-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #dce8f0; }
+.workout-wizard-header p { margin: 0 0 3px; color: var(--secondary-color); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.workout-wizard-header h2 { margin: 0; color: var(--primary-color); font-size: 1.35rem; }
+.workout-wizard-body { display: grid; gap: 18px; max-height: calc(90dvh - 156px); padding: 20px; overflow-y: auto; }
+.workout-wizard-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.workout-wizard-progress li { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 132px; color: #718391; font-size: .72rem; font-weight: 700; }
+.workout-wizard-progress li > span { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid #c8d9e3; border-radius: 50%; background: #fff; font-variant-numeric: tabular-nums; }
+.workout-wizard-progress .is-active { color: var(--primary-color); }
+.workout-wizard-progress .is-active > span, .workout-wizard-progress .is-complete > span { border-color: var(--secondary-color); background: var(--secondary-color); color: #fff; }
+.workout-wizard-form { padding: 16px; border: 1px solid #dce8f0; border-radius: 12px; background: #f8fbfc; }
+.workout-wizard-form .module-field :is(select, input), .workout-wizard-summary .module-field :is(select, input) { min-height: 44px; padding: 9px 11px; font: inherit; font-size: .82rem; }
+.workout-wizard-summary, .workout-customer-plan-form .profile-form-section { display: grid; gap: 14px; padding: 16px; border: 1px solid #dce8f0; border-radius: 12px; background: #f8fbfc; }
+.workout-wizard-summary-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.workout-wizard-summary-heading strong { color: var(--primary-color); font-family: Oswald, sans-serif; font-size: 1rem; text-transform: uppercase; }
+.workout-wizard-summary-heading span { color: #526b7e; font-size: .74rem; font-weight: 750; }
+.workout-wizard-error { min-height: 72px; place-items: start; align-content: center; padding: 14px 16px; text-align: left; }
+.workout-wizard-actions { padding: 14px 20px; border-top: 1px solid #dce8f0; }
+.workout-wizard-actions .button:disabled { cursor: wait; opacity: .62; }
+.workout-customer-plans { min-width: 0; }
+.workout-customer-plan-card { display: grid; gap: 18px; padding: 20px; }
+.workout-customer-plan-card-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid #e3edf3; }
+.workout-customer-plan-card-header h2 { margin: 0; color: var(--primary-color); font-size: 1.2rem; }
+.workout-customer-plan-card-header p { margin: 5px 0 0; color: #718391; font-size: .78rem; }
+.workout-customer-plan-toolbar { grid-template-columns: minmax(17.5rem, 1fr) 13rem auto; align-items: end; box-shadow: none; }
+.workout-customer-filter-person { min-width: 0; }
+.workout-customer-filter-status { margin: 0; }
+.workout-customer-filter-status select { padding: 9px 34px 9px 11px; font: inherit; font-size: .82rem; }
+.workout-customer-identity { display: grid; gap: 2px; }
+.workout-customer-identity strong { color: #16324a; font-size: .88rem; font-weight: 700; }
+.workout-customer-phone { display: inline-flex; align-items: center; gap: 4px; color: #64748b; font-size: .76rem; }
+.workout-customer-phone svg { color: #0284c7; }
+.workout-customer-status { display: inline-flex; min-height: 28px; align-items: center; padding: 4px 9px; border-radius: 999px; font-size: .68rem; font-weight: 800; }
+.workout-customer-status.is-draft { background: #fff7d6; color: #854d0e; }
+.workout-customer-status.is-published { background: #dcfce7; color: #166534; }
+.workout-customer-plan-skeleton { min-height: 260px; }
+.workout-customer-plan-empty h3 { margin: 0; color: var(--primary-color); font-size: 1.12rem; }
+.workout-customer-plan-empty p { margin: 0; color: #607689; font-size: .82rem; }
+.workout-customer-plan-form { width: min(1020px, calc(100vw - 32px)); }
+.workout-customer-plan-form .profile-form-body { background: #f8fbfc; }
+.workout-customer-plan-form .profile-form-section { margin: 0; }
+.workout-customer-plan-form .published-card { border-color: #d7e5ed; box-shadow: none; }
+
+@media (max-width: 639px) {
+  .workout-wizard-backdrop { align-items: flex-end; padding: 0; }
+  .workout-ai-wizard { width: 100vw; max-height: 94dvh; border-radius: 20px 20px 0 0; }
+  .workout-wizard-body { max-height: calc(94dvh - 164px); }
+  .workout-wizard-progress { display: flex; overflow-x: auto; padding-bottom: 6px; }
+  .workout-customer-plan-toolbar { grid-template-columns: 1fr; }
+  .workout-customer-plan-card { padding: 16px; }
+  .workout-customer-plan-card-header { align-items: stretch; flex-direction: column; }
+  .workout-customer-plan-card-header .button { width: 100%; min-height: 44px; }
+  .workout-customer-plan-form { width: 100vw; }
+}

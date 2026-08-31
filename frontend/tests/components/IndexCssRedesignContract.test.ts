@@ -15,6 +15,12 @@ const workoutTemplateSources = [
   'frontend/src/components/workouts/WorkoutTemplateList.tsx',
   'frontend/src/components/workouts/WorkoutTemplateCard.tsx',
 ].map((path) => readFileSync(path, 'utf8')).join('\n');
+const workoutFlowSources = [
+  'frontend/src/components/workouts/AiWorkoutWizard.tsx',
+  'frontend/src/components/workouts/CustomerWorkoutPlans.tsx',
+  'frontend/src/components/workouts/CustomerWorkoutPlanModal.tsx',
+  'frontend/src/components/workouts/CustomerWorkoutPlanPanel.tsx',
+].map((path) => readFileSync(path, 'utf8')).join('\n');
 
 describe('index CSS redesign contract', () => {
   it('defines the shared module foundation and approved breakpoints', () => {
@@ -41,5 +47,11 @@ describe('index CSS redesign contract', () => {
     expect(workoutTemplateSources).not.toMatch(/style=\{\{/);
     expect(workoutTemplateSources).not.toMatch(/(?:sm:|md:|lg:|xl:|rounded-|bg-|text-slate-|border-slate-|shadow-\[|["'`\s](?:flex|grid|gap-\d+|p-\d+|px-\d+|py-\d+)(?=["'`\s]))/);
     for (const selector of ['.workout-page', '.workout-toolbar', '.workout-template-grid', '.workout-template-card']) expect(css).toContain(selector);
+  });
+
+  it('keeps AI and customer-plan styling in semantic index CSS classes', () => {
+    expect(workoutFlowSources).not.toMatch(/style=\{\{/);
+    expect(workoutFlowSources).not.toMatch(/(?:sm:|md:|lg:|xl:|rounded-|bg-|text-slate-|border-slate-|shadow-\[|["'`\s](?:flex|grid|gap-\d+|p-\d+|px-\d+|py-\d+)(?=["'`\s]))/);
+    for (const selector of ['.workout-ai-wizard', '.workout-wizard-progress', '.workout-customer-plans', '.workout-customer-plan-card', '.workout-customer-plan-form']) expect(css).toContain(selector);
   });
 });

@@ -33,6 +33,7 @@ it('lưu bản nháp khách hàng từ dữ liệu template điền sẵn', asyn
       />
     </ToastProvider>
   );
+  expect(screen.getByRole('dialog', { name: 'Tạo giáo án' })).toHaveClass('module-modal', 'workout-customer-plan-form');
   expect(screen.getByLabelText('Tên giáo án')).toHaveValue('Full body');
   await user.type(screen.getByLabelText('Học viên / Khách hàng'), '507f1f77bcf86cd799439011');
   await user.click(screen.getByRole('button', { name: 'Lưu bản nháp' }));
