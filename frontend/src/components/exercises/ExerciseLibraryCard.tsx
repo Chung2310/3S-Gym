@@ -33,8 +33,8 @@ export default function ExerciseLibraryCard({ exercise, onEdit, onDelete }: Prop
         <div><dt>Cấp độ</dt><dd><span className={`exercise-level ${levelClass}`}>{levelLabels[exercise.level] || exercise.level}</span></dd></div>
       </dl>
 
-      <div className="border-b border-slate-100 py-3">
-        <span className={`exercise-badge ${exercise.defaultTrackingType && exercise.defaultTrackingType !== 'UNCLASSIFIED' ? 'is-global' : 'border-amber-200 bg-amber-50 !text-amber-700'}`}>
+      <div className="exercise-card-tracking">
+        <span className={`exercise-badge ${exercise.defaultTrackingType && exercise.defaultTrackingType !== 'UNCLASSIFIED' ? 'is-global' : 'is-unclassified'}`}>
           {TRACKING_TYPE_LABELS[exercise.defaultTrackingType ?? 'UNCLASSIFIED']}
         </span>
       </div>
