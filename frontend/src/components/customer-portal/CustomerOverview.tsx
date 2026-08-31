@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  Dumbbell,
   Flame,
   HeartPulse,
   Map,
@@ -357,12 +356,12 @@ export default function CustomerOverview({ journey, onNavigateTab }: CustomerOve
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', textAlign: 'center' }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: '#64748b', display: 'block' }}>
-              Tổng Volume đã tập
+              Tổng buổi tập
             </span>
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#003b70', margin: '4px 0' }}>
-              {(analytics?.totalVolume || 0).toLocaleString('vi-VN')} kg
+              {(analytics?.totalSessions ?? sessions?.length ?? 0).toLocaleString('vi-VN')} buổi
             </div>
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Khối lượng tạ tích lũy</span>
+            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Trong toàn bộ hành trình</span>
           </div>
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', textAlign: 'center' }}>

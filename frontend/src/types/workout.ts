@@ -1,3 +1,5 @@
+import type { TrackingPrescription, TrackingType } from './exerciseTracking';
+
 export interface WorkoutTemplateExercise {
   name: string;
   sets?: number;
@@ -7,6 +9,8 @@ export interface WorkoutTemplateExercise {
   tempo?: string;
   notes?: string;
   exerciseId?: string;
+  trackingType?: TrackingType;
+  prescription?: TrackingPrescription;
 }
 
 export interface WorkoutTemplateSession {
@@ -33,13 +37,15 @@ export interface WorkoutTemplate {
 
 export interface CustomerWorkoutPlanExercise {
   name: string;
-  sets: number;
-  reps: string;
-  weight: string;
-  rest: string;
-  tempo: string;
-  notes: string;
+  sets?: number;
+  reps?: string;
+  weight?: string;
+  rest?: string;
+  tempo?: string;
+  notes?: string;
   exerciseId?: string;
+  trackingType?: TrackingType;
+  prescription?: TrackingPrescription;
 }
 
 export interface CustomerWorkoutPlanSession {

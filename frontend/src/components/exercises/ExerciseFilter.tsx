@@ -3,8 +3,10 @@ import { Search, X, RotateCcw, RefreshCw } from 'lucide-react';
 interface ExerciseFilterProps {
   muscleGroup: string;
   level: string;
+  trackingType: string;
   onMuscleGroupChange: (value: string) => void;
   onLevelChange: (value: string) => void;
+  onTrackingTypeChange: (value: string) => void;
   onFilter: () => void;
   onClear: () => void;
 }
@@ -12,13 +14,15 @@ interface ExerciseFilterProps {
 export default function ExerciseFilter({
   muscleGroup,
   level,
+  trackingType,
   onMuscleGroupChange,
   onLevelChange,
+  onTrackingTypeChange,
   onFilter,
   onClear,
 }: ExerciseFilterProps) {
   return (
-    <div className="module-toolbar exercise-toolbar" role="search" aria-label="Bộ lọc bài tập">
+    <div className="module-toolbar exercise-toolbar xl:!grid-cols-[minmax(0,1fr)_11rem_15rem_auto_auto]" role="search" aria-label="Bộ lọc bài tập">
       <div className="exercise-filter-search">
         <Search size={16} className="exercise-filter-search-icon" aria-hidden="true" />
         <input
@@ -52,11 +56,26 @@ export default function ExerciseFilter({
         <option value="ADVANCED">Nâng cao</option>
       </select>
 
+      <select
+        className="exercise-filter-select"
+        aria-label="Cách ghi nhận"
+        value={trackingType}
+        onChange={(event) => onTrackingTypeChange(event.target.value)}
+      >
+        <option value="">Tất cả cách ghi nhận</option>
+        <option value="UNCLASSIFIED">Chưa phân loại</option>
+        <option value="STRENGTH">Sức mạnh · mức tạ</option>
+        <option value="BODYWEIGHT">Trọng lượng cơ thể</option>
+        <option value="CARDIO">Cardio</option>
+        <option value="INTERVAL">Interval</option>
+        <option value="MOBILITY">Mobility</option>
+      </select>
+
       <button type="button" className="button button-secondary exercise-filter-submit" onClick={onFilter}>
         <RefreshCw size={15} /> Lọc bài tập
       </button>
 
-      {(muscleGroup || level) && (
+      {(muscleGroup || level || trackingType) && (
         <button type="button" className="exercise-filter-reset" onClick={onClear}>
           <RotateCcw size={13} /> Xóa lọc
         </button>

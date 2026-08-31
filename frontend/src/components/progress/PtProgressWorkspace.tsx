@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Camera, Dumbbell, FileText, Phone, Ruler, UserRound } from 'lucide-react';
 import type { CustomerJourneyDto } from '../../types';
-import WorkoutSessionLogger from './WorkoutSessionLogger';
+import WorkoutSessionLogger, { type WorkoutLoggerActivePlan } from './WorkoutSessionLogger';
 import WorkoutSessionDetail from './WorkoutSessionDetail';
 import MeasurementForm from './MeasurementForm';
 import ProgressCharts from './ProgressCharts';
@@ -13,16 +13,6 @@ import ProgressSection from './ProgressSection';
 
 const tabs = ['Tổng quan', 'Buổi tập', 'Chỉ số cơ thể', 'Thành tích', 'Ảnh tiến độ', 'Giáo án', 'Báo cáo'] as const;
 type Tab = typeof tabs[number];
-type ActivePlan = {
-  _id: string;
-  sourceTemplateId?: string;
-  title: string;
-  sessions?: Array<{
-    name: string;
-    exercises?: Array<{ name: string; sets?: number; reps?: string | number }>;
-  }>;
-};
-
 const primaryActionClass = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(0,59,112,0.16)] transition duration-200 hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none';
 const quickActionClass = 'group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition duration-200 hover:-translate-y-0.5 hover:border-secondary/40 hover:bg-sky-50 hover:text-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 motion-reduce:transform-none motion-reduce:transition-none';
 
@@ -34,7 +24,7 @@ export default function PtProgressWorkspace({
   onRefresh: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('Tổng quan');
-  const activePlan = journey.plans.active as ActivePlan | null;
+  const activePlan = journey.plans.active as unknown as WorkoutLoggerActivePlan | null;
 
   return (
     <section className="space-y-6 font-montserrat">

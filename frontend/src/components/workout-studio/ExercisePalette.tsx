@@ -1,5 +1,5 @@
 import { Search, Dumbbell, Sparkles, Plus, GripVertical, Award, Layers } from 'lucide-react';
-import type { Exercise } from '../exercises/ExerciseFormModal';
+import type { Exercise } from '../../types';
 import type { ScheduledExercise } from '../../types/workoutStudio';
 
 interface Props {

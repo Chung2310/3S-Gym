@@ -2,11 +2,13 @@ import { AlertTriangle } from 'lucide-react';
 import type { JourneyAnalytics } from '../../types';
 import ProgressSection from './ProgressSection';
 import ProgressSnapshot from './ProgressSnapshot';
+import TrackingAnalytics from './TrackingAnalytics';
 
 export default function ProgressOverview({ analytics }: { analytics: JourneyAnalytics }) {
   return (
     <div className="space-y-4">
       <ProgressSnapshot analytics={analytics} />
+      <TrackingAnalytics analytics={analytics.tracking} />
       {analytics.dataQuality.reasons.length > 0 && (
         <ProgressSection
           title="Chất lượng dữ liệu"
