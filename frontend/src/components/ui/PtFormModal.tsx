@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { User, Phone, Award, ShieldCheck, Upload, Trash2 } from 'lucide-react';
+import { User, Award, Upload } from 'lucide-react';
 import FormField from './FormField';
 import ProfileFormModal from './ProfileFormModal';
 import { useToast } from './ToastProvider';
@@ -18,14 +18,13 @@ interface PtFormState {
   yearsOfExperience: number | string;
   certificates: string;
   bio: string;
-  username: string;
-  password: string;
-  status: string;
 }
 
 export interface PtRecord extends Partial<Omit<PtFormState, 'certificates' | 'dateOfBirth'>> {
   _id?: string;
   id?: string;
+  username?: string;
+  status?: string;
   certificates?: string[] | string;
   dateOfBirth?: string | Date | null;
   [key: string]: unknown;
@@ -50,9 +49,6 @@ const emptyForm: PtFormState = {
   yearsOfExperience: 0,
   certificates: '',
   bio: '',
-  username: '',
-  password: '',
-  status: 'ACTIVE',
 };
 
 function formFromPt(pt?: PtRecord | null): PtFormState {
@@ -69,9 +65,6 @@ function formFromPt(pt?: PtRecord | null): PtFormState {
     yearsOfExperience: pt.yearsOfExperience != null ? pt.yearsOfExperience : 0,
     certificates: Array.isArray(pt.certificates) ? pt.certificates.join('\n') : typeof pt.certificates === 'string' ? pt.certificates : '',
     bio: (pt.bio as string) || '',
-    username: (pt.username as string) || '',
-    password: '',
-    status: (pt.status as string) || 'ACTIVE',
   };
 }
 
@@ -118,7 +111,6 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const payload: Record<string, any> = {
-      role: 'PT',
       fullName: form.fullName.trim(),
       phone: form.phone.trim(),
       email: form.email?.trim() || null,
@@ -133,19 +125,13 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
         .map((value) => value.trim())
         .filter(Boolean),
       bio: form.bio?.trim() || '',
-      status: form.status || 'ACTIVE',
     };
 
-    if (form.username?.trim()) {
-      payload.username = form.username.trim();
-    }
-    const trimmedPassword = form.password?.trim() || '';
-    if (trimmedPassword.length > 0) {
-      if (trimmedPassword.length < 8) {
-        toast.error('Mật khẩu phải có ít nhất 8 ký tự.');
-        return;
-      }
-      payload.password = trimmedPassword;
+    if (!editing) {
+      payload.role = 'PT';
+      payload.status = 'ACTIVE';
+      payload.username = form.phone.trim() || `pt_${Date.now()}`;
+      payload.password = '3sGym@2026';
     }
 
     try {
@@ -222,7 +208,7 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
                       fontSize: '0.82rem',
                     }}
                   >
-                    <Upload size={14} /> {uploading ? 'Đang tải lên Cloudinary...' : 'Chọn ảnh tải lên'}
+                    <Upload size={14} /> {uploading ? 'Đang tải lên...' : 'Chọn ảnh tải lên'}
                   </label>
                   <input
                     id="avatar-file-upload"
@@ -236,53 +222,78 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
                     <button
                       type="button"
                       className="button button-secondary"
+                      onClick={() => setForm((c) => ({ ...c, avatarUrl: '' }))}
                       style={{
-                        margin: 0,
-                        color: '#ef4444',
-                        borderColor: '#fee2e2',
                         height: '34px',
                         padding: '0 10px',
+                        color: '#dc2626',
+                        borderColor: '#fca5a5',
                         fontSize: '0.82rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
                       }}
-                      onClick={() => setForm((c) => ({ ...c, avatarUrl: '' }))}
                     >
-                      <Trash2 size={13} /> Xóa ảnh
+                      Xóa ảnh
                     </button>
                   )}
                 </div>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Định dạng PNG, JPG. Dung lượng tối đa 8MB.</span>
               </div>
             </div>
           </div>
 
-          <FormField label="Họ và tên" name="fullName" value={form.fullName} onChange={change} required placeholder="Ví dụ: Nguyễn Văn Tuấn" />
-          <FormField label="Ngày sinh" name="dateOfBirth" type="date" max={new Date().toISOString().slice(0, 10)} value={form.dateOfBirth} onChange={change} />
-          <FormField label="Giới tính" name="gender" as="select" value={form.gender} onChange={change}>
+          <FormField
+            label="Họ và tên"
+            name="fullName"
+            value={form.fullName}
+            onChange={change}
+            required
+            placeholder="Ví dụ: Nguyễn Văn Tuấn"
+          />
+          <FormField
+            label="Số điện thoại"
+            name="phone"
+            value={form.phone}
+            onChange={change}
+            required
+            placeholder="0912 345 678"
+          />
+          <FormField
+            label="Email liên hệ"
+            name="email"
+            type="email"
+            value={form.email}
+            onChange={change}
+            placeholder="coach@3sgym.vn"
+          />
+          <FormField
+            label="Ngày sinh"
+            name="dateOfBirth"
+            type="date"
+            value={form.dateOfBirth}
+            onChange={change}
+          />
+          <FormField
+            label="Giới tính"
+            name="gender"
+            as="select"
+            value={form.gender}
+            onChange={change}
+          >
             <option value="MALE">Nam</option>
             <option value="FEMALE">Nữ</option>
             <option value="OTHER">Khác</option>
           </FormField>
-        </div>
-      </section>
-
-      {/* Section 2: Liên hệ */}
-      <section className="profile-form-section">
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Phone size={16} color="var(--secondary-color)" /> Thông tin liên hệ
-        </h3>
-        <div className="profile-form-grid">
-          <FormField label="Số điện thoại" name="phone" value={form.phone} onChange={change} required placeholder="0912 345 678" />
-          <FormField label="Email" name="email" type="email" value={form.email} onChange={change} placeholder="coach@3sgym.vn" />
           <div className="grid-full-width">
-            <FormField label="Địa chỉ" name="address" value={form.address} onChange={change} placeholder="Địa chỉ thường trú / tạm trú..." />
+            <FormField
+              label="Địa chỉ"
+              name="address"
+              value={form.address}
+              onChange={change}
+              placeholder="Địa chỉ liên hệ..."
+            />
           </div>
         </div>
       </section>
 
-      {/* Section 3: Chuyên môn & Bằng cấp */}
+      {/* Section 2: Chuyên môn & Bằng cấp */}
       <section className="profile-form-section">
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Award size={16} color="var(--secondary-color)" /> Chuyên môn & Bằng cấp
@@ -328,39 +339,6 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
               onChange={change}
             />
           </div>
-        </div>
-      </section>
-
-      {/* Section 4: Tài khoản đăng nhập */}
-      <section className="profile-form-section">
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <ShieldCheck size={16} color="var(--secondary-color)" /> Tài khoản & Trạng thái
-        </h3>
-        <div className="profile-form-grid">
-          <FormField
-            label="Tên đăng nhập"
-            name="username"
-            value={form.username}
-            onChange={change}
-            readOnly={editing}
-            required
-            placeholder="pt_tuan"
-          />
-          <FormField
-            label={editing ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu ban đầu'}
-            name="password"
-            type="password"
-            minLength={8}
-            autoComplete="new-password"
-            value={form.password}
-            onChange={change}
-            required={!editing}
-            placeholder={editing ? 'Để trống nếu không đổi' : 'Tối thiểu 8 ký tự'}
-          />
-          <FormField label="Trạng thái tài khoản" name="status" as="select" value={form.status} onChange={change}>
-            <option value="ACTIVE">Hoạt động (ACTIVE)</option>
-            <option value="LOCKED">Tạm khóa (LOCKED)</option>
-          </FormField>
         </div>
       </section>
     </ProfileFormModal>
