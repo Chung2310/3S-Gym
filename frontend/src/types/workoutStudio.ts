@@ -2,6 +2,7 @@ import type { WorkoutTemplate } from '../components/workouts/WorkoutTemplateList
 
 export interface ScheduledExercise {
   id: string;
+  weekNumber?: number;
   dayNumber: number;
   startMinute: number;
   durationMinutes: number;

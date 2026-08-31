@@ -1,5 +1,6 @@
 export interface StudioScheduleItem {
   id: string;
+  weekNumber?: number;
   dayNumber: number;
   startMinute: number;
   durationMinutes: number;
@@ -18,7 +19,7 @@ export function cardGeometry(startMinute: number, durationMinutes: number) {
 }
 
 export function hasOverlap<T extends StudioScheduleItem>(items: T[], candidate: T): boolean {
-  return items.some((item) => item.id !== candidate.id && item.dayNumber === candidate.dayNumber && candidate.startMinute < item.startMinute + item.durationMinutes && item.startMinute < candidate.startMinute + candidate.durationMinutes);
+  return items.some((item) => item.id !== candidate.id && (item.weekNumber || 1) === (candidate.weekNumber || 1) && item.dayNumber === candidate.dayNumber && candidate.startMinute < item.startMinute + item.durationMinutes && item.startMinute < candidate.startMinute + candidate.durationMinutes);
 }
 
 export function formatMinute(minute: number): string {

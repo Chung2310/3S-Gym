@@ -1,5 +1,7 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
+import Exercise from '../models/Exercise.js';
 import { authenticate, authorize } from '../middlewares/auth.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { success } from '../middlewares/response.js';
@@ -25,6 +27,19 @@ function sessionsFromSchedule(items: Array<Record<string, unknown>>) {
   return [...days.entries()].map(([day, exercises]) => ({ name: `Ngày ${day}`, exercises }));
 }
 
+async function materializeGeneratedExercises(payload: Record<string, any>, ownerPtId: string, dbSession?: mongoose.ClientSession) {
+  const ids = new Map<string, unknown>();
+  for (const generated of payload.generatedExercises || []) {
+    const name = String(generated.name).trim();
+    const key = name.toLocaleLowerCase('vi');
+    let exercise = await Exercise.findOne({ ownerPtId, scope: 'PRIVATE', name: { $regex: `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } }).session(dbSession || null);
+    if (!exercise) [exercise] = await Exercise.create([{ ...generated, name, scope: 'PRIVATE', ownerPtId }], dbSession ? { session: dbSession } : undefined);
+    ids.set(key, exercise._id);
+  }
+  for (const field of ['scheduledExercises', 'unscheduledExercises']) payload[field] = (payload[field] || []).map((item: Record<string, unknown>) => ({ ...item, exerciseId: item.exerciseId || ids.get(String(item.name || '').trim().toLocaleLowerCase('vi')) }));
+  delete payload.generatedExercises;
+}
+
 router.get('/', validate(listWorkoutTemplatesSchema), asyncHandler(async (req, res) => {
   const page = Number(req.query.page || 1); const limit = Number(req.query.limit || 20);
   const filter: Record<string, unknown> = { ownerPtId: req.user!.id };
@@ -35,8 +50,16 @@ router.get('/', validate(listWorkoutTemplatesSchema), asyncHandler(async (req, r
   return success(res, { message: 'Lấy danh sách giáo án mẫu thành công.', data: items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } });
 }));
 router.post('/', validate(createWorkoutTemplateSchema), asyncHandler(async (req, res) => {
-  const sessions = req.body.scheduledExercises?.length ? sessionsFromSchedule(req.body.scheduledExercises) : req.body.sessions;
-  return success(res, { status: 201, message: 'Tạo giáo án mẫu thành công.', data: await WorkoutTemplate.create({ ...req.body, sessions, ownerPtId: req.user!.id }) });
+  const dbSession = await mongoose.startSession();
+  let created: any;
+  try {
+    await dbSession.withTransaction(async () => {
+      await materializeGeneratedExercises(req.body, req.user!.id, dbSession);
+      const sessions = req.body.scheduledExercises?.length ? sessionsFromSchedule(req.body.scheduledExercises) : req.body.sessions;
+      [created] = await WorkoutTemplate.create([{ ...req.body, sessions, ownerPtId: req.user!.id }], { session: dbSession });
+    });
+  } finally { await dbSession.endSession(); }
+  return success(res, { status: 201, message: 'Tạo giáo án mẫu thành công.', data: created });
 }));
 router.get('/:id', validate(workoutTemplateIdSchema), asyncHandler(async (req, res) => { const item = await WorkoutTemplate.findOne({ _id: req.params.id, ownerPtId: req.user!.id }); if (!item) throw missing(); return success(res, { message: 'Lấy giáo án mẫu thành công.', data: item }); }));
 router.patch('/:id', validate(updateWorkoutTemplateSchema), asyncHandler(async (req, res) => {

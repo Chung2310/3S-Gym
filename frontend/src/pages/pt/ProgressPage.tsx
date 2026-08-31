@@ -1,82 +1,37 @@
-import { useCallback, useState } from 'react';
-import { Activity, RotateCcw } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
-import CustomerSelect from '../../components/ui/CustomerSelect';
 import { errorMessage } from '../../types';
-import PtProgressWorkspace from '../../components/progress/PtProgressWorkspace';
-import type { CustomerJourneyDto } from '../../types';
+import ProgressDashboard from '../../components/progress/ProgressDashboard';
+import ProgressDetailModal from '../../components/progress/ProgressDetailModal';
+import WorkoutSessionModal from '../../components/progress/WorkoutSessionModal';
+import type { CustomerJourneyDto, CustomerProgressOverview } from '../../types';
 
 export default function ProgressPage() {
   const toast = useToast();
-  const [customerId, setCustomerId] = useState('');
+  const [items, setItems] = useState<CustomerProgressOverview[]>([]);
   const [loading, setLoading] = useState(false);
+  const [detailItem, setDetailItem] = useState<CustomerProgressOverview | null>(null);
+  const [workoutItem, setWorkoutItem] = useState<CustomerProgressOverview | null>(null);
   const [journey, setJourney] = useState<CustomerJourneyDto | null>(null);
 
-  const load = useCallback(
-    async (targetId?: string) => {
-      const idToLoad = targetId || customerId;
-      if (!idToLoad) return;
-      try {
-        setLoading(true);
-        const journeyResult = await api.get<CustomerJourneyDto>(`/api/customers/${idToLoad}/journey`);
-        setJourney(journeyResult.data);
-      } catch (error) {
-        toast.error(errorMessage(error));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [customerId, toast]
-  );
+  const loadOverview = useCallback(async () => { try { setLoading(true); const result = await api.get<CustomerProgressOverview[]>('/api/customers/progress-overview'); setItems(result.data); } catch (error) { toast.error(errorMessage(error)); } finally { setLoading(false); } }, [toast]);
+  useEffect(() => { void loadOverview(); }, [loadOverview]);
+  const open = async (item: CustomerProgressOverview, mode: 'detail' | 'workout') => { setJourney(null); if (mode === 'detail') setDetailItem(item); else setWorkoutItem(item); try { setLoading(true); const result = await api.get<CustomerJourneyDto>(`/api/customers/${item.customer._id}/journey`); setJourney(result.data); } catch (error) { toast.error(errorMessage(error)); } finally { setLoading(false); } };
+  const close = () => { setDetailItem(null); setWorkoutItem(null); setJourney(null); };
+  const saved = () => { close(); void loadOverview(); };
 
   return (
-    <section>
-      <div className="section-header">
+    <section className="progress-page">
+      <div className="progress-page-header">
         <div>
-          <h1>Tiến độ khách hàng</h1>
-          <p>Check-in, lịch sử tập, số đo, biểu đồ và báo cáo công bố.</p>
+          <h1 className="progress-page-title">Tiến độ khách hàng</h1>
+          <p className="progress-page-description">Tổng quan toàn bộ khách hàng được phân công cho bạn.</p>
         </div>
       </div>
-
-      <div className="mb-4 rounded-xl border border-slate-200 bg-white px-5 py-4">
-        <h3 className="mb-3 text-sm font-bold text-slate-800">
-          Tra cứu tiến độ học viên
-        </h3>
-        <div className="grid items-end gap-3 md:grid-cols-[minmax(280px,420px)_auto_auto]">
-          <CustomerSelect
-            label="Chọn học viên"
-            name="lookupCustomerId"
-            value={customerId}
-            onChange={(selectedId) => {
-              setCustomerId(selectedId);
-              if (selectedId) void load(selectedId);
-            }}
-            placeholder="Tìm theo tên học viên hoặc SĐT..."
-          />
-          <button
-            onClick={() => void load()}
-            disabled={!customerId || loading}
-            className="button button-primary min-h-11"
-          >
-            <Activity size={15} /> {loading ? 'Đang tải...' : 'Tải tiến độ'}
-          </button>
-          {customerId && (
-            <button
-              type="button"
-              onClick={() => {
-                setCustomerId('');
-                setJourney(null);
-              }}
-              className="button-filter-reset min-h-11"
-            >
-              <RotateCcw size={13} /> Xóa tìm kiếm
-            </button>
-          )}
-        </div>
-      </div>
-
-      {customerId && journey && <PtProgressWorkspace journey={journey} onRefresh={() => void load()} />}
+      {loading && !items.length ? <div className="progress-loading">Đang tải tổng quan tiến độ...</div> : <ProgressDashboard items={items} onView={(item) => void open(item, 'detail')} onLogWorkout={(item) => void open(item, 'workout')} />}
+      <ProgressDetailModal item={detailItem} journey={detailItem ? journey : null} loading={loading} onClose={close} />
+      <WorkoutSessionModal item={workoutItem} journey={workoutItem ? journey : null} loading={loading} onClose={close} onSaved={saved} />
     </section>
   );
 }

@@ -13,7 +13,7 @@ const templateExerciseSchema = new Schema({
 }, { _id: false });
 const templateSessionSchema = new Schema({ name: { type: String, required: true }, exercises: { type: [templateExerciseSchema], default: [] } }, { _id: false });
 const scheduledExerciseSchema = new Schema({
-  dayNumber: { type: Number, required: true, min: 1 }, startMinute: { type: Number, required: true, min: 0, max: 1425 }, durationMinutes: { type: Number, required: true, min: 15, max: 1440 },
+  weekNumber: { type: Number, min: 1, default: 1 }, dayNumber: { type: Number, required: true, min: 1 }, startMinute: { type: Number, required: true, min: 0, max: 1425 }, durationMinutes: { type: Number, required: true, min: 15, max: 1440 },
   exerciseId: { type: Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, sets: { type: Number, min: 1, default: 3 }, reps: { type: String, default: '' }, weight: { type: String, default: '' }, rpe: { type: Number, min: 0, max: 10 }, rir: { type: Number, min: 0 }, tempo: { type: String, default: '' }, restSeconds: { type: Number, min: 0, default: 0 }, notes: { type: String, default: '' },
 }, { _id: false });
 const unscheduledExerciseSchema = new Schema({

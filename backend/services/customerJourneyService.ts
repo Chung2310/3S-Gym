@@ -113,3 +113,23 @@ export async function getJourney(user: AuthenticatedUser, options: { customerId?
     analytics,
   };
 }
+
+export async function getProgressOverview(user: AuthenticatedUser) {
+  const customerFilter = user.role === 'PT' ? { assignedPtId: new Types.ObjectId(user.id) } : {};
+  const customers = await CustomerProfile.find(customerFilter).sort({ fullName: 1 }).lean();
+  if (!customers.length) return [];
+  const customerIds = customers.map((customer) => customer._id);
+  const [sessions, measurements] = await Promise.all([
+    WorkoutSession.find({ customerId: { $in: customerIds } }).sort({ performedAt: 1 }).lean(),
+    BodyMeasurement.find({ customerId: { $in: customerIds } }).sort({ measuredAt: 1 }).lean(),
+  ]);
+  const sessionsByCustomer = new Map<string, typeof sessions>();
+  const measurementsByCustomer = new Map<string, typeof measurements>();
+  for (const session of sessions) { const key = String(session.customerId); sessionsByCustomer.set(key, [...(sessionsByCustomer.get(key) || []), session]); }
+  for (const measurement of measurements) { const key = String(measurement.customerId); measurementsByCustomer.set(key, [...(measurementsByCustomer.get(key) || []), measurement]); }
+  return customers.map((customer) => {
+    const key = String(customer._id); const customerSessions = sessionsByCustomer.get(key) || []; const customerMeasurements = measurementsByCustomer.get(key) || [];
+    const analytics = analyzeProgress({ sessions: customerSessions as unknown as Parameters<typeof analyzeProgress>[0]['sessions'], measurements: customerMeasurements as unknown as Parameters<typeof analyzeProgress>[0]['measurements'] });
+    return { customer: { _id: key, fullName: customer.fullName, phone: customer.phone, status: customer.status }, sessionCount: customerSessions.length, lastSessionAt: customerSessions.at(-1)?.performedAt || null, latestMeasurement: customerMeasurements.at(-1) || null, analytics };
+  });
+}

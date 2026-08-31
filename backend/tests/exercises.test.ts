@@ -34,17 +34,34 @@ it('Admin tạo bài tập dùng chung và PT lọc theo nhóm cơ/level', async
   expect(list.body.meta).toMatchObject({ page: 1, limit: 10, total: 1 });
 });
 
-it('PT tạo bài tập riêng nhưng không được tạo bài tập global', async () => {
+it('PT owns and manages a global exercise while other PTs can only view it', async () => {
   const own = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
     name: 'Mobility riêng', muscleGroup: 'FULL_BODY', level: 'BEGINNER', equipment: [], scope: 'PRIVATE',
   });
   expect(own.status).toBe(201);
   expect(own.body.data.scope).toBe('PRIVATE');
 
-  const forbidden = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
-    name: 'Global trái phép', muscleGroup: 'CHEST', level: 'BEGINNER', equipment: [], scope: 'GLOBAL',
+  const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
+    name: 'Global Row', muscleGroup: 'BACK', level: 'BEGINNER', equipment: [], scope: 'GLOBAL',
   });
-  expect(forbidden.status).toBe(403);
+  expect(created.status).toBe(201);
+  expect(created.body.data).toMatchObject({ scope: 'GLOBAL', canManage: true });
+  expect(created.body.data.ownerPtId).toBeTruthy();
+
+  const id = created.body.data._id;
+  const otherList = await request(app).get('/api/exercises?muscleGroup=BACK').set('Authorization', `Bearer ${otherPtToken}`);
+  expect(otherList.body.data).toEqual(expect.arrayContaining([expect.objectContaining({ _id: id, canManage: false })]));
+  expect((await request(app).patch(`/api/exercises/${id}`).set('Authorization', `Bearer ${otherPtToken}`).send({ name: 'Forbidden' })).status).toBe(403);
+  expect((await request(app).delete(`/api/exercises/${id}`).set('Authorization', `Bearer ${otherPtToken}`)).status).toBe(403);
+  expect((await request(app).patch(`/api/exercises/${id}`).set('Authorization', `Bearer ${ptToken}`).send({ name: 'Global Row Updated' })).status).toBe(200);
+  expect((await request(app).delete(`/api/exercises/${id}`).set('Authorization', `Bearer ${ptToken}`)).status).toBe(200);
+});
+
+it('only Admin manages legacy global exercises without an owner', async () => {
+  const legacy = await Exercise.create({ name: 'Legacy Global', muscleGroup: 'LEGACY', level: 'BEGINNER', scope: 'GLOBAL' });
+  expect((await request(app).patch(`/api/exercises/${legacy.id}`).set('Authorization', `Bearer ${ptToken}`).send({ name: 'No' })).status).toBe(403);
+  expect((await request(app).delete(`/api/exercises/${legacy.id}`).set('Authorization', `Bearer ${ptToken}`)).status).toBe(403);
+  expect((await request(app).delete(`/api/exercises/${legacy.id}`).set('Authorization', `Bearer ${adminToken}`)).status).toBe(200);
 });
 
 it('PT updates only a private exercise owned by that PT', async () => {
