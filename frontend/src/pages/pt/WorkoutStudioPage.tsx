@@ -105,30 +105,6 @@ export default function WorkoutStudioPage() {
     if (readOnly) return;
     if (!title.trim() || !goal.trim() || !items.length) return toast.error('Vui lòng nhập thông tin và xếp ít nhất một bài tập.');
 
-    // Kiểm tra tất cả các ngày từ 1 đến durationDays đều phải có ít nhất 1 bài tập
-    const daysWithExercises = new Set(items.map((item) => planDayIndex(item)));
-    const emptyDays: number[] = [];
-    for (let day = 1; day <= durationDays; day++) {
-      if (!daysWithExercises.has(day)) {
-        emptyDays.push(day);
-      }
-    }
-
-    if (emptyDays.length > 0) {
-      const firstEmpty = emptyDays[0];
-      const targetWeek = Math.ceil(firstEmpty / DAYS_PER_WEEK);
-      const targetDay = ((firstEmpty - 1) % DAYS_PER_WEEK) + 1;
-      setActiveWeek(targetWeek);
-      setActiveDay(targetDay);
-      setStudioView('schedule');
-      const formattedDays = emptyDays.length === 1
-        ? `Ngày ${emptyDays[0]}`
-        : emptyDays.length <= 5
-          ? `Ngày ${emptyDays.join(', Ngày ')}`
-          : `${emptyDays.length} ngày (Ngày ${emptyDays.slice(0, 3).join(', ')}...)`;
-      return toast.error(`Mỗi ngày trong giáo án phải có ít nhất 1 bài tập. ${formattedDays} chưa có bài tập nào.`);
-    }
-
     const invalid = [...items, ...unscheduled].find((item) => item.trackingType === 'UNCLASSIFIED' || !item.trackingType);
     if (invalid) {
       const scheduledInvalid = items.find((item) => item.id === invalid.id);
