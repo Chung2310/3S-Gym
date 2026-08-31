@@ -24,7 +24,7 @@ it('lưu bản nháp khách hàng từ dữ liệu template điền sẵn', asyn
           sessions: [
             {
               name: 'Buổi 1',
-              exercises: [{ name: 'Squat', sets: 3, reps: '10', weight: '', rest: '60 giây', tempo: '', notes: '' }],
+              exercises: [{ name: 'Treadmill Run', trackingType: 'CARDIO', prescription: { durationMinutes: 20, distanceKm: 3 } }],
             },
           ],
         }}
@@ -34,12 +34,15 @@ it('lưu bản nháp khách hàng từ dữ liệu template điền sẵn', asyn
     </ToastProvider>
   );
   expect(screen.getByLabelText('Tên giáo án')).toHaveValue('Full body');
+  expect(screen.getByLabelText('Cách ghi nhận cho Treadmill Run')).toHaveValue('CARDIO');
+  expect(screen.getByLabelText('Thời lượng mục tiêu cho Treadmill Run')).toHaveValue(20);
+  expect(screen.queryByLabelText('Số hiệp cho Treadmill Run')).not.toBeInTheDocument();
   await user.type(screen.getByLabelText('Học viên / Khách hàng'), '507f1f77bcf86cd799439011');
   await user.click(screen.getByRole('button', { name: 'Lưu bản nháp' }));
   await waitFor(() =>
     expect(api.post).toHaveBeenCalledWith(
       '/api/workout-plans',
-      expect.objectContaining({ customerId: '507f1f77bcf86cd799439011', title: 'Full body' })
+      expect.objectContaining({ customerId: '507f1f77bcf86cd799439011', title: 'Full body', sessions: [expect.objectContaining({ exercises: [expect.objectContaining({ trackingType: 'CARDIO', prescription: { durationMinutes: 20, distanceKm: 3 } })] })] })
     )
   );
 });

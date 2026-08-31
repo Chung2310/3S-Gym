@@ -37,12 +37,12 @@ export interface WorkoutTemplate {
 
 export interface CustomerWorkoutPlanExercise {
   name: string;
-  sets: number;
-  reps: string;
-  weight: string;
-  rest: string;
-  tempo: string;
-  notes: string;
+  sets?: number;
+  reps?: string;
+  weight?: string;
+  rest?: string;
+  tempo?: string;
+  notes?: string;
   exerciseId?: string;
   trackingType?: TrackingType;
   prescription?: TrackingPrescription;

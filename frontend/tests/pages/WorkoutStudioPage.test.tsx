@@ -133,7 +133,7 @@ it('asks with the professional modal before shortening a plan that has affected 
 });
 
 it('moves a selected card by 15 minutes with the keyboard and saves a new studio plan', async () => {
-  vi.mocked(api.get).mockResolvedValue({ data: [{ _id: 'squat', name: 'Squat', muscleGroup: 'LEGS', level: 'BEGINNER', scope: 'PRIVATE' }], message: '' });
+  vi.mocked(api.get).mockResolvedValue({ data: [{ _id: 'squat', name: 'Squat', muscleGroup: 'LEGS', level: 'BEGINNER', scope: 'PRIVATE', defaultTrackingType: 'STRENGTH' }], message: '' });
   vi.mocked(api.post).mockResolvedValue({ data: { _id: 'new-plan' }, message: 'Đã lưu.' });
   const user = userEvent.setup();
   function Location() { return <output data-testid="location">{useLocation().pathname}</output>; }
@@ -162,13 +162,32 @@ it('moves a selected card by 15 minutes with the keyboard and saves a new studio
   }
 });
 
+it('copies cardio tracking into the studio and saves only cardio prescription fields', async () => {
+  vi.mocked(api.get).mockResolvedValue({ data: [{ _id: 'run', name: 'Treadmill Run', muscleGroup: 'CARDIO', level: 'BEGINNER', scope: 'PRIVATE', defaultTrackingType: 'CARDIO' }], message: '' });
+  vi.mocked(api.post).mockResolvedValue({ data: { _id: 'cardio-plan' }, message: 'Đã lưu.' });
+  const user = userEvent.setup();
+  render(<MemoryRouter initialEntries={['/pt/my-workout-plans/new']}><ToastProvider><Routes><Route path="/pt/my-workout-plans/new" element={<WorkoutStudioPage />} /><Route path="/pt/my-workout-plans/:templateId/edit" element={<p>Saved</p>} /></Routes></ToastProvider></MemoryRouter>);
+  await user.type(screen.getByLabelText('Tên giáo án'), 'Cardio A');
+  await user.type(screen.getByLabelText('Mục tiêu'), 'Sức bền');
+  await user.click(await screen.findByRole('button', { name: 'Thêm bài Treadmill Run' }));
+
+  expect(screen.getByLabelText('Cách ghi nhận cho Treadmill Run')).toHaveValue('CARDIO');
+  expect(screen.getByLabelText('Thời lượng mục tiêu cho Treadmill Run')).toHaveValue(20);
+  expect(screen.queryByLabelText('Số hiệp cho Treadmill Run')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Lưu giáo án' }));
+  expect(api.post).toHaveBeenCalledWith('/api/workout-templates', expect.objectContaining({ scheduledExercises: [expect.objectContaining({ trackingType: 'CARDIO', prescription: { durationMinutes: 20 } })] }));
+});
+
 it('preserves complete legacy exercise details in the unscheduled tray when saving', async () => {
   vi.mocked(api.get).mockImplementation(async (url: string) => url.startsWith('/api/exercises')
-    ? { data: [{ _id: 'squat', name: 'Squat', muscleGroup: 'LEGS', level: 'BEGINNER', scope: 'PRIVATE' }], message: '' }
+    ? { data: [{ _id: 'squat', name: 'Squat', muscleGroup: 'LEGS', level: 'BEGINNER', scope: 'PRIVATE', defaultTrackingType: 'STRENGTH' }], message: '' }
     : { data: { _id: 'legacy-plan', title: 'Legacy', goal: 'Strength', level: 'INTERMEDIATE', sessions: [{ name: 'Buổi 1', exercises: [{ name: 'Legacy Row', sets: 4, reps: '8', weight: '40kg', rpe: 8, rir: 2, tempo: '3-1-1', restSeconds: 90, notes: 'Giữ lưng thẳng' }] }] }, message: '' });
   vi.mocked(api.patch).mockResolvedValue({ data: { _id: 'legacy-plan' }, message: 'Đã lưu.' });
   const user = userEvent.setup();
   render(<MemoryRouter initialEntries={['/pt/my-workout-plans/legacy-plan/edit']}><ToastProvider><Routes><Route path="/pt/my-workout-plans/:templateId/edit" element={<WorkoutStudioPage />} /></Routes></ToastProvider></MemoryRouter>);
+  await user.click(await screen.findByRole('button', { name: 'Xếp lịch bài Legacy Row' }));
+  await user.selectOptions(screen.getByLabelText('Cách ghi nhận cho Legacy Row'), 'STRENGTH');
+  await user.click(screen.getByRole('button', { name: 'Đưa về chưa xếp lịch' }));
   await user.click(await screen.findByRole('button', { name: 'Thêm bài Squat' }));
   await user.click(screen.getByRole('button', { name: 'Lưu giáo án' }));
   expect(api.patch).toHaveBeenCalledWith('/api/workout-templates/legacy-plan', expect.objectContaining({
@@ -179,7 +198,7 @@ it('preserves complete legacy exercise details in the unscheduled tray when savi
 it('loads and saves a customer snapshot without updating the source template', async () => {
   vi.mocked(api.get).mockImplementation(async (url: string) => url.startsWith('/api/exercises')
     ? { data: [], message: '' }
-    : { data: { _id: 'plan-1', customerName: 'Nguyễn An', title: 'Giáo án riêng', goal: 'Tăng cơ', level: 'BEGINNER', durationDays: 7, muscleGroups: ['LEGS'], defaultSets: 4, defaultReps: '8-12', defaultWeight: '60% 1RM', defaultTempo: '3-1-1-0', technicalNotes: 'Giữ thân ổn định.', lifecycleStatus: 'ACTIVE', sessions: [], scheduledExercises: [{ dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat' }], unscheduledExercises: [] }, message: '' });
+    : { data: { _id: 'plan-1', customerName: 'Nguyễn An', title: 'Giáo án riêng', goal: 'Tăng cơ', level: 'BEGINNER', durationDays: 7, muscleGroups: ['LEGS'], defaultSets: 4, defaultReps: '8-12', defaultWeight: '60% 1RM', defaultTempo: '3-1-1-0', technicalNotes: 'Giữ thân ổn định.', lifecycleStatus: 'ACTIVE', sessions: [], scheduledExercises: [{ dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', trackingType: 'STRENGTH', prescription: { sets: 3, reps: '10', restSeconds: 60 } }], unscheduledExercises: [] }, message: '' });
   vi.mocked(api.patch).mockResolvedValue({ data: { _id: 'plan-1' }, message: 'Đã lưu' });
   const user = userEvent.setup();
   render(<MemoryRouter initialEntries={['/pt/customers/customer-1/workout-plans/plan-1/edit']}><ToastProvider><Routes><Route path="/pt/customers/:customerId/workout-plans/:planId/edit" element={<WorkoutStudioPage />} /></Routes></ToastProvider></MemoryRouter>);
