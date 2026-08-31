@@ -5,6 +5,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import request from 'supertest';
 import { vi } from 'vitest';
 vi.mock('../services/aiProvider.js', () => ({ generateText: vi.fn().mockResolvedValue('Đề xuất tư vấn an toàn dựa trên nguồn 3S.') }));
+vi.mock('../services/aiBillingService.js', () => ({ withAiBilling: vi.fn(async (_context: unknown, invoke: () => Promise<{ value: unknown }>) => (await invoke()).value) }));
 import app from '../app.js';
 import User, { type UserDocument } from '../models/User.js';
 import CustomerProfile from '../models/CustomerProfile.js';

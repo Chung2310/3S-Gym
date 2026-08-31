@@ -47,6 +47,7 @@ it('tải template, mở form điền sẵn và xóa templateId khỏi URL', asy
   );
 
   await waitFor(() => expect(screen.getByLabelText('Tên giáo án')).toHaveValue(template.title));
+  expect(screen.getByRole('region', { name: 'Giáo án khách hàng' })).toHaveClass('module-page', 'workout-customer-plans');
   expect(screen.getByLabelText('Tên buổi 1')).toHaveValue('Buổi thân trên');
   await waitFor(() => {
     expect(screen.getByTestId('location')).toHaveTextContent('/pt/customer-workout-plans');

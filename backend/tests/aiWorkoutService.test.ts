@@ -22,7 +22,7 @@ it('returns a validated proposal for a customer assigned to the PT', async () =>
   const customer = await CustomerProfile.create({ fullName: 'Khách AI', phone: '0907000099', assignedPtId: pt.id, initialGoal: 'Giảm mỡ' });
   vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({ durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Progressive overload', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }));
 
-  await expect(createWorkoutProposal({ id: pt.id, role: 'PT' }, customer.id)).resolves.toMatchObject({ durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60 });
+  await expect(createWorkoutProposal({ id: pt.id, role: 'PT' }, customer.id, 'workout-proposal-test')).resolves.toMatchObject({ durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60 });
 });
 
 it('accepts schedules in different weeks at the same time', () => {
@@ -34,5 +34,5 @@ it('creates a week-based draft without persisting it', async () => {
   const pt = await User.findOne({ username: 'ai-workout-pt' }).orFail();
   const customer = await CustomerProfile.findOne({ phone: '0907000099' }).orFail();
   vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({ title: 'Giảm mỡ 8 tuần', goal: 'FAT_LOSS', level: 'BEGINNER', durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, scheduledExercises: [{ weekNumber: 1, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10' }], generatedExercises: [] }));
-  await expect(generateWorkoutDraft({ id: pt.id, role: 'PT' }, { customerId: customer.id, proposal: { durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Progressive overload', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }, additionalRequest: '' })).resolves.toMatchObject({ title: 'Giảm mỡ 8 tuần', scheduledExercises: [expect.objectContaining({ weekNumber: 1 })] });
+  await expect(generateWorkoutDraft({ id: pt.id, role: 'PT' }, { customerId: customer.id, proposal: { durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Progressive overload', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }, additionalRequest: '' }, 'workout-draft-test')).resolves.toMatchObject({ title: 'Giảm mỡ 8 tuần', scheduledExercises: [expect.objectContaining({ weekNumber: 1 })] });
 });

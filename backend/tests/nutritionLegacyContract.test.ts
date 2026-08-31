@@ -13,10 +13,10 @@ import { scanInBodyDraft } from '../services/nutritionScanService.js';
 
 describe('legacy nutrition compatibility', () => {
   it('keeps the calculation response fields and canonical formula identity', async () => {
-    const result = await calculateLegacyNutrition({
+    const result = await calculateLegacyNutrition({ id: 'legacy-user', role: 'PT' }, {
       clientName: 'Khách A', gender: 'male', weight: 70, height: 170, age: 30,
       activityLevel: 'moderate', mealCount: 3, timeframe: '1_day',
-    });
+    }, 'legacy-calculate-test');
     expect(result).toMatchObject({
       clientName: 'Khách A', formula: 'MIFFLIN_ST_JEOR', bmi: expect.any(Number),
       bmr: expect.any(Number), tdee: expect.any(Number), targetCalories: expect.any(Number),
@@ -26,7 +26,7 @@ describe('legacy nutrition compatibility', () => {
   });
 
   it('returns only OCR values actually extracted by the provider', async () => {
-    const result = await scanInBodyDraft({ imageBase64: `data:image/png;base64,${Buffer.from('real-image-bytes').toString('base64')}` });
+    const result = await scanInBodyDraft({ id: 'legacy-user', role: 'PT' }, { imageBase64: `data:image/png;base64,${Buffer.from('real-image-bytes').toString('base64')}` }, 'legacy-ocr-test');
     expect(result).toMatchObject({ weight: 62.5, bodyFatPercentage: 24.1, ocrStatus: 'REVIEW_REQUIRED' });
     expect(result).not.toHaveProperty('age');
     expect(result).not.toHaveProperty('inbodyScore');

@@ -6,10 +6,10 @@ import { extractInBody } from './ocrProvider.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { recordAudit } from './auditService.js';
 
-async function createOcrDraft(user: AuthenticatedUser, customerId: string, measurementDate: string, file: Express.Multer.File) {
+async function createOcrDraft(user: AuthenticatedUser, customerId: string, measurementDate: string, file: Express.Multer.File, requestKey: string) {
   const customer = await CustomerProfile.findOne({ _id: customerId, ...(user.role === 'PT' ? { assignedPtId: user.id } : {}) });
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
-  const extracted = await extractInBody(file);
+  const extracted = await extractInBody({ userId: user.id, taskType: 'OCR_INBODY', requestKey: `${requestKey}:ocr-inbody` }, file);
   return InBodyRecord.create({
     customerId: customer._id, ptId: user.id, measurementDate,
     ...extracted, source: 'AI_SCAN', status: 'DRAFT', publishedAt: null,

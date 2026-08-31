@@ -3,6 +3,9 @@ import { success } from '../middlewares/response.js';
 import { generateText } from '../services/aiProvider.js';
 import { getMealImage } from '../services/mealImageService.js';
 import { scanInBodyDraft } from '../services/nutritionScanService.js';
+import { AppError } from '../errors/AppError.js';
+import { ERROR_CODES } from '../errors/errorCodes.js';
+import type { AuthenticatedUser } from '../types/express.js';
 
 export interface LegacyCalculateInput {
   clientName?: string;
@@ -15,7 +18,7 @@ export interface LegacyCalculateInput {
   timeframe?: '1_day' | '1_week' | '1_month';
 }
 
-export async function calculateLegacyNutrition(input: LegacyCalculateInput) {
+export async function calculateLegacyNutrition(user: AuthenticatedUser, input: LegacyCalculateInput, requestKey: string) {
   const weight = Number(input.weight); const height = Number(input.height); const age = Number(input.age);
   const heightMeters = height / 100;
   const bmi = Number((weight / heightMeters ** 2).toFixed(1));
@@ -38,8 +41,9 @@ export async function calculateLegacyNutrition(input: LegacyCalculateInput) {
   const timeframeLabel = timeframe === '1_week' ? '1 Tuần' : timeframe === '1_month' ? '1 Tháng (4 Tuần)' : '1 Ngày';
   let adviceText: string | null = null;
   try {
-    adviceText = await generateText(`Tạo tư vấn dinh dưỡng an toàn cho ${input.clientName || 'hội viên'}, ${targetCalories} kcal/ngày, ${input.mealCount || 3} bữa. Không chẩn đoán y khoa.`);
-  } catch {
+    adviceText = await generateText({ userId: user.id, taskType: 'TEXT_NUTRITION', requestKey: `${requestKey}:text-nutrition-legacy` }, `Tạo tư vấn dinh dưỡng an toàn cho ${input.clientName || 'hội viên'}, ${targetCalories} kcal/ngày, ${input.mealCount || 3} bữa. Không chẩn đoán y khoa.`);
+  } catch (error) {
+    if (error instanceof AppError && error.code === ERROR_CODES.INSUFFICIENT_CREDITS) throw error;
     adviceText = null;
   }
   return {
@@ -58,7 +62,7 @@ function deprecate(res: Parameters<typeof success>[0], canonical: string) {
 
 export const calculate = asyncHandler(async (req, res) => {
   deprecate(res, '/api/nutrition/metrics');
-  return success(res, { message: 'Tính toán và tạo tư vấn dinh dưỡng thành công.', data: await calculateLegacyNutrition(req.body) });
+  return success(res, { message: 'Tính toán và tạo tư vấn dinh dưỡng thành công.', data: await calculateLegacyNutrition(req.user!, req.body, req.requestId!) });
 });
 
 export const mealImage = asyncHandler(async (req, res) => {
@@ -74,5 +78,5 @@ export const mealImage = asyncHandler(async (req, res) => {
 
 export const scanInBody = asyncHandler(async (req, res) => {
   deprecate(res, '/api/inbody/ocr');
-  return success(res, { message: 'Đã quét phiếu InBody. PT cần kiểm tra dữ liệu trước khi xác nhận.', data: await scanInBodyDraft(req.body) });
+  return success(res, { message: 'Đã quét phiếu InBody. PT cần kiểm tra dữ liệu trước khi xác nhận.', data: await scanInBodyDraft(req.user!, req.body, req.requestId!) });
 });

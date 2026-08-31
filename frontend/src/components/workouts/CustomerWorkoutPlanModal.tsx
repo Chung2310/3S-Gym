@@ -4,5 +4,5 @@ import type { CustomerWorkoutPlan, CustomerWorkoutPlanDraft } from '../../types/
 interface Props { open: boolean; item?: CustomerWorkoutPlan | null; initialDraft?: CustomerWorkoutPlanDraft | null; onClose: () => void; onSaved: () => void }
 
 export default function CustomerWorkoutPlanModal({ open, item = null, initialDraft = null, onClose, onSaved }: Props) {
-  return <ContentFormModal open={open} resource="workout-plans" item={(item || initialDraft) as ContentItem | null} onClose={onClose} onSaved={onSaved} />;
+  return <ContentFormModal className="module-modal workout-customer-plan-form" open={open} resource="workout-plans" item={(item || initialDraft) as ContentItem | null} onClose={onClose} onSaved={onSaved} />;
 }

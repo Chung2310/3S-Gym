@@ -1,5 +1,6 @@
 import { Types, type ClientSession } from 'mongoose';
 import AuditLog from '../models/AuditLog.js';
+import User from '../models/User.js';
 import type { AuthenticatedUser } from '../types/express.js';
 
 interface AuditInput {
@@ -11,7 +12,7 @@ interface AuditInput {
   metadata?: Record<string, unknown>;
 }
 
-const allowedMetadataKeys = new Set(['fromPtId', 'toPtId', 'version', 'reasonCode']);
+const allowedMetadataKeys = new Set(['fromPtId', 'toPtId', 'version', 'reasonCode', 'credits', 'amountVnd', 'gateway', 'taskType', 'billingShortfall']);
 function sanitizeMetadata(metadata?: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(metadata || {}).filter(([key, value]) => allowedMetadataKeys.has(key) && ['string', 'number', 'boolean'].includes(typeof value)));
 }
@@ -29,4 +30,14 @@ async function recordAudit(input: AuditInput, session?: ClientSession) {
   return audit;
 }
 
-export { recordAudit };
+async function recordUserAudit(
+  userId: string,
+  input: Omit<AuditInput, 'actor'>,
+  session?: ClientSession,
+) {
+  const user = await User.findById(userId).select({ role: 1 }).session(session || null).lean();
+  if (!user) return null;
+  return recordAudit({ ...input, actor: { id: userId, role: user.role } }, session);
+}
+
+export { recordAudit, recordUserAudit };

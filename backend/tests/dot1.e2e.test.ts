@@ -1,10 +1,10 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import request from 'supertest';
 import app from '../app.js';
 import User from '../models/User.js';
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 
 const login = async (username: string, password: string): Promise<string> => {
   const response = await request(app).post('/api/auth/login').send({ username, password });
@@ -14,7 +14,7 @@ const login = async (username: string, password: string): Promise<string> => {
 };
 
 beforeAll(async () => {
-  mongo = await MongoMemoryServer.create();
+  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongo.getUri());
   await User.create({
     username: 'admin-e2e',

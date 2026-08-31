@@ -5,7 +5,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import request from 'supertest';
 import { vi } from 'vitest';
 
-vi.mock('../services/aiProvider.js', () => ({ generateText: vi.fn().mockImplementation((prompt: string) => Promise.resolve(prompt.includes('scheduledExercises') ? JSON.stringify({ title: 'Draft AI', goal: 'FAT_LOSS', level: 'BEGINNER', durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, scheduledExercises: [{ weekNumber: 1, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10' }], generatedExercises: [] }) : JSON.stringify({ durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Full body', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }))) }));
+vi.mock('../services/aiProvider.js', () => ({ generateText: vi.fn().mockImplementation((_context: unknown, prompt: string) => Promise.resolve(prompt.includes('scheduledExercises') ? JSON.stringify({ title: 'Draft AI', goal: 'FAT_LOSS', level: 'BEGINNER', durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, scheduledExercises: [{ weekNumber: 1, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10' }], generatedExercises: [] }) : JSON.stringify({ durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Full body', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }))) }));
 import app from '../app.js';
 import User from '../models/User.js';
 import CustomerProfile from '../models/CustomerProfile.js';

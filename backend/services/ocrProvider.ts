@@ -2,6 +2,8 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { APP_POLICY, getEnv } from '../config/env.js';
 import { fetchWithTimeout } from './providerRequest.js';
+import { withAiBilling } from './aiBillingService.js';
+import type { AiBillingContext, ProviderResult, ProviderUsage } from './creditTypes.js';
 
 export interface InBodyExtraction {
   weight: number;
@@ -41,7 +43,18 @@ function extractContent(payload: unknown): string | null {
   return message && typeof message === 'object' && 'content' in message && typeof message.content === 'string' ? message.content : null;
 }
 
-async function extractInBody(file: Express.Multer.File): Promise<InBodyExtraction> {
+function normalizedUsage(usage: { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown; cost?: unknown } | undefined): ProviderUsage {
+  const integer = (value: unknown) => Number.isSafeInteger(value) && Number(value) >= 0 ? Number(value) : undefined;
+  const result: ProviderUsage = { inputTokens: integer(usage?.prompt_tokens), outputTokens: integer(usage?.completion_tokens), totalTokens: integer(usage?.total_tokens) };
+  if (usage?.cost !== undefined) {
+    const cost = Number(usage.cost);
+    if (!Number.isFinite(cost) || cost < 0) throw new Error('OCR provider trả về chi phí không hợp lệ.');
+    result.providerCostMicrousd = Math.round(cost * 1_000_000);
+  }
+  return result;
+}
+
+async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResult<InBodyExtraction>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Dịch vụ OCR InBody chưa được cấu hình.' });
   try {
@@ -56,7 +69,8 @@ async function extractInBody(file: Express.Multer.File): Promise<InBodyExtractio
         ] }],
       }),
     }, getEnv().PROVIDER_TIMEOUT_MS);
-    const content = extractContent(await response.json());
+    const payload = await response.json() as { usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown; cost?: unknown } };
+    const content = extractContent(payload);
     const match = content?.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('OCR provider không trả JSON hợp lệ');
     const parsed = JSON.parse(match[0]) as InBodyExtraction;
@@ -87,7 +101,7 @@ async function extractInBody(file: Express.Multer.File): Promise<InBodyExtractio
       };
     };
 
-    return {
+    const value: InBodyExtraction = {
       weight: Number(parsed.weight),
       bmi: numOrNull(parsed.bmi),
       bodyFatPercentage: numOrNull(parsed.bodyFatPercentage, 0, 100),
@@ -104,10 +118,16 @@ async function extractInBody(file: Express.Multer.File): Promise<InBodyExtractio
       confidence,
       warnings: Array.isArray(parsed.warnings) ? parsed.warnings.filter((w): w is string => typeof w === 'string') : [],
     };
+    return { value, provider: 'openrouter', model: APP_POLICY.AI_MODEL, usage: normalizedUsage(payload.usage) };
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'Không thể đọc phiếu InBody. Vui lòng nhập thủ công hoặc thử lại.', cause: error });
   }
 }
 
-export { extractInBody };
+export function extractInBody(context: AiBillingContext, file: Express.Multer.File): Promise<InBodyExtraction>;
+export function extractInBody(file: Express.Multer.File): Promise<InBodyExtraction>;
+export async function extractInBody(context: AiBillingContext | Express.Multer.File, file?: Express.Multer.File): Promise<InBodyExtraction> {
+  if ('buffer' in context) return (await extractInBodyRaw(context)).value;
+  return withAiBilling(context, () => extractInBodyRaw(file!));
+}

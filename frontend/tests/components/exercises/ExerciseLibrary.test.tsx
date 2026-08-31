@@ -53,6 +53,11 @@ describe('ExerciseLibrary', () => {
       </ToastProvider>
     );
     expect(await screen.findAllByText('Squat')).not.toHaveLength(0);
+    const page = screen.getByRole('region', { name: 'Thư viện bài tập' });
+    expect(page).toHaveClass('module-page', 'exercise-page');
+    expect(within(page).getByRole('search', { name: 'Bộ lọc bài tập' })).toBeVisible();
+    expect(within(page).getByRole('list', { name: 'Danh sách bài tập' })).toBeVisible();
+    expect(within(page).getByRole('article', { name: 'Squat' })).toHaveClass('exercise-card');
     await user.type(screen.getByLabelText('Nhóm cơ'), 'LEGS');
     await user.selectOptions(screen.getByLabelText('Cấp độ'), 'BEGINNER');
     await user.click(screen.getByRole('button', { name: 'Lọc bài tập' }));
@@ -132,7 +137,7 @@ describe('ExerciseLibrary', () => {
     render(<ToastProvider><ExerciseLibraryPage /></ToastProvider>);
     const card = await screen.findByRole('article', { name: 'Squat' });
     expect(card).toBeVisible();
-    expect(card).toHaveClass('p-6');
+    expect(card).toHaveClass('module-card', 'exercise-card');
     expect(await screen.findAllByText('2 video')).not.toHaveLength(0);
     const links = screen.getAllByRole('link', { name: 'Kỹ thuật chuẩn' });
     expect(links[0]).toHaveAttribute('href', 'https://example.com/squat.mp4');
@@ -161,7 +166,7 @@ describe('ExerciseLibrary', () => {
     const editButton = screen.getAllByRole('button', { name: 'Sửa Squat' })[0];
     const deleteButton = screen.getAllByRole('button', { name: 'Xóa Squat' })[0];
     for (const button of [editButton, deleteButton]) {
-      expect(button).toHaveClass('h-9', 'px-3', 'rounded-lg', 'border');
+      expect(button).toHaveClass('exercise-card-action');
     }
   });
 

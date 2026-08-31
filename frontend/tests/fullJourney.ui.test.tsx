@@ -9,15 +9,14 @@ import PortalRoutes from '../src/routes/PortalRoutes';
 import { FeaturesProvider } from '../src/services/features';
 import { api } from '../src/services/api';
 
-vi.mock('../src/services/api', () => ({
-  api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
-}));
+vi.mock('../src/services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/services/api')>();
+  return { ...actual, api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } };
+});
 
-it('PT đi từ CRM sang Care bằng navigation', async () => {
+it('PT đi từ CRM sang Trợ lý PT 3S bằng navigation', async () => {
   vi.mocked(api.get).mockImplementation(async (path) => {
-    if (path === '/api/features/me') return { data: { CARE: true }, message: '' };
-    if (path.startsWith('/api/care/today'))
-      return { data: { overdueTasks: [], dueTodayTasks: [], openAlerts: [] }, message: '' };
+    if (path === '/api/features/me') return { data: {}, message: '' };
     return { data: [], meta: { page: 1, totalPages: 0 }, message: '' };
   });
   const user = userEvent.setup();

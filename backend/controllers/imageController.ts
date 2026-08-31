@@ -14,7 +14,7 @@ const generate = asyncHandler(async (req, res) => {
     return res.status(400).json({ error: { code: 400, message: 'Vui lòng cung cấp prompt mô tả ảnh cần tạo.' } });
   }
 
-  const result = await generateImage({
+  const result = await generateImage({ userId: req.user!.id, taskType: 'IMAGE_GENERATION', requestKey: `${req.requestId}:image-generation` }, {
     prompt: prompt.trim(),
     aspectRatio: (aspectRatio as AspectRatio) || '1:1',
     outputFormat: (outputFormat as OutputFormat) || 'jpeg',

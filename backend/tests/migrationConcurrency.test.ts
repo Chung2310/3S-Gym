@@ -3,6 +3,11 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import KnowledgeDocument from '../models/KnowledgeDocument.js';
 import MigrationRecord from '../models/MigrationRecord.js';
+import User from '../models/User.js';
+import CreditWallet from '../models/CreditWallet.js';
+import CreditPricing from '../models/CreditPricing.js';
+import AiBillingPolicy from '../models/AiBillingPolicy.js';
+import { AI_TASK_TYPES } from '../services/creditTypes.js';
 import { runMigrations } from '../services/migrationService.js';
 
 let mongo: MongoMemoryReplSet;
@@ -31,11 +36,20 @@ it('allows only one concurrent runner to apply a migration version', async () =>
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+  await User.create([
+    { username: 'parallel-admin', password: 'hash', role: 'ADMIN' },
+    { username: 'parallel-pt', password: 'hash', role: 'PT' },
+    { username: 'parallel-customer', password: 'hash', role: 'CUSTOMER' },
+  ]);
 
   const results = await Promise.all([runMigrations(), runMigrations()]);
 
-  expect(results.flatMap((result) => result.applied)).toEqual(['001-content-defaults']);
+  expect(results.flatMap((result) => result.applied).sort()).toEqual(['001-content-defaults', '002-credit-wallets-and-pricing']);
   expect(await MigrationRecord.countDocuments({ version: '001-content-defaults', status: 'APPLIED' })).toBe(1);
+  expect(await MigrationRecord.countDocuments({ version: '002-credit-wallets-and-pricing', status: 'APPLIED' })).toBe(1);
+  expect(await CreditWallet.countDocuments()).toBe(3);
+  expect(await CreditPricing.countDocuments({ key: 'GLOBAL' })).toBe(1);
+  expect(await AiBillingPolicy.countDocuments()).toBe(AI_TASK_TYPES.length);
 });
 
 it('takes over an expired migration lock', async () => {
@@ -51,7 +65,7 @@ it('takes over an expired migration lock', async () => {
     updatedAt: new Date(),
   });
 
-  await expect(runMigrations()).resolves.toEqual({ applied: ['001-content-defaults'] });
+  await expect(runMigrations()).resolves.toEqual({ applied: ['001-content-defaults', '002-credit-wallets-and-pricing'] });
   await expect(MigrationRecord.findOne({ version: '001-content-defaults' }).lean()).resolves.toMatchObject({
     status: 'APPLIED',
   });

@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import request from 'supertest';
+import { vi } from 'vitest';
+vi.mock('../services/aiBillingService.js', () => ({ withAiBilling: vi.fn(async (_context: unknown, invoke: () => Promise<{ value: unknown }>) => (await invoke()).value) }));
 import app from '../app.js';
 import FeatureFlag from '../models/FeatureFlag.js';
 import KnowledgeChunk from '../models/KnowledgeChunk.js';

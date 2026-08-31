@@ -9,6 +9,20 @@ export interface StudioScheduleItem {
 export const SLOT_MINUTES = 15;
 export const SLOT_HEIGHT = 20;
 export const DAY_MINUTES = 1440;
+export const DAYS_PER_WEEK = 7;
+
+export function planWeekCount(durationDays: number): number {
+  return Math.max(1, Math.ceil(durationDays / DAYS_PER_WEEK));
+}
+
+export function planDaysForWeek(durationDays: number, weekNumber: number): number[] {
+  const remainingDays = durationDays - (Math.max(1, weekNumber) - 1) * DAYS_PER_WEEK;
+  return Array.from({ length: Math.max(0, Math.min(DAYS_PER_WEEK, remainingDays)) }, (_, index) => index + 1);
+}
+
+export function planDayIndex(item: Pick<StudioScheduleItem, 'weekNumber' | 'dayNumber'>): number {
+  return ((item.weekNumber || 1) - 1) * DAYS_PER_WEEK + item.dayNumber;
+}
 
 export function snapMinute(value: number): number {
   return Math.max(0, Math.min(1425, Math.round(value / SLOT_MINUTES) * SLOT_MINUTES));

@@ -23,6 +23,7 @@ it('lọc và công bố giáo án khách hàng sau bước xác nhận', async 
     </ToastProvider>
   );
   expect((await screen.findAllByText('Plan A'))[0]).toBeVisible();
+  expect(screen.getByRole('region', { name: 'Danh sách giáo án khách hàng' })).toHaveClass('module-card', 'workout-customer-plan-card');
   await user.type(screen.getByLabelText('Học viên / Khách hàng'), 'c1');
   await user.selectOptions(screen.getByLabelText('Lọc theo trạng thái'), 'DRAFT');
   await user.click(screen.getByRole('button', { name: 'Lọc' }));
