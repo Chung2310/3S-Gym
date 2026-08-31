@@ -28,16 +28,41 @@ async function create(user: AuthenticatedUser, payload: Partial<IExercise>) {
   return normalizeExerciseVideos(user, exercise);
 }
 async function list(user: AuthenticatedUser, query: Record<string, unknown>) {
-  const page = Number(query.page || 1); const limit = Number(query.limit || 20);
-  const access: QueryFilter<IExercise> = user.role === 'ADMIN'
-    ? {}
-    : { $or: [{ scope: 'GLOBAL' as const }, { ownerPtId: new Types.ObjectId(user.id) }] };
-  const filter: QueryFilter<IExercise> = { ...access };
-  if (typeof query.muscleGroup === 'string') filter.muscleGroup = query.muscleGroup;
-  if (typeof query.level === 'string') filter.level = query.level as IExercise['level'];
-  if (typeof query.defaultTrackingType === 'string') filter.defaultTrackingType = query.defaultTrackingType as IExercise['defaultTrackingType'];
-  if (typeof query.keyword === 'string' && query.keyword.trim()) filter.name = { $regex: query.keyword.trim(), $options: 'i' };
-  const [items, total] = await Promise.all([Exercise.find(filter).sort({ name: 1 }).skip((page - 1) * limit).limit(limit).lean(), Exercise.countDocuments(filter)]);
+  const page = Number(query.page || 1);
+  const limit = Number(query.limit || 20);
+  const andClauses: QueryFilter<IExercise>[] = [];
+
+  if (user.role !== 'ADMIN') {
+    andClauses.push({ $or: [{ scope: 'GLOBAL' as const }, { ownerPtId: new Types.ObjectId(user.id) }] });
+  }
+  if (typeof query.muscleGroup === 'string' && query.muscleGroup.trim()) {
+    andClauses.push({ muscleGroup: { $regex: query.muscleGroup.trim(), $options: 'i' } as unknown as string });
+  }
+  if (typeof query.level === 'string' && query.level.trim()) {
+    andClauses.push({ level: query.level as IExercise['level'] });
+  }
+  if (typeof query.defaultTrackingType === 'string' && query.defaultTrackingType.trim()) {
+    andClauses.push({ defaultTrackingType: query.defaultTrackingType as IExercise['defaultTrackingType'] });
+  }
+
+  const rawSearch = (typeof query.keyword === 'string' ? query.keyword : typeof query.search === 'string' ? query.search : '').trim();
+  if (rawSearch) {
+    const escaped = rawSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = { $regex: escaped, $options: 'i' } as unknown as string;
+    andClauses.push({
+      $or: [
+        { name: regex },
+        { muscleGroup: regex },
+        { equipment: regex },
+      ],
+    });
+  }
+
+  const filter: QueryFilter<IExercise> = andClauses.length > 0 ? { $and: andClauses } : {};
+  const [items, total] = await Promise.all([
+    Exercise.find(filter).sort({ name: 1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Exercise.countDocuments(filter),
+  ]);
   return { items: items.map((item) => normalizeExerciseVideos(user, item)), meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 async function update(user: AuthenticatedUser, id: string, payload: Partial<IExercise>) {

@@ -38,9 +38,9 @@ export default function ExerciseInspector({ selected, days, onUpdate, onUnschedu
           <button type="button" aria-label="Tăng thời lượng 15 phút" disabled={readOnly || selected.startMinute + selected.durationMinutes >= DAY_MINUTES} onClick={() => onUpdate({ durationMinutes: selected.durationMinutes + SLOT_MINUTES })}>+</button>
         </div>
       </div>
-      <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4">
+      <div className="studio-inspector-tracking">
         <TrackingTypeSelect exerciseName={selected.name} value={selected.trackingType ?? 'UNCLASSIFIED'} disabled={readOnly} onChange={(trackingType) => onUpdate(changeTrackingType(selected, trackingType))} />
-        <p className="text-xs leading-5 text-slate-500">Chỉ áp dụng cho giáo án này.</p>
+        <p className="studio-inspector-tracking-note">Chỉ áp dụng cho giáo án này.</p>
         <PrescriptionEditor exerciseName={selected.name} trackingType={selected.trackingType ?? 'UNCLASSIFIED'} value={selected.prescription ?? {}} disabled={readOnly} onChange={(prescription) => onUpdate({ prescription })} />
       </div>
       {!readOnly && <button type="button" className="studio-inspector-danger" onClick={onUnscheduled}>Bỏ khỏi lịch</button>}

@@ -1,26 +1,8 @@
 import Joi from 'joi';
 import mongoose from 'mongoose';
+import { joiMessages } from './validationMessages.js';
 
-export const commonMessages: Record<string, string> = {
-  'any.required': '{{#label}} là trường bắt buộc.',
-  'any.only': '{{#label}} không hợp lệ.',
-  'any.unknown': '{{#label}} không được phép.',
-  'object.unknown': '{{#label}} không được phép.',
-  'object.min': 'Vui lòng cung cấp ít nhất một trường cần cập nhật.',
-  'string.base': '{{#label}} phải là chuỗi.',
-  'string.empty': '{{#label}} không được để trống.',
-  'string.email': 'Email không hợp lệ.',
-  'string.uri': '{{#label}} không phải URL hợp lệ.',
-  'string.objectId': '{{#label}} không hợp lệ.',
-  'number.base': '{{#label}} phải là số.',
-  'number.integer': '{{#label}} phải là số nguyên.',
-  'number.min': '{{#label}} quá nhỏ.',
-  'number.max': '{{#label}} quá lớn.',
-  'boolean.base': '{{#label}} phải là true hoặc false.',
-  'date.base': '{{#label}} không phải ngày hợp lệ.',
-  'date.format': '{{#label}} không đúng định dạng ngày.',
-  'array.base': '{{#label}} phải là danh sách.',
-};
+export const commonMessages: Record<string, string> = joiMessages;
 
 export const objectId = Joi.string().custom((value: string, helpers) => (
   mongoose.isValidObjectId(value) ? value : helpers.error('string.objectId')
