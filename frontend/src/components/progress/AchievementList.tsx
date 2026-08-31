@@ -1,3 +1,44 @@
+import { Trophy } from 'lucide-react';
 import type { AchievementDto } from '../../types';
-const labels = { MAX_WEIGHT: 'Mức tạ cao nhất', MAX_REPS: 'Số reps cao nhất', MAX_SET_VOLUME: 'Volume set cao nhất', ESTIMATED_1RM: 'Estimated 1RM' } as const;
-export default function AchievementList({ achievements }: { achievements: AchievementDto[] }) { return <section className="progress-achievement-grid">{achievements.length ? achievements.map((item) => <article className="progress-achievement-card" key={`${item.exerciseName}-${item.kind}`}><p className="progress-achievement-kind">{labels[item.kind]}</p><h3 className="progress-achievement-name">{item.exerciseName}</h3><p className="progress-achievement-value">{item.value.toLocaleString('vi-VN')}</p></article>) : <div className="empty-state progress-achievement-empty">Chưa có thành tích.</div>}</section>; }
+import ProgressEmptyState from './ProgressEmptyState';
+import ProgressSection from './ProgressSection';
+
+const labels = {
+  MAX_WEIGHT: 'Mức tạ cao nhất',
+  MAX_REPS: 'Số reps cao nhất',
+  MAX_SET_VOLUME: 'Volume set cao nhất',
+  ESTIMATED_1RM: 'Estimated 1RM',
+} as const;
+
+export default function AchievementList({ achievements }: { achievements: AchievementDto[] }) {
+  if (achievements.length === 0) {
+    return (
+      <ProgressEmptyState
+        icon={Trophy}
+        title="Chưa có thành tích"
+        description="Các cột mốc mới sẽ xuất hiện khi khách hàng hoàn thành thêm buổi tập."
+      />
+    );
+  }
+
+  return (
+    <ProgressSection
+      title="Thành tích cá nhân"
+      description="Những cột mốc nổi bật được tổng hợp từ lịch sử tập luyện."
+      count={achievements.length}
+    >
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {achievements.map((item) => (
+          <article
+            className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 transition hover:-translate-y-0.5 hover:border-secondary/30 motion-reduce:transform-none motion-reduce:transition-none"
+            key={`${item.exerciseName}-${item.kind}`}
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-secondary">{labels[item.kind]}</p>
+            <h3 className="mt-1 font-oswald text-xl font-bold uppercase text-primary">{item.exerciseName}</h3>
+            <p className="mt-3 text-2xl font-black text-slate-900">{item.value.toLocaleString('vi-VN')}</p>
+          </article>
+        ))}
+      </div>
+    </ProgressSection>
+  );
+}

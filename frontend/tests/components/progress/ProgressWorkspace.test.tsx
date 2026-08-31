@@ -11,8 +11,25 @@ const journey = { customer: { _id: 'c1', fullName: 'Nguyễn An' }, sessions: []
 it('provides all seven PT progress areas', async () => {
   const user = userEvent.setup();
   render(<ToastProvider><PtProgressWorkspace journey={journey} onRefresh={vi.fn()} /></ToastProvider>);
+  expect(screen.getAllByText('Tỷ lệ tham gia')).toHaveLength(1);
+  expect(screen.getByRole('heading', { name: 'Dữ liệu hành trình' })).toBeVisible();
   for (const name of ['Tổng quan', 'Buổi tập', 'Chỉ số cơ thể', 'Thành tích', 'Ảnh tiến độ', 'Giáo án', 'Báo cáo']) expect(screen.getByRole('tab', { name })).toBeVisible();
   await user.click(screen.getByRole('tab', { name: 'Báo cáo' }));
+  expect(screen.getByRole('region', { name: 'Báo cáo tiến độ' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Tạo báo cáo tự động' })).toBeVisible();
+
+  await user.click(screen.getByRole('tab', { name: 'Thành tích' }));
+  expect(screen.getByRole('heading', { name: 'Chưa có thành tích' })).toBeVisible();
+});
+
+it('moves directly to measurement and report workflows from quick actions', async () => {
+  const user = userEvent.setup();
+  render(<ToastProvider><PtProgressWorkspace journey={journey} onRefresh={vi.fn()} /></ToastProvider>);
+
+  await user.click(screen.getByRole('button', { name: 'Nhập số đo' }));
+  expect(screen.getByRole('heading', { name: 'Ghi số đo' })).toBeVisible();
+
+  await user.click(screen.getByRole('button', { name: 'Tạo báo cáo' }));
   expect(screen.getByRole('button', { name: 'Tạo báo cáo tự động' })).toBeVisible();
 });
 
