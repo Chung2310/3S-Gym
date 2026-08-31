@@ -23,17 +23,14 @@ it('gửi API cập nhật khi lưu popup sửa PT', async () => {
   await user.type(screen.getByLabelText('Chuyên môn huấn luyện'), 'Yoga');
   await user.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
 
-  expect(api.patch).toHaveBeenCalledWith('/api/users/pt-1', expect.objectContaining({ username: 'pt-lan', specialization: 'Yoga', certificates: ['ACE'], role: 'PT' }));
+  expect(api.patch).toHaveBeenCalledWith('/api/users/pt-1', expect.objectContaining({ specialization: 'Yoga', certificates: ['ACE'] }));
   expect(onSaved).toHaveBeenCalledWith(pt);
 });
 
-it('đóng popup ngay khi bấm Hủy dù có dữ liệu đã thay đổi', async () => {
-  const user = userEvent.setup();
-  const onClose = vi.fn();
-  render(<ToastProvider><PtFormModal open pt={pt} onClose={onClose} onSaved={vi.fn()} /></ToastProvider>);
+it('không chứa trường tài khoản (username, password, status) trong form sửa PT', async () => {
+  render(<ToastProvider><PtFormModal open pt={pt} onClose={vi.fn()} onSaved={vi.fn()} /></ToastProvider>);
 
-  await user.type(screen.getByLabelText('Giới thiệu bản thân & Triết lý huấn luyện'), 'Có thay đổi');
-  await user.click(screen.getByRole('button', { name: 'Hủy' }));
-
-  expect(onClose).toHaveBeenCalledOnce();
+  expect(screen.queryByLabelText(/Mật khẩu/i)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/Tên đăng nhập/i)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/Trạng thái/i)).not.toBeInTheDocument();
 });

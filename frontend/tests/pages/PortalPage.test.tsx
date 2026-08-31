@@ -78,9 +78,7 @@ describe('PortalPage', () => {
 
     expect(screen.getByRole('dialog', { name: 'Cập nhật hồ sơ Huấn luyện viên' })).toBeInTheDocument();
     expect(screen.getByLabelText('Họ và tên')).toHaveValue('PT Lan');
-    expect(screen.getByLabelText('Tên đăng nhập')).toHaveValue('pt-lan');
-    expect(screen.getByLabelText('Tên đăng nhập')).toHaveAttribute('readonly');
-    expect(screen.getByLabelText('Mật khẩu mới (để trống nếu không đổi)')).not.toBeRequired();
+    expect(screen.getByLabelText('Số điện thoại')).toHaveValue('0901234567');
     expect(screen.getByLabelText('Chứng chỉ & Bằng cấp (mỗi dòng một chứng chỉ)')).toHaveValue('RYT 200');
   });
 

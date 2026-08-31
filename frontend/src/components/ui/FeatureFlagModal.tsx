@@ -90,7 +90,7 @@ export default function FeatureFlagModal({ open, feature, onClose, onSaved }: Fe
     <ProfileFormModal
       open={open}
       title={`Cấu hình tính năng: ${feature?.key || ''}`}
-      description={feature?.description || 'Phân quyền vai trò và tài khoản trải nghiệm trước (Pilot).'}
+      description={feature?.description || ''}
       dirty={dirty}
       loading={loading}
       submitLabel="Lưu cấu hình"
