@@ -1,7 +1,18 @@
 import Joi from 'joi';
 import type { RequestValidationSchema } from '../middlewares/validate.js';
 import { commonMessages, idParams, nonEmptyPatch, objectId, paginationQuery } from './commonValidator.js';
-const templateExerciseFields = { exerciseId: objectId, name: Joi.string().trim().required(), sets: Joi.number().integer().min(1), reps: Joi.string().allow(''), weight: Joi.alternatives().try(Joi.string(), Joi.number()), rpe: Joi.number().min(0).max(10), rir: Joi.number().min(0), tempo: Joi.string().allow(''), restSeconds: Joi.number().min(0), notes: Joi.string().allow('') };
+const classifiedTrackingType = Joi.string().valid('STRENGTH', 'BODYWEIGHT', 'CARDIO', 'INTERVAL', 'MOBILITY');
+const strengthPrescription = Joi.object({ sets: Joi.number().integer().min(1).required(), reps: Joi.string().allow(''), targetWeight: Joi.number().min(0), targetRpe: Joi.number().min(0).max(10), targetRir: Joi.number().min(0), restSeconds: Joi.number().min(0) }).unknown(false);
+const bodyweightPrescription = Joi.object({ sets: Joi.number().integer().min(1).required(), reps: Joi.string().allow(''), addedWeight: Joi.number().min(0), targetRpe: Joi.number().min(0).max(10), targetRir: Joi.number().min(0), restSeconds: Joi.number().min(0) }).unknown(false);
+const cardioPrescription = Joi.object({ durationMinutes: Joi.number().positive(), distanceKm: Joi.number().positive(), targetPaceSecondsPerKm: Joi.number().positive(), targetHeartRate: Joi.number().positive(), inclinePercent: Joi.number().min(0), targetRpe: Joi.number().min(0).max(10) }).or('durationMinutes', 'distanceKm').unknown(false);
+const intervalPrescription = Joi.object({ rounds: Joi.number().integer().min(1).required(), workSeconds: Joi.number().positive(), restSeconds: Joi.number().min(0), distanceMetersPerRound: Joi.number().positive(), repsPerRound: Joi.number().integer().positive(), targetRpe: Joi.number().min(0).max(10) }).unknown(false);
+const mobilityPrescription = Joi.object({ durationMinutes: Joi.number().positive(), reps: Joi.number().integer().positive(), side: Joi.string().valid('LEFT', 'RIGHT', 'BOTH'), targetDiscomfort: Joi.number().min(0).max(10) }).or('durationMinutes', 'reps').unknown(false);
+const trackingPrescription = Joi.alternatives().conditional('trackingType', { switch: [
+  { is: 'STRENGTH', then: strengthPrescription.required() }, { is: 'BODYWEIGHT', then: bodyweightPrescription.required() },
+  { is: 'CARDIO', then: cardioPrescription.required() }, { is: 'INTERVAL', then: intervalPrescription.required() },
+  { is: 'MOBILITY', then: mobilityPrescription.required() },
+] });
+const templateExerciseFields = { exerciseId: objectId, name: Joi.string().trim().required(), trackingType: classifiedTrackingType.required(), prescription: trackingPrescription.required(), sets: Joi.number().integer().min(1), reps: Joi.string().allow(''), weight: Joi.alternatives().try(Joi.string(), Joi.number()), rpe: Joi.number().min(0).max(10), rir: Joi.number().min(0), tempo: Joi.string().allow(''), restSeconds: Joi.number().min(0), notes: Joi.string().allow('') };
 const templateExercise = Joi.object(templateExerciseFields).messages(commonMessages);
 const templateSession = Joi.object({ name: Joi.string().trim().required(), exercises: Joi.array().items(templateExercise).required() }).messages(commonMessages);
 const scheduledExercise = Joi.object({ ...templateExerciseFields, weekNumber: Joi.number().integer().min(1).default(1), dayNumber: Joi.number().integer().min(1).required(), startMinute: Joi.number().integer().min(0).max(1425).multiple(15).required(), durationMinutes: Joi.number().integer().min(15).max(1440).multiple(15).required() }).messages(commonMessages);

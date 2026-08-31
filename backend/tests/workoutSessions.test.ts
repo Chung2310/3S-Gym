@@ -51,3 +51,20 @@ it('corrects mutable workout details while preserving the plan snapshot and owne
 
   await expect(updateSession({ id: foreignPt.id, role: 'PT' }, session.id, { feeling: 'Không được phép' })).rejects.toMatchObject({ status: 403 });
 });
+
+it('persists typed results while retaining legacy set logs', async () => {
+  const pt = await User.create({ username: 'pt-typed-session', password: 'hashed-value', role: 'PT' });
+  const customer = await CustomerProfile.create({ fullName: 'Khách Typed', phone: '0908111099', assignedPtId: pt.id });
+  const typed = await WorkoutSession.create({
+    customerId: customer.id, ptId: pt.id, performedAt: '2026-09-04', attendance: 'PRESENT', idempotencyKey: 'typed-001',
+    workoutPlanId: new mongoose.Types.ObjectId(), workoutPlanVersion: 2, planSnapshot: { title: 'Cardio plan' },
+    exerciseLogs: [{ name: 'Treadmill Run', trackingType: 'CARDIO', prescribedSnapshot: { durationMinutes: 20 }, result: { durationMinutes: 22, distanceKm: 3.4, inclinePercent: 0 } }],
+  });
+  const legacy = await WorkoutSession.create({
+    customerId: customer.id, ptId: pt.id, performedAt: '2026-09-05', attendance: 'PRESENT', idempotencyKey: 'legacy-001',
+    planSnapshot: { title: 'Legacy plan' }, exerciseLogs: [{ name: 'Squat', sets: [{ weight: 50, reps: 10, completed: true }] }],
+  });
+
+  expect((typed.exerciseLogs[0] as Record<string, unknown>).result).toMatchObject({ durationMinutes: 22, distanceKm: 3.4, inclinePercent: 0 });
+  expect((legacy.exerciseLogs[0] as { sets: unknown[] }).sets).toHaveLength(1);
+});

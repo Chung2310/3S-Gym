@@ -1,15 +1,19 @@
 import mongoose from 'mongoose';
+import { TRACKING_TYPES } from '../types/exerciseTracking.js';
 const exerciseSchema = new mongoose.Schema({
-  name: { type: String, required: true }, sets: { type: Number, min: 1, default: 3 }, reps: { type: String, default: '8-12' },
+  exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, sets: { type: Number, min: 1, default: 3 }, reps: { type: String, default: '8-12' },
   weight: { type: String, default: '' }, rest: { type: String, default: '' }, tempo: { type: String, default: '' }, notes: { type: String, default: '' },
+  trackingType: { type: String, enum: TRACKING_TYPES, default: 'UNCLASSIFIED' }, prescription: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
 }, { _id: false });
 const sessionSchema = new mongoose.Schema({ name: { type: String, required: true }, exercises: { type: [exerciseSchema], default: [] } }, { _id: false });
 const scheduledExerciseSchema = new mongoose.Schema({
   dayNumber: { type: Number, required: true, min: 1 }, startMinute: { type: Number, required: true, min: 0, max: 1425 }, durationMinutes: { type: Number, required: true, min: 15, max: 1440 },
   exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, sets: Number, reps: String, weight: String, rpe: Number, rir: Number, tempo: String, restSeconds: Number, notes: String,
+  trackingType: { type: String, enum: TRACKING_TYPES, default: 'UNCLASSIFIED' }, prescription: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
 }, { _id: false });
 const unscheduledExerciseSchema = new mongoose.Schema({
   durationMinutes: { type: Number, required: true, min: 15, max: 1440 }, exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, sets: Number, reps: String, weight: String, rpe: Number, rir: Number, tempo: String, restSeconds: Number, notes: String,
+  trackingType: { type: String, enum: TRACKING_TYPES, default: 'UNCLASSIFIED' }, prescription: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
 }, { _id: false });
 const schema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'CustomerProfile', required: true },

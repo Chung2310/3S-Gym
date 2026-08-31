@@ -32,9 +32,9 @@ beforeAll(async () => {
     defaultWeight: '60-70% 1RM',
     defaultTempo: '3-1-1-0',
     technicalNotes: 'Giữ thân người ổn định.',
-    scheduledExercises: [{ dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat' }],
-    unscheduledExercises: [{ name: 'Row', durationMinutes: 30 }],
-    sessions: [{ name: 'Ngày 1', exercises: [{ name: 'Squat' }] }],
+    scheduledExercises: [{ dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', trackingType: 'STRENGTH', prescription: { sets: 4, reps: '8-12' } }],
+    unscheduledExercises: [{ name: 'Row', durationMinutes: 30, trackingType: 'STRENGTH', prescription: { sets: 4, reps: '8-12' } }],
+    sessions: [{ name: 'Ngày 1', exercises: [{ name: 'Squat', trackingType: 'STRENGTH', prescription: { sets: 4, reps: '8-12' } }] }],
   });
   token = jwt.sign({ id: pt.id, role: 'PT' }, process.env.JWT_SECRET || 'secret_key');
   customerId = customer.id;
@@ -80,4 +80,27 @@ it('updates only the customer snapshot and rejects archived snapshots', async ()
   expect(updated.body.data).toMatchObject({ defaultSets: 5, technicalNotes: 'Ghi chú riêng.' });
   expect((await WorkoutTemplate.findById(templateId))?.title).toBe('Mẫu đã đổi');
   expect((await WorkoutTemplate.findById(templateId))?.defaultSets).toBe(4);
+});
+
+it('rejects assignment when any exercise is unclassified', async () => {
+  const ownerPtId = (await WorkoutTemplate.findById(templateId))!.ownerPtId;
+  const invalid = await WorkoutTemplate.create({
+    ownerPtId, title: 'Giáo án chưa phân loại', goal: 'Cardio', level: 'BEGINNER', durationDays: 1,
+    sessions: [{ name: 'Ngày 1', exercises: [{ name: 'Chạy bộ' }] }],
+  });
+
+  const response = await request(app).post(`/api/customers/${customerId}/workout-plans/assign`).set('Authorization', `Bearer ${token}`).send({ templateId: invalid.id });
+  expect(response.status).toBe(400);
+  expect(response.body.message).toContain('Chạy bộ');
+});
+
+it('stores plan tracking overrides independently from the source template', async () => {
+  const active = await WorkoutPlan.findOne({ customerId, lifecycleStatus: 'ACTIVE' });
+  const response = await request(app).patch(`/api/customers/${customerId}/workout-plans/${active!.id}`).set('Authorization', `Bearer ${token}`).send({
+    sessions: [{ name: 'Ngày 1', exercises: [{ name: 'Squat', trackingType: 'BODYWEIGHT', prescription: { sets: 3, reps: '12' } }] }],
+  });
+
+  expect(response.status).toBe(200);
+  expect(response.body.data.sessions[0].exercises[0]).toMatchObject({ trackingType: 'BODYWEIGHT', prescription: { sets: 3, reps: '12' } });
+  expect((await WorkoutTemplate.findById(templateId))!.sessions[0]).toMatchObject({ exercises: [expect.objectContaining({ trackingType: 'STRENGTH' })] });
 });

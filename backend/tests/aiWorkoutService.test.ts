@@ -26,13 +26,28 @@ it('returns a validated proposal for a customer assigned to the PT', async () =>
 });
 
 it('accepts schedules in different weeks at the same time', () => {
-  const result = createWorkoutTemplateSchema.body!.validate({ title: 'Kế hoạch nhiều tuần', goal: 'FAT_LOSS', level: 'BEGINNER', durationDays: 7, scheduledExercises: [{ weekNumber: 1, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat' }, { weekNumber: 2, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Row' }] });
+  const tracking = { trackingType: 'STRENGTH', prescription: { sets: 3, reps: '10' } };
+  const result = createWorkoutTemplateSchema.body!.validate({ title: 'Kế hoạch nhiều tuần', goal: 'FAT_LOSS', level: 'BEGINNER', durationDays: 7, scheduledExercises: [{ weekNumber: 1, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', ...tracking }, { weekNumber: 2, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Row', ...tracking }] });
   expect(result.error).toBeUndefined();
 });
 
 it('creates a week-based draft without persisting it', async () => {
   const pt = await User.findOne({ username: 'ai-workout-pt' }).orFail();
   const customer = await CustomerProfile.findOne({ phone: '0907000099' }).orFail();
-  vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({ title: 'Giảm mỡ 8 tuần', goal: 'FAT_LOSS', level: 'BEGINNER', durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, scheduledExercises: [{ weekNumber: 1, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10' }], generatedExercises: [] }));
+  vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({ title: 'Giảm mỡ 8 tuần', goal: 'FAT_LOSS', level: 'BEGINNER', durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, scheduledExercises: [{ weekNumber: 1, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10', trackingType: 'STRENGTH', prescription: { sets: 3, reps: '10' } }], generatedExercises: [] }));
   await expect(generateWorkoutDraft({ id: pt.id, role: 'PT' }, { customerId: customer.id, proposal: { durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Progressive overload', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }, additionalRequest: '' })).resolves.toMatchObject({ title: 'Giảm mỡ 8 tuần', scheduledExercises: [expect.objectContaining({ weekNumber: 1 })] });
+});
+
+it('rejects an AI draft that omits explicit tracking configuration', async () => {
+  const pt = await User.findOne({ username: 'ai-workout-pt' }).orFail();
+  const customer = await CustomerProfile.findOne({ phone: '0907000099' }).orFail();
+  vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({
+    title: 'Draft thiếu loại', durationWeeks: 8, generatedExercises: [],
+    scheduledExercises: [{ weekNumber: 1, dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Chạy bộ' }],
+  }));
+
+  await expect(generateWorkoutDraft({ id: pt.id, role: 'PT' }, {
+    customerId: customer.id,
+    proposal: { durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Cardio', trainingSplit: 'Full body', priorityMuscleGroups: [], restrictions: [] },
+  })).rejects.toMatchObject({ status: 502 });
 });

@@ -16,8 +16,8 @@ it('assigns and replaces a customer workout plan on standalone MongoDB', async (
     const password = await bcrypt.hash('MatKhau123!', 10);
     const pt = await User.create({ username: 'pt-plan-standalone', password, role: 'PT' });
     const customer = await CustomerProfile.create({ fullName: 'Khách Standalone', phone: '0903999002', assignedPtId: pt.id });
-    const firstTemplate = await WorkoutTemplate.create({ ownerPtId: pt.id, title: 'Mẫu đầu', goal: 'Tăng cơ', level: 'BEGINNER', sessions: [{ name: 'Ngày 1', exercises: [{ name: 'Squat' }] }] });
-    const secondTemplate = await WorkoutTemplate.create({ ownerPtId: pt.id, title: 'Mẫu thay thế', goal: 'Sức mạnh', level: 'INTERMEDIATE', sessions: [{ name: 'Ngày 1', exercises: [{ name: 'Deadlift' }] }] });
+    const firstTemplate = await WorkoutTemplate.create({ ownerPtId: pt.id, title: 'Mẫu đầu', goal: 'Tăng cơ', level: 'BEGINNER', sessions: [{ name: 'Ngày 1', exercises: [{ name: 'Squat', trackingType: 'STRENGTH', prescription: { sets: 3, reps: '10' } }] }] });
+    const secondTemplate = await WorkoutTemplate.create({ ownerPtId: pt.id, title: 'Mẫu thay thế', goal: 'Sức mạnh', level: 'INTERMEDIATE', sessions: [{ name: 'Ngày 1', exercises: [{ name: 'Deadlift', trackingType: 'STRENGTH', prescription: { sets: 3, reps: '8' } }] }] });
     const token = jwt.sign({ id: pt.id, role: 'PT' }, process.env.JWT_SECRET || 'secret_key');
     const authorization = { Authorization: `Bearer ${token}` };
 

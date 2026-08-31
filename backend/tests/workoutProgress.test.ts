@@ -10,6 +10,7 @@ import PtPackage from '../models/PtPackage.js';
 import FeatureFlag from '../models/FeatureFlag.js';
 
 let mongo: MongoMemoryReplSet; let token: string; let customerId: string;
+const strengthTracking = { trackingType: 'STRENGTH', prescription: { sets: 3, reps: '10' } } as const;
 const tokenFor = (user: UserDocument): string => jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET || 'secret_key');
 beforeAll(async () => {
   mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } }); await mongoose.connect(mongo.getUri());
@@ -24,7 +25,7 @@ afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); });
 
 it('tạo template có version và check-in giữ snapshot, trừ đúng một buổi', async () => {
   const template = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
-    title: 'Full body A', goal: 'FAT_LOSS', level: 'BEGINNER', sessions: [{ name: 'Buổi 1', exercises: [{ name: 'Squat', sets: 3, reps: '10', restSeconds: 60 }] }],
+    title: 'Full body A', goal: 'FAT_LOSS', level: 'BEGINNER', sessions: [{ name: 'Buổi 1', exercises: [{ name: 'Squat', sets: 3, reps: '10', restSeconds: 60, ...strengthTracking }] }],
   });
   expect(template.status).toBe(201);
   expect(template.body.data.version).toBe(1);
@@ -79,10 +80,10 @@ it('normalizes nested and legacy circumference measurements without dropping exi
 
 it('lists templates with pagination and creates a new version when updated', async () => {
   const created = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
-    title: 'Strength Base', goal: 'STRENGTH', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [{ name: 'Deadlift' }] }],
+    title: 'Strength Base', goal: 'STRENGTH', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [{ name: 'Deadlift', ...strengthTracking }] }],
   });
   const updated = await request(app).patch(`/api/workout-templates/${created.body.data._id}`).set('Authorization', `Bearer ${token}`).send({
-    title: 'Strength Base V2', sessions: [{ name: 'Day 1', exercises: [{ name: 'Deadlift' }, { name: 'Row' }] }],
+    title: 'Strength Base V2', sessions: [{ name: 'Day 1', exercises: [{ name: 'Deadlift', ...strengthTracking }, { name: 'Row', ...strengthTracking }] }],
   });
   expect(updated.status).toBe(200);
   expect(updated.body.data).toMatchObject({ title: 'Strength Base V2', version: 2 });
@@ -93,7 +94,7 @@ it('lists templates with pagination and creates a new version when updated', asy
 });
 
 it('supports template detail, archive and deletion of an unused template', async () => {
-  const created = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({ title: 'Temporary Template', goal: 'MOBILITY', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [{ name: 'Mobility' }] }] });
+  const created = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({ title: 'Temporary Template', goal: 'MOBILITY', level: 'BEGINNER', sessions: [{ name: 'Day 1', exercises: [{ name: 'Mobility', trackingType: 'MOBILITY', prescription: { durationMinutes: 10 } }] }] });
   const id = created.body.data._id;
   expect((await request(app).get(`/api/workout-templates/${id}`).set('Authorization', `Bearer ${token}`)).body.data._id).toBe(id);
   const archived = await request(app).patch(`/api/workout-templates/${id}/archive`).set('Authorization', `Bearer ${token}`);
@@ -118,8 +119,8 @@ it('lists workout sessions and allows correcting or deleting body measurements',
 
 it('stores a studio schedule and rejects overlapping exercises', async () => {
   const scheduledExercises = [
-    { dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10', restSeconds: 60 },
-    { dayNumber: 1, startMinute: 540, durationMinutes: 30, name: 'Row', sets: 3, reps: '12', restSeconds: 45 },
+    { dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10', restSeconds: 60, ...strengthTracking },
+    { dayNumber: 1, startMinute: 540, durationMinutes: 30, name: 'Row', sets: 3, reps: '12', restSeconds: 45, ...strengthTracking },
   ];
   const created = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
     title: 'Studio Plan', goal: 'STRENGTH', level: 'BEGINNER', durationDays: 7, scheduledExercises,
@@ -137,8 +138,8 @@ it('stores a studio schedule and rejects overlapping exercises', async () => {
 });
 
 it('stores unscheduled studio exercises without adding them to compatible sessions', async () => {
-  const scheduled = { dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10', restSeconds: 60 };
-  const unscheduled = { name: 'Legacy Row', durationMinutes: 45, sets: 4, reps: '8', weight: '40kg', rpe: 8, rir: 2, tempo: '3-1-1', restSeconds: 90, notes: 'Giữ lưng thẳng' };
+  const scheduled = { dayNumber: 1, startMinute: 480, durationMinutes: 60, name: 'Squat', sets: 3, reps: '10', restSeconds: 60, ...strengthTracking };
+  const unscheduled = { name: 'Legacy Row', durationMinutes: 45, sets: 4, reps: '8', weight: '40kg', rpe: 8, rir: 2, tempo: '3-1-1', restSeconds: 90, notes: 'Giữ lưng thẳng', trackingType: 'STRENGTH', prescription: { sets: 4, reps: '8' } };
   const created = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
     title: 'Studio Draft', goal: 'STRENGTH', level: 'INTERMEDIATE', durationDays: 7,
     scheduledExercises: [scheduled], unscheduledExercises: [unscheduled],
@@ -155,7 +156,7 @@ it.each([
 ])('rejects a studio exercise %s', async (_caseName, schedule) => {
   const response = await request(app).post('/api/workout-templates').set('Authorization', `Bearer ${token}`).send({
     title: 'Invalid Studio', goal: 'STRENGTH', level: 'BEGINNER', durationDays: 7,
-    scheduledExercises: [{ ...schedule, name: 'Invalid exercise', sets: 3, reps: '10' }],
+    scheduledExercises: [{ ...schedule, name: 'Invalid exercise', sets: 3, reps: '10', ...strengthTracking }],
   });
   expect(response.status).toBe(400);
 });

@@ -23,7 +23,7 @@ afterAll(async () => { await mongoose.disconnect(); await mongo.stop(); });
 
 it('Admin tạo bài tập dùng chung và PT lọc theo nhóm cơ/level', async () => {
   const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${adminToken}`).send({
-    name: 'Goblet Squat', muscleGroup: 'LEGS', level: 'BEGINNER', equipment: ['DUMBBELL'],
+    name: 'Goblet Squat', muscleGroup: 'LEGS', level: 'BEGINNER', equipment: ['DUMBBELL'], defaultTrackingType: 'STRENGTH',
     technique: 'Giữ lưng trung lập.', commonMistakes: ['Gối đổ vào trong'], contraindications: ['Đau gối cấp'], variants: ['Bodyweight Squat'],
   });
   expect(created.status).toBe(201);
@@ -36,13 +36,13 @@ it('Admin tạo bài tập dùng chung và PT lọc theo nhóm cơ/level', async
 
 it('PT owns and manages a global exercise while other PTs can only view it', async () => {
   const own = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
-    name: 'Mobility riêng', muscleGroup: 'FULL_BODY', level: 'BEGINNER', equipment: [], scope: 'PRIVATE',
+    name: 'Mobility riêng', muscleGroup: 'FULL_BODY', level: 'BEGINNER', equipment: [], scope: 'PRIVATE', defaultTrackingType: 'MOBILITY',
   });
   expect(own.status).toBe(201);
   expect(own.body.data.scope).toBe('PRIVATE');
 
   const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
-    name: 'Global Row', muscleGroup: 'BACK', level: 'BEGINNER', equipment: [], scope: 'GLOBAL',
+    name: 'Global Row', muscleGroup: 'BACK', level: 'BEGINNER', equipment: [], scope: 'GLOBAL', defaultTrackingType: 'STRENGTH',
   });
   expect(created.status).toBe(201);
   expect(created.body.data).toMatchObject({ scope: 'GLOBAL', canManage: true });
@@ -66,7 +66,7 @@ it('only Admin manages legacy global exercises without an owner', async () => {
 
 it('PT updates only a private exercise owned by that PT', async () => {
   const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
-    name: 'Private Row', muscleGroup: 'BACK', level: 'BEGINNER', scope: 'PRIVATE', equipment: [],
+    name: 'Private Row', muscleGroup: 'BACK', level: 'BEGINNER', scope: 'PRIVATE', equipment: [], defaultTrackingType: 'STRENGTH',
   });
   const forbidden = await request(app).patch(`/api/exercises/${created.body.data._id}`).set('Authorization', `Bearer ${otherPtToken}`).send({ name: 'Changed by another PT' });
   expect(forbidden.status).toBe(403);
@@ -76,7 +76,7 @@ it('PT updates only a private exercise owned by that PT', async () => {
 });
 
 it('supports exercise detail and owner-controlled deletion', async () => {
-  const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({ name: 'Private Press', muscleGroup: 'CHEST', level: 'BEGINNER', scope: 'PRIVATE', equipment: [] });
+  const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({ name: 'Private Press', muscleGroup: 'CHEST', level: 'BEGINNER', scope: 'PRIVATE', equipment: [], defaultTrackingType: 'STRENGTH' });
   const id = created.body.data._id;
   const detail = await request(app).get(`/api/exercises/${id}`).set('Authorization', `Bearer ${ptToken}`);
   expect(detail.status).toBe(200);
@@ -91,13 +91,13 @@ it('stores multiple titled videos and rejects more than 20 videos', async () => 
     { title: 'Lỗi thường gặp', url: 'https://www.youtube.com/watch?v=squat', source: 'LINK' },
   ];
   const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
-    name: 'Video Squat', muscleGroup: 'VIDEO_TEST', level: 'BEGINNER', scope: 'PRIVATE', equipment: [], videos,
+    name: 'Video Squat', muscleGroup: 'VIDEO_TEST', level: 'BEGINNER', scope: 'PRIVATE', equipment: [], videos, defaultTrackingType: 'STRENGTH',
   });
   expect(created.status).toBe(201);
   expect(created.body.data.videos).toEqual(videos);
 
   const tooMany = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
-    name: 'Too Many Videos', muscleGroup: 'VIDEO_TEST', level: 'BEGINNER', scope: 'PRIVATE', equipment: [],
+    name: 'Too Many Videos', muscleGroup: 'VIDEO_TEST', level: 'BEGINNER', scope: 'PRIVATE', equipment: [], defaultTrackingType: 'STRENGTH',
     videos: Array.from({ length: 21 }, (_, index) => ({ title: `Video ${index + 1}`, url: `https://example.com/${index + 1}.mp4`, source: 'LINK' })),
   });
   expect(tooMany.status).toBe(400);
@@ -115,4 +115,18 @@ it('normalizes the legacy videoUrl field into the videos response', async () => 
   expect(list.body.data[0].videos).toEqual([
     { title: 'Video hướng dẫn', url: 'https://example.com/legacy.mp4', source: 'LINK' },
   ]);
+});
+
+it('requires a classified tracking type for new exercises and returns it from the API', async () => {
+  const missing = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
+    name: 'Run without type', muscleGroup: 'CARDIO', level: 'BEGINNER', equipment: [],
+  });
+  expect(missing.status).toBe(400);
+  expect(missing.body.errors).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'defaultTrackingType' })]));
+
+  const created = await request(app).post('/api/exercises').set('Authorization', `Bearer ${ptToken}`).send({
+    name: 'Treadmill Run', muscleGroup: 'CARDIO', level: 'BEGINNER', equipment: ['TREADMILL'], defaultTrackingType: 'CARDIO',
+  });
+  expect(created.status).toBe(201);
+  expect(created.body.data.defaultTrackingType).toBe('CARDIO');
 });

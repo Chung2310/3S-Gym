@@ -37,6 +37,19 @@ function snapshotFields(template: Record<string, any>) {
   };
 }
 
+function exercisesFromPlan(plan: Record<string, any>) {
+  return [
+    ...(plan.scheduledExercises || []),
+    ...(plan.unscheduledExercises || []),
+    ...(plan.sessions || []).flatMap((session: Record<string, any>) => session.exercises || []),
+  ] as Array<Record<string, any>>;
+}
+
+function assertClassifiedPlan(plan: Record<string, any>) {
+  const exercise = exercisesFromPlan(plan).find((item) => !item.trackingType || item.trackingType === 'UNCLASSIFIED');
+  if (exercise) throw fail(`Hãy phân loại cách ghi nhận cho bài tập "${String(exercise.name || 'Chưa đặt tên')}" trước khi lưu giáo án.`, 400);
+}
+
 async function supportsTransactions() {
   const hello = await mongoose.connection.db?.command({ hello: 1 });
   return Boolean(hello?.setName || hello?.msg === 'isdbgrid');
@@ -79,6 +92,7 @@ export async function assignCustomerWorkoutPlan(user: AuthenticatedUser, custome
   await assertCustomerAccess(user, customerId);
   const template = await WorkoutTemplate.findOne({ _id: templateId, ownerPtId: user.id }).lean();
   if (!template) throw fail('Không tìm thấy giáo án mẫu.', 404);
+  assertClassifiedPlan(template);
   const now = new Date();
   if (!(await supportsTransactions())) return assignWithoutTransaction(user, customerId, template, now);
   const session = await mongoose.startSession();
@@ -105,6 +119,7 @@ export async function getCustomerWorkoutPlan(user: AuthenticatedUser, customerId
 export async function updateCustomerWorkoutPlan(user: AuthenticatedUser, customerId: string, planId: string, payload: Record<string, unknown>) {
   const plan = await getCustomerWorkoutPlan(user, customerId, planId);
   if (plan.get('lifecycleStatus') !== 'ACTIVE') throw fail('Không thể sửa giáo án đã lưu trong lịch sử.', 409);
+  assertClassifiedPlan({ ...plan.toObject(), ...payload });
   const mutable = ['title', 'goal', 'level', 'durationDays', 'muscleGroups', 'defaultSets', 'defaultReps', 'defaultWeight', 'defaultTempo', 'technicalNotes', 'scheduledExercises', 'unscheduledExercises', 'sessions'];
   for (const field of mutable) if (Object.prototype.hasOwnProperty.call(payload, field)) plan.set(field, payload[field]);
   return plan.save();
