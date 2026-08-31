@@ -6,6 +6,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import request from 'supertest';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../app.js';
+import AuditLog from '../models/AuditLog.js';
 import { loadEnv } from '../config/env.js';
 import CreditLedgerEntry from '../models/CreditLedgerEntry.js';
 import CreditPackage from '../models/CreditPackage.js';
@@ -118,6 +119,7 @@ describe('credit payment API', () => {
     expect(first.status).toBe(200); expect(second.status).toBe(200);
     expect(await CreditWallet.findOne({ userId: (await User.findOne({ role: 'CUSTOMER' }))?._id })).toMatchObject({ availableCredits: 10 });
     expect(await CreditLedgerEntry.countDocuments({ type: 'TOPUP' })).toBe(1);
+    expect(await AuditLog.countDocuments({ action: 'CREDIT_PAYMENT_GRANTED', resourceId: created.body.data.id })).toBe(1);
     const customerLedger = await request(app).get('/api/credits/me/ledger').set('Authorization', `Bearer ${tokens.CUSTOMER}`);
     const ptLedger = await request(app).get('/api/credits/me/ledger').set('Authorization', `Bearer ${tokens.PT}`);
     expect(customerLedger.body.data).toHaveLength(1);
@@ -127,6 +129,9 @@ describe('credit payment API', () => {
     const wrong = { ...base, vnp_TxnRef: other.body.data.orderCode, vnp_Amount: '2000000' };
     expect((await request(app).get('/api/credits/payments/vnpay/ipn').query({ ...wrong, vnp_SecureHash: signVnpay(wrong) })).status).toBe(409);
     expect((await request(app).get('/api/credits/payments/vnpay/ipn').query({ ...wrong, vnp_SecureHash: 'bad' })).status).toBe(400);
+    expect(await AuditLog.findOne({ action: 'CREDIT_PAYMENT_CALLBACK_REJECTED', resourceId: other.body.data.id })).toMatchObject({
+      metadata: { gateway: 'VNPAY', reasonCode: 'VALIDATION_ERROR' },
+    });
   });
 
   it('creates and settles a MoMo order, preventing transaction reuse across orders', async () => {

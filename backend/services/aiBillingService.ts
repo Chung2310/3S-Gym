@@ -5,6 +5,7 @@ import { calculateSettledCredits, getPricingSnapshot } from './creditPricingServ
 import type { AiBillingContext, ProviderResult, ProviderUsage } from './creditTypes.js';
 import { ensureWallet, releaseCredits, reserveCredits, settleCredits } from './creditWalletService.js';
 import { withTransaction } from './transactionService.js';
+import { recordUserAudit } from './auditService.js';
 
 function duplicateRequest(): AppError {
   return new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'Request AI này đã được xử lý trước đó.' });
@@ -80,6 +81,12 @@ export async function withAiBilling<T>(context: AiBillingContext, invoke: () => 
         inputTokens: providerResult.usage.inputTokens, outputTokens: providerResult.usage.outputTokens,
         totalTokens: providerResult.usage.totalTokens, providerCostMicrousd: providerResult.usage.providerCostMicrousd,
       } }, { session });
+      if (settlement.billingShortfall > 0) {
+        await recordUserAudit(context.userId, {
+          action: 'AI_BILLING_SHORTFALL', resourceType: 'ai_usage', resourceId: usage.id,
+          metadata: { taskType: context.taskType, billingShortfall: settlement.billingShortfall },
+        }, session);
+      }
     });
     return providerResult.value;
   } catch (error) {

@@ -3,6 +3,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import AiBillingPolicy from '../models/AiBillingPolicy.js';
 import AiUsage from '../models/AiUsage.js';
+import AuditLog from '../models/AuditLog.js';
 import CreditLedgerEntry from '../models/CreditLedgerEntry.js';
 import CreditPricing from '../models/CreditPricing.js';
 import CreditWallet from '../models/CreditWallet.js';
@@ -79,6 +80,7 @@ describe('withAiBilling', () => {
     await withAiBilling(context('billing-shortfall'), async () => result({ providerCostMicrousd: 1_000_000 }));
     expect(await AiUsage.findOne({ requestKey: 'billing-shortfall' })).toMatchObject({ status: 'BILLING_SHORTFALL', reservedCredits: 2, settledCredits: 33, billingShortfall: 31 });
     expect(await CreditWallet.findOne({ userId })).toMatchObject({ availableCredits: 0, reservedCredits: 0 });
+    expect(await AuditLog.findOne({ action: 'AI_BILLING_SHORTFALL' })).toMatchObject({ metadata: { taskType: 'TEXT_GENERIC', billingShortfall: 31 } });
   });
 
   it('bills local application embeddings with the configured fallback', async () => {

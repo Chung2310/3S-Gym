@@ -9,6 +9,7 @@ import { createMomoPayment, isMomoConfigured, verifyMomoCallback } from './momoG
 import type { GatewayCallbackResult } from './paymentGatewayTypes.js';
 import { createVnpayPayment, isVnpayConfigured, verifyVnpayCallback } from './vnpayGateway.js';
 import { ensureWallet, grantTopupCredits } from './creditWalletService.js';
+import { recordUserAudit } from './auditService.js';
 import { withTransaction } from './transactionService.js';
 
 type OrderDocument = mongoose.HydratedDocument<IPaymentOrder>;
@@ -80,9 +81,10 @@ export async function getPaymentOrder(userId: string, id: string) {
 }
 
 async function settleVerifiedCallback(gateway: PaymentGateway, verified: GatewayCallbackResult) {
-  if (!verified.valid) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Chữ ký callback thanh toán không hợp lệ.' });
-  if (!verified.orderCode) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Callback thiếu mã đơn thanh toán.' });
-  return withTransaction(async (session) => {
+  try {
+    if (!verified.valid) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Chữ ký callback thanh toán không hợp lệ.' });
+    if (!verified.orderCode) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Callback thiếu mã đơn thanh toán.' });
+    return await withTransaction(async (session) => {
     const order = await PaymentOrder.findOne({ orderCode: verified.orderCode, gateway }).session(session);
     if (!order) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy đơn thanh toán.' });
     if (verified.amountVnd !== order.amountVnd) throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Số tiền callback không khớp đơn thanh toán.' });
@@ -104,8 +106,25 @@ async function settleVerifiedCallback(gateway: PaymentGateway, verified: Gateway
     order.status = 'PAID'; order.gatewayTransactionId = transactionId;
     order.gatewayResultCode = verified.resultCode; order.paidAt = new Date(); await order.save({ session });
     await grantTopupCredits({ userId: String(order.userId), paymentOrderId: order.id, credits: order.grantCredits, idempotencyKey: order.grantIdempotencyKey }, session);
+    await recordUserAudit(String(order.userId), {
+      action: 'CREDIT_PAYMENT_GRANTED', resourceType: 'payment_order', resourceId: order.id,
+      metadata: { credits: order.grantCredits, amountVnd: order.amountVnd, gateway },
+    }, session);
     return orderView(order);
-  });
+    });
+  } catch (error) {
+    if (verified.orderCode) {
+      const order = await PaymentOrder.findOne({ orderCode: verified.orderCode, gateway }).select({ _id: 1, userId: 1 }).lean();
+      if (order) {
+        const reasonCode = error instanceof AppError ? error.code : ERROR_CODES.INTERNAL;
+        await recordUserAudit(String(order.userId), {
+          action: 'CREDIT_PAYMENT_CALLBACK_REJECTED', resourceType: 'payment_order', resourceId: String(order._id),
+          metadata: { gateway, reasonCode, ...(verified.amountVnd === undefined ? {} : { amountVnd: verified.amountVnd }) },
+        }).catch(() => undefined);
+      }
+    }
+    throw error;
+  }
 }
 
 export function settleVnpayCallback(input: Record<string, unknown>) { return settleVerifiedCallback('VNPAY', verifyVnpayCallback(input)); }

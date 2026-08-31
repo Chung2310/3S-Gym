@@ -7,7 +7,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import app from '../app.js';
 import AiBillingPolicy from '../models/AiBillingPolicy.js';
 import AuditLog from '../models/AuditLog.js';
-import CreditPackage from '../models/CreditPackage.js';
 import CreditPricing from '../models/CreditPricing.js';
 import CreditWallet from '../models/CreditWallet.js';
 import User from '../models/User.js';
