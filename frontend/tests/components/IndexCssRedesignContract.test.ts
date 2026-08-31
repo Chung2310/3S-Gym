@@ -3,6 +3,13 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const css = readFileSync('frontend/src/index.css', 'utf8');
+const exerciseSources = [
+  'frontend/src/pages/pt/ExerciseLibraryPage.tsx',
+  'frontend/src/components/exercises/ExerciseFilter.tsx',
+  'frontend/src/components/exercises/ExerciseLibraryCard.tsx',
+  'frontend/src/components/exercises/ExerciseFormModal.tsx',
+  'frontend/src/components/exercises/ExerciseVideoFields.tsx',
+].map((path) => readFileSync(path, 'utf8')).join('\n');
 
 describe('index CSS redesign contract', () => {
   it('defines the shared module foundation and approved breakpoints', () => {
@@ -17,5 +24,11 @@ describe('index CSS redesign contract', () => {
     expect(css).toContain('@media (min-width: 1024px)');
     expect(css).toContain('@media (min-width: 1280px)');
     expect(css).toContain('@media (prefers-reduced-motion: reduce)');
+  });
+
+  it('keeps Exercise Library styling in semantic index CSS classes', () => {
+    expect(exerciseSources).not.toMatch(/style=\{\{/);
+    expect(exerciseSources).not.toMatch(/(?:sm:|md:|lg:|xl:|rounded-|bg-|text-slate-|border-slate-|shadow-\[|["'`\s](?:flex|grid|gap-\d+|p-\d+|px-\d+|py-\d+)(?=["'`\s]))/);
+    for (const selector of ['.exercise-page', '.exercise-toolbar', '.exercise-grid', '.exercise-card', '.exercise-form-section']) expect(css).toContain(selector);
   });
 });
