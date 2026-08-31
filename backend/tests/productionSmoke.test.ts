@@ -2,11 +2,11 @@ import { execFile } from 'node:child_process';
 import { createServer } from 'node:net';
 import { promisify } from 'node:util';
 import path from 'node:path';
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 
 const execFileAsync = promisify(execFile);
-let mongo: MongoMemoryServer;
+let mongo: MongoMemoryReplSet;
 
 async function availablePort() {
   return new Promise<number>((resolve, reject) => {
@@ -21,7 +21,7 @@ async function availablePort() {
 }
 
 beforeAll(async () => {
-  mongo = await MongoMemoryServer.create();
+  mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await execFileAsync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.backend.build.json'], {
     cwd: path.resolve('.'),
     timeout: 60_000,

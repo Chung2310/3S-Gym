@@ -28,6 +28,36 @@ npm test
 npm run build
 ```
 
+## Ví credit và thanh toán AI
+
+Mọi tài khoản `ADMIN`, `PT` và `CUSTOMER` có một ví credit. Migration `002-credit-wallets-and-pricing` tạo ví số dư 0 cho tài khoản hiện có, đồng thời tạo cấu hình quy đổi, policy tính phí AI và các gói nạp mặc định.
+
+Sau khi cập nhật mã nguồn, chạy migration trước khi nhận lưu lượng:
+
+```bash
+npm run db:migrate:status
+npm run db:migrate
+```
+
+Cấu hình VNPay và MoMo theo các biến trong `.env.example`. URL callback/IPN phải là HTTPS công khai và đi thẳng tới backend; URL redirect/return đưa người dùng về `/wallet/payment-result`:
+
+```env
+VNPAY_RETURN_URL=https://your-domain.example/wallet/payment-result
+VNPAY_IPN_URL=https://your-domain.example/api/credits/payments/vnpay/ipn
+MOMO_REDIRECT_URL=https://your-domain.example/wallet/payment-result
+MOMO_IPN_URL=https://your-domain.example/api/credits/payments/momo/ipn
+```
+
+Redirect trình duyệt không bao giờ cộng credit. Backend chỉ cộng credit một lần sau IPN/webhook có chữ ký hợp lệ; trang kết quả tra lại đơn cục bộ từ API và không tin mã trạng thái trên query string của cổng thanh toán.
+
+Checklist production:
+
+- Thay toàn bộ credential sandbox bằng credential production và đăng ký đúng IPN URL tại cổng thanh toán.
+- Chạy `npm run db:migrate` trên một instance trước khi rollout ứng dụng.
+- Kiểm tra DNS/TLS và cho phép VNPay/MoMo gọi các endpoint IPN từ Internet.
+- Tạo một giao dịch giá trị nhỏ trên từng cổng, đối chiếu `payment_orders`, `credit_ledger_entries` và số dư ví.
+- Theo dõi mục “Thiếu hụt” trong trang quản trị credit để xử lý trường hợp chi phí provider vượt mức đã tạm giữ.
+
 View your app in AI Studio: https://ai.studio/apps/c9f16f0c-380d-4f8a-bd87-6bcf8a623f13
 
 ## Run Locally

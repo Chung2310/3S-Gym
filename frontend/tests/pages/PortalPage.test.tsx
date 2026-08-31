@@ -17,8 +17,9 @@ function PortalPage(props: React.ComponentProps<typeof RawPortalRoutes>) {
   return <Routes><Route path="/*" element={<RawPortalRoutes {...props} />} /><Route path="/portal/*" element={<RawPortalRoutes {...props} />} /></Routes>;
 }
 
-vi.mock('../../src/services/api', () => ({
-  api: {
+vi.mock('../../src/services/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/services/api')>();
+  return { ...actual, api: {
     get: vi.fn().mockImplementation(async (path: string) => path === '/api/features/me'
       ? { data: { EXERCISE_LIBRARY: true }, message: '' }
       : path === '/api/me/journey'
@@ -26,8 +27,8 @@ vi.mock('../../src/services/api', () => ({
       : path.startsWith('/api/dashboard/admin')
       ? { data: { totalPts: 0, totalCustomers: 0, openAlerts: 0, activePackages: 0, filters: {}, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] }, message: '' }
       : { data: [], meta: { page: 1, totalPages: 0 }, message: '' }), post: vi.fn(), patch: vi.fn(), delete: vi.fn()
-  },
-}));
+  } };
+});
 
 const defaultGet = async (path: string) => path === '/api/features/me'
   ? { data: { EXERCISE_LIBRARY: true }, message: '' }

@@ -58,4 +58,11 @@ describe('Validation các route công cụ dùng chung', () => {
     expect(invalid.status).toBe(400);
     expect(invalid.body.errors[0].field).toBe('video');
   });
+
+  it('từ chối yêu cầu nạp credit thiếu nguồn tiền và amount sai bước', async () => {
+    const missing = await request(app).post('/api/credits/topups').set('Authorization', `Bearer ${ptToken}`).send({ gateway: 'VNPAY' });
+    const invalidStep = await request(app).post('/api/credits/topups').set('Authorization', `Bearer ${ptToken}`).send({ gateway: 'VNPAY', customAmountVnd: 10_500 });
+    expect(missing.status).toBe(400);
+    expect(invalidStep.status).toBe(400);
+  });
 });

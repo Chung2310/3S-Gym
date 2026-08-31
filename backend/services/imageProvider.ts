@@ -2,6 +2,8 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { getEnv } from '../config/env.js';
 import { fetchWithTimeout } from './providerRequest.js';
+import { withAiBilling } from './aiBillingService.js';
+import type { AiBillingContext, ProviderResult } from './creditTypes.js';
 
 /**
  * Image Generation Provider — FLUX.2 Klein 4B via OpenRouter Image API
@@ -60,7 +62,7 @@ interface OpenRouterImageResponse {
  * @throws AppError 503 if OPENROUTER_API_KEY is not configured
  * @throws AppError 502 if the upstream provider fails
  */
-export async function generateImage(options: GenerateImageOptions): Promise<GeneratedImage> {
+async function generateImageRaw(options: GenerateImageOptions): Promise<ProviderResult<GeneratedImage>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new AppError({
@@ -114,11 +116,22 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
       throw new Error('OpenRouter Image API không trả về ảnh.');
     }
 
-    return {
+    const cost = Number(data.usage?.cost ?? 0);
+    if (!Number.isFinite(cost) || cost < 0) throw new Error('OpenRouter Image API trả về chi phí không hợp lệ.');
+    const value = {
       b64Json: data.data[0].b64_json,
       mediaType: data.data[0].media_type || 'image/jpeg',
-      cost: data.usage?.cost ?? 0,
+      cost,
       completionTokens: data.usage?.completion_tokens ?? 0,
+    };
+    return {
+      value, provider: 'openrouter', model,
+      usage: {
+        inputTokens: data.usage?.prompt_tokens,
+        outputTokens: data.usage?.completion_tokens,
+        totalTokens: data.usage?.total_tokens,
+        providerCostMicrousd: Math.round(cost * 1_000_000),
+      },
     };
   } catch (cause) {
     if (cause instanceof AppError) throw cause;
@@ -129,4 +142,11 @@ export async function generateImage(options: GenerateImageOptions): Promise<Gene
       cause,
     });
   }
+}
+
+export function generateImage(context: AiBillingContext, options: GenerateImageOptions): Promise<GeneratedImage>;
+export function generateImage(options: GenerateImageOptions): Promise<GeneratedImage>;
+export async function generateImage(context: AiBillingContext | GenerateImageOptions, options?: GenerateImageOptions): Promise<GeneratedImage> {
+  if ('prompt' in context) return (await generateImageRaw(context)).value;
+  return withAiBilling(context, () => generateImageRaw(options!));
 }

@@ -23,10 +23,14 @@ import AdminUsersPage from '../pages/admin/AdminUsersPage';
 import CustomerPortalPage from '../pages/customer/CustomerPortalPage';
 import NotificationsPage from '../pages/common/NotificationsPage';
 import ConsultationTool from '../pages/ConsultationTool';
+import WalletPage from '../pages/common/WalletPage';
+import PaymentResultPage from '../pages/common/PaymentResultPage';
+import CreditAdminPage from '../pages/admin/CreditAdminPage';
 
 import { FeaturesProvider, useFeatures } from '../services/features';
 import { getSession } from '../services/session';
 import type { Session, User } from '../types';
+import { CreditWalletProvider } from '../contexts/CreditWalletContext';
 
 const roleDestinations = {
   ADMIN: '/admin',
@@ -41,9 +45,12 @@ function PortalContent({ user }: { user: User }) {
   const isPortalRoot = location.pathname === '/portal' || location.pathname === '/portal/' || location.pathname === '/';
 
   return (
-    <AppShell user={user} features={features}>
+    <CreditWalletProvider><AppShell user={user} features={features}>
       <Routes>
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="wallet" element={<WalletPage />} />
+        <Route path="wallet/payment-result" element={<PaymentResultPage />} />
+        <Route path="admin/credits" element={<FeatureRoute user={user} roles={['ADMIN']}><CreditAdminPage /></FeatureRoute>} />
         <Route
           path="consultation"
           element={
@@ -220,7 +227,7 @@ function PortalContent({ user }: { user: User }) {
           }
         />
       </Routes>
-    </AppShell>
+    </AppShell></CreditWalletProvider>
   );
 }
 

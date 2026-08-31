@@ -12,6 +12,7 @@ import {
   Search,
   ShieldCheck,
   Users,
+  WalletCards,
 } from 'lucide-react';
 import type { FeatureKey, FeatureState, User, UserRole } from '../types';
 
@@ -19,6 +20,8 @@ export type NavigationSection = 'Tổng quan' | 'Vận hành' | 'Tri thức & tr
 export interface NavigationItem { path: string; label: string; section: NavigationSection; icon: LucideIcon; roles: UserRole[]; feature?: FeatureKey; matchChildren?: boolean }
 
 export const portalNavigation: NavigationItem[] = [
+  { path: '/wallet', label: 'Ví credit', section: 'Tài khoản', icon: WalletCards, roles: ['ADMIN', 'PT', 'CUSTOMER'], matchChildren: true },
+  { path: '/admin/credits', label: 'Quản trị credit', section: 'Tài khoản', icon: WalletCards, roles: ['ADMIN'], matchChildren: true },
   { path: '/admin', label: 'Quản trị & HLV PT', section: 'Vận hành', icon: LayoutDashboard, roles: ['ADMIN'] },
   { path: '/admin/customers', label: 'Tất cả khách hàng', section: 'Vận hành', icon: Users, roles: ['ADMIN'], matchChildren: true },
   { path: '/admin/transfers', label: 'Điều chuyển khách', section: 'Vận hành', icon: ArrowRightLeft, roles: ['ADMIN'], matchChildren: true },

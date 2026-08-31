@@ -7,6 +7,7 @@ import app from '../app.js';
 import User from '../models/User.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import Goal from '../models/Goal.js';
+import CreditWallet from '../models/CreditWallet.js';
 let mongo: MongoMemoryReplSet;
 let adminToken: string;
 let ptToken: string;
@@ -86,6 +87,7 @@ describe('POST /api/users', () => {
       yearsOfExperience: 5, certificates: ['NASM-CPT', 'CPR'], bio: 'Huấn luyện viên cá nhân.',
     });
     expect(response.body.data).not.toHaveProperty('password');
+    expect(await CreditWallet.findOne({ userId: response.body.data._id })).toMatchObject({ availableCredits: 0, reservedCredits: 0 });
   });
 
   it('validate dữ liệu trước khi tạo tài khoản', async () => {

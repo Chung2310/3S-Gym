@@ -54,14 +54,15 @@ vi.mock('../services/aiProvider.js', () => {
       sessions: [{ name: 'Buổi 1', exercises: [] }],
     });
   };
+  const billedHandler = async (_context: unknown, prompt: string) => handler(prompt);
 
   return {
-    generateText: vi.fn().mockImplementation(handler),
-    generateNutritionDraft: vi.fn().mockImplementation(handler),
-    generateNutritionAnalysis: vi.fn().mockImplementation(handler),
-    generateWorkoutDraft: vi.fn().mockImplementation(handler),
-    generateRoadmapDraft: vi.fn().mockImplementation(handler),
-    generateAssistantAdvice: vi.fn().mockImplementation(handler),
+    generateText: vi.fn().mockImplementation(billedHandler),
+    generateNutritionDraft: vi.fn().mockImplementation(billedHandler),
+    generateNutritionAnalysis: vi.fn().mockImplementation(billedHandler),
+    generateWorkoutDraft: vi.fn().mockImplementation(billedHandler),
+    generateRoadmapDraft: vi.fn().mockImplementation(billedHandler),
+    generateAssistantAdvice: vi.fn().mockImplementation(billedHandler),
   };
 });
 
