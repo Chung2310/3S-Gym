@@ -50,14 +50,80 @@ export async function adminDashboard(query: Record<string, unknown> = {}) {
   if (typeof query.ptId === 'string') customerFilter.assignedPtId = new Types.ObjectId(query.ptId);
   if (query.customerStatus === 'ACTIVE' || query.customerStatus === 'INACTIVE' || query.customerStatus === 'LEAD') customerFilter.status = query.customerStatus;
   if (query.fromDate || query.toDate) customerFilter.createdAt = { ...(query.fromDate ? { $gte: new Date(String(query.fromDate)) } : {}), ...(query.toDate ? { $lt: new Date(String(query.toDate)) } : {}) };
-  const customerIds = await CustomerProfile.find(customerFilter).distinct('_id');
+  
+  const customerProfiles = await CustomerProfile.find(customerFilter).lean();
+  const customerIds = customerProfiles.map((c) => c._id);
   const ptFilter: QueryFilter<IUser> = { role: 'PT', status: 'ACTIVE' };
   if (typeof query.ptId === 'string') ptFilter._id = new Types.ObjectId(query.ptId);
-  const [totalPts, openAlerts, activePackages] = await Promise.all([
+
+  const [totalPts, openAlerts, activePackages, packagesList, ptsList, recentAlertsList, recentEventsList] = await Promise.all([
     User.countDocuments(ptFilter),
     CareAlert.countDocuments({ customerId: { $in: customerIds }, status: 'OPEN' }),
     PtPackage.countDocuments({ customerId: { $in: customerIds }, status: 'ACTIVE' }),
+    PtPackage.find({ customerId: { $in: customerIds } }).lean(),
+    User.find({ role: 'PT', status: 'ACTIVE' }).select('fullName username').lean(),
+    CareAlert.find({ customerId: { $in: customerIds }, status: 'OPEN' }).sort({ dueAt: 1 }).limit(5).populate('customerId', 'fullName phone').populate('ptId', 'fullName username').lean(),
+    CalendarEvent.find({ customerId: { $in: customerIds }, startsAt: { $gte: new Date() } }).sort({ startsAt: 1 }).limit(5).populate('customerId', 'fullName').lean(),
   ]);
+
+  const customerStats = {
+    active: customerProfiles.filter((c) => c.status === 'ACTIVE').length,
+    lead: customerProfiles.filter((c) => c.status === 'LEAD').length,
+    inactive: customerProfiles.filter((c) => c.status === 'INACTIVE').length,
+  };
+
+  const totalSessions = packagesList.reduce((acc, p) => acc + (p.totalSessions || 0), 0);
+  const remainingSessions = packagesList.reduce((acc, p) => acc + (p.remainingSessions || 0), 0);
+  const completedSessions = Math.max(0, totalSessions - remainingSessions);
+  const packageStats = { totalSessions, remainingSessions, completedSessions };
+
+  const ptWorkload = ptsList.map((pt) => {
+    const ptCustomers = customerProfiles.filter((c) => String(c.assignedPtId) === String(pt._id));
+    const activeCount = ptCustomers.filter((c) => c.status === 'ACTIVE').length;
+    const ptPacks = packagesList.filter((p) => ptCustomers.some((c) => String(c._id) === String(p.customerId)));
+    return {
+      ptId: String(pt._id),
+      fullName: pt.fullName || pt.username,
+      username: pt.username,
+      activeCustomers: activeCount,
+      totalCustomers: ptCustomers.length,
+      activePackages: ptPacks.filter((p) => p.status === 'ACTIVE').length,
+    };
+  }).sort((a, b) => b.activeCustomers - a.activeCustomers);
+
+  const recentAlerts = recentAlertsList.map((a: any) => ({
+    _id: String(a._id),
+    title: a.title,
+    reason: a.reason,
+    ruleKey: a.ruleKey,
+    dueAt: a.dueAt,
+    customerName: a.customerId?.fullName || 'Khách hàng',
+    ptName: a.ptId?.fullName || a.ptId?.username || 'HLV PT',
+  }));
+
+  const recentEvents = recentEventsList.map((e: any) => ({
+    _id: String(e._id),
+    title: e.title,
+    startsAt: e.startsAt,
+    endsAt: e.endsAt,
+    status: e.status,
+    customerName: e.customerId?.fullName || '',
+  }));
+
   const filters = { ...(typeof query.ptId === 'string' ? { ptId: query.ptId } : {}), ...(typeof query.customerStatus === 'string' ? { customerStatus: query.customerStatus } : {}), ...(typeof query.fromDate === 'string' ? { fromDate: query.fromDate } : {}), ...(typeof query.toDate === 'string' ? { toDate: query.toDate } : {}) };
-  return { totalPts, totalCustomers: customerIds.length, openAlerts, activePackages, filters, sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages'] };
+  
+  return {
+    totalPts,
+    totalCustomers: customerIds.length,
+    openAlerts,
+    activePackages,
+    customerStats,
+    packageStats,
+    ptWorkload,
+    recentAlerts,
+    recentEvents,
+    filters,
+    sourcePaths: ['/api/users', '/api/customers', '/api/care/alerts', '/api/pt-packages']
+  };
 }
+

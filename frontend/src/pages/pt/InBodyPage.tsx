@@ -21,6 +21,7 @@ import InBodyScanModal from '../../components/inbody/InBodyScanModal';
 import InBodyManualModal from '../../components/inbody/InBodyManualModal';
 import InBodyDetailModal from '../../components/inbody/InBodyDetailModal';
 import InBodyEvolutionChart from '../../components/inbody/InBodyEvolutionChart';
+import { useMobile } from '../../hooks/useMobile';
 import { api } from '../../services/api';
 import { analyzeInBody, classifyBodyFat, classifyVisceralFat } from '../../services/inbodyAnalytics';
 import type { PaginationMeta } from '../../types';
@@ -31,6 +32,7 @@ export type InBodyItem = InBodyRecordData;
 
 export default function InBodyPage() {
   const toast = useToast();
+  const isMobile = useMobile();
 
   // Modals state
   const [openScanModal, setOpenScanModal] = useState(false);
@@ -165,28 +167,28 @@ export default function InBodyPage() {
   }, [selectedCustomerId, items]);
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <section className="inbody-page-root" style={{ display: 'flex', flexDirection: 'column', gap: '18px', paddingBottom: '30px' }}>
       {/* 1. Header & Main Action Buttons */}
       <div
-        className="section-header"
+        className="section-header inbody-page-header"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           flexWrap: 'wrap',
-          gap: '16px',
+          gap: '14px',
           marginBottom: 0,
         }}
       >
-        <div style={{ flex: '1 1 420px', minWidth: 0 }}>
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>
-            <Activity color="#0284c7" size={26} style={{ flexShrink: 0 }} /> Theo Dõi & Phân Tích InBody
+        <div style={{ flex: '1', minWidth: '260px' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>
+            <Activity color="#0284c7" size={24} style={{ flexShrink: 0 }} /> Theo Dõi & Phân Tích InBody
           </h1>
-          <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: '0.86rem', lineHeight: 1.5 }}>
+          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.84rem', lineHeight: 1.45 }}>
             Tự động nhận diện phiếu đo hoặc nhập tay, theo dõi tiến độ thể trạng và gợi ý định hướng tập luyện cho hội viên.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexShrink: 0 }}>
+        <div className="inbody-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
           <button
             type="button"
             className="button button-secondary"
@@ -194,17 +196,17 @@ export default function InBodyPage() {
               setEditingItem(null);
               setOpenManualModal(true);
             }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', fontWeight: 700, whiteSpace: 'nowrap' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', fontWeight: 700, fontSize: '0.84rem' }}
           >
-            <Plus size={18} /> Nhập Thủ Công
+            <Plus size={16} /> Nhập Thủ Công
           </button>
           <button
             type="button"
             className="button button-primary"
             onClick={() => setOpenScanModal(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontWeight: 700, whiteSpace: 'nowrap' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 16px', fontWeight: 700, fontSize: '0.84rem' }}
           >
-            <Sparkles size={18} /> Quét Phiếu InBody
+            <Sparkles size={16} /> Quét Phiếu InBody
           </button>
         </div>
       </div>
@@ -443,382 +445,510 @@ export default function InBodyPage() {
               </button>
             </div>
           </div>
-        ) : (
-          <div style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
-            <table className="data-table" style={{ width: '100%', minWidth: '1080px', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '190px' }}>Học viên</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '110px' }}>Ngày đo</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '105px' }}>Cân nặng</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '120px' }}>% Mỡ (Fat)</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '125px' }}>Khối lượng cơ</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '130px' }}>Mỡ nội tạng</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '130px' }}>BMI & BMR</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '100px' }}>Nguồn</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '120px' }}>Trạng thái</th>
-                  <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'center', minWidth: '150px' }}>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => {
-                  const customerName =
-                    typeof item.customerId === 'object' && item.customerId !== null ? item.customerId.fullName : 'Học viên';
-                  const customerPhone =
-                    typeof item.customerId === 'object' && item.customerId !== null ? item.customerId.phone : '';
-                  const isPublished = item.status === 'PUBLISHED';
-                  const isToggling = togglingId === item._id;
+        ) : isMobile ? (
+          /* Mobile Cards View */
+          <div className="inbody-mobile-cards">
+            {items.map((item) => {
+              const customerName =
+                typeof item.customerId === 'object' && item.customerId !== null ? item.customerId.fullName : 'Học viên';
+              const isPublished = item.status === 'PUBLISHED';
+              const isToggling = togglingId === item._id;
+              const fatCls = classifyBodyFat(item.bodyFatPercentage);
+              const visCls = classifyVisceralFat(item.visceralFatLevel);
 
-                  const fatCls = classifyBodyFat(item.bodyFatPercentage);
-                  const visCls = classifyVisceralFat(item.visceralFatLevel);
+              return (
+                <div
+                  key={item._id}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  {/* Header: Avatar, Name, Date, Status */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #00a4e4 0%, #0284c7 100%)',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '0.9rem',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {customerName.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <strong style={{ display: 'block', fontSize: '0.94rem', color: '#003b70', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {customerName}
+                        </strong>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
+                          <Calendar size={12} color="#0284c7" />
+                          {item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : '—'}
+                        </span>
+                      </div>
+                    </div>
 
-                  return (
-                    <tr
-                      key={item._id}
-                      style={{
-                        borderBottom: '1px solid #f1f5f9',
-                        transition: 'background 0.15s ease',
-                      }}
+                    {isPublished ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 }}>
+                        <Check size={11} /> Đã công bố
+                      </span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#b45309', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 }}>
+                        Bản nháp
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Metrics Grid 3 items */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', background: '#f8fafc', padding: '10px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Cân nặng</span>
+                      <strong style={{ fontSize: '0.96rem', color: '#003b70', marginTop: '2px', display: 'block' }}>{item.weight ? `${item.weight} kg` : '—'}</strong>
+                    </div>
+                    <div style={{ textAlign: 'center', borderLeft: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>% Mỡ (Fat)</span>
+                      <strong style={{ fontSize: '0.96rem', color: fatCls?.color || '#0f172a', marginTop: '2px', display: 'block' }}>{item.bodyFatPercentage != null ? `${item.bodyFatPercentage}%` : '—'}</strong>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Khối lượng cơ</span>
+                      <strong style={{ fontSize: '0.96rem', color: '#15803d', marginTop: '2px', display: 'block' }}>{item.muscleMass != null ? `${item.muscleMass} kg` : '—'}</strong>
+                    </div>
+                  </div>
+
+                  {/* Secondary metrics (Visceral Fat, BMI, Source) */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', color: '#64748b', flexWrap: 'wrap', gap: '6px' }}>
+                    <span>Mỡ nội tạng: <strong style={{ color: visCls?.color || '#0f172a' }}>Level {item.visceralFatLevel || '—'}</strong></span>
+                    <span>BMI: <strong style={{ color: '#0f172a' }}>{item.bmi || '—'}</strong></span>
+                    {item.inbodyScore != null && <span style={{ color: '#15803d', fontWeight: 700 }}>Score: {item.inbodyScore}/100</span>}
+                  </div>
+
+                  {/* Actions Row */}
+                  <div style={{ display: 'flex', gap: '8px', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => setDetailItem(item)}
+                      style={{ flex: 1, padding: '8px 10px', fontSize: '0.8rem', fontWeight: 700, justifyContent: 'center' }}
                     >
-                      {/* Customer Info */}
-                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '200px' }}>
-                          <div
-                            style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '50%',
-                              background: '#e0f2fe',
-                              color: '#0369a1',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 700,
-                              fontSize: '0.86rem',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {customerName.charAt(0).toUpperCase()}
-                          </div>
-                          <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
-                            <strong
-                              title={customerName}
+                      <Sparkles size={14} /> Phân Tích & Tư Vấn
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      onClick={() => {
+                        setEditingItem(item);
+                        setOpenManualModal(true);
+                      }}
+                      style={{ padding: '8px 10px', fontSize: '0.8rem' }}
+                      title="Sửa phiếu InBody"
+                    >
+                      <Pencil size={14} /> Sửa
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      onClick={() => void handleTogglePublish(item)}
+                      disabled={isToggling}
+                      style={{ padding: '8px 10px', fontSize: '0.8rem', color: isPublished ? '#e11d48' : '#15803d' }}
+                      title={isPublished ? 'Thu hồi về bản nháp' : 'Công bố cho học viên xem'}
+                    >
+                      {isPublished ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* Desktop Table View */
+          <div className="inbody-desktop-table" style={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
+              <table className="data-table" style={{ width: '100%', minWidth: '1080px', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '190px' }}>Học viên</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '110px' }}>Ngày đo</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '105px' }}>Cân nặng</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '120px' }}>% Mỡ (Fat)</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '125px' }}>Khối lượng cơ</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '130px' }}>Mỡ nội tạng</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '130px' }}>BMI & BMR</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '100px' }}>Nguồn</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, minWidth: '120px' }}>Trạng thái</th>
+                    <th style={{ padding: '14px 18px', fontWeight: 700, textAlign: 'center', minWidth: '150px' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => {
+                    const customerName =
+                      typeof item.customerId === 'object' && item.customerId !== null ? item.customerId.fullName : 'Học viên';
+                    const customerPhone =
+                      typeof item.customerId === 'object' && item.customerId !== null ? item.customerId.phone : '';
+                    const isPublished = item.status === 'PUBLISHED';
+                    const isToggling = togglingId === item._id;
+
+                    const fatCls = classifyBodyFat(item.bodyFatPercentage);
+                    const visCls = classifyVisceralFat(item.visceralFatLevel);
+
+                    return (
+                      <tr
+                        key={item._id}
+                        style={{
+                          borderBottom: '1px solid #f1f5f9',
+                          transition: 'background 0.15s ease',
+                        }}
+                      >
+                        {/* Customer Info */}
+                        <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '200px' }}>
+                            <div
                               style={{
-                                color: '#0f172a',
-                                display: 'block',
-                                fontSize: '0.9rem',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                background: '#e0f2fe',
+                                color: '#0369a1',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 700,
+                                fontSize: '0.86rem',
+                                flexShrink: 0,
                               }}
                             >
-                              {customerName}
-                            </strong>
-                            {customerPhone && (
-                              <span
+                              {customerName.charAt(0).toUpperCase()}
+                            </div>
+                            <div style={{ minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
+                              <strong
+                                title={customerName}
                                 style={{
-                                  fontSize: '0.76rem',
-                                  color: '#64748b',
+                                  color: '#0f172a',
                                   display: 'block',
+                                  fontSize: '0.9rem',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   whiteSpace: 'nowrap',
                                 }}
                               >
-                                {customerPhone}
-                              </span>
-                            )}
+                                {customerName}
+                              </strong>
+                              {customerPhone && (
+                                <span
+                                  style={{
+                                    fontSize: '0.76rem',
+                                    color: '#64748b',
+                                    display: 'block',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {customerPhone}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Measurement Date */}
-                      <td style={{ padding: '14px 18px', color: '#334155', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <Calendar size={14} color="#0284c7" />
-                          <span>{item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : '—'}</span>
-                        </div>
-                      </td>
-
-                      {/* Weight */}
-                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                        {item.weight ? (
-                          <span
-                            style={{
-                              fontWeight: 800,
-                              color: '#003b70',
-                              fontSize: '0.92rem',
-                              background: '#f0f9ff',
-                              padding: '5px 12px',
-                              borderRadius: '8px',
-                              border: '1px solid #bae6fd',
-                              display: 'inline-block',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {item.weight} kg
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-
-                      {/* Body Fat */}
-                      <td style={{ padding: '14px 18px', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                        {item.bodyFatPercentage != null ? (
-                          <div>
-                            <strong style={{ fontSize: '0.9rem' }}>{item.bodyFatPercentage}%</strong>
-                            {fatCls && (
-                              <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: fatCls.color }}>
-                                {fatCls.label}
-                              </span>
-                            )}
+                        {/* Measurement Date */}
+                        <td style={{ padding: '14px 18px', color: '#334155', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Calendar size={14} color="#0284c7" />
+                            <span>{item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : '—'}</span>
                           </div>
-                        ) : (
-                          <span style={{ color: '#94a3b8' }}>—</span>
-                        )}
-                      </td>
+                        </td>
 
-                      {/* Muscle Mass */}
-                      <td style={{ padding: '14px 18px', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                        {item.muscleMass != null ? (
-                          <div>
-                            <strong style={{ color: '#15803d', fontSize: '0.9rem' }}>{item.muscleMass} kg</strong>
-                            {item.weight && (
-                              <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b' }}>
-                                ~{((item.muscleMass / item.weight) * 100).toFixed(1)}%
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span style={{ color: '#94a3b8' }}>—</span>
-                        )}
-                      </td>
-
-                      {/* Visceral Fat & InBody Score */}
-                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                        {item.visceralFatLevel != null ? (
-                          <div>
-                            <span style={{ fontSize: '0.84rem', fontWeight: 700, color: visCls?.color || '#0f172a' }}>
-                              Level {item.visceralFatLevel}
+                        {/* Weight */}
+                        <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                          {item.weight ? (
+                            <span
+                              style={{
+                                fontWeight: 800,
+                                color: '#003b70',
+                                fontSize: '0.92rem',
+                                background: '#f0f9ff',
+                                padding: '5px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid #bae6fd',
+                                display: 'inline-block',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {item.weight} kg
                             </span>
-                            {item.inbodyScore != null && (
-                              <span style={{ display: 'block', fontSize: '0.74rem', color: '#15803d', fontWeight: 700 }}>
-                                Score: {item.inbodyScore}/100
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+
+                        {/* Body Fat */}
+                        <td style={{ padding: '14px 18px', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                          {item.bodyFatPercentage != null ? (
+                            <div>
+                              <strong style={{ fontSize: '0.9rem' }}>{item.bodyFatPercentage}%</strong>
+                              {fatCls && (
+                                <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: fatCls.color }}>
+                                  {fatCls.label}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>—</span>
+                          )}
+                        </td>
+
+                        {/* Muscle Mass */}
+                        <td style={{ padding: '14px 18px', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                          {item.muscleMass != null ? (
+                            <div>
+                              <strong style={{ color: '#15803d', fontSize: '0.9rem' }}>{item.muscleMass} kg</strong>
+                              {item.weight && (
+                                <span style={{ display: 'block', fontSize: '0.72rem', color: '#64748b' }}>
+                                  ~{((item.muscleMass / item.weight) * 100).toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>—</span>
+                          )}
+                        </td>
+
+                        {/* Visceral Fat & InBody Score */}
+                        <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                          {item.visceralFatLevel != null ? (
+                            <div>
+                              <span style={{ fontSize: '0.84rem', fontWeight: 700, color: visCls?.color || '#0f172a' }}>
+                                Level {item.visceralFatLevel}
                               </span>
-                            )}
+                              {item.inbodyScore != null && (
+                                <span style={{ display: 'block', fontSize: '0.74rem', color: '#15803d', fontWeight: 700 }}>
+                                  Score: {item.inbodyScore}/100
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>—</span>
+                          )}
+                        </td>
+
+                        {/* BMI & BMR */}
+                        <td style={{ padding: '14px 18px', color: '#475569', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                          <div>BMI: <strong style={{ color: '#0f172a' }}>{item.bmi || '—'}</strong></div>
+                          <div style={{ marginTop: '2px' }}>BMR: <strong style={{ color: '#0f172a' }}>{item.bmr ? `${item.bmr} kcal` : '—'}</strong></div>
+                        </td>
+
+                        {/* Source */}
+                        <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                          {item.source === 'AI_SCAN' ? (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                background: '#f3e8ff',
+                                color: '#7c3aed',
+                                fontSize: '0.76rem',
+                                fontWeight: 700,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <Sparkles size={11} /> Quét tự động
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                background: '#f1f5f9',
+                                color: '#475569',
+                                fontSize: '0.76rem',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Thủ công
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
+                          {isPublished ? (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                background: '#dcfce7',
+                                color: '#15803d',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <Check size={12} /> Đã công bố
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                background: '#fef3c7',
+                                color: '#b45309',
+                                fontSize: '0.78rem',
+                                fontWeight: 700,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Bản nháp
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ padding: '14px 18px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setDetailItem(item)}
+                              aria-label="Xem phân tích & tư vấn PT"
+                              title="Xem phân tích chi tiết & gợi ý tư vấn PT"
+                              style={{
+                                height: '34px',
+                                padding: '0 10px',
+                                borderRadius: '8px',
+                                border: '1px solid #bae6fd',
+                                background: '#f0f9ff',
+                                color: '#0284c7',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                fontSize: '0.78rem',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <Sparkles size={14} /> Phân Tích
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingItem(item);
+                                setOpenManualModal(true);
+                              }}
+                              aria-label="Sửa kết quả InBody"
+                              title="Sửa phiếu InBody"
+                              style={{
+                                width: '34px',
+                                height: '34px',
+                                borderRadius: '8px',
+                                border: '1px solid #e2e8f0',
+                                background: '#ffffff',
+                                color: '#475569',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                padding: 0,
+                              }}
+                            >
+                              <Pencil size={15} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => void handleTogglePublish(item)}
+                              disabled={isToggling}
+                              aria-label={isPublished ? 'Thu hồi về bản nháp' : 'Công bố cho học viên'}
+                              title={isPublished ? 'Thu hồi về bản nháp' : 'Công bố cho học viên xem'}
+                              style={{
+                                width: '34px',
+                                height: '34px',
+                                borderRadius: '8px',
+                                border: isPublished ? '1px solid #fecdd3' : '1px solid #bbf7d0',
+                                background: isPublished ? '#fff1f2' : '#f0fdf4',
+                                color: isPublished ? '#e11d48' : '#15803d',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                padding: 0,
+                              }}
+                            >
+                              {isToggling ? (
+                                <Loader2 size={15} className="animate-spin" />
+                              ) : isPublished ? (
+                                <EyeOff size={15} />
+                              ) : (
+                                <Eye size={15} />
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setDeletingItem(item)}
+                              aria-label="Xóa kết quả InBody"
+                              title="Xóa phiếu InBody"
+                              style={{
+                                width: '34px',
+                                height: '34px',
+                                borderRadius: '8px',
+                                border: '1px solid #e2e8f0',
+                                background: '#ffffff',
+                                color: '#64748b',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                padding: 0,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#e11d48';
+                                e.currentTarget.style.borderColor = '#fecdd3';
+                                e.currentTarget.style.background = '#fff1f2';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = '#64748b';
+                                e.currentTarget.style.borderColor = '#e2e8f0';
+                                e.currentTarget.style.background = '#ffffff';
+                              }}
+                            >
+                              <Trash2 size={15} />
+                            </button>
                           </div>
-                        ) : (
-                          <span style={{ color: '#94a3b8' }}>—</span>
-                        )}
-                      </td>
-
-                      {/* BMI & BMR */}
-                      <td style={{ padding: '14px 18px', color: '#475569', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
-                        <div>BMI: <strong style={{ color: '#0f172a' }}>{item.bmi || '—'}</strong></div>
-                        <div style={{ marginTop: '2px' }}>BMR: <strong style={{ color: '#0f172a' }}>{item.bmr ? `${item.bmr} kcal` : '—'}</strong></div>
-                      </td>
-
-                      {/* Source */}
-                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                        {item.source === 'AI_SCAN' ? (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '4px 8px',
-                              borderRadius: '6px',
-                              background: '#f3e8ff',
-                              color: '#7c3aed',
-                              fontSize: '0.76rem',
-                              fontWeight: 700,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            <Sparkles size={11} /> Quét tự động
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '4px 8px',
-                              borderRadius: '6px',
-                              background: '#f1f5f9',
-                              color: '#475569',
-                              fontSize: '0.76rem',
-                              fontWeight: 600,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            Thủ công
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>
-                        {isPublished ? (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '4px 10px',
-                              borderRadius: '20px',
-                              background: '#dcfce7',
-                              color: '#15803d',
-                              fontSize: '0.78rem',
-                              fontWeight: 700,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            <Check size={12} /> Đã công bố
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '4px 10px',
-                              borderRadius: '20px',
-                              background: '#fef3c7',
-                              color: '#b45309',
-                              fontSize: '0.78rem',
-                              fontWeight: 700,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            Bản nháp
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td style={{ padding: '14px 18px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          <button
-                            type="button"
-                            onClick={() => setDetailItem(item)}
-                            aria-label="Xem phân tích & tư vấn PT"
-                            title="Xem phân tích chi tiết & gợi ý tư vấn PT"
-                            style={{
-                              height: '34px',
-                              padding: '0 10px',
-                              borderRadius: '8px',
-                              border: '1px solid #bae6fd',
-                              background: '#f0f9ff',
-                              color: '#0284c7',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              cursor: 'pointer',
-                              fontWeight: 700,
-                              fontSize: '0.78rem',
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <Sparkles size={14} /> Phân Tích
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingItem(item);
-                              setOpenManualModal(true);
-                            }}
-                            aria-label="Sửa kết quả InBody"
-                            title="Sửa phiếu InBody"
-                            style={{
-                              width: '34px',
-                              height: '34px',
-                              borderRadius: '8px',
-                              border: '1px solid #e2e8f0',
-                              background: '#ffffff',
-                              color: '#475569',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              padding: 0,
-                            }}
-                          >
-                            <Pencil size={15} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => void handleTogglePublish(item)}
-                            disabled={isToggling}
-                            aria-label={isPublished ? 'Thu hồi về bản nháp' : 'Công bố cho học viên'}
-                            title={isPublished ? 'Thu hồi về bản nháp' : 'Công bố cho học viên xem'}
-                            style={{
-                              width: '34px',
-                              height: '34px',
-                              borderRadius: '8px',
-                              border: isPublished ? '1px solid #fecdd3' : '1px solid #bbf7d0',
-                              background: isPublished ? '#fff1f2' : '#f0fdf4',
-                              color: isPublished ? '#e11d48' : '#15803d',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease',
-                              padding: 0,
-                            }}
-                          >
-                            {isToggling ? (
-                              <Loader2 size={15} className="animate-spin" />
-                            ) : isPublished ? (
-                              <EyeOff size={15} />
-                            ) : (
-                              <Eye size={15} />
-                            )}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setDeletingItem(item)}
-                            aria-label="Xóa kết quả InBody"
-                            title="Xóa phiếu InBody"
-                            style={{
-                              width: '34px',
-                              height: '34px',
-                              borderRadius: '8px',
-                              border: '1px solid #e2e8f0',
-                              background: '#ffffff',
-                              color: '#64748b',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease',
-                              padding: 0,
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = '#e11d48';
-                              e.currentTarget.style.borderColor = '#fecdd3';
-                              e.currentTarget.style.background = '#fff1f2';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = '#64748b';
-                              e.currentTarget.style.borderColor = '#e2e8f0';
-                              e.currentTarget.style.background = '#ffffff';
-                            }}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
         )}
 
         {/* Pagination */}

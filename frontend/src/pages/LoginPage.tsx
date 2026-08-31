@@ -1,4 +1,4 @@
-﻿import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
 import { API_BASE_URL } from '../config';
@@ -44,7 +44,7 @@ const LoginPage = () => {
     <div className="login-page-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', height: '100vh', width: '100vw', overflow: 'hidden', fontFamily: 'Montserrat, sans-serif' }}>
       
       {/* LEFT COLUMN: BRAND PHOTO & OVERLAY */}
-      <div style={{ position: 'relative', width: '100%', height: '100%', background: '#07162c', overflow: 'hidden' }}>
+      <div className="login-left-col" style={{ position: 'relative', width: '100%', height: '100%', background: '#07162c', overflow: 'hidden' }}>
         <img 
           src="/images/login_bg.jpg" 
           alt="3S Wellness Kickfit PT Training" 
@@ -53,7 +53,7 @@ const LoginPage = () => {
         <div style={{ 
           position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
           background: 'linear-gradient(135deg, rgba(0, 59, 112, 0.9) 0%, rgba(0, 164, 228, 0.45) 100%)',
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '48px 40px', color: 'white'
+          display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '48px 40px', color: 'white', boxSizing: 'border-box'
         }}>
           <div>
             <Link to="/">
@@ -80,8 +80,15 @@ const LoginPage = () => {
       </div>
 
       {/* RIGHT COLUMN: COMPACT LOGIN FORM (NO SCROLL NEEDED) */}
-      <div style={{ background: '#ffffff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '40px', position: 'relative', height: '100vh' }}>
+      <div className="login-right-col" style={{ background: '#ffffff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '40px', position: 'relative', height: '100vh', boxSizing: 'border-box' }}>
         
+        {/* Mobile Header Logo */}
+        <div className="login-mobile-header" style={{ display: 'none', marginBottom: '20px' }}>
+          <Link to="/">
+            <img src="/images/logo.png" alt="3S Wellness Logo" style={{ height: '50px', width: 'auto', objectFit: 'contain' }} />
+          </Link>
+        </div>
+
         <div style={{ width: '100%', maxWidth: '380px' }}>
           
           {/* Back to Home Link */}
@@ -110,7 +117,7 @@ const LoginPage = () => {
                   value={username} 
                   onChange={(e) => setUsername(e.target.value)} 
                   placeholder="Tên đăng nhập..."
-                  style={{ width: '100%', padding: '12px 14px 12px 44px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  style={{ width: '100%', padding: '12px 14px 12px 44px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                   required 
                   autoFocus
                 />
@@ -128,7 +135,7 @@ const LoginPage = () => {
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
                   placeholder="••••••••"
-                  style={{ width: '100%', padding: '12px 44px 12px 44px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none' }}
+                  style={{ width: '100%', padding: '12px 44px 12px 44px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                   required 
                 />
                 <button 

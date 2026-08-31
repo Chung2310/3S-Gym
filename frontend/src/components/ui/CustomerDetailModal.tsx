@@ -236,14 +236,14 @@ export default function CustomerDetailModal({
   return (
     <>
       <div
-        className="modal-backdrop"
+        className="modal-backdrop customer-detail-modal-backdrop"
         role="dialog"
         aria-modal="true"
         aria-labelledby="customer-detail-title"
         style={{ display: isSubModalOpen ? 'none' : 'grid' }}
       >
         <div
-          className="modal-content"
+          className="modal-content customer-detail-modal-box"
           style={{
             maxWidth: '1020px',
             width: '95%',
@@ -253,15 +253,18 @@ export default function CustomerDetailModal({
             padding: 0,
             overflow: 'hidden',
             borderRadius: '16px',
+            background: '#ffffff',
           }}
         >
           {/* Header Profile Banner */}
           <div
+            className="customer-detail-header"
             style={{
               background: 'linear-gradient(135deg, #00264d 0%, #003b70 50%, #005696 100%)',
               color: '#ffffff',
               padding: '24px 28px 0 28px',
               position: 'relative',
+              flexShrink: 0,
             }}
           >
             {/* Circular Close Button with hover state */}
@@ -272,13 +275,13 @@ export default function CustomerDetailModal({
               aria-label="Đóng"
               style={{
                 position: 'absolute',
-                top: '18px',
-                right: '18px',
+                top: '16px',
+                right: '16px',
                 width: '34px',
                 height: '34px',
                 borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.12)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
@@ -291,19 +294,20 @@ export default function CustomerDetailModal({
               <X size={18} />
             </button>
 
-            {/* Profile & Actions Row (with right padding to prevent button collision) */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', paddingRight: '48px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Profile & Actions Row */}
+            <div className="customer-detail-profile-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', paddingRight: '44px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div
+                  className="customer-detail-avatar"
                   style={{
-                    width: '64px',
-                    height: '64px',
+                    width: '56px',
+                    height: '56px',
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #00a4e4 0%, #0284c7 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.5rem',
+                    fontSize: '1.4rem',
                     fontWeight: 800,
                     color: '#ffffff',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
@@ -315,8 +319,8 @@ export default function CustomerDetailModal({
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <h1 id="customer-detail-title" style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#ffffff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h1 id="customer-detail-title" className="customer-detail-title" style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#ffffff' }}>
                       {detail?.fullName || customer.fullName}
                     </h1>
                     {detail?.status && <StatusBadge status={detail.status} />}
@@ -330,7 +334,7 @@ export default function CustomerDetailModal({
                           border: '1px solid rgba(255, 255, 255, 0.35)',
                           padding: '2px 8px',
                           borderRadius: '12px',
-                          fontSize: '0.76rem',
+                          fontSize: '0.74rem',
                           fontWeight: 700,
                           color: '#ffffff',
                         }}
@@ -357,10 +361,10 @@ export default function CustomerDetailModal({
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '6px', fontSize: '0.88rem', color: '#f1f5f9', flexWrap: 'wrap' }}>
+                  <div className="customer-detail-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', fontSize: '0.84rem', color: '#f1f5f9', flexWrap: 'wrap' }}>
                     {detail?.phone && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#ffffff', fontWeight: 600 }}>
-                        <Phone size={14} style={{ color: '#38bdf8' }} /> {detail.phone}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#ffffff', fontWeight: 600 }}>
+                        <Phone size={13} style={{ color: '#38bdf8' }} /> {detail.phone}
                       </span>
                     )}
                     {detail?.email && (
@@ -376,7 +380,7 @@ export default function CustomerDetailModal({
               </div>
 
               {/* Quick Action Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="customer-detail-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {detail && onEditCustomer && (
                   <button
                     type="button"
@@ -385,8 +389,8 @@ export default function CustomerDetailModal({
                       background: 'rgba(255,255,255,0.18)',
                       color: '#ffffff',
                       border: '1px solid rgba(255,255,255,0.35)',
-                      fontSize: '0.84rem',
-                      padding: '8px 14px',
+                      fontSize: '0.82rem',
+                      padding: '7px 12px',
                       borderRadius: '8px',
                       fontWeight: 600,
                     }}
@@ -395,7 +399,7 @@ export default function CustomerDetailModal({
                       onEditCustomer(detail);
                     }}
                   >
-                    <Pencil size={14} style={{ marginRight: '5px' }} /> Sửa thông tin
+                    <Pencil size={13} style={{ marginRight: '4px' }} /> Sửa thông tin
                   </button>
                 )}
                 {detail && !hasAccount && onGrantAccount && (
@@ -403,9 +407,9 @@ export default function CustomerDetailModal({
                     type="button"
                     className="button button-primary"
                     style={{
-                      fontSize: '0.84rem',
+                      fontSize: '0.82rem',
                       background: '#00a4e4',
-                      padding: '8px 16px',
+                      padding: '7px 14px',
                       borderRadius: '8px',
                       fontWeight: 700,
                       boxShadow: '0 2px 8px rgba(0, 164, 228, 0.35)',
@@ -421,8 +425,8 @@ export default function CustomerDetailModal({
               </div>
             </div>
 
-            {/* Sub-tabs Navigation (Drag-to-scroll, wheel scroll & navigation chevrons) */}
-            <div style={{ position: 'relative', marginTop: '22px' }}>
+            {/* Sub-tabs Navigation */}
+            <div className="customer-detail-tabs" style={{ position: 'relative', marginTop: '18px' }}>
               {canScrollLeft && (
                 <button
                   type="button"
@@ -486,6 +490,7 @@ export default function CustomerDetailModal({
                     <button
                       key={tab.id}
                       type="button"
+                      className="customer-detail-tab-btn"
                       onClick={() => {
                         if (!hasDraggedRef.current) {
                           setActiveTab(tab.id as DetailTab);
@@ -561,7 +566,7 @@ export default function CustomerDetailModal({
           </div>
 
           {/* Tab Content Body */}
-          <div style={{ padding: '24px 28px', overflowY: 'auto', flex: 1, background: '#f8fafc' }}>
+          <div className="customer-detail-body" style={{ padding: '24px 28px', overflowY: 'auto', flex: 1, background: '#f8fafc' }}>
             {/* TAB 1: OVERVIEW */}
             {activeTab === 'overview' && detail && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
