@@ -36,7 +36,7 @@ describe('AppShell', () => {
   });
 
   it('nhóm menu, đánh dấu route con đang active và hiển thị breadcrumb', () => {
-    render(<MemoryRouter initialEntries={['/pt/roadmaps/roadmap-1']}><AppShell user={{ username: 'pt-a', role: 'PT' }} features={{ ROADMAP: true }}><div>Chi tiết roadmap</div></AppShell></MemoryRouter>);
+    render(<MemoryRouter initialEntries={['/pt/roadmaps/roadmap-1']}><AppShell user={{ username: 'pt-a', role: 'PT' }} features={{ DASHBOARD: true, ROADMAP: true }}><div>Chi tiết roadmap</div></AppShell></MemoryRouter>);
 
     expect(screen.getByText('Tổng quan')).toBeVisible();
     expect(screen.getAllByText('Vận hành')[0]).toBeVisible();

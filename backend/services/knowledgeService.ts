@@ -31,3 +31,38 @@ export async function searchPublished(query: string, limit = 5) {
   const byId = new Map(docs.map((doc) => [String(doc._id), doc]));
   return hits.flatMap((hit) => { const doc = byId.get(hit.documentId); return doc ? [{ ...hit, title: doc.title, topic: doc.topic, version: doc.version }] : []; });
 }
+
+import { STANDARD_3S_KNOWLEDGE_DOCS } from './standardKnowledgeLibrary.js';
+
+export async function seedStandardKnowledgeLibrary(user?: AuthenticatedUser) {
+  const seededDocs = [];
+  for (const item of STANDARD_3S_KNOWLEDGE_DOCS) {
+    let doc = await KnowledgeDocument.findOne({ title: item.title });
+    if (!doc) {
+      doc = new KnowledgeDocument({
+        title: item.title,
+        topic: item.topic,
+        content: item.content,
+        version: 1,
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+        effectiveAt: new Date(),
+        approvedById: user?.id ? new Types.ObjectId(user.id) : undefined,
+      });
+    } else {
+      doc.topic = item.topic;
+      doc.content = item.content;
+      doc.status = 'PUBLISHED';
+      doc.publishedAt = new Date();
+      doc.effectiveAt = new Date();
+      if (user?.id) doc.approvedById = new Types.ObjectId(user.id);
+    }
+    await doc.save();
+    await replaceChunks(doc);
+    seededDocs.push(doc);
+  }
+  return {
+    count: seededDocs.length,
+    documents: seededDocs.map((d) => ({ id: String(d._id), title: d.title, topic: d.topic })),
+  };
+}
