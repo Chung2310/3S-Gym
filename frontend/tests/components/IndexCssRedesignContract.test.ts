@@ -94,6 +94,11 @@ describe('index CSS redesign contract', () => {
     expect(css).toMatch(/@media \(max-width: 1023px\) and \(pointer: coarse\)\s*\{[^}]*\.studio-scheduled-item\s*\{\s*pointer-events:\s*none;/);
   });
 
+  it('keeps the timeline header in its panel flow instead of offsetting it over the schedule', () => {
+    expect(css).toMatch(/\.studio-timeline-header\s*\{[^}]*top:\s*0;/);
+    expect(css).not.toContain('.studio-timeline-header { top: var(--studio-sticky-header-offset); }');
+  });
+
   it('does not retain orphaned workout presentation selectors', () => {
     for (const selector of ['.studio-meta {', '.studio-days {', '.studio-grid {', '.studio-timeline-wrap', '.studio-exercise-card', '.exercise-video-section', '.exercise-video-card', '.exercise-video-links']) expect(css).not.toContain(selector);
   });

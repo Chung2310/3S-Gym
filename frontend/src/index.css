@@ -2076,7 +2076,6 @@ a {
 }
 
 @media (min-width: 1024px) {
-  .studio-timeline-header { top: var(--studio-sticky-header-offset); }
   .studio-sidebar { position: sticky; top: var(--studio-sticky-header-offset); max-height: calc(100dvh - var(--studio-sticky-header-offset) - 12px); overflow-y: auto; }
   .studio-selection-clear { display: none; }
 }
