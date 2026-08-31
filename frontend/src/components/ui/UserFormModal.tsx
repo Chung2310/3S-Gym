@@ -60,12 +60,21 @@ const emptyUserForm: UserFormState = {
 function formFromUser(user?: UserRecord | null, defaultRole: UserRole = 'PT'): UserFormState {
   if (!user) return { ...emptyUserForm, role: defaultRole };
   return {
-    ...emptyUserForm,
-    ...user,
+    avatarUrl: (user.avatarUrl as string) || '',
+    fullName: (user.fullName as string) || '',
     role: (user.role as UserRole) || defaultRole,
     dateOfBirth: user.dateOfBirth ? String(user.dateOfBirth).slice(0, 10) : '',
+    gender: (user.gender as string) || 'OTHER',
+    phone: (user.phone as string) || '',
+    email: (user.email as string) || '',
+    address: (user.address as string) || '',
+    specialization: (user.specialization as string) || '',
+    yearsOfExperience: user.yearsOfExperience != null ? user.yearsOfExperience : 0,
     certificates: Array.isArray(user.certificates) ? user.certificates.join('\n') : (user.certificates || ''),
+    bio: (user.bio as string) || '',
+    username: (user.username as string) || '',
     password: '',
+    status: (user.status as string) || 'ACTIVE',
   };
 }
 
@@ -118,13 +127,28 @@ export default function UserFormModal({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const userId = user?._id || user?.id;
-    const completePayload = {
-      ...form,
+    const payload: Record<string, any> = {
+      role: form.role,
+      fullName: form.fullName.trim(),
+      phone: form.phone.trim(),
+      email: form.email?.trim() || null,
+      avatarUrl: form.avatarUrl?.trim() || null,
+      dateOfBirth: form.dateOfBirth ? form.dateOfBirth : null,
+      gender: form.gender || 'OTHER',
+      address: form.address?.trim() || '',
+      specialization: form.specialization?.trim() || '',
       yearsOfExperience: Number(form.yearsOfExperience || 0),
-      certificates: form.certificates.split('\n').map((value) => value.trim()).filter(Boolean),
+      certificates: form.certificates ? form.certificates.split('\n').map((value) => value.trim()).filter(Boolean) : [],
+      bio: form.bio?.trim() || '',
+      status: form.status || 'ACTIVE',
     };
-    const { password, ...payloadWithoutPassword } = completePayload;
-    const payload = editing && !password ? payloadWithoutPassword : { ...payloadWithoutPassword, password };
+
+    if (form.username?.trim()) {
+      payload.username = form.username.trim();
+    }
+    if (form.password) {
+      payload.password = form.password;
+    }
 
     try {
       setLoading(true);

@@ -19,7 +19,7 @@ describe('SeoHead – JSON-LD Structured Data', () => {
 
   it('HealthClub schema contains required business info', () => {
     const schemas = buildSchemas();
-    const healthClub = schemas.find((s) => s['@type'] === 'HealthClub')!;
+    const healthClub = schemas.find((s) => s['@type'] === 'HealthClub') as any;
 
     expect(healthClub.name).toBe('3S Wellness Fitness & Yoga');
     expect(healthClub.telephone).toBe('+84889926222');
@@ -32,7 +32,7 @@ describe('SeoHead – JSON-LD Structured Data', () => {
 
   it('FAQPage schema contains at least 4 questions with accepted answers', () => {
     const schemas = buildSchemas();
-    const faqPage = schemas.find((s) => s['@type'] === 'FAQPage')!;
+    const faqPage = schemas.find((s) => s['@type'] === 'FAQPage') as any;
     const questions = faqPage.mainEntity as Array<Record<string, unknown>>;
 
     expect(questions.length).toBeGreaterThanOrEqual(4);

@@ -37,7 +37,7 @@ export default function WorkoutCheckIn({ onCompleted }: WorkoutCheckInProps) {
     <h2>Check-in buổi tập</h2>
     <div className="form-grid">
       <CustomerSelect
-        label="Mã khách hàng"
+        label="Học viên / Khách hàng"
         name="customerId"
         value={form.customerId}
         onChange={(selectedId) => change('customerId', selectedId)}

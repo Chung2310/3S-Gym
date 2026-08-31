@@ -367,7 +367,7 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
                   <Camera size={16} style={{ color: '#0284c7' }} />
                 </div>
                 <h2 id="photo-modal-title" style={{ fontSize: '1.15rem', fontWeight: 800, color: '#003b70', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  Ảnh Before / After: {customer.fullName}
+                  Ảnh Before / After: {customer?.fullName || 'Học viên'}
                 </h2>
               </div>
               <p className="photo-modal-subtitle" style={{ margin: '3px 0 0 36px', fontSize: '0.8rem', color: '#64748b' }}>

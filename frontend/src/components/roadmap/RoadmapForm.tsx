@@ -407,12 +407,12 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
       <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
         <div className="form-grid" style={{ marginBottom: '12px' }}>
           <CustomerSelect
-            label="Mã khách hàng"
+            label="Học viên / Khách hàng"
             name="customerId"
             value={customerId}
             onChange={setCustomerId}
             required
-            placeholder="Tìm theo tên học viên hoặc SĐT..."
+            placeholder="Tìm theo tên học viên, số điện thoại..."
           />
           <label className="field">
             <span style={{ fontWeight: 700 }}>Tên Lộ trình (Roadmap Title)</span>

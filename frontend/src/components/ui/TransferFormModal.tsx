@@ -22,7 +22,7 @@ export default function TransferFormModal({ open, transfer, onClose, onSaved }: 
       <div className="profile-form-grid">
         <div className="grid-full-width">
           <CustomerSelect
-            label="Mã khách hàng"
+            label="Học viên / Khách hàng"
             name="transferCustomerId"
             value={form.customerId}
             onChange={(selectedId) => setForm({ ...form, customerId: selectedId })}

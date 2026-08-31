@@ -17,7 +17,7 @@ it('giữ manual fallback khi AI lỗi', async () => {
       <NutritionPage />
     </ToastProvider>
   );
-  await user.type(screen.getByLabelText('Mã khách hàng dinh dưỡng'), 'customer-1');
+  await user.type(screen.getByLabelText('Học viên / Khách hàng'), 'customer-1');
   await user.click(screen.getByRole('button', { name: /2\. Thiết Kế Thực Đơn/i }));
   await user.click(screen.getByRole('button', { name: /Tạo Thực Đơn Mới/i }));
   await user.click(screen.getByRole('button', { name: /Sinh Thực Đơn AI/i }));

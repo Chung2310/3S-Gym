@@ -23,7 +23,7 @@ it('lọc và công bố giáo án khách hàng sau bước xác nhận', async 
     </ToastProvider>
   );
   expect((await screen.findAllByText('Plan A'))[0]).toBeVisible();
-  await user.type(screen.getByLabelText('Mã khách hàng'), 'c1');
+  await user.type(screen.getByLabelText('Học viên / Khách hàng'), 'c1');
   await user.selectOptions(screen.getByLabelText('Lọc theo trạng thái'), 'DRAFT');
   await user.click(screen.getByRole('button', { name: 'Lọc' }));
   expect(api.get).toHaveBeenLastCalledWith(expect.stringContaining('customerId=c1'));

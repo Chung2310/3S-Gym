@@ -63,14 +63,28 @@ export default function AiNutritionDraftModal({ open, customerId, customerName, 
     if (!draft) return;
     try {
       setLoading(true);
-      const result = await api.post('/api/nutrition-plans', {
-        customerId,
-        title: draft.title,
-        targetCalories: draft.targetCalories,
-        macros: draft.macros,
-        menu: draft.menu,
-      });
-      toast.success(result.message);
+      const planId = (draft as any)._id || (draft as any).id;
+      let result;
+      if (planId) {
+        result = await api.patch(`/api/nutrition-plans/${planId}`, {
+          customerId,
+          title: draft.title,
+          targetCalories: draft.targetCalories,
+          macros: draft.macros,
+          menu: draft.menu,
+          notes: draft.advice || undefined,
+        });
+      } else {
+        result = await api.post('/api/nutrition-plans', {
+          customerId,
+          title: draft.title,
+          targetCalories: draft.targetCalories,
+          macros: draft.macros,
+          menu: draft.menu,
+          notes: draft.advice || undefined,
+        });
+      }
+      toast.success(result.message || 'Đã lưu thực đơn thành công!');
       onSaved();
       onClose();
     } catch (error) {

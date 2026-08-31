@@ -27,6 +27,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
     visceralFatLevel: draft.visceralFatLevel?.toString() ?? '',
     inbodyScore: draft.inbodyScore?.toString() ?? '',
     bodyWater: draft.bodyWater?.toString() ?? '',
+    boneMineral: draft.boneMineral?.toString() ?? '',
     waistHipRatio: draft.waistHipRatio?.toString() ?? '',
   });
 
@@ -46,6 +47,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         visceralFatLevel: numberValue(form.visceralFatLevel),
         inbodyScore: numberValue(form.inbodyScore),
         bodyWater: numberValue(form.bodyWater),
+        boneMineral: numberValue(form.boneMineral),
         waistHipRatio: numberValue(form.waistHipRatio),
       };
       const result = await api.patch<InBodyOcrDraft>(`/api/inbody/${draft._id}/confirm-ocr`, payload);
@@ -107,9 +109,9 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>
+      <div className="inbody-form-row-2">
+        <label className="inbody-input-label">
+          <span>
             Ngày đo <strong style={{ color: '#e11d48' }}>*</strong>
           </span>
           <input
@@ -118,12 +120,11 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             value={form.measurementDate}
             onChange={(event) => change('measurementDate', event.target.value)}
             required
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
 
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>Cân nặng (kg) <strong style={{ color: '#e11d48' }}>*</strong></span>
+        <label className="inbody-input-label">
+          <span>Cân nặng (kg) <strong style={{ color: '#e11d48' }}>*</strong></span>
           <input
             aria-label="Cân nặng (kg)"
             type="number"
@@ -131,12 +132,13 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             placeholder="vd: 65.5"
             value={form.weight}
             onChange={(event) => change('weight', event.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
+      </div>
 
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>BMI</span>
+      <div className="inbody-form-row-3">
+        <label className="inbody-input-label">
+          <span>BMI</span>
           <input
             aria-label="BMI"
             type="number"
@@ -144,12 +146,11 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             placeholder="vd: 22.4"
             value={form.bmi}
             onChange={(event) => change('bmi', event.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
 
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>Tỷ lệ mỡ (%)</span>
+        <label className="inbody-input-label">
+          <span>Tỷ lệ mỡ (%)</span>
           <input
             aria-label="Tỷ lệ mỡ (%)"
             type="number"
@@ -157,12 +158,11 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             placeholder="vd: 18.5"
             value={form.bodyFatPercentage}
             onChange={(event) => change('bodyFatPercentage', event.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
 
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>Khối lượng cơ (kg SMM)</span>
+        <label className="inbody-input-label">
+          <span>Khối lượng cơ (kg SMM)</span>
           <input
             aria-label="Khối lượng cơ (kg)"
             type="number"
@@ -170,12 +170,13 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             placeholder="vd: 28.2"
             value={form.muscleMass}
             onChange={(event) => change('muscleMass', event.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
+      </div>
 
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>Mỡ nội tạng (Level)</span>
+      <div className="inbody-form-row-3">
+        <label className="inbody-input-label">
+          <span>Mỡ nội tạng (Level)</span>
           <input
             aria-label="Mỡ nội tạng"
             type="number"
@@ -183,36 +184,35 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             placeholder="vd: 4"
             value={form.visceralFatLevel}
             onChange={(event) => change('visceralFatLevel', event.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
 
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>BMR (kcal)</span>
+        <label className="inbody-input-label">
+          <span>BMR (kcal)</span>
           <input
             aria-label="BMR"
             type="number"
             placeholder="vd: 1540"
             value={form.bmr}
             onChange={(event) => change('bmr', event.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
 
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>Điểm InBody Score (/100)</span>
+        <label className="inbody-input-label">
+          <span>Điểm InBody (/100)</span>
           <input
             aria-label="Điểm InBody"
             type="number"
             placeholder="vd: 78"
             value={form.inbodyScore}
             onChange={(event) => change('inbodyScore', event.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
+      </div>
 
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#475569', fontSize: '0.84rem' }}>Lượng nước (L)</span>
+      <div className="inbody-form-row-3">
+        <label className="inbody-input-label">
+          <span>Lượng nước (L)</span>
           <input
             aria-label="Lượng nước"
             type="number"
@@ -220,12 +220,23 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             placeholder="vd: 41.5"
             value={form.bodyWater}
             onChange={(event) => change('bodyWater', event.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
 
-        <label className="field" style={{ margin: 0 }}>
-          <span style={{ fontWeight: 600, color: '#475569', fontSize: '0.84rem' }}>Tỷ lệ eo/mông (WHR)</span>
+        <label className="inbody-input-label">
+          <span>Khoáng xương (kg)</span>
+          <input
+            aria-label="Khoáng xương"
+            type="number"
+            step="0.01"
+            placeholder="vd: 3.1"
+            value={form.boneMineral}
+            onChange={(event) => change('boneMineral', event.target.value)}
+          />
+        </label>
+
+        <label className="inbody-input-label">
+          <span>Tỷ lệ eo/mông (WHR)</span>
           <input
             aria-label="Tỷ lệ eo/mông"
             type="number"
@@ -233,7 +244,6 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             placeholder="vd: 0.85"
             value={form.waistHipRatio}
             onChange={(event) => change('waistHipRatio', event.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
           />
         </label>
       </div>

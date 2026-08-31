@@ -1,4 +1,4 @@
-﻿// @vitest-environment jsdom
+// @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -9,7 +9,7 @@ import WorkoutCheckIn from '../../../src/components/workouts/WorkoutCheckIn';
 vi.mock('../../../src/services/api', () => ({ api: { post: vi.fn() } }));
 
 async function fillRequired(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByLabelText('Mã khách hàng'), '507f1f77bcf86cd799439011');
+  await user.type(screen.getByLabelText('Học viên / Khách hàng'), '507f1f77bcf86cd799439011');
   await user.type(screen.getByLabelText('Mã giáo án'), '507f191e810c19729de860ea');
   await user.type(screen.getByLabelText('Ngày tập'), '2026-09-02');
 }

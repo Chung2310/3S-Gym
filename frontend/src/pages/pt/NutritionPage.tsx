@@ -73,10 +73,10 @@ export default function NutritionPage() {
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 320px', maxWidth: '480px', minWidth: '260px' }}>
             <CustomerSelect
-              label="Mã khách hàng dinh dưỡng"
+              label="Học viên / Khách hàng"
               name="customerId"
               value={customerId}
-              ariaLabel="Mã khách hàng dinh dưỡng"
+              ariaLabel="Học viên / Khách hàng"
               onSelectCustomer={(c) => {
                 setSelectedCustomer(c);
               }}
@@ -84,7 +84,7 @@ export default function NutritionPage() {
                 setCustomerId(selectedId);
                 if (selectedId) void load(selectedId);
               }}
-              placeholder="Tìm theo tên học viên hoặc SĐT..."
+              placeholder="Tìm theo tên học viên, số điện thoại..."
             />
           </div>
 

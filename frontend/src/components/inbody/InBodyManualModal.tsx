@@ -42,6 +42,7 @@ export default function InBodyManualModal({
 
   // Form State
   const [customerId, setCustomerId] = useState(defaultCustomerId);
+  const [customerObj, setCustomerObj] = useState<any>(null);
   const [measurementDate, setMeasurementDate] = useState(new Date().toISOString().slice(0, 10));
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('170');
@@ -80,6 +81,11 @@ export default function InBodyManualModal({
         ? editingItem.customerId._id
         : String(editingItem.customerId || '');
       setCustomerId(cId);
+      if (typeof editingItem.customerId === 'object' && editingItem.customerId !== null) {
+        setCustomerObj(editingItem.customerId);
+      } else {
+        setCustomerObj(null);
+      }
       setMeasurementDate(editingItem.measurementDate ? editingItem.measurementDate.slice(0, 10) : new Date().toISOString().slice(0, 10));
       setWeight(editingItem.weight ? String(editingItem.weight) : '');
       setBodyFatPercentage(editingItem.bodyFatPercentage != null ? String(editingItem.bodyFatPercentage) : '');
@@ -245,19 +251,22 @@ export default function InBodyManualModal({
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', padding: '4px 0 16px' }}>
         {/* 1. Customer Select & Date */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 180px', gap: '14px', alignItems: 'start' }}>
+        <div className="inbody-modal-top-row">
           <CustomerSelect
             label="Học viên / Khách hàng"
             name="manualCustomerId"
             ariaLabel="Chọn học viên"
-            value={customerId}
-            onChange={(selectedId) => setCustomerId(selectedId)}
+            value={customerObj || customerId}
+            onChange={(selectedId) => {
+              setCustomerId(selectedId);
+              setCustomerObj(null);
+            }}
             required
             placeholder="Tìm và chọn học viên..."
           />
 
-          <label className="field" style={{ margin: 0 }}>
-            <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.86rem' }}>
+          <label className="inbody-input-label">
+            <span>
               Ngày đo <strong style={{ color: '#e11d48' }}>*</strong>
             </span>
             <input
@@ -266,21 +275,20 @@ export default function InBodyManualModal({
               value={measurementDate}
               onChange={(e) => setMeasurementDate(e.target.value)}
               required
-              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
             />
           </label>
         </div>
 
-        {/* 2. Primary Metrics: Weight, Height (for BMI auto-calc), Body Fat %, Muscle Mass */}
+        {/* 2. Primary Metrics: Weight, Height, Body Fat %, Muscle Mass */}
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#003b70', fontWeight: 700, fontSize: '0.92rem' }}>
             <Scale size={18} color="#0284c7" /> Chỉ Số Thành Phần Chính
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+          <div className="inbody-form-row-4">
             {/* Cân nặng */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>
+            <label className="inbody-input-label">
+              <span>
                 Cân nặng (kg) <strong style={{ color: '#e11d48' }}>*</strong>
               </span>
               <input
@@ -292,13 +300,12 @@ export default function InBodyManualModal({
                 placeholder="vd: 68.5"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
               />
             </label>
 
-            {/* Chiều cao (để tính BMI) */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#475569', fontSize: '0.84rem' }}>
+            {/* Chiều cao */}
+            <label className="inbody-input-label">
+              <span>
                 Chiều cao (cm)
               </span>
               <input
@@ -309,15 +316,12 @@ export default function InBodyManualModal({
                 placeholder="vd: 172"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
               />
             </label>
 
             {/* Tỷ lệ mỡ % */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>
-                Tỷ lệ mỡ (% Body Fat)
-              </span>
+            <label className="inbody-input-label">
+              <span>Tỷ lệ mỡ (%)</span>
               <input
                 type="number"
                 step="0.1"
@@ -326,20 +330,12 @@ export default function InBodyManualModal({
                 placeholder="vd: 18.5"
                 value={bodyFatPercentage}
                 onChange={(e) => setBodyFatPercentage(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
               />
-              {fatCls && (
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: fatCls.color, marginTop: '2px', display: 'block' }}>
-                  {fatCls.label}
-                </span>
-              )}
             </label>
 
             {/* Khối lượng cơ xương */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>
-                Khối lượng cơ (kg SMM)
-              </span>
+            <label className="inbody-input-label">
+              <span>Khối lượng cơ (kg)</span>
               <input
                 type="number"
                 step="0.1"
@@ -348,17 +344,23 @@ export default function InBodyManualModal({
                 placeholder="vd: 31.2"
                 value={muscleMass}
                 onChange={(e) => setMuscleMass(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
               />
             </label>
           </div>
 
           {/* Quick Auto Calculation Feedback Strip */}
-          {calculatedBmi != null && (
-            <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', background: '#ffffff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.82rem' }}>
-              <span>
-                🎯 <strong>BMI tự tính:</strong> <span style={{ fontWeight: 700, color: bmiCls?.color }}>{calculatedBmi} ({bmiCls?.label})</span>
-              </span>
+          {(calculatedBmi != null || bodyFatPercentage || muscleMass) && (
+            <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px 14px', alignItems: 'center', background: '#ffffff', padding: '9px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.82rem' }}>
+              {calculatedBmi != null && (
+                <span>
+                  🎯 <strong>BMI:</strong> <span style={{ fontWeight: 700, color: bmiCls?.color }}>{calculatedBmi} ({bmiCls?.label})</span>
+                </span>
+              )}
+              {bodyFatPercentage && fatCls && (
+                <span>
+                  • <strong>Tỷ lệ mỡ:</strong> <span style={{ fontWeight: 700, color: fatCls.color }}>{bodyFatPercentage}% ({fatCls.label})</span>
+                </span>
+              )}
               {bodyFatMass && (
                 <span>
                   • <strong>Khối lượng mỡ:</strong> <strong>{bodyFatMass} kg</strong>
@@ -379,12 +381,10 @@ export default function InBodyManualModal({
             <Activity size={18} color="#0284c7" /> Chỉ Số Trao Đổi Chất & Sức Khỏe
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+          <div className="inbody-form-row-3">
             {/* Mỡ nội tạng */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>
-                Mỡ nội tạng (Level 1-20)
-              </span>
+            <label className="inbody-input-label">
+              <span>Mỡ nội tạng (1-20)</span>
               <input
                 type="number"
                 step="1"
@@ -393,20 +393,12 @@ export default function InBodyManualModal({
                 placeholder="vd: 4"
                 value={visceralFatLevel}
                 onChange={(e) => setVisceralFatLevel(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
               />
-              {visCls && (
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: visCls.color, marginTop: '2px', display: 'block' }}>
-                  {visCls.label}
-                </span>
-              )}
             </label>
 
             {/* BMR */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>
-                BMR (kcal/ngày)
-              </span>
+            <label className="inbody-input-label">
+              <span>BMR (kcal/ngày)</span>
               <input
                 type="number"
                 step="1"
@@ -415,15 +407,12 @@ export default function InBodyManualModal({
                 placeholder="vd: 1550"
                 value={bmr}
                 onChange={(e) => setBmr(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
               />
             </label>
 
             {/* Điểm InBody */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.84rem' }}>
-                Điểm InBody Score (/100)
-              </span>
+            <label className="inbody-input-label">
+              <span>Điểm InBody (/100)</span>
               <input
                 type="number"
                 step="1"
@@ -432,15 +421,12 @@ export default function InBodyManualModal({
                 placeholder="vd: 78"
                 value={inbodyScore}
                 onChange={(e) => setInbodyScore(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
               />
             </label>
 
             {/* Tổng lượng nước */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#475569', fontSize: '0.84rem' }}>
-                Nước cơ thể (L TBW)
-              </span>
+            <label className="inbody-input-label">
+              <span>Nước cơ thể (L TBW)</span>
               <input
                 type="number"
                 step="0.1"
@@ -449,15 +435,26 @@ export default function InBodyManualModal({
                 placeholder="vd: 42.5"
                 value={bodyWater}
                 onChange={(e) => setBodyWater(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+              />
+            </label>
+
+            {/* Khoáng chất xương */}
+            <label className="inbody-input-label">
+              <span>Khoáng xương (kg BMC)</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.5"
+                max="10"
+                placeholder="vd: 3.12"
+                value={boneMineral}
+                onChange={(e) => setBoneMineral(e.target.value)}
               />
             </label>
 
             {/* Tỷ lệ eo / mông (WHR) */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#475569', fontSize: '0.84rem' }}>
-                Tỷ lệ eo/mông (WHR)
-              </span>
+            <label className="inbody-input-label">
+              <span>Tỷ lệ eo/mông (WHR)</span>
               <input
                 type="number"
                 step="0.01"
@@ -466,25 +463,25 @@ export default function InBodyManualModal({
                 placeholder="vd: 0.85"
                 value={waistHipRatio}
                 onChange={(e) => setWaistHipRatio(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
-              />
-            </label>
-
-            {/* Khối lượng mỡ (kg) */}
-            <label className="field" style={{ margin: 0 }}>
-              <span style={{ fontWeight: 600, color: '#475569', fontSize: '0.84rem' }}>
-                Khối lượng mỡ (kg)
-              </span>
-              <input
-                type="number"
-                step="0.1"
-                placeholder="vd: 12.8"
-                value={bodyFatMass}
-                onChange={(e) => setBodyFatMass(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}
               />
             </label>
           </div>
+
+          {/* Secondary Metrics Feedback Strip */}
+          {(visceralFatLevel || inbodyScore) && (
+            <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px 14px', alignItems: 'center', background: '#ffffff', padding: '9px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.82rem' }}>
+              {visceralFatLevel && visCls && (
+                <span>
+                  🫀 <strong>Mỡ nội tạng:</strong> <span style={{ fontWeight: 700, color: visCls.color }}>Level {visceralFatLevel} ({visCls.label})</span>
+                </span>
+              )}
+              {inbodyScore && (
+                <span>
+                  • <strong>Điểm InBody:</strong> <strong style={{ color: '#0284c7' }}>{inbodyScore}/100</strong>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 4. Segmental Muscle & Fat Collapsible Section */}
@@ -518,7 +515,7 @@ export default function InBodyManualModal({
                 <strong style={{ fontSize: '0.84rem', color: '#15803d', display: 'block', marginBottom: '8px' }}>
                   💪 Khối lượng cơ từng phần (kg):
                 </strong>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+                <div className="inbody-form-row-5">
                   {[
                     { key: 'rightArm', label: 'Tay Phải' },
                     { key: 'leftArm', label: 'Tay Trái' },
@@ -547,7 +544,7 @@ export default function InBodyManualModal({
                 <strong style={{ fontSize: '0.84rem', color: '#b45309', display: 'block', marginBottom: '8px' }}>
                   🧀 Khối lượng mỡ từng phần (kg):
                 </strong>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+                <div className="inbody-form-row-5">
                   {[
                     { key: 'rightArm', label: 'Tay Phải' },
                     { key: 'leftArm', label: 'Tay Trái' },
