@@ -88,6 +88,12 @@ describe('index CSS redesign contract', () => {
     for (const selector of ['.studio-hour-grid', '.studio-scheduled-item', '.studio-sidebar', '.studio-inspector-duration', '.studio-inspector-danger']) expect(css).toContain(selector);
   });
 
+  it('routes coarse-pointer timeline interaction through nonoverlapping 44px actions', () => {
+    expect(css).toContain('@media (max-width: 1023px) and (pointer: coarse)');
+    expect(css).toMatch(/\.studio-touch-schedule-action\s*\{[^}]*min-height:\s*44px;/);
+    expect(css).toMatch(/@media \(max-width: 1023px\) and \(pointer: coarse\)\s*\{[^}]*\.studio-scheduled-item\s*\{\s*pointer-events:\s*none;/);
+  });
+
   it('does not retain orphaned workout presentation selectors', () => {
     for (const selector of ['.studio-meta {', '.studio-days {', '.studio-grid {', '.studio-timeline-wrap', '.studio-exercise-card', '.exercise-video-section', '.exercise-video-card', '.exercise-video-links']) expect(css).not.toContain(selector);
   });

@@ -2201,6 +2201,10 @@ a {
   .studio-touch-schedule-action span { color: #607689; font-size: .66rem; font-variant-numeric: tabular-nums; }
 }
 
+@media (max-width: 1023px) and (pointer: coarse) {
+  .studio-scheduled-item { pointer-events: none; }
+}
+
 @media (min-width: 1024px) {
   .studio-timeline-header { top: var(--studio-sticky-header-offset); }
   .studio-sidebar { position: sticky; top: var(--studio-sticky-header-offset); max-height: calc(100dvh - var(--studio-sticky-header-offset) - 12px); overflow-y: auto; }
