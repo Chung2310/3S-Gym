@@ -39,7 +39,7 @@ export interface StudioTemplate extends WorkoutTemplate {
   technicalNotes?: string;
   durationDays?: number;
   scheduledExercises?: Omit<ScheduledExercise, 'id'>[];
-  unscheduledExercises?: Omit<ScheduledExercise, 'id' | 'dayNumber' | 'startMinute'>[];
+  unscheduledExercises?: Omit<ScheduledExercise, 'id' | 'weekNumber' | 'dayNumber' | 'startMinute'>[];
 }
 
 export interface MovePreview {
