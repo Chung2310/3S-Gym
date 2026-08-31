@@ -375,7 +375,7 @@ export interface ProgressPhotoLightboxProps {
 }
 ```
 
-- [ ] **Step 1: Write failing customer workspace tests**
+- [x] **Step 1: Write failing customer workspace tests**
 
 Use a compact local `CustomerJourneyDto` fixture with two reports in reverse chronological input order, one photo, one achievement, and complete analytics. Assert snapshot, newest report first, each filter, each empty state, no PT mutation action, dialog semantics, Escape close, and focus return.
 
@@ -390,7 +390,7 @@ await user.keyboard('{Escape}');
 expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 ```
 
-- [ ] **Step 2: Run customer tests and confirm RED**
+- [x] **Step 2: Run customer tests and confirm RED**
 
 ```powershell
 npx vitest run frontend/tests/components/customer-portal/CustomerReportsPhotos.test.tsx frontend/tests/components/customer-portal/CustomerPortalComponents.test.tsx
@@ -398,7 +398,7 @@ npx vitest run frontend/tests/components/customer-portal/CustomerReportsPhotos.t
 
 Expected: FAIL because the focused modules and shared snapshot composition are absent.
 
-- [ ] **Step 3: Implement read-only customer sections**
+- [x] **Step 3: Implement read-only customer sections**
 
 Sort reports by `periodEnd` descending without mutating props. Render the newest report as the featured section and the remaining reports in a responsive grid. Render semantic buttons around gallery images, role-neutral achievements, and specific empty states. Use `toLocaleDateString('vi-VN')` and `toLocaleString('vi-VN')`.
 
@@ -409,7 +409,7 @@ const orderedReports = [...reports].sort(
 const [latestReport, ...previousReports] = orderedReports;
 ```
 
-- [ ] **Step 4: Implement accessible lightbox**
+- [x] **Step 4: Implement accessible lightbox**
 
 Use a native dialog-like fixed overlay with `role="dialog"`, `aria-modal="true"`, `aria-label={imageAlt}`, close button, Escape listener, body scroll restoration, initial close-button focus, and focus return managed by `CustomerReportsPhotos` through the saved trigger ref. Stop overlay propagation inside the content.
 
@@ -430,11 +430,11 @@ useEffect(() => {
 }, [open, onClose]);
 ```
 
-- [ ] **Step 5: Compose `CustomerReportsPhotos`**
+- [x] **Step 5: Compose `CustomerReportsPhotos`**
 
 Render `ProgressSnapshot` first, then the latest report, then the filter tablist and filtered sections. Keep filter state local. Do not render create/edit/publish controls. Save the clicked photo trigger and restore focus in the close callback.
 
-- [ ] **Step 6: Verify no inline style remains in customer progress files**
+- [x] **Step 6: Verify no inline style remains in customer progress files**
 
 ```powershell
 rg -n "style=" frontend/src/components/customer-portal/CustomerReportsPhotos.tsx frontend/src/components/customer-portal/CustomerProgressReportSection.tsx frontend/src/components/customer-portal/CustomerProgressPhotoGallery.tsx frontend/src/components/customer-portal/CustomerProgressAchievements.tsx frontend/src/components/customer-portal/ProgressPhotoLightbox.tsx
@@ -442,13 +442,13 @@ rg -n "style=" frontend/src/components/customer-portal/CustomerReportsPhotos.tsx
 
 Expected: no matches.
 
-- [ ] **Step 7: Run customer tests and confirm GREEN**
+- [x] **Step 7: Run customer tests and confirm GREEN**
 
 Run the command from Step 2.
 
 Expected: all focused customer progress tests pass.
 
-- [ ] **Step 8: Commit customer progress redesign**
+- [x] **Step 8: Commit customer progress redesign**
 
 ```powershell
 git add frontend/src/components/customer-portal/CustomerReportsPhotos.tsx frontend/src/components/customer-portal/CustomerProgressReportSection.tsx frontend/src/components/customer-portal/CustomerProgressPhotoGallery.tsx frontend/src/components/customer-portal/CustomerProgressAchievements.tsx frontend/src/components/customer-portal/ProgressPhotoLightbox.tsx frontend/tests/components/customer-portal/CustomerReportsPhotos.test.tsx frontend/tests/components/customer-portal/CustomerPortalComponents.test.tsx
