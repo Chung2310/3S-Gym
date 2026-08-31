@@ -4,13 +4,227 @@ export interface ValidationIssue { field: string; message: string }
 
 const MESSAGE_MARKER = '__JOI_DEFAULT__:';
 
+export const FIELD_LABELS: Record<string, string> = {
+  // Common & Generic
+  id: 'mã định danh',
+  _id: 'mã định danh',
+  page: 'số trang',
+  limit: 'số lượng mỗi trang',
+  search: 'từ khóa tìm kiếm',
+  keyword: 'từ khóa tìm kiếm',
+  status: 'trạng thái',
+  createdAt: 'ngày tạo',
+  updatedAt: 'ngày cập nhật',
+  from: 'từ ngày',
+  to: 'đến ngày',
+  version: 'phiên bản',
+
+  // Auth & Account
+  username: 'tên đăng nhập',
+  password: 'mật khẩu',
+  fullName: 'họ và tên',
+  email: 'email',
+  phone: 'số điện thoại',
+  role: 'vai trò',
+  roles: 'danh sách vai trò',
+  avatarUrl: 'ảnh đại diện',
+  dateOfBirth: 'ngày sinh',
+  gender: 'giới tính',
+  yearsOfExperience: 'số năm kinh nghiệm',
+  certificates: 'chứng chỉ',
+  bio: 'tiểu sử / giới thiệu',
+  address: 'địa chỉ',
+  specialization: 'chuyên môn',
+
+  // Customers & Transfers
+  customerId: 'mã khách hàng',
+  toPtId: 'mã PT tiếp nhận',
+  fromPtId: 'mã PT chuyển giao',
+  ownerPtId: 'mã PT phụ trách',
+  ptId: 'mã PT',
+  reason: 'lý do',
+  source: 'nguồn',
+  notes: 'ghi chú',
+  consultationNotes: 'ghi chú tư vấn',
+
+  // Exercises & Tracking
+  exerciseId: 'mã bài tập',
+  name: 'tên',
+  muscleGroup: 'nhóm cơ',
+  level: 'cấp độ',
+  scope: 'phạm vi',
+  equipment: 'thiết bị',
+  description: 'mô tả',
+  videoUrl: 'đường dẫn video',
+  videos: 'danh sách video',
+  technique: 'kỹ thuật',
+  commonMistakes: 'lỗi thường gặp',
+  contraindications: 'chống chỉ định',
+  variants: 'biến thể',
+  defaultTrackingType: 'cách ghi nhận mặc định',
+  trackingType: 'cách ghi nhận',
+  prescription: 'thông số chỉ định',
+  sets: 'số hiệp (sets)',
+  reps: 'số lần (reps)',
+  weight: 'mức tạ',
+  rpe: 'chỉ số RPE',
+  rir: 'chỉ số RIR',
+  tempo: 'nhịp độ (tempo)',
+  restSeconds: 'thời gian nghỉ (giây)',
+  addedWeight: 'tạ thêm',
+  targetWeight: 'mức tạ mục tiêu',
+  targetRpe: 'RPE mục tiêu',
+  targetRir: 'RIR mục tiêu',
+  targetDiscomfort: 'mức độ khó chịu mục tiêu',
+  rounds: 'số vòng (rounds)',
+  workSeconds: 'thời gian tập (giây)',
+  distanceMetersPerRound: 'khoảng cách mỗi vòng (m)',
+  repsPerRound: 'số lần mỗi vòng',
+  distanceKm: 'quãng đường (km)',
+  targetPaceSecondsPerKm: 'pace mục tiêu',
+  targetHeartRate: 'nhịp tim mục tiêu',
+  inclinePercent: 'độ dốc (%)',
+  side: 'bên thực hiện',
+  discomfort: 'mức độ căng/khó chịu',
+
+  // Workout Plans & Sessions
+  title: 'tiêu đề',
+  goal: 'mục tiêu',
+  durationDays: 'số ngày của giáo án',
+  muscleGroups: 'danh sách nhóm cơ',
+  defaultSets: 'số hiệp mặc định',
+  defaultReps: 'số lần mặc định',
+  defaultWeight: 'mức tạ mặc định',
+  defaultTempo: 'nhịp độ mặc định',
+  technicalNotes: 'ghi chú kỹ thuật',
+  scheduledExercises: 'lịch bài tập',
+  unscheduledExercises: 'bài tập chưa xếp lịch',
+  generatedExercises: 'bài tập AI gợi ý',
+  sessions: 'danh sách buổi tập',
+  sessionIndex: 'thứ tự buổi tập',
+  dayNumber: 'ngày tập',
+  weekNumber: 'tuần tập',
+  startMinute: 'thời gian bắt đầu',
+  durationMinutes: 'thời lượng (phút)',
+  templateId: 'mã giáo án mẫu',
+  planId: 'mã giáo án',
+  workoutPlanId: 'mã giáo án',
+  workoutPlanVersion: 'phiên bản giáo án',
+  performedAt: 'thời gian thực hiện',
+  attendance: 'trạng thái điểm danh',
+  exerciseResults: 'kết quả bài tập',
+  exerciseLogs: 'nhật ký bài tập',
+  absenceReason: 'lý do vắng mặt',
+  feeling: 'cảm nhận sau buổi tập',
+  idempotencyKey: 'mã giao dịch (idempotencyKey)',
+
+  // Goals & Roadmaps
+  type: 'loại',
+  deadline: 'hạn hoàn thành',
+  targetValue: 'giá trị mục tiêu',
+  targetUnit: 'đơn vị mục tiêu',
+  sessionsPerWeek: 'số buổi mỗi tuần',
+  cardioNotes: 'ghi chú cardio',
+  evaluationNotes: 'ghi chú đánh giá',
+  baseline: 'chỉ số ban đầu',
+  strategy: 'chiến lược',
+  phases: 'các giai đoạn lộ trình',
+  order: 'thứ tự',
+  durationWeeks: 'thời gian (tuần)',
+  goals: 'mục tiêu',
+  weeks: 'danh sách tuần',
+  sessionTargets: 'mục tiêu buổi tập',
+
+  // InBody & Health Metrics
+  measurementDate: 'ngày đo',
+  measuredAt: 'ngày đo',
+  bmi: 'chỉ số BMI',
+  bodyFatPercentage: 'tỷ lệ mỡ (%)',
+  bodyFatMass: 'khối lượng mỡ (kg)',
+  muscleMass: 'khối lượng cơ (kg)',
+  bmr: 'chỉ số BMR',
+  tdee: 'chỉ số TDEE',
+  visceralFatLevel: 'mỡ nội tạng',
+  inbodyScore: 'điểm InBody',
+  bodyWater: 'lượng nước cơ thể',
+  boneMineral: 'khoáng chất xương',
+  waistHipRatio: 'tỷ lệ eo/hông',
+  segmentalMuscle: 'phân bố cơ theo phân đoạn',
+  segmentalFat: 'phân bố mỡ theo phân đoạn',
+  strengths: 'điểm mạnh',
+  priorities: 'ưu tiên cải thiện',
+  recommendation: 'đề xuất',
+  targetCalories: 'calo mục tiêu',
+  macros: 'đa lượng dinh dưỡng (macros)',
+  protein: 'chất đạm (protein)',
+  carbs: 'tinh bột (carbs)',
+  fat: 'chất béo (fat)',
+  menu: 'thực đơn',
+  chest: 'vòng ngực',
+  waist: 'vòng eo',
+  hips: 'vòng mông',
+  arm: 'vòng tay',
+  thigh: 'vòng đùi',
+  calf: 'vòng bắp chân',
+  measurements: 'số đo các vòng',
+
+  // Credits & Billing
+  gateway: 'cổng thanh toán',
+  paymentGateway: 'cổng thanh toán',
+  packageId: 'gói credit',
+  customAmountVnd: 'số tiền nạp',
+  amountVnd: 'số tiền VNĐ',
+  grantCredits: 'số credit',
+  bonusCredits: 'credit thưởng',
+  currency: 'loại tiền tệ',
+  markupBasisPoints: 'tỷ lệ điều chỉnh (markup)',
+  fallbackCredits: 'credit dự phòng',
+  minBillableCredits: 'credit tối thiểu',
+  maxReservationCredits: 'credit tạm giữ tối đa',
+  enabled: 'trạng thái kích hoạt',
+  usdToVnd: 'tỷ giá USD/VNĐ',
+  vndPerCredit: 'giá trị VNĐ trên 1 credit',
+  taskType: 'loại tác vụ AI',
+  orderId: 'mã đơn hàng',
+
+  // Knowledge & AI
+  category: 'danh mục',
+  tags: 'thẻ tags',
+  content: 'nội dung',
+  summary: 'tóm tắt',
+  question: 'câu hỏi',
+  answer: 'câu trả lời',
+  conversationId: 'mã cuộc hội thoại',
+  message: 'tin nhắn',
+  prompt: 'lời nhắc (prompt)',
+};
+
+export function formatFieldLabel(path: string): string {
+  if (FIELD_LABELS[path]) return FIELD_LABELS[path];
+  const parts = path.split('.');
+  const lastPart = parts[parts.length - 1];
+  const translatedLast = FIELD_LABELS[lastPart] || lastPart;
+  if (parts.length > 1) {
+    const parent = parts[parts.length - 2];
+    if (!isNaN(Number(parent))) {
+      const grandParent = parts[parts.length - 3] || '';
+      const index = Number(parent) + 1;
+      const grandParentLabel = FIELD_LABELS[grandParent] || grandParent;
+      return `${translatedLast} (${grandParentLabel ? grandParentLabel + ' ' : ''}thứ ${index})`;
+    }
+    const parentLabel = FIELD_LABELS[parent] || parent;
+    return `${translatedLast} của ${parentLabel}`;
+  }
+  return translatedLast;
+}
+
 type Translator = (field: string, context: Record<string, unknown>) => string;
 
 const translators: Record<string, Translator> = {
   'any.required': (field) => `Vui lòng nhập ${field}.`,
   'any.only': (field) => `${field} phải là một trong các giá trị được cho phép.`,
   'any.invalid': (field) => `Giá trị của ${field} không hợp lệ.`,
-  'any.unknown': (field) => `Trường ${field} không được phép.`,
+  'any.unknown': (field) => `Trường "${field}" không được phép.`,
   'alternatives.match': (field) => `Giá trị của ${field} không hợp lệ.`,
   'alternatives.types': (field) => `Kiểu dữ liệu của ${field} không hợp lệ.`,
   'array.base': (field) => `${field} phải là một danh sách.`,
@@ -18,7 +232,7 @@ const translators: Record<string, Translator> = {
   'array.max': (field, context) => `${field} không được có quá ${context.limit} phần tử.`,
   'array.min': (field, context) => `${field} phải có ít nhất ${context.limit} phần tử.`,
   'array.unique': (field) => `${field} không được chứa giá trị trùng lặp.`,
-  'boolean.base': (field) => `${field} phải là giá trị đúng hoặc sai.`,
+  'boolean.base': (field) => `${field} phải là giá trị đúng hoặc sai (true/false).`,
   'date.base': (field) => `${field} phải là ngày hợp lệ.`,
   'date.format': (field) => `${field} không đúng định dạng ngày.`,
   'date.greater': (field) => `${field} phải sau mốc thời gian được yêu cầu.`,
@@ -35,29 +249,42 @@ const translators: Record<string, Translator> = {
   'object.base': (field) => `${field} phải là một đối tượng.`,
   'object.length': (field, context) => `${field} phải có đúng ${context.limit} trường.`,
   'object.max': (field, context) => `${field} không được có quá ${context.limit} trường.`,
-  'object.min': (field, context) => `${field} phải có ít nhất ${context.limit} trường.`,
-  'object.unknown': (field) => `Trường ${field} không được phép.`,
+  'object.min': () => 'Vui lòng cung cấp ít nhất một trường cần cập nhật.',
+  'object.unknown': (field) => `Trường "${field}" không được phép.`,
   'string.alphanum': (field) => `${field} chỉ được chứa chữ và số.`,
   'string.base': (field) => `${field} phải là chuỗi ký tự.`,
-  'string.email': (field) => `${field} không đúng định dạng.`,
+  'string.email': () => 'Email không đúng định dạng.',
   'string.empty': (field) => `Vui lòng nhập ${field}.`,
   'string.length': (field, context) => `${field} phải có đúng ${context.limit} ký tự.`,
   'string.max': (field, context) => `${field} không được vượt quá ${context.limit} ký tự.`,
   'string.min': (field, context) => `${field} phải có ít nhất ${context.limit} ký tự.`,
   'string.pattern.base': (field) => `${field} không đúng định dạng.`,
-  'string.uri': (field) => `${field} phải là URL hợp lệ.`,
+  'string.uri': (field) => `${field} phải là đường dẫn URL hợp lệ.`,
+  'string.objectId': (field) => `${field} không phải mã ObjectId hợp lệ.`,
 };
 
-const joiMessages = Object.fromEntries(
+export const joiMessages = Object.fromEntries(
   Object.keys(translators).map((type) => [type, `${MESSAGE_MARKER}${type}`]),
 );
 
-function validationIssue(detail: Joi.ValidationErrorItem, fallbackField: string): ValidationIssue {
-  const field = detail.path.length > 0 ? detail.path.join('.') : fallbackField;
+export function validationIssue(detail: Joi.ValidationErrorItem, fallbackField: string): ValidationIssue {
+  const rawField = detail.path.length > 0 ? detail.path.join('.') : fallbackField;
+  const label = formatFieldLabel(rawField);
+
+  if (detail.context?.custom && typeof detail.context.custom === 'string') {
+    return { field: rawField, message: detail.context.custom };
+  }
+
   const translator = translators[detail.type];
-  if (!translator) return { field, message: `Giá trị của ${field} không hợp lệ.` };
-  if (!detail.message.startsWith(MESSAGE_MARKER)) return { field, message: detail.message };
-  return { field, message: translator(field, detail.context || {}) };
+  if (translator) {
+    return { field: rawField, message: translator(label, detail.context || {}) };
+  }
+
+  if (detail.message && !detail.message.startsWith(MESSAGE_MARKER)) {
+    const cleanedMessage = detail.message.replace(new RegExp(`\\b${rawField}\\b`, 'g'), label);
+    return { field: rawField, message: cleanedMessage };
+  }
+
+  return { field: rawField, message: `Giá trị của ${label} không hợp lệ.` };
 }
 
-export { joiMessages, validationIssue };
