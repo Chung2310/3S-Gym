@@ -22,6 +22,12 @@ const workoutFlowSources = [
   'frontend/src/components/workouts/CustomerWorkoutPlanPanel.tsx',
 ].map((path) => readFileSync(path, 'utf8')).join('\n');
 const workoutStudioPage = readFileSync('frontend/src/pages/pt/WorkoutStudioPage.tsx', 'utf8');
+const workoutStudioControlSources = [
+  'frontend/src/components/workout-studio/StudioHeader.tsx',
+  'frontend/src/components/workout-studio/TemplateMetadataForm.tsx',
+  'frontend/src/components/workout-studio/StudioDayNavigator.tsx',
+  'frontend/src/components/workout-studio/ExercisePalette.tsx',
+].map((path) => readFileSync(path, 'utf8')).join('\n');
 
 describe('index CSS redesign contract', () => {
   it('defines the shared module foundation and approved breakpoints', () => {
@@ -60,5 +66,11 @@ describe('index CSS redesign contract', () => {
     expect(workoutStudioPage).not.toMatch(/style=\{\{/);
     expect(workoutStudioPage).not.toMatch(/(?:sm:|md:|lg:|xl:|min-\[|!gap|!grid|rounded-|bg-|text-slate-|border-slate-|shadow-\[)/);
     for (const selector of ['.studio-view-tabs', '.studio-workspace', '.studio-library-region', '.studio-schedule-region', '.studio-inspector-region']) expect(css).toContain(selector);
+  });
+
+  it('keeps Studio controls in semantic index CSS classes', () => {
+    expect(workoutStudioControlSources).not.toMatch(/style=\{\{/);
+    expect(workoutStudioControlSources).not.toMatch(/(?:sm:|md:|lg:|xl:|min-\[|!gap|!grid|rounded-|bg-|text-slate-|border-slate-|shadow-\[|["'`\s](?:flex|grid|gap-\d+|p-\d+|px-\d+|py-\d+)(?=["'`\s]))/);
+    for (const selector of ['.studio-header', '.studio-save-state', '.studio-metadata', '.studio-period-navigation', '.studio-palette', '.studio-exercise-option']) expect(css).toContain(selector);
   });
 });

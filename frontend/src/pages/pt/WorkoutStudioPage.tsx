@@ -99,8 +99,10 @@ export default function WorkoutStudioPage() {
 
   return <section aria-label="Workout Studio" className={`module-page workout-studio ${inspectorOpen ? 'inspector-open' : ''}`}>
     <StudioHeader contextLabel={customerMode ? `Giáo án của ${customerName}` : undefined} readOnly={readOnly} title={title} goal={goal} level={level} durationDays={durationDays} dirty={dirty} saving={saving} onBack={() => { const destination = customerMode ? '/pt/customers' : '/pt/my-workout-plans'; if (dirty) setPendingConfirmation({ kind: 'back', destination }); else navigate(destination); }} onTitleChange={(value) => { setTitle(value); setDirty(true); }} onGoalChange={(value) => { setGoal(value); setDirty(true); }} onLevelChange={(value) => { setLevel(value); setDirty(true); }} onDurationDaysChange={changeDurationDays} onSave={() => void save()} />
-    <nav className="studio-days" aria-label="Tuần trong giáo án"><div>{Array.from({ length: Math.max(1, ...items.map((item) => item.weekNumber || 1)) }, (_, index) => index + 1).map((week) => <button key={week} type="button" className={week === activeWeek ? 'active' : ''} onClick={() => setActiveWeek(week)}>Tuần {week}</button>)}</div></nav>
-    <StudioDayNavigator days={dayButtons} activeDay={activeDay} totalMinutes={totalMinutes} onChange={setActiveDay} />
+    <nav className="studio-period-navigation" aria-label="Thời gian giáo án">
+      <div className="studio-week-list">{Array.from({ length: Math.max(1, ...items.map((item) => item.weekNumber || 1)) }, (_, index) => index + 1).map((week) => <button key={week} type="button" aria-current={week === activeWeek} onClick={() => setActiveWeek(week)}>Tuần {week}</button>)}</div>
+      <StudioDayNavigator days={dayButtons} activeDay={activeDay} totalMinutes={totalMinutes} onChange={setActiveDay} />
+    </nav>
     <div className="studio-view-tabs" role="tablist" aria-label="Khu vực thiết kế giáo án">
       {([['schedule', 'Lịch tập'], ['library', 'Bài tập'], ['inspector', 'Thuộc tính']] as const).map(([view, label]) => <button key={view} type="button" role="tab" aria-selected={studioView === view} onClick={() => setStudioView(view)}>{label}</button>)}
     </div>

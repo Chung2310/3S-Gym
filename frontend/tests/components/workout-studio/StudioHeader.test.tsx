@@ -29,4 +29,7 @@ it('shows a persistent title above every workout plan header field', () => {
     expect(screen.getByText(title, { selector: '[data-field-title]' })).toBeVisible();
     expect(screen.getByLabelText(accessibleName)).toBeVisible();
   }
+  expect(screen.getByRole('banner', { name: 'Thông tin giáo án' })).toHaveClass('studio-header');
+  expect(screen.getByRole('status')).toHaveClass('studio-save-state', 'is-saved');
+  expect(screen.getByRole('group', { name: 'Thông tin cơ bản' })).toHaveClass('studio-header-fields');
 });

@@ -16,6 +16,8 @@ it('adds an exercise to a proportional day timeline and prevents overlap', async
   expect(screen.getByText('Đã lưu')).toBeVisible();
   const studioPage = screen.getByRole('region', { name: 'Workout Studio' });
   expect(studioPage).toHaveClass('module-page', 'workout-studio');
+  expect(screen.getByRole('search', { name: 'Tìm bài tập trong Studio' })).toHaveClass('studio-palette');
+  expect(screen.getByRole('navigation', { name: 'Thời gian giáo án' })).toBeVisible();
   const views = screen.getByRole('tablist', { name: 'Khu vực thiết kế giáo án' });
   expect(within(views).getByRole('tab', { name: 'Lịch tập' })).toHaveAttribute('aria-selected', 'true');
   await user.click(within(views).getByRole('tab', { name: 'Bài tập' }));
@@ -43,7 +45,7 @@ it('adds an exercise to a proportional day timeline and prevents overlap', async
   await user.click(screen.getByRole('button', { name: 'Giảm thời lượng 15 phút' }));
   expect(screen.queryByRole('button', { name: 'Thêm bài Squat' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Thêm bài Barbell Row' })).toBeVisible();
-  await user.clear(screen.getByLabelText(/T.m b.i t.p/));
+  await user.clear(screen.getByLabelText('Tìm bài tập'));
   await user.selectOptions(screen.getByLabelText('Lọc nhóm cơ'), 'LEGS');
   expect(screen.getByRole('button', { name: 'Thêm bài Squat' })).toBeVisible();
   expect(screen.queryByRole('button', { name: 'Thêm bài Barbell Row' })).not.toBeInTheDocument();
