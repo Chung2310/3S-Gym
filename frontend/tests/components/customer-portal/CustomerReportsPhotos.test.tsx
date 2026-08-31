@@ -17,10 +17,18 @@ const journey = {
     { _id: 'r2', periodStart: '2026-08-01', periodEnd: '2026-08-31', summary: 'Báo cáo tháng 8', status: 'PUBLISHED', metrics: { totalVolume: 4200 } },
   ],
   analytics: {
+    totalSessions: 10,
     totalVolume: 4200,
     averageRpe: 7.8,
     attendance: { present: 8, late: 1, absent: 1, rate: 80 },
     streakWeeks: 4,
+    tracking: {
+      strength: { totalVolumeKg: 0, maxWeightKg: null, maxReps: null, estimated1RmKg: null },
+      bodyweight: { totalReps: 0, maxReps: null, maxAddedWeightKg: null },
+      cardio: { durationMinutes: 0, distanceKm: 0, bestPaceSecondsPerKm: null, averageHeartRate: null },
+      interval: { totalRounds: 0, workSeconds: 0, restSeconds: 0 },
+      mobility: { durationMinutes: 0, completedReps: 0, averageDiscomfort: null },
+    },
     achievements: [{ exerciseName: 'Squat', kind: 'MAX_WEIGHT', value: 100, achievedAt: '2026-08-20', sessionId: 's1', isNewInPeriod: true }],
     dataQuality: { level: 'COMPLETE', reasons: [] },
   },

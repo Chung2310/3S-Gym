@@ -11,10 +11,18 @@ import type { CustomerJourneyDto, CustomerProgressOverview } from '../../../src/
 vi.mock('../../../src/services/api', () => ({ api: { get: vi.fn(), post: vi.fn() } }));
 
 const analytics = {
+  totalSessions: 1,
   totalVolume: 500,
   averageRpe: 8,
   attendance: { present: 1, late: 0, absent: 0, rate: 100 },
   streakWeeks: 1,
+  tracking: {
+    strength: { totalVolumeKg: 0, maxWeightKg: null, maxReps: null, estimated1RmKg: null },
+    bodyweight: { totalReps: 0, maxReps: null, maxAddedWeightKg: null },
+    cardio: { durationMinutes: 0, distanceKm: 0, bestPaceSecondsPerKm: null, averageHeartRate: null },
+    interval: { totalRounds: 0, workSeconds: 0, restSeconds: 0 },
+    mobility: { durationMinutes: 0, completedReps: 0, averageDiscomfort: null },
+  },
   bodyDeltas: { weight: -1 },
   achievements: [],
   dataQuality: { level: 'PARTIAL', reasons: [] },

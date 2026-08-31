@@ -288,10 +288,18 @@ const mockJourney: CustomerJourneyDto = {
     },
   ],
   analytics: {
+    totalSessions: 8,
     totalVolume: 8500,
     averageRpe: 8.2,
     attendance: { present: 8, late: 0, absent: 0, rate: 100 },
     streakWeeks: 3,
+    tracking: {
+      strength: { totalVolumeKg: 0, maxWeightKg: null, maxReps: null, estimated1RmKg: null },
+      bodyweight: { totalReps: 0, maxReps: null, maxAddedWeightKg: null },
+      cardio: { durationMinutes: 0, distanceKm: 0, bestPaceSecondsPerKm: null, averageHeartRate: null },
+      interval: { totalRounds: 0, workSeconds: 0, restSeconds: 0 },
+      mobility: { durationMinutes: 0, completedReps: 0, averageDiscomfort: null },
+    },
     achievements: [
       {
         exerciseName: 'Barbell Bench Press',
@@ -315,7 +323,7 @@ describe('Customer Portal Components', () => {
     expect(screen.getByText('HLV Tuấn Kiệt')).toBeInTheDocument();
     expect(screen.getByText(/Gói PT 1-1 Chuyên Sâu 36 Buổi/i)).toBeInTheDocument();
     expect(screen.getByText(/Còn lại: 24 buổi/i)).toBeInTheDocument();
-    expect(screen.getByText(/8.500 kg/i)).toBeInTheDocument();
+    expect(screen.getByText(/^8 buổi$/i)).toBeInTheDocument();
     expect(screen.getByText(/3 TUẦN LIÊN TỤC/i)).toBeInTheDocument();
   });
 

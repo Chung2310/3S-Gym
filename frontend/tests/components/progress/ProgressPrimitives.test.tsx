@@ -10,10 +10,18 @@ import ProgressSnapshot from '../../../src/components/progress/ProgressSnapshot'
 import type { JourneyAnalytics } from '../../../src/types/progress';
 
 const completeAnalytics: JourneyAnalytics = {
+  totalSessions: 8,
   totalVolume: 8500,
   averageRpe: 8.2,
   attendance: { present: 8, late: 0, absent: 0, rate: 100 },
   streakWeeks: 3,
+  tracking: {
+    strength: { totalVolumeKg: 8500, maxWeightKg: 100, maxReps: 12, estimated1RmKg: 120 },
+    bodyweight: { totalReps: 0, maxReps: null, maxAddedWeightKg: null },
+    cardio: { durationMinutes: 0, distanceKm: 0, bestPaceSecondsPerKm: null, averageHeartRate: null },
+    interval: { totalRounds: 0, workSeconds: 0, restSeconds: 0 },
+    mobility: { durationMinutes: 0, completedReps: 0, averageDiscomfort: null },
+  },
   achievements: [],
   dataQuality: { level: 'COMPLETE', reasons: [] },
 };
@@ -25,7 +33,8 @@ describe('ProgressSnapshot', () => {
     expect(screen.getByRole('region', { name: 'Tổng quan tiến độ' })).toBeVisible();
     expect(screen.getByText('Tỷ lệ tham gia')).toBeVisible();
     expect(screen.getByText('100%')).toBeVisible();
-    expect(screen.getByText('8.500 kg')).toBeVisible();
+    expect(screen.getByText('8 buổi')).toBeVisible();
+    expect(screen.queryByText('8.500 kg')).not.toBeInTheDocument();
     expect(screen.getByText('RPE 8,2')).toBeVisible();
     expect(screen.getByText('3 tuần')).toBeVisible();
   });

@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import type { CustomerJourneyDto } from '../../types';
 import ProgressSnapshot from '../progress/ProgressSnapshot';
+import TrackingAnalytics from '../progress/TrackingAnalytics';
 import CustomerProgressAchievements from './CustomerProgressAchievements';
 import CustomerProgressPhotoGallery from './CustomerProgressPhotoGallery';
 import CustomerProgressReportSection from './CustomerProgressReportSection';
@@ -43,6 +44,7 @@ export default function CustomerReportsPhotos({ journey }: CustomerReportsPhotos
   return (
     <div className="space-y-6 font-montserrat">
       <ProgressSnapshot analytics={journey.analytics} />
+      <TrackingAnalytics analytics={journey.analytics.tracking} />
 
       <CustomerProgressReportSection reports={reports} featured />
 

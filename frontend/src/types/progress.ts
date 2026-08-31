@@ -10,8 +10,27 @@ export interface WorkoutSessionDto { _id: string; performedAt: string; attendanc
 export interface BodyMeasurementDto { _id: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements: CircumferenceMeasurements }
 export type DataQualityLevel = 'COMPLETE' | 'PARTIAL' | 'INSUFFICIENT';
 export interface DataQuality { level: DataQualityLevel; reasons: string[] }
-export interface AchievementDto { exerciseName: string; kind: 'MAX_WEIGHT' | 'MAX_REPS' | 'MAX_SET_VOLUME' | 'ESTIMATED_1RM'; value: number; achievedAt: string; sessionId: string; isNewInPeriod: boolean }
-export interface JourneyAnalytics { totalVolume: number; averageRpe: number | null; attendance: { present: number; late: number; absent: number; rate: number | null }; streakWeeks: number; bodyDeltas?: Record<string, number>; achievements: AchievementDto[]; dataQuality: DataQuality }
+export type AchievementKind =
+  | 'MAX_WEIGHT'
+  | 'MAX_REPS'
+  | 'MAX_SET_VOLUME'
+  | 'ESTIMATED_1RM'
+  | 'BODYWEIGHT_MAX_REPS'
+  | 'BODYWEIGHT_MAX_ADDED_WEIGHT'
+  | 'CARDIO_MAX_DISTANCE'
+  | 'CARDIO_MAX_DURATION'
+  | 'CARDIO_BEST_PACE'
+  | 'INTERVAL_MAX_ROUNDS'
+  | 'MOBILITY_MAX_DURATION';
+export interface AchievementDto { exerciseName: string; kind: AchievementKind; value: number; unit?: string; trackingType?: SessionTrackingType; achievedAt: string; sessionId: string; isNewInPeriod: boolean }
+export interface TrackingAnalyticsDto {
+  strength: { totalVolumeKg: number; maxWeightKg: number | null; maxReps: number | null; estimated1RmKg: number | null };
+  bodyweight: { totalReps: number; maxReps: number | null; maxAddedWeightKg: number | null };
+  cardio: { durationMinutes: number; distanceKm: number; bestPaceSecondsPerKm: number | null; averageHeartRate: number | null };
+  interval: { totalRounds: number; workSeconds: number; restSeconds: number };
+  mobility: { durationMinutes: number; completedReps: number; averageDiscomfort: number | null };
+}
+export interface JourneyAnalytics { totalSessions: number; totalVolume: number; averageRpe: number | null; attendance: { present: number; late: number; absent: number; rate: number | null }; streakWeeks: number; tracking: TrackingAnalyticsDto; bodyDeltas?: Record<string, number>; achievements: AchievementDto[]; dataQuality: DataQuality }
 export interface JourneyProgressReport { [key: string]: unknown; _id: string; periodStart: string; periodEnd: string; summary: string; status: 'DRAFT' | 'PUBLISHED'; metrics?: Record<string, unknown> }
 export interface PtPackageDto {
   _id?: string;
