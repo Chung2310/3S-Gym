@@ -82,7 +82,7 @@ const defaultPolicy = (taskType: AiTaskType) => ({
   minBillableCredits: 1,
 });
 
-async function ensureCreditReferenceData(): Promise<Pick<CreditMigrationMetadata, 'pricingIds' | 'policyIds'>> {
+export async function ensureCreditReferenceData(): Promise<Pick<CreditMigrationMetadata, 'pricingIds' | 'policyIds'>> {
   await Promise.all([CreditPricing.createIndexes(), AiBillingPolicy.createIndexes()]);
   const pricing = await CreditPricing.updateOne(
     { key: 'GLOBAL' },

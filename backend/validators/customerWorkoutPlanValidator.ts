@@ -19,7 +19,36 @@ const planSession = Joi.object({ name: Joi.string().trim().required(), exercises
 const scheduled = exercise.keys({ dayNumber: Joi.number().integer().min(1).max(365).required(), startMinute: Joi.number().integer().min(0).max(1425).required(), durationMinutes: Joi.number().integer().min(15).max(1440).required() });
 const unscheduled = exercise.keys({ durationMinutes: Joi.number().integer().min(15).max(1440).required() });
 
+const validateCustomerPlanSchedule = (value: Record<string, unknown>, helpers: Joi.CustomHelpers) => {
+  const durationDays = Number(value.durationDays || 0);
+  const items = (value.scheduledExercises || []) as Array<{ weekNumber?: number; dayNumber: number; startMinute: number; durationMinutes: number }>;
+  const sessions = (value.sessions || []) as Array<{ exercises?: unknown[] }>;
+
+  if (sessions.length > 0) {
+    const emptySessionIndex = sessions.findIndex((s) => !s.exercises || s.exercises.length === 0);
+    if (emptySessionIndex !== -1) {
+      return helpers.message({ custom: `Buổi ${emptySessionIndex + 1} chưa có bài tập nào.` });
+    }
+  }
+
+  if (items.length > 0 && durationDays > 0) {
+    const daysWithExercises = new Set(
+      items.map((item) => ((Number(item.weekNumber || 1) - 1) * 7) + Number(item.dayNumber))
+    );
+    const emptyDays: number[] = [];
+    for (let day = 1; day <= durationDays; day++) {
+      if (!daysWithExercises.has(day)) {
+        emptyDays.push(day);
+      }
+    }
+    if (emptyDays.length > 0) {
+      return helpers.message({ custom: `Mỗi ngày trong giáo án phải có ít nhất 1 bài tập. Ngày ${emptyDays.join(', ')} chưa có bài tập nào.` });
+    }
+  }
+  return value;
+};
+
 export const listCustomerPlansSchema: RequestValidationSchema = { params };
 export const assignCustomerPlanSchema: RequestValidationSchema = { params, body: Joi.object({ templateId: objectId.required() }) };
 export const getCustomerPlanSchema: RequestValidationSchema = { params: planParams };
-export const updateCustomerPlanSchema: RequestValidationSchema = { params: planParams, body: Joi.object({ title: Joi.string().trim().min(1), goal: Joi.string().trim().min(1), level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED'), durationDays: Joi.number().integer().min(1).max(365), muscleGroups: Joi.array().items(Joi.string().trim().min(1).max(100)).max(20), defaultSets: Joi.number().integer().min(1).max(100), defaultReps: Joi.string().trim().allow('').max(100), defaultWeight: Joi.string().trim().allow('').max(100), defaultTempo: Joi.string().trim().allow('').max(100), technicalNotes: Joi.string().trim().allow('').max(2000), scheduledExercises: Joi.array().items(scheduled), unscheduledExercises: Joi.array().items(unscheduled), sessions: Joi.array().items(planSession) }).min(1) };
+export const updateCustomerPlanSchema: RequestValidationSchema = { params: planParams, body: Joi.object({ title: Joi.string().trim().min(1), goal: Joi.string().trim().min(1), level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED'), durationDays: Joi.number().integer().min(1).max(365), muscleGroups: Joi.array().items(Joi.string().trim().min(1).max(100)).max(20), defaultSets: Joi.number().integer().min(1).max(100), defaultReps: Joi.string().trim().allow('').max(100), defaultWeight: Joi.string().trim().allow('').max(100), defaultTempo: Joi.string().trim().allow('').max(100), technicalNotes: Joi.string().trim().allow('').max(2000), scheduledExercises: Joi.array().items(scheduled), unscheduledExercises: Joi.array().items(unscheduled), sessions: Joi.array().items(planSession) }).min(1).custom(validateCustomerPlanSchedule) };

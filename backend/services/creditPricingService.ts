@@ -4,6 +4,8 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AiTaskType, PricingSnapshot, ProviderUsage } from './creditTypes.js';
 
+import { ensureCreditReferenceData } from './migrationService.js';
+
 export function calculateSettledCredits(usage: ProviderUsage, pricing: PricingSnapshot): number {
   const cost = usage.providerCostMicrousd;
   if (cost === undefined) return pricing.fallbackCredits;
@@ -16,10 +18,17 @@ export function calculateSettledCredits(usage: ProviderUsage, pricing: PricingSn
 }
 
 export async function getPricingSnapshot(taskType: AiTaskType): Promise<PricingSnapshot> {
-  const [pricing, policy] = await Promise.all([
+  let [pricing, policy] = await Promise.all([
     CreditPricing.findOne({ key: 'GLOBAL' }).lean(),
     AiBillingPolicy.findOne({ taskType }).lean(),
   ]);
+  if (!pricing || !policy) {
+    await ensureCreditReferenceData();
+    [pricing, policy] = await Promise.all([
+      CreditPricing.findOne({ key: 'GLOBAL' }).lean(),
+      AiBillingPolicy.findOne({ taskType }).lean(),
+    ]);
+  }
   if (!pricing || !policy || !policy.enabled) {
     throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Chính sách tính credit cho tác vụ AI chưa sẵn sàng.' });
   }

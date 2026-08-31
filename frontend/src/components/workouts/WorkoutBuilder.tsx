@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
 import { errorMessage } from '../../types';
@@ -37,6 +37,16 @@ export default function WorkoutBuilder({ open = true, onClose = () => undefined,
   const updateExercise = (sessionIndex: number, exerciseIndex: number, value: TemplateExercise) => setSessions((current) => current.map((session, index) => index === sessionIndex ? { ...session, exercises: session.exercises.map((exercise, itemIndex) => itemIndex === exerciseIndex ? value : exercise) } : session));
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!title.trim() || !goal.trim()) {
+      return toast.error('Vui lòng nhập tên giáo án và mục tiêu.');
+    }
+    if (!sessions.length) {
+      return toast.error('Giáo án phải có ít nhất một buổi tập.');
+    }
+    const emptySessionIndex = sessions.findIndex((session) => !session.exercises.length);
+    if (emptySessionIndex !== -1) {
+      return toast.error(`Buổi ${emptySessionIndex + 1} (${sessions[emptySessionIndex].name || 'Chưa đặt tên'}) chưa có bài tập nào. Vui lòng thêm bài tập cho tất cả các buổi.`);
+    }
     const unclassified = sessions.flatMap((session) => session.exercises).find((exercise) => exercise.trackingType === 'UNCLASSIFIED');
     if (unclassified) { setInvalidExercise(unclassified.name); return; }
     setInvalidExercise('');
