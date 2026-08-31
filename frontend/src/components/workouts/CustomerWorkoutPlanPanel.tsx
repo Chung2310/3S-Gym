@@ -25,8 +25,11 @@ export default function CustomerWorkoutPlanPanel({ initialDraft = null, onDraftC
   const [draft, setDraft] = useState<CustomerWorkoutPlanDraft | null>(null);
   const [action, setAction] = useState<Action | null>(null);
   const [loading, setLoading] = useState(false);
+  const [listLoading, setListLoading] = useState(true);
+  const hasFilters = Boolean(customerId || status);
 
   const load = useCallback(async (page = 1) => {
+    setListLoading(true);
     try {
       const query = new URLSearchParams({ page: String(page), limit: '20' });
       if (customerId) query.set('customerId', customerId);
@@ -36,6 +39,8 @@ export default function CustomerWorkoutPlanPanel({ initialDraft = null, onDraftC
       if (result.meta) setMeta(result.meta);
     } catch (error) {
       toast.error(errorMessage(error));
+    } finally {
+      setListLoading(false);
     }
   }, [customerId, status, toast]);
 
@@ -68,11 +73,11 @@ export default function CustomerWorkoutPlanPanel({ initialDraft = null, onDraftC
         if (raw && typeof raw === 'object' && 'fullName' in (raw as object)) {
           const c = raw as { _id?: string; fullName?: string; phone?: string };
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <strong style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.88rem' }}>{c.fullName || '—'}</strong>
+            <div className="workout-customer-identity">
+              <strong>{c.fullName || '—'}</strong>
               {c.phone && (
-                <span style={{ fontSize: '0.76rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Phone size={11} style={{ color: '#0284c7' }} />
+                <span className="workout-customer-phone">
+                  <Phone size={11} aria-hidden="true" />
                   <span>{c.phone}</span>
                 </span>
               )}
@@ -82,25 +87,32 @@ export default function CustomerWorkoutPlanPanel({ initialDraft = null, onDraftC
         return String(item.customerId || '—');
       },
     },
-    { key: 'status', label: 'Trạng thái' },
+    { key: 'status', label: 'Trạng thái', render: (item) => <span className={`workout-customer-status ${item.status === 'PUBLISHED' ? 'is-published' : 'is-draft'}`}>{item.status === 'PUBLISHED' ? 'Đã công bố' : 'Bản nháp'}</span> },
     { key: 'version', label: 'Phiên bản', render: (item) => `v${item.version || 1}` },
   ];
 
   const openCreate = () => { setDraft(null); setEditing(null); setFormOpen(true); };
   const closeForm = () => { setFormOpen(false); setDraft(null); setEditing(null); };
+  const renderActions = (item: CustomerWorkoutPlan) => (
+    <div className="inline-actions workout-customer-actions">
+      <button className="text-button" onClick={() => { setEditing(item); setDraft(null); setFormOpen(true); }}>Sửa</button>
+      <button className="text-button" onClick={() => setAction({ kind: item.status === 'PUBLISHED' ? 'unpublish' : 'publish', item })}>{item.status === 'PUBLISHED' ? 'Thu hồi' : 'Công bố'}</button>
+      <button className="text-button text-danger" onClick={() => setAction({ kind: 'delete', item })}>Xóa</button>
+    </div>
+  );
 
   return (
-    <section className="panel">
-      <div className="section-header">
+    <section className="module-card workout-customer-plan-card" aria-label="Danh sách giáo án khách hàng">
+      <header className="workout-customer-plan-card-header">
         <div>
           <h2>Danh sách giáo án khách hàng</h2>
           <p>Tạo bản nháp, cá nhân hóa và công bố cho từng khách hàng.</p>
         </div>
         <button className="button button-primary" onClick={openCreate}>Tạo giáo án khách hàng</button>
-      </div>
+      </header>
 
-      <div className="filter-bar" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-        <div style={{ minWidth: '280px', flex: '1 1 280px' }}>
+      <div className="module-toolbar workout-customer-plan-toolbar" role="search" aria-label="Bộ lọc giáo án khách hàng">
+        <div className="workout-customer-filter-person">
           <CustomerSelect
             label=""
             name="customerId"
@@ -109,27 +121,20 @@ export default function CustomerWorkoutPlanPanel({ initialDraft = null, onDraftC
             placeholder="Lọc theo học viên (tên hoặc SĐT)..."
           />
         </div>
-        <label className="field" style={{ margin: 0 }}>
-          <select aria-label="Lọc theo trạng thái" className="filter-select" value={status} onChange={(event) => setStatus(event.target.value)} style={{ minHeight: '44px' }}>
+        <label className="module-field workout-customer-filter-status">
+          <span className="sr-only">Lọc theo trạng thái</span>
+          <select aria-label="Lọc theo trạng thái" value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">Tất cả trạng thái</option>
             <option value="DRAFT">Bản nháp</option>
             <option value="PUBLISHED">Đã công bố</option>
           </select>
         </label>
-        <button className="button button-secondary" onClick={() => void load()} style={{ minHeight: '44px' }}>Lọc</button>
+        <button className="button button-secondary" onClick={() => void load()}>Lọc</button>
       </div>
 
-      <DataList
-        items={items}
-        columns={columns}
-        renderActions={(item) => (
-          <div className="inline-actions">
-            <button className="text-button" onClick={() => { setEditing(item); setDraft(null); setFormOpen(true); }}>Sửa</button>
-            <button className="text-button" onClick={() => setAction({ kind: item.status === 'PUBLISHED' ? 'unpublish' : 'publish', item })}>{item.status === 'PUBLISHED' ? 'Thu hồi' : 'Công bố'}</button>
-            <button className="text-button text-danger" onClick={() => setAction({ kind: 'delete', item })}>Xóa</button>
-          </div>
-        )}
-      />
+      {listLoading ? <div className="module-skeleton workout-customer-plan-skeleton" aria-label="Đang tải giáo án khách hàng" />
+        : items.length ? <DataList items={items} columns={columns} renderActions={renderActions} />
+        : <div className={`module-empty workout-customer-plan-empty ${hasFilters ? 'module-filtered-empty' : ''}`}><h3>{hasFilters ? 'Không có giáo án phù hợp' : 'Chưa có giáo án khách hàng'}</h3><p>{hasFilters ? 'Xóa bộ lọc để xem toàn bộ giáo án.' : 'Tạo bản nháp đầu tiên cho một học viên.'}</p></div>}
 
       <Pagination page={meta.page || 1} totalPages={meta.totalPages || 0} onPageChange={load} />
       <CustomerWorkoutPlanModal open={formOpen} item={editing} initialDraft={draft} onClose={closeForm} onSaved={() => { closeForm(); void load(meta.page); }} />

@@ -59,20 +59,21 @@ export default function ExerciseVideoFields({ videos, onChange, onUploadingChang
     }
   };
 
-  return <section className="exercise-video-section">
-    <div className="form-heading">
+  return <section className="exercise-form-section exercise-form-videos" aria-labelledby="exercise-form-videos">
+    <div className="exercise-form-section-heading exercise-video-heading">
       <div><strong>Video hướng dẫn</strong><p>Tối đa 20 video, mỗi video không quá 100 MB.</p></div>
       <button type="button" className="button button-secondary" disabled={videos.length >= 20} onClick={() => onChange([...videos, { title: '', url: '', source: 'LINK' }])}><Plus size={16} /> Thêm video</button>
     </div>
-    {videos.map((video, index) => <article className="published-card exercise-video-card" key={index}>
-      <div className="form-grid">
-        <label className="field"><span>Tiêu đề video {index + 1}</span><input aria-label={`Tiêu đề video ${index + 1}`} placeholder="Ví dụ: Kỹ thuật chuẩn" maxLength={120} value={video.title} onChange={(event) => update(index, { title: event.target.value })} required /></label>
-        <label className="field"><span>Nguồn video {index + 1}</span><select aria-label={`Nguồn video ${index + 1}`} value={video.source} onChange={(event) => update(index, { source: event.target.value as ExerciseVideo['source'], url: '' })}><option value="LINK">Điền liên kết</option><option value="UPLOAD">Tải video lên</option></select></label>
+    <span id="exercise-form-videos" className="sr-only">Video hướng dẫn</span>
+    {videos.map((video, index) => <article className="exercise-video-item" key={index}>
+      <div className="module-field-grid">
+        <label className="module-field"><span>Tiêu đề video {index + 1}</span><input aria-label={`Tiêu đề video ${index + 1}`} placeholder="Ví dụ: Kỹ thuật chuẩn" maxLength={120} value={video.title} onChange={(event) => update(index, { title: event.target.value })} required /></label>
+        <label className="module-field"><span>Nguồn video {index + 1}</span><select aria-label={`Nguồn video ${index + 1}`} value={video.source} onChange={(event) => update(index, { source: event.target.value as ExerciseVideo['source'], url: '' })}><option value="LINK">Điền liên kết</option><option value="UPLOAD">Tải video lên</option></select></label>
         {video.source === 'LINK'
-          ? <label className="field exercise-video-wide"><span>Link video {index + 1}</span><input aria-label={`Link video ${index + 1}`} type="url" placeholder="https://youtube.com/..." value={video.url} onChange={(event) => update(index, { url: event.target.value })} required /></label>
-          : <label className="field exercise-video-wide"><span>Tệp video {index + 1}</span><input aria-label={`Tệp video ${index + 1}`} type="file" accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime" onChange={(event) => void upload(index, event)} required={!video.url} />{uploadingIndexes.includes(index) && <small>Đang tải video...</small>}{video.url && <a href={video.url} target="_blank" rel="noopener noreferrer">Xem video đã tải</a>}</label>}
+          ? <label className="module-field exercise-video-wide"><span>Link video {index + 1}</span><input aria-label={`Link video ${index + 1}`} type="url" placeholder="https://youtube.com/..." value={video.url} onChange={(event) => update(index, { url: event.target.value })} required /></label>
+          : <label className="module-field exercise-video-wide"><span>Tệp video {index + 1}</span><input aria-label={`Tệp video ${index + 1}`} type="file" accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime" onChange={(event) => void upload(index, event)} required={!video.url} />{uploadingIndexes.includes(index) && <small className="exercise-upload-state">Đang tải video...</small>}{video.url && <a className="exercise-video-link" href={video.url} target="_blank" rel="noopener noreferrer">Xem video đã tải</a>}</label>}
       </div>
-      <button type="button" className="text-button text-danger" onClick={() => remove(index)}><Trash2 size={15} /> Xóa video</button>
+      <button type="button" className="exercise-video-remove" onClick={() => remove(index)}><Trash2 size={15} aria-hidden="true" /> Xóa video</button>
     </article>)}
   </section>;
 }

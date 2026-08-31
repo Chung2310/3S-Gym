@@ -43,6 +43,11 @@ it('mở Studio khi nhấn nút Tạo giáo án', async () => {
 
   expect(screen.getByRole('heading', { name: 'Giáo án của tôi' })).toBeVisible();
   expect((await screen.findAllByText(template.title))[0]).toBeVisible();
+  const page = screen.getByRole('region', { name: 'Quản lý giáo án' });
+  expect(page).toHaveClass('module-page', 'workout-page');
+  expect(screen.getByRole('tablist', { name: 'Không gian giáo án' })).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Tạo giáo án' })).toHaveClass('button-primary');
+  expect(screen.getByRole('button', { name: 'Tạo bằng AI' })).toHaveClass('button-secondary');
   await user.click(screen.getByRole('button', { name: 'Tạo giáo án' }));
   expect(screen.getByTestId('location')).toHaveTextContent('/pt/my-workout-plans/new');
 });
@@ -51,7 +56,7 @@ it('mở Studio edit khi sửa giáo án', async () => {
   const user = userEvent.setup();
   render(<MemoryRouter initialEntries={['/pt/my-workout-plans']}><ToastProvider><Routes><Route path="/pt/my-workout-plans" element={<MyWorkoutPlans />} /><Route path="/pt/my-workout-plans/:templateId/edit" element={<Location />} /></Routes></ToastProvider></MemoryRouter>);
   const card = await screen.findByRole('article', { name: template.title });
-  expect(card).toHaveClass('p-6');
+  expect(card).toHaveClass('module-card', 'workout-template-card');
   expect(card).toHaveTextContent('1 buổi');
   expect(card).toHaveTextContent('Cơ bản');
   await user.click(screen.getByRole('button', { name: `Chỉnh sửa ${template.title}` }));

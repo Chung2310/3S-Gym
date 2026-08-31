@@ -15,24 +15,33 @@ export default function MyWorkoutPlans() {
   useEffect(() => { if (aiOpen) void api.get<Array<{ _id: string; fullName: string; phone: string }>>('/api/customers?page=1&limit=100').then((result) => setCustomers(result.data)).catch(() => setCustomers([])); }, [aiOpen]);
   const activeTab = searchParams.get('tab') === 'exercises' ? 'exercises' : 'plans';
   const selectTab = (tab: 'plans' | 'exercises') => setSearchParams({ tab });
+  const openCreate = () => navigate('/pt/my-workout-plans/new');
 
   return (
-    <section className="space-y-6">
-      <div className="flex border-b border-slate-200 gap-1.5 px-2" role="tablist" aria-label="Nội dung Giáo án của tôi">
+    <section className="module-page workout-page" aria-label="Quản lý giáo án">
+      <header className="module-header workout-header">
+        <div>
+          <p className="workout-eyebrow">Programming workspace</p>
+          <h1 className="module-heading">Giáo án của tôi</h1>
+          <p className="module-description">Xây dựng, quản lý và triển khai giáo án cho từng mục tiêu tập luyện.</p>
+        </div>
+        {activeTab === 'plans' && <div className="module-actions">
+          <button type="button" className="button button-secondary" onClick={() => setAiOpen(true)}>Tạo bằng AI</button>
+          <button type="button" className="button button-primary" onClick={openCreate}><Plus size={18} aria-hidden="true" /> Tạo giáo án</button>
+        </div>}
+      </header>
+
+      <div className="workout-tabs" role="tablist" aria-label="Không gian giáo án">
         <button
           id="workout-tab-plans"
           type="button"
           role="tab"
           aria-selected={activeTab === 'plans'}
           aria-controls="workout-panel-plans"
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold font-montserrat transition-all rounded-t-lg border-t border-x -mb-px z-10 cursor-pointer ${
-            activeTab === 'plans'
-              ? 'bg-white border-slate-200 text-primary border-b-white'
-              : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-850 border-b-slate-200'
-          }`}
+          className={activeTab === 'plans' ? 'is-active' : ''}
           onClick={() => selectTab('plans')}
         >
-          <BookOpen size={14} /> Giáo án của tôi
+          <BookOpen size={14} aria-hidden="true" /> Giáo án của tôi
         </button>
         <button
           id="workout-tab-exercises"
@@ -40,29 +49,15 @@ export default function MyWorkoutPlans() {
           role="tab"
           aria-selected={activeTab === 'exercises'}
           aria-controls="workout-panel-exercises"
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold font-montserrat transition-all rounded-t-lg border-t border-x -mb-px z-10 cursor-pointer ${
-            activeTab === 'exercises'
-              ? 'bg-white border-slate-200 text-primary border-b-white'
-              : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-850 border-b-slate-200'
-          }`}
+          className={activeTab === 'exercises' ? 'is-active' : ''}
           onClick={() => selectTab('exercises')}
         >
-          <Dumbbell size={14} /> Thư viện bài tập
+          <Dumbbell size={14} aria-hidden="true" /> Thư viện bài tập
         </button>
       </div>
 
       {activeTab === 'plans' ? (
-        <div id="workout-panel-plans" role="tabpanel" aria-labelledby="workout-tab-plans" className="space-y-6">
-          <header className="section-header">
-            <div>
-              <h1 className="font-oswald text-3xl font-bold uppercase text-primary">Giáo án của tôi</h1>
-              <p className="mt-2 font-montserrat text-sm text-slate-600">Xây dựng và tái sử dụng thư viện giáo án riêng của bạn.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button type="button" className="button button-primary" onClick={() => navigate('/pt/my-workout-plans/new')}><Plus size={18} /> Tạo giáo án</button>
-              <button type="button" className="button button-secondary" onClick={() => setAiOpen(true)}>Tạo bằng AI</button>
-            </div>
-          </header>
+        <div id="workout-panel-plans" role="tabpanel" aria-labelledby="workout-tab-plans" className="workout-panel">
           <WorkoutTemplateList refreshKey={refreshKey} onEdit={(template) => navigate(`/pt/my-workout-plans/${template._id}/edit`)} />
           <AiWorkoutWizard open={aiOpen} customers={customers} onClose={() => setAiOpen(false)} onGenerated={(draft) => navigate('/pt/my-workout-plans/new', { state: { aiWorkoutDraft: draft } })} />
         </div>
