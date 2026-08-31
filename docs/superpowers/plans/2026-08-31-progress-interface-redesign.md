@@ -108,7 +108,7 @@ export interface ProgressEmptyStateProps {
 }
 ```
 
-- [ ] **Step 1: Write failing primitive tests**
+- [x] **Step 1: Write failing primitive tests**
 
 Create tests that render complete and insufficient analytics, assert all four KPI labels/values, assert `—` for missing attendance/RPE, assert the data-quality reason, assert a named semantic section, assert optional CTA behavior, and assert `aria-busy="true"` on the skeleton.
 
@@ -130,7 +130,7 @@ expect(screen.getByText('RPE 8,2')).toBeVisible();
 expect(screen.getByText('3 tuần')).toBeVisible();
 ```
 
-- [ ] **Step 2: Run tests and confirm RED**
+- [x] **Step 2: Run tests and confirm RED**
 
 Run:
 
@@ -140,7 +140,7 @@ npx vitest run frontend/tests/components/progress/ProgressPrimitives.test.tsx
 
 Expected: FAIL because the five primitive modules do not exist.
 
-- [ ] **Step 3: Implement the five primitives**
+- [x] **Step 3: Implement the five primitives**
 
 Use static Tailwind class strings. `ProgressSnapshot` formats values with `toLocaleString('vi-VN')`, uses `—` for nullable rate/RPE, and renders each `dataQuality.reasons` entry in an amber warning list. `ProgressSection` sets `aria-labelledby` using `useId`; `ProgressSkeleton` has `role="status"`, `aria-live="polite"`, and `aria-busy="true"`.
 
@@ -153,13 +153,13 @@ const metrics = [
 ];
 ```
 
-- [ ] **Step 4: Run primitive tests and confirm GREEN**
+- [x] **Step 4: Run primitive tests and confirm GREEN**
 
 Run the focused command from Step 2.
 
 Expected: all tests in `ProgressPrimitives.test.tsx` pass.
 
-- [ ] **Step 5: Commit shared primitives**
+- [x] **Step 5: Commit shared primitives**
 
 ```powershell
 git add frontend/src/components/progress/ProgressMetricCard.tsx frontend/src/components/progress/ProgressSnapshot.tsx frontend/src/components/progress/ProgressSection.tsx frontend/src/components/progress/ProgressEmptyState.tsx frontend/src/components/progress/ProgressSkeleton.tsx frontend/tests/components/progress/ProgressPrimitives.test.tsx
