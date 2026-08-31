@@ -66,9 +66,7 @@ export default function ExerciseLibraryPage() {
     <section className="space-y-5">
       <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_24px_rgba(0,59,112,0.05)] sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="mb-1 font-montserrat text-xs font-bold uppercase tracking-[0.16em] text-secondary">Workout resources</p>
           <h1 className="font-oswald text-3xl font-bold uppercase text-primary">Thư viện bài tập</h1>
-          <p className="mt-2 font-montserrat text-sm text-slate-600">Quản lý bài tập cá nhân và nội dung dùng chung trong một thư viện thống nhất.</p>
         </div>
         <button type="button" className="button button-primary shrink-0" onClick={() => setFormExercise(null)}>
           <Plus size={18} /> Tạo bài tập

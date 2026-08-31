@@ -215,13 +215,6 @@ export default function PtAssistantPage() {
             >
               {isCustomer ? 'Trợ lý AI 3S' : 'Trợ lý PT 3S'}
             </h1>
-            {!isMobile && (
-              <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>
-                {isCustomer
-                  ? 'Hỏi đáp mọi thắc mắc về tập luyện, dinh dưỡng, vóc dáng và lối sống lành mạnh'
-                  : 'Hỏi đáp kiến thức Gym, Dinh dưỡng, InBody & Kịch bản tư vấn'}
-              </p>
-            )}
           </div>
         </div>
 

@@ -164,14 +164,9 @@ export default function UserManagementView() {
           gap: '12px',
         }}
       >
-        <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#003b70', margin: '0 0 4px' }}>
-            Quản lý toàn bộ tài khoản
-          </h2>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
-            Quản lý phân quyền Quản trị viên, Huấn luyện viên (PT) và Hội viên trong hệ thống 3S Gym.
-          </p>
-        </div>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#003b70', margin: 0 }}>
+          Quản lý toàn bộ tài khoản
+        </h2>
 
         <button
           type="button"

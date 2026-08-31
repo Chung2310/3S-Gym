@@ -150,9 +150,6 @@ export default function CustomerPortalPage() {
           <h1 className="font-oswald text-3xl font-bold uppercase tracking-wide text-primary">
             {currentMeta.title}
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {currentMeta.subtitle}
-          </p>
         </div>
 
         <button
