@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { ClipboardList } from 'lucide-react';
 import { api } from '../../services/api';
-import { errorMessage, TRACKING_TYPE_LABELS, type BodyweightPrescription, type BodyweightResult, type CardioPrescription, type CardioResult, type CompletedSetResult, type IntervalPrescription, type IntervalResult, type MobilityPrescription, type MobilityResult, type StrengthPrescription, type StrengthResult, type TrackingPrescription, type TrackingResult, type TrackingType } from '../../types';
+import { buildBodyMeasurementInput } from '../../services/bodyMeasurement';
+import { uploadWorkoutProgressPhotos } from '../../services/progressPhotos';
+import { errorMessage, TRACKING_TYPE_LABELS, type BodyMeasurementDraft, type BodyweightPrescription, type BodyweightResult, type CardioPrescription, type CardioResult, type CompletedSetResult, type IntervalPrescription, type IntervalResult, type MobilityPrescription, type MobilityResult, type StrengthPrescription, type StrengthResult, type TrackingPrescription, type TrackingResult, type TrackingType, type WorkoutProgressPhotoDraft } from '../../types';
 import { useToast } from '../ui/ToastProvider';
 import ProgressEmptyState from './ProgressEmptyState';
 import BodyweightResultEditor from './tracking/BodyweightResultEditor';
@@ -9,6 +11,8 @@ import CardioResultEditor from './tracking/CardioResultEditor';
 import IntervalResultEditor from './tracking/IntervalResultEditor';
 import MobilityResultEditor from './tracking/MobilityResultEditor';
 import StrengthResultEditor from './tracking/StrengthResultEditor';
+import WorkoutMeasurementFields from './WorkoutMeasurementFields';
+import WorkoutProgressPhotoFields from './WorkoutProgressPhotoFields';
 
 interface PlannedExercise { exerciseId?: string; name: string; trackingType: TrackingType; prescription: TrackingPrescription }
 export interface WorkoutLoggerActivePlan { _id: string; version: number; title: string; sessions?: Array<{ name: string; exercises?: PlannedExercise[] }> }
@@ -44,8 +48,10 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
   const [sessionIndex, setSessionIndex] = useState(0); const [performedAt, setPerformedAt] = useState('');
   const [attendance, setAttendance] = useState<'PRESENT' | 'LATE' | 'ABSENT'>('PRESENT');
   const [feeling, setFeeling] = useState(''); const [notes, setNotes] = useState(''); const [loading, setLoading] = useState(false);
+  const [measurement, setMeasurement] = useState<BodyMeasurementDraft>({});
+  const [progressPhotos, setProgressPhotos] = useState<WorkoutProgressPhotoDraft[]>([]);
   const [editedResults, setEditedResults] = useState<Record<number, ExerciseResultDraft[]>>({});
-  const exercises = activePlan?.sessions?.[sessionIndex]?.exercises || [];
+  const exercises = useMemo(() => activePlan?.sessions?.[sessionIndex]?.exercises || [], [activePlan, sessionIndex]);
   const initialResults = useMemo(() => exercises.map(materialize), [exercises]);
   const results = editedResults[sessionIndex] || initialResults;
   const hasUnclassified = exercises.some((exercise) => !exercise.trackingType || exercise.trackingType === 'UNCLASSIFIED');
@@ -62,7 +68,9 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
     event.preventDefault(); if (submitting.current || (attendance !== 'ABSENT' && hasUnclassified)) return; submitting.current = true; setLoading(true);
     try {
       const exerciseResults = attendance === 'ABSENT' ? [] : exercises.map((exercise, exerciseIndex) => ({ ...(exercise.exerciseId ? { exerciseId: exercise.exerciseId } : {}), exerciseIndex, result: stripClientIds(results[exerciseIndex].result), ...(results[exerciseIndex].notes ? { notes: results[exerciseIndex].notes } : {}) }));
-      const result = await api.post('/api/workout-sessions', { customerId, workoutPlanId: activePlan._id, workoutPlanVersion: activePlan.version, sessionIndex, performedAt, attendance, exerciseResults, feeling, notes, idempotencyKey: idempotencyKey.current });
+      const bodyMeasurement = attendance === 'ABSENT' ? undefined : buildBodyMeasurementInput(measurement);
+      const uploadedPhotos = attendance === 'ABSENT' ? [] : await uploadWorkoutProgressPhotos(progressPhotos);
+      const result = await api.post('/api/workout-sessions', { customerId, workoutPlanId: activePlan._id, workoutPlanVersion: activePlan.version, sessionIndex, performedAt, attendance, exerciseResults, feeling, notes, idempotencyKey: idempotencyKey.current, ...(bodyMeasurement ? { bodyMeasurement } : {}), ...(uploadedPhotos.length > 0 ? { progressPhotos: uploadedPhotos } : {}) });
       toast.success(result.message); onSaved(); idempotencyKey.current = key();
     } catch (error) { toast.error(errorMessage(error)); } finally { submitting.current = false; setLoading(false); }
   };
@@ -74,6 +82,8 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
       <label className="grid gap-1 text-sm font-semibold text-slate-700"><span>Điểm danh</span><select aria-label="Điểm danh" className="min-h-11 rounded-lg border border-slate-300 px-3" value={attendance} onChange={(event) => setAttendance(event.target.value as typeof attendance)}><option value="PRESENT">Có mặt</option><option value="LATE">Đi muộn</option><option value="ABSENT">Vắng</option></select></label>
     </div>
     {attendance !== 'ABSENT' && exercises.map((exercise, exerciseIndex) => <fieldset className="rounded-xl border border-slate-200 p-4" key={`${exercise.exerciseId || exercise.name}-${exerciseIndex}`}><legend className="flex items-center gap-2 px-2 font-bold text-primary"><span>{exercise.name}</span><span className="rounded-full bg-sky-50 px-2 py-0.5 text-[0.65rem] font-bold text-secondary">{TRACKING_TYPE_LABELS[exercise.trackingType || 'UNCLASSIFIED']}</span></legend><div className="mt-2">{resultEditor(exercise, results[exerciseIndex].result, (result) => updateResult(exerciseIndex, result))}</div></fieldset>)}
+    {attendance !== 'ABSENT' && <WorkoutMeasurementFields value={measurement} onChange={setMeasurement} />}
+    {attendance !== 'ABSENT' && <WorkoutProgressPhotoFields value={progressPhotos} onChange={setProgressPhotos} disabled={loading} />}
     <div className="grid gap-4 md:grid-cols-2"><label className="grid gap-1 text-sm font-semibold text-slate-700"><span>Cảm nhận sau buổi tập</span><textarea className="rounded-lg border border-slate-300 p-3" aria-label="Cảm nhận sau buổi tập" placeholder="Ví dụ: khỏe, hơi mỏi chân..." value={feeling} onChange={(event) => setFeeling(event.target.value)} /></label><label className="grid gap-1 text-sm font-semibold text-slate-700"><span>Ghi chú</span><textarea className="rounded-lg border border-slate-300 p-3" aria-label="Ghi chú buổi tập" placeholder="Nhập ghi chú dành cho khách hàng..." value={notes} onChange={(event) => setNotes(event.target.value)} /></label></div>
     <button className="inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none" disabled={loading || (attendance !== 'ABSENT' && hasUnclassified)}>{loading ? 'Đang lưu...' : 'Hoàn tất buổi tập'}</button>
   </form>;
