@@ -20,6 +20,10 @@ describe('WalletPage', () => {
     render(<MemoryRouter><ToastProvider><WalletPage /></ToastProvider></MemoryRouter>);
 
     expect(await screen.findByText('Starter')).toBeInTheDocument();
+    const topupSection = screen.getByText('Starter').closest('section');
+    const ledgerSection = screen.getByRole('combobox').closest('section');
+    expect(topupSection).toHaveClass('rounded-3xl', 'border', 'p-5', 'sm:p-7');
+    expect(ledgerSection).toHaveClass('rounded-3xl', 'border', 'p-5', 'sm:p-7');
     expect(screen.getByRole('radio', { name: 'MoMo' })).toBeDisabled();
     await userEvent.click(screen.getByText('Số tiền tùy chọn'));
     await userEvent.type(screen.getByLabelText('Số tiền nạp tùy chọn'), '10500');

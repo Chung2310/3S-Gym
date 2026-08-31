@@ -13,9 +13,12 @@ describe('CreditAdminPage', () => {
     vi.spyOn(creditsService, 'adminPricing').mockResolvedValue({ vndPerCredit: 1000, usdToVnd: 25000, policies: [{ taskType: 'TEXT', enabled: true, maxReservationCredits: 10, fallbackCredits: 2, markupBasisPoints: 0, minBillableCredits: 1 }] });
     vi.spyOn(creditsService, 'adminPackages').mockResolvedValue([{ id: 'p1', name: 'Pro', description: '', amountVnd: 200000, baseCredits: 200, bonusCredits: 20, grantCredits: 220 }]);
     vi.spyOn(creditsService, 'adminList').mockResolvedValue({ items: [], meta: { page: 1, limit: 20, total: 0, totalPages: 1 } });
-    render(<ToastProvider><CreditAdminPage /></ToastProvider>);
+    const { container } = render(<ToastProvider><CreditAdminPage /></ToastProvider>);
 
     expect(await screen.findByRole('heading', { name: 'Quản trị credit' })).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass('flex', 'flex-col', 'gap-8', 'pb-8');
+    expect(screen.getByText('Pro').closest('section')).toHaveClass('p-6', 'sm:p-8');
+    expect(screen.getByText(/policy AI/).closest('section')).toHaveClass('p-6', 'sm:p-8');
     expect(screen.getByDisplayValue('1000')).toBeInTheDocument();
     expect(screen.getByText('Pro')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Thanh toán' })).toHaveAttribute('aria-selected', 'true');
