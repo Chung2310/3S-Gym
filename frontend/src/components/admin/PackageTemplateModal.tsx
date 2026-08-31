@@ -104,7 +104,7 @@ export default function PackageTemplateModal({
     <FormModal
       open={open}
       title={editing ? 'Sửa gói tập mẫu' : 'Tạo gói tập mẫu mới'}
-      description="Cấu hình gói dịch vụ chuẩn của phòng tập để PT có thể gán nhanh cho học viên."
+      description=""
       dirty={dirty}
       loading={loading}
       onClose={onClose}
