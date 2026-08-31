@@ -1,5 +1,5 @@
 import { Dumbbell, Film, Pencil, Trash2 } from 'lucide-react';
-import type { Exercise } from './ExerciseFormModal';
+import { TRACKING_TYPE_LABELS, type Exercise } from '../../types';
 
 interface Props {
   exercise: Exercise;
@@ -31,6 +31,8 @@ export default function ExerciseLibraryCard({ exercise, onEdit, onDelete }: Prop
         <div className="py-3 pr-3"><dt className="text-[0.68rem] font-semibold uppercase tracking-wide text-slate-400">Nhóm cơ</dt><dd className="mt-1 text-sm font-bold text-slate-800">{exercise.muscleGroup}</dd></div>
         <div className="py-3 pl-3"><dt className="text-[0.68rem] font-semibold uppercase tracking-wide text-slate-400">Cấp độ</dt><dd className="mt-1 text-sm font-bold text-slate-800">{levelLabels[exercise.level] || exercise.level}</dd></div>
       </dl>
+
+      <div className="border-b border-slate-100 py-3"><span className={exercise.defaultTrackingType && exercise.defaultTrackingType !== 'UNCLASSIFIED' ? 'inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[0.68rem] font-bold text-primary' : 'inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[0.68rem] font-bold text-amber-700'}>{TRACKING_TYPE_LABELS[exercise.defaultTrackingType ?? 'UNCLASSIFIED']}</span></div>
 
       <div className="min-h-20 py-5">
         <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500"><Film size={14} className="text-secondary" /> {exercise.videos?.length || 0} video</p>

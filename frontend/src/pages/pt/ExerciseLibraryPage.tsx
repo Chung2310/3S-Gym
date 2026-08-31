@@ -9,7 +9,8 @@ import { errorMessage } from '../../types';
 
 // Components (mảnh UI)
 import ExerciseFilter from '../../components/exercises/ExerciseFilter';
-import ExerciseFormModal, { type Exercise } from '../../components/exercises/ExerciseFormModal';
+import ExerciseFormModal from '../../components/exercises/ExerciseFormModal';
+import type { Exercise } from '../../types';
 import ExerciseLibraryCard from '../../components/exercises/ExerciseLibraryCard';
 
 export default function ExerciseLibraryPage() {
@@ -20,6 +21,7 @@ export default function ExerciseLibraryPage() {
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0 });
   const [muscleGroup, setMuscleGroup] = useState('');
   const [level, setLevel] = useState('');
+  const [trackingType, setTrackingType] = useState('');
   const [formExercise, setFormExercise] = useState<Exercise | null | undefined>(undefined);
   const [deleteExercise, setDeleteExercise] = useState<Exercise | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -31,6 +33,7 @@ export default function ExerciseLibraryPage() {
     const query = new URLSearchParams({ page: String(page), limit: '20' });
     if (muscleGroup) query.set('muscleGroup', muscleGroup);
     if (level) query.set('level', level);
+    if (trackingType) query.set('defaultTrackingType', trackingType);
     try {
       const result = await api.get<Exercise[]>(`/api/exercises?${query}`);
       setItems(result.data);
@@ -40,7 +43,7 @@ export default function ExerciseLibraryPage() {
     } finally {
       setLoading(false);
     }
-  }, [level, muscleGroup, toast]);
+  }, [level, muscleGroup, toast, trackingType]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -79,10 +82,12 @@ export default function ExerciseLibraryPage() {
         <ExerciseFilter
           muscleGroup={muscleGroup}
           level={level}
+          trackingType={trackingType}
           onMuscleGroupChange={setMuscleGroup}
           onLevelChange={setLevel}
+          onTrackingTypeChange={setTrackingType}
           onFilter={() => void load()}
-          onClear={() => { setMuscleGroup(''); setLevel(''); }}
+          onClear={() => { setMuscleGroup(''); setLevel(''); setTrackingType(''); }}
         />
 
       </div>

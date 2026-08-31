@@ -2,7 +2,7 @@
 import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
 import { errorMessage } from '../../types';
-import type { Exercise } from '../exercises/ExerciseFormModal';
+import type { Exercise } from '../../types';
 import type { WorkoutTemplate } from './WorkoutTemplateList';
 import FormModal from '../ui/FormModal';
 

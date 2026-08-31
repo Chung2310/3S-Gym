@@ -130,3 +130,10 @@ it('requires a classified tracking type for new exercises and returns it from th
   expect(created.status).toBe(201);
   expect(created.body.data.defaultTrackingType).toBe('CARDIO');
 });
+
+it('filters exercises by tracking type', async () => {
+  const response = await request(app).get('/api/exercises?defaultTrackingType=CARDIO').set('Authorization', `Bearer ${ptToken}`);
+  expect(response.status).toBe(200);
+  expect(response.body.data).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'Treadmill Run', defaultTrackingType: 'CARDIO' })]));
+  expect(response.body.data.every((exercise: { defaultTrackingType: string }) => exercise.defaultTrackingType === 'CARDIO')).toBe(true);
+});

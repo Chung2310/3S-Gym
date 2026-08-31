@@ -3,8 +3,10 @@ import { Search, X, RotateCcw, RefreshCw } from 'lucide-react';
 interface ExerciseFilterProps {
   muscleGroup: string;
   level: string;
+  trackingType: string;
   onMuscleGroupChange: (value: string) => void;
   onLevelChange: (value: string) => void;
+  onTrackingTypeChange: (value: string) => void;
   onFilter: () => void;
   onClear: () => void;
 }
@@ -12,13 +14,15 @@ interface ExerciseFilterProps {
 export default function ExerciseFilter({
   muscleGroup,
   level,
+  trackingType,
   onMuscleGroupChange,
   onLevelChange,
+  onTrackingTypeChange,
   onFilter,
   onClear,
 }: ExerciseFilterProps) {
   return (
-    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_13rem_auto_auto] md:items-center">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_13rem_17rem_auto_auto] xl:items-center">
       <div className="relative min-w-0">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true" />
         <input
@@ -52,11 +56,15 @@ export default function ExerciseFilter({
         <option value="ADVANCED">Nâng cao</option>
       </select>
 
+      <select className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 font-montserrat text-sm text-slate-700 outline-none transition focus-visible:border-secondary focus-visible:ring-2 focus-visible:ring-secondary/20" aria-label="Cách ghi nhận" value={trackingType} onChange={(event) => onTrackingTypeChange(event.target.value)}>
+        <option value="">Tất cả cách ghi nhận</option><option value="UNCLASSIFIED">Chưa phân loại</option><option value="STRENGTH">Sức mạnh · mức tạ</option><option value="BODYWEIGHT">Trọng lượng cơ thể</option><option value="CARDIO">Cardio</option><option value="INTERVAL">Interval</option><option value="MOBILITY">Mobility</option>
+      </select>
+
       <button type="button" className="button button-secondary min-h-11" onClick={onFilter}>
         <RefreshCw size={15} /> Lọc bài tập
       </button>
 
-      {(muscleGroup || level) && (
+      {(muscleGroup || level || trackingType) && (
         <button type="button" className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-slate-100 px-3 font-montserrat text-xs font-semibold text-slate-600 transition hover:bg-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary" onClick={onClear}>
           <RotateCcw size={13} /> Xóa lọc
         </button>

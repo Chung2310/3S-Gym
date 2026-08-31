@@ -19,6 +19,7 @@ describe('ExerciseLibrary', () => {
           name: 'Squat',
           muscleGroup: 'LEGS',
           level: 'BEGINNER',
+          defaultTrackingType: 'STRENGTH',
           equipment: ['Barbell'],
           scope: 'PRIVATE',
           canManage: true,
@@ -76,6 +77,7 @@ describe('ExerciseLibrary', () => {
     await user.type(within(dialog).getByLabelText('Tên bài tập'), 'Barbell Row');
     await user.type(within(dialog).getByLabelText('Nhóm cơ'), 'BACK');
     await user.selectOptions(within(dialog).getByLabelText('Cấp độ'), 'INTERMEDIATE');
+    await user.selectOptions(within(dialog).getByLabelText('Cách ghi nhận'), 'STRENGTH');
     await user.click(within(dialog).getByRole('button', { name: 'Lưu bài tập' }));
     await waitFor(() =>
       expect(api.post).toHaveBeenCalledWith(
@@ -84,6 +86,7 @@ describe('ExerciseLibrary', () => {
           name: 'Barbell Row',
           muscleGroup: 'BACK',
           level: 'INTERMEDIATE',
+          defaultTrackingType: 'STRENGTH',
           scope: 'PRIVATE',
         })
       )
@@ -99,6 +102,7 @@ describe('ExerciseLibrary', () => {
     await user.type(within(dialog).getByLabelText('Tên bài tập'), 'Global Row');
     await user.type(within(dialog).getByLabelText('Nhóm cơ'), 'BACK');
     await user.selectOptions(within(dialog).getByLabelText('Phạm vi'), 'GLOBAL');
+    await user.selectOptions(within(dialog).getByLabelText('Cách ghi nhận'), 'STRENGTH');
     await user.click(within(dialog).getByRole('button', { name: 'Lưu bài tập' }));
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/api/exercises', expect.objectContaining({ scope: 'GLOBAL' })));
   });
@@ -111,6 +115,7 @@ describe('ExerciseLibrary', () => {
     const dialog = screen.getByRole('dialog', { name: 'Tạo bài tập' });
     await user.type(within(dialog).getByLabelText('Tên bài tập'), 'Video Row');
     await user.type(within(dialog).getByLabelText('Nhóm cơ'), 'BACK');
+    await user.selectOptions(within(dialog).getByLabelText('Cách ghi nhận'), 'STRENGTH');
     await user.click(within(dialog).getByRole('button', { name: 'Thêm video' }));
     await user.type(within(dialog).getByLabelText('Tiêu đề video 1'), 'Kỹ thuật chuẩn');
     await user.type(within(dialog).getByLabelText('Link video 1'), 'https://youtube.com/watch?v=row');
@@ -139,6 +144,16 @@ describe('ExerciseLibrary', () => {
     expect(links[0]).toHaveAttribute('target', '_blank');
     expect(links[0]).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getAllByRole('link', { name: 'Góc quay bên hông' })).not.toHaveLength(0);
+    expect(within(card).getByText('Sức mạnh · mức tạ')).toBeVisible();
+  });
+
+  it('filters the library by tracking type', async () => {
+    const user = userEvent.setup();
+    render(<ToastProvider><ExerciseLibraryPage /></ToastProvider>);
+    await screen.findAllByText('Squat');
+    await user.selectOptions(screen.getByLabelText('Cách ghi nhận'), 'CARDIO');
+    await user.click(screen.getByRole('button', { name: 'Lọc bài tập' }));
+    await waitFor(() => expect(api.get).toHaveBeenLastCalledWith('/api/exercises?page=1&limit=20&defaultTrackingType=CARDIO'));
   });
 
   it('chỉ xóa bài có quyền quản lý sau khi xác nhận', async () => {

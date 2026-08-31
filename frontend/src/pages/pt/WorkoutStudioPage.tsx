@@ -6,7 +6,7 @@ import { recommendExercises } from '../../services/workoutExerciseRecommendation
 import { errorMessage } from '../../types';
 import { useToast } from '../../components/ui/ToastProvider';
 import ConfirmModal from '../../components/ui/ConfirmModal';
-import type { Exercise } from '../../components/exercises/ExerciseFormModal';
+import type { Exercise } from '../../types';
 import StudioHeader from '../../components/workout-studio/StudioHeader';
 import StudioDayNavigator from '../../components/workout-studio/StudioDayNavigator';
 import ExercisePalette from '../../components/workout-studio/ExercisePalette';
