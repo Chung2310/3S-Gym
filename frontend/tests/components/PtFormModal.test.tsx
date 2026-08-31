@@ -27,9 +27,10 @@ it('gửi API cập nhật khi lưu popup sửa PT', async () => {
   expect(onSaved).toHaveBeenCalledWith(pt);
 });
 
-it('không chứa trường password trong form sửa PT', async () => {
+it('không chứa trường tài khoản (username, password, status) trong form sửa PT', async () => {
   render(<ToastProvider><PtFormModal open pt={pt} onClose={vi.fn()} onSaved={vi.fn()} /></ToastProvider>);
 
   expect(screen.queryByLabelText(/Mật khẩu/i)).not.toBeInTheDocument();
-  expect(screen.getByLabelText('Tên đăng nhập')).toHaveAttribute('readonly');
+  expect(screen.queryByLabelText(/Tên đăng nhập/i)).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/Trạng thái/i)).not.toBeInTheDocument();
 });

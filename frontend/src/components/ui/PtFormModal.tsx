@@ -132,13 +132,13 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
         .map((value) => value.trim())
         .filter(Boolean),
       bio: form.bio?.trim() || '',
-      status: form.status || 'ACTIVE',
     };
 
     if (!editing) {
       payload.role = 'PT';
       payload.username = form.username.trim();
       payload.password = form.password.trim();
+      payload.status = form.status || 'ACTIVE';
     }
 
     try {
@@ -349,49 +349,39 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
         </div>
       </section>
 
-      {/* Section 3: Tài khoản & Trạng thái */}
-      <section className="profile-form-section">
-        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <ShieldCheck size={16} color="var(--secondary-color)" /> {editing ? 'Trạng thái tài khoản' : 'Cấp tài khoản đăng nhập'}
-        </h3>
-        <div className="profile-form-grid">
-          {!editing ? (
-            <>
-              <FormField
-                label="Tên đăng nhập"
-                name="username"
-                value={form.username}
-                onChange={change}
-                required
-                placeholder="pt_tuan"
-              />
-              <FormField
-                label="Mật khẩu ban đầu"
-                name="password"
-                type="password"
-                minLength={8}
-                autoComplete="new-password"
-                value={form.password}
-                onChange={change}
-                required
-                placeholder="Tối thiểu 8 ký tự"
-              />
-            </>
-          ) : (
+      {/* Section 3: Cấp tài khoản đăng nhập (Chỉ hiển thị khi thêm PT mới) */}
+      {!editing && (
+        <section className="profile-form-section">
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ShieldCheck size={16} color="var(--secondary-color)" /> Cấp tài khoản đăng nhập
+          </h3>
+          <div className="profile-form-grid">
             <FormField
               label="Tên đăng nhập"
               name="username"
               value={form.username}
               onChange={change}
-              readOnly
+              required
+              placeholder="pt_tuan"
             />
-          )}
-          <FormField label="Trạng thái tài khoản" name="status" as="select" value={form.status} onChange={change}>
-            <option value="ACTIVE">Hoạt động (ACTIVE)</option>
-            <option value="LOCKED">Tạm khóa (LOCKED)</option>
-          </FormField>
-        </div>
-      </section>
+            <FormField
+              label="Mật khẩu ban đầu"
+              name="password"
+              type="password"
+              minLength={8}
+              autoComplete="new-password"
+              value={form.password}
+              onChange={change}
+              required
+              placeholder="Tối thiểu 8 ký tự"
+            />
+            <FormField label="Trạng thái tài khoản" name="status" as="select" value={form.status} onChange={change}>
+              <option value="ACTIVE">Hoạt động (ACTIVE)</option>
+              <option value="LOCKED">Tạm khóa (LOCKED)</option>
+            </FormField>
+          </div>
+        </section>
+      )}
     </ProfileFormModal>
   );
 }
