@@ -8,3 +8,4 @@ export const createTransferSchema: RequestValidationSchema = { body: Joi.object(
 export const updateTransferSchema: RequestValidationSchema = { params: idParams(), body: Joi.object({ toPtId: objectId.required(), reason: Joi.string().trim().required() }).messages(commonMessages) };
 export const transferIdSchema: RequestValidationSchema = { params: idParams() };
 export const forceTransferSchema: RequestValidationSchema = { params: idParams(), body: Joi.object(transferBody).messages(commonMessages) };
+export const directForceTransferSchema: RequestValidationSchema = { body: Joi.object(transferBody).messages(commonMessages) };

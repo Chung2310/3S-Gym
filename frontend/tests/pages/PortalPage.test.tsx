@@ -240,12 +240,12 @@ describe('PortalPage', () => {
     expect(await screen.findByRole('heading', { name: 'Giáo án của tôi' })).toBeVisible();
   });
 
-  it('giữ AppShell khi PT mở trợ lý dinh dưỡng', async () => {
-    render(<MemoryRouter initialEntries={['/pt/nutrition-assistant']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
+  it('giữ AppShell khi PT mở trợ lý AI', async () => {
+    render(<MemoryRouter initialEntries={['/pt/assistant']}><ToastProvider><PortalPage session={{ token: 'abc', user: { username: 'pt', role: 'PT' } }} /></ToastProvider></MemoryRouter>);
 
-    expect(await screen.findByRole('heading', { name: 'Trợ lý dinh dưỡng & Công cụ tính' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Trợ lý PT 3S' })).toBeVisible();
     expect(screen.getByRole('navigation', { name: 'Điều hướng portal' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Trợ lý dinh dưỡng' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Trợ lý PT 3S' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('chuyển route thư viện bài tập cũ sang tab trong Giáo án của tôi', async () => {

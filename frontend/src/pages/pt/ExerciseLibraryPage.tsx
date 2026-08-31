@@ -67,9 +67,7 @@ export default function ExerciseLibraryPage() {
     <section className="module-page exercise-page" aria-label="Thư viện bài tập">
       <header className="module-header exercise-header">
         <div>
-          <p className="exercise-eyebrow">Workout resources</p>
           <h1 className="module-heading">Thư viện bài tập</h1>
-          <p className="module-description">Quản lý bài tập cá nhân và nội dung dùng chung trong một thư viện thống nhất.</p>
         </div>
         <div className="module-actions">
           <span className="exercise-count">{meta.total ?? items.length} bài tập</span>

@@ -62,10 +62,7 @@ export default function NutritionPage() {
     <section style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
       {/* Header */}
       <div className="section-header">
-        <div>
-          <h1>Trợ Lý Dinh Dưỡng & Thực Đơn Cơm Việt</h1>
-          <p>Tính toán BMR/Macro khoa học, AI thiết kế thực đơn cơm Việt thực tế và theo dõi calo.</p>
-        </div>
+        <h1 style={{ margin: 0 }}>Trợ Lý Dinh Dưỡng & Thực Đơn Cơm Việt</h1>
       </div>
 
       {/* Customer Lookup & Quick Filter Bar */}

@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import Exercise from '../models/Exercise.js';
+import { withTransaction } from '../services/transactionService.js';
 import { authenticate, authorize } from '../middlewares/auth.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { success } from '../middlewares/response.js';
@@ -50,15 +51,12 @@ router.get('/', validate(listWorkoutTemplatesSchema), asyncHandler(async (req, r
   return success(res, { message: 'Lấy danh sách giáo án mẫu thành công.', data: items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } });
 }));
 router.post('/', validate(createWorkoutTemplateSchema), asyncHandler(async (req, res) => {
-  const dbSession = await mongoose.startSession();
-  let created: any;
-  try {
-    await dbSession.withTransaction(async () => {
-      await materializeGeneratedExercises(req.body, req.user!.id, dbSession);
-      const sessions = req.body.scheduledExercises?.length ? sessionsFromSchedule(req.body.scheduledExercises) : req.body.sessions;
-      [created] = await WorkoutTemplate.create([{ ...req.body, sessions, ownerPtId: req.user!.id }], { session: dbSession });
-    });
-  } finally { await dbSession.endSession(); }
+  const created = await withTransaction(async (dbSession) => {
+    await materializeGeneratedExercises(req.body, req.user!.id, dbSession);
+    const sessions = req.body.scheduledExercises?.length ? sessionsFromSchedule(req.body.scheduledExercises) : req.body.sessions;
+    const [template] = await WorkoutTemplate.create([{ ...req.body, sessions, ownerPtId: req.user!.id }], { session: dbSession });
+    return template;
+  });
   return success(res, { status: 201, message: 'Tạo giáo án mẫu thành công.', data: created });
 }));
 router.get('/:id', validate(workoutTemplateIdSchema), asyncHandler(async (req, res) => { const item = await WorkoutTemplate.findOne({ _id: req.params.id, ownerPtId: req.user!.id }); if (!item) throw missing(); return success(res, { message: 'Lấy giáo án mẫu thành công.', data: item }); }));

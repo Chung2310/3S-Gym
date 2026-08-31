@@ -26,7 +26,7 @@ interface SectionHeaderProps { title: string; description: string; action?: Reac
 interface CustomerContent { inbody: PortalItem[]; goals: PortalItem[]; workoutPlans: PortalItem[]; nutritionPlans: PortalItem[]; progressReports: PortalItem[] }
 
 function SectionHeader({ title, description, action }: SectionHeaderProps) {
-  return <div className="section-header"><div><h1>{title}</h1><p>{description}</p></div>{action}</div>;
+  return <div className="section-header"><div><h1>{title}</h1>{description ? <p>{description}</p> : null}</div>{action}</div>;
 }
 
 export function AdminView() {
@@ -207,7 +207,7 @@ export function PtView() {
     setCustomerForm({ open: false, customer: null });
   };
   return <>
-    <SectionHeader title="Khách hàng của tôi" description="Quản lý hồ sơ và công bố nội dung cho khách hàng." action={<button className="button button-primary" onClick={openCreateForm}><Plus size={18} /> Tạo mới</button>} />
+    <SectionHeader title="Khách hàng của tôi" description="" action={<button className="button button-primary" onClick={openCreateForm}><Plus size={18} /> Tạo mới</button>} />
     <div className="customer-browser-tabs" role="tablist" aria-label="Nội dung khách hàng">{ptTabs.map(({ value, label, icon: Icon }) => <button id={`customer-tab-${value}`} type="button" role="tab" aria-selected={tab === value} aria-controls="customer-tab-panel" key={value} className={tab === value ? 'active' : ''} onClick={() => selectTab(value)}><Icon size={16} aria-hidden="true" /><span>{label}</span></button>)}</div>
     <ContentFormModal open={showForm && tab !== 'customers'} resource={tab as Resource} item={formItem as ContentItem | null} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); load(); }} />
     <CustomerAccountModal open={Boolean(accountCustomer)} customer={accountCustomer} onClose={() => setAccountCustomer(null)} onSaved={() => { setAccountCustomer(null); load(); }} />
@@ -361,5 +361,5 @@ export function CustomerView() {
   const [content, setContent] = useState<CustomerContent>({ inbody: [], goals: [], workoutPlans: [], nutritionPlans: [], progressReports: [] });
   useEffect(() => { api.get<CustomerContent>('/api/me/content').then((result) => setContent(result.data)).catch((error: unknown) => toast.error(errorMessage(error))); }, [toast]);
   const groups: Array<[keyof CustomerContent, string]> = [['inbody', 'Kết quả InBody'], ['goals', 'Mục tiêu'], ['workoutPlans', 'Giáo án'], ['nutritionPlans', 'Dinh dưỡng'], ['progressReports', 'Báo cáo tiến độ']];
-  return <><SectionHeader title="Hành trình của tôi" description="Các nội dung đã được PT xác nhận và công bố." /><div className="customer-content-grid">{groups.map(([key, label]) => <section className="panel" key={key}><h2>{label}</h2>{content[key]?.length ? content[key].map((item) => <article className="published-card" key={item._id}><StatusBadge status={item.status} /><h3>{item.title || (item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : label)}</h3>{item.weight && <p>Cân nặng: <strong>{item.weight} kg</strong></p>}{item.targetCalories && <p>Calories mục tiêu: <strong>{item.targetCalories} kcal</strong></p>}</article>) : <div className="empty-state">PT chưa công bố nội dung.</div>}</section>)}</div></>;
+  return <><SectionHeader title="Hành trình của tôi" description="" /><div className="customer-content-grid">{groups.map(([key, label]) => <section className="panel" key={key}><h2>{label}</h2>{content[key]?.length ? content[key].map((item) => <article className="published-card" key={item._id}><StatusBadge status={item.status} /><h3>{item.title || (item.measurementDate ? new Date(item.measurementDate).toLocaleDateString('vi-VN') : label)}</h3>{item.weight && <p>Cân nặng: <strong>{item.weight} kg</strong></p>}{item.targetCalories && <p>Calories mục tiêu: <strong>{item.targetCalories} kcal</strong></p>}</article>) : <div className="empty-state">PT chưa công bố nội dung.</div>}</section>)}</div></>;
 }

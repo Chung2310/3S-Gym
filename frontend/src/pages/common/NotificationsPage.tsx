@@ -12,8 +12,8 @@ import NotificationList, { type Notification } from '../../components/notificati
 const destinations: Record<string, string> = {
   calendarEvents: '/calendar',
   progressReports: '/me',
-  careTask: '/pt/care',
-  careAlert: '/pt/care',
+  careTask: '/pt/dashboard',
+  careAlert: '/pt/dashboard',
 };
 
 export default function NotificationsPage() {

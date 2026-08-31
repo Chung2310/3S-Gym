@@ -215,4 +215,3 @@ Each migration slice runs its focused Vitest files and TypeScript typecheck. Fin
 - Only data-dependent timeline CSS custom properties remain inline.
 - Loading, empty, filtered-empty, error, disabled, focus, pressed, and reduced-motion states are covered.
 - Focused tests, the full test suite, production build, and diff checks pass.
-

@@ -13,7 +13,7 @@ const activePlan = { _id: 'plan-1', sourceTemplateId: 'template-1', title: 'Stre
 
 it('shows an explicit empty state without an active plan', () => {
   render(<ToastProvider><WorkoutSessionLogger customerId="customer-1" activePlan={null} onSaved={vi.fn()} /></ToastProvider>);
-  expect(screen.getByText('Khách hàng chưa có giáo án đang áp dụng.')).toBeVisible();
+  expect(screen.getByRole('heading', { name: 'Chưa có giáo án đang áp dụng' })).toBeVisible();
 });
 
 it('renders complete set details, volume, RPE, feeling and notes', () => {
@@ -29,6 +29,7 @@ it('materializes planned sets and posts detailed workout logs', async () => {
   vi.mocked(api.post).mockResolvedValue({ data: { _id: 'session-1' }, message: 'Đã lưu.' });
   const user = userEvent.setup(); const onSaved = vi.fn();
   render(<ToastProvider><WorkoutSessionLogger customerId="customer-1" activePlan={activePlan} onSaved={onSaved} /></ToastProvider>);
+  expect(screen.getByRole('form', { name: 'Ghi nhận buổi tập' })).toBeVisible();
   await user.type(screen.getByLabelText('Ngày tập'), '2026-08-29');
   await user.clear(screen.getByLabelText('Squat set 1 mức tạ'));
   await user.type(screen.getByLabelText('Squat set 1 mức tạ'), '60');
