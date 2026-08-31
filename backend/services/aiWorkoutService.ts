@@ -1,6 +1,7 @@
 import CustomerProfile from '../models/CustomerProfile.js';
 import Goal from '../models/Goal.js';
 import InBodyRecord from '../models/InBodyRecord.js';
+import Exercise from '../models/Exercise.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { generateText } from './aiProvider.js';
@@ -18,6 +19,14 @@ export interface WorkoutProposal {
 }
 
 export interface WorkoutGenerationInput { customerId: string; proposal: WorkoutProposal; additionalRequest?: string }
+
+interface AiScheduledExercise {
+  exerciseId: string;
+  weekNumber: number;
+  dayNumber: number;
+  startMinute: number;
+  durationMinutes: number;
+}
 
 function parseProposal(raw: string): WorkoutProposal {
   const match = raw.match(/\{[\s\S]*\}/);
@@ -45,12 +54,47 @@ export async function generateWorkoutDraft(user: AuthenticatedUser, input: Worko
   if (!customer) throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền tạo giáo án cho học viên này.' });
   const proposal = input.proposal;
   if (proposal.durationWeeks < 4 || proposal.durationWeeks > 12) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Chu kỳ AI phải từ 4 đến 12 tuần.' });
-  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-draft` }, `Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises, generatedExercises. Mỗi scheduledExercises có weekNumber, dayNumber, startMinute, durationMinutes, name, trackingType và prescription đúng loại. trackingType chỉ là STRENGTH, BODYWEIGHT, CARDIO, INTERVAL hoặc MOBILITY. Cấu hình đã duyệt: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}.`);
+  const library = await Exercise.find({
+    $and: [
+      { $or: [{ scope: 'GLOBAL' }, { ownerPtId: user.id }] },
+      { defaultTrackingType: { $in: ['STRENGTH', 'BODYWEIGHT', 'CARDIO', 'INTERVAL', 'MOBILITY'] } },
+    ],
+  }).sort({ name: 1 }).limit(200).select('_id name muscleGroup level equipment defaultTrackingType').lean();
+  if (!library.length) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Thư viện chưa có bài tập đã cấu hình cách ghi nhận. Vui lòng cập nhật Quản lý bài tập trước khi tạo giáo án AI.' });
+  const catalog = library.map((exercise) => ({
+    exerciseId: String(exercise._id),
+    name: exercise.name,
+    muscleGroup: exercise.muscleGroup,
+    level: exercise.level,
+    equipment: exercise.equipment,
+    trackingType: exercise.defaultTrackingType,
+  }));
+  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-draft` }, `Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises. Mỗi phần tử scheduledExercises chỉ gồm exerciseId, weekNumber, dayNumber, startMinute, durationMinutes. Chỉ được dùng exerciseId có trong thư viện cung cấp; không tự tạo bài tập, không trả về trackingType, prescription hoặc thông số mục tiêu. Ngày không có bài tập là ngày nghỉ hợp lệ. startMinute và durationMinutes dùng bước 15 phút, bài tập không được trùng thời gian trong cùng ngày. Cấu hình đã duyệt: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}. Thư viện bài tập: ${JSON.stringify(catalog)}.`);
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về giáo án hợp lệ.' });
   let draft: any;
   try { draft = JSON.parse(match[0]); } catch { throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về giáo án hợp lệ.' }); }
-  if (!draft?.title || !Array.isArray(draft.scheduledExercises) || !Array.isArray(draft.generatedExercises) || draft.durationWeeks !== proposal.durationWeeks) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về giáo án thiếu hoặc sai dữ liệu.' });
-  for (const item of draft.scheduledExercises) if (!Number.isInteger(item.weekNumber) || item.weekNumber < 1 || item.weekNumber > proposal.durationWeeks || !Number.isInteger(item.dayNumber) || item.dayNumber < 1 || item.dayNumber > 7 || !Number.isInteger(item.startMinute) || item.startMinute % 15 || !Number.isInteger(item.durationMinutes) || item.durationMinutes < 15 || !item.name || !['STRENGTH', 'BODYWEIGHT', 'CARDIO', 'INTERVAL', 'MOBILITY'].includes(item.trackingType) || !item.prescription || typeof item.prescription !== 'object') throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về lịch tập không hợp lệ.' });
-  return draft;
+  if (!draft?.title || !Array.isArray(draft.scheduledExercises) || draft.durationWeeks !== proposal.durationWeeks) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về giáo án thiếu hoặc sai dữ liệu.' });
+  const libraryById = new Map(library.map((exercise) => [String(exercise._id), exercise]));
+  const scheduledExercises = (draft.scheduledExercises as AiScheduledExercise[]).map((item) => {
+    const exercise = libraryById.get(String(item.exerciseId));
+    if (!exercise || !Number.isInteger(item.weekNumber) || item.weekNumber < 1 || item.weekNumber > proposal.durationWeeks || !Number.isInteger(item.dayNumber) || item.dayNumber < 1 || item.dayNumber > 7 || !Number.isInteger(item.startMinute) || item.startMinute < 0 || item.startMinute > 1425 || item.startMinute % 15 || !Number.isInteger(item.durationMinutes) || item.durationMinutes < 15 || item.durationMinutes % 15 || item.startMinute + item.durationMinutes > 1440) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về lịch tập không hợp lệ hoặc dùng bài tập ngoài thư viện.' });
+    return {
+      exerciseId: String(exercise._id),
+      name: exercise.name,
+      trackingType: exercise.defaultTrackingType,
+      prescription: {},
+      weekNumber: item.weekNumber,
+      dayNumber: item.dayNumber,
+      startMinute: item.startMinute,
+      durationMinutes: item.durationMinutes,
+    };
+  });
+  const sortedSchedule = [...scheduledExercises].sort((left, right) => left.weekNumber - right.weekNumber || left.dayNumber - right.dayNumber || left.startMinute - right.startMinute);
+  for (let index = 1; index < sortedSchedule.length; index += 1) {
+    const previous = sortedSchedule[index - 1];
+    const current = sortedSchedule[index];
+    if (previous.weekNumber === current.weekNumber && previous.dayNumber === current.dayNumber && current.startMinute < previous.startMinute + previous.durationMinutes) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về các bài tập bị trùng thời gian.' });
+  }
+  return { ...draft, scheduledExercises, generatedExercises: [] };
 }

@@ -4,10 +4,10 @@ export type ClassifiedTrackingType = Exclude<TrackingType, 'UNCLASSIFIED'>;
 export type SessionTrackingType = TrackingType | 'LEGACY_STRENGTH';
 export type ExerciseSide = 'LEFT' | 'RIGHT' | 'BOTH';
 
-export interface StrengthPrescription { sets: number; reps?: string; targetWeight?: number; targetRpe?: number; targetRir?: number; restSeconds?: number }
-export interface BodyweightPrescription { sets: number; reps?: string; addedWeight?: number; targetRpe?: number; targetRir?: number; restSeconds?: number }
+export interface StrengthPrescription { sets?: number; reps?: string; targetWeight?: number; targetRpe?: number; targetRir?: number; restSeconds?: number }
+export interface BodyweightPrescription { sets?: number; reps?: string; addedWeight?: number; targetRpe?: number; targetRir?: number; restSeconds?: number }
 export interface CardioPrescription { durationMinutes?: number; distanceKm?: number; targetPaceSecondsPerKm?: number; targetHeartRate?: number; inclinePercent?: number; targetRpe?: number }
-export interface IntervalPrescription { rounds: number; workSeconds?: number; restSeconds?: number; distanceMetersPerRound?: number; repsPerRound?: number; targetRpe?: number }
+export interface IntervalPrescription { rounds?: number; workSeconds?: number; restSeconds?: number; distanceMetersPerRound?: number; repsPerRound?: number; targetRpe?: number }
 export interface MobilityPrescription { durationMinutes?: number; reps?: number; side?: ExerciseSide; targetDiscomfort?: number }
 export type TrackingPrescription = StrengthPrescription | BodyweightPrescription | CardioPrescription | IntervalPrescription | MobilityPrescription | Record<string, never>;
 

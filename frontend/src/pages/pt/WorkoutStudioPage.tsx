@@ -114,7 +114,7 @@ export default function WorkoutStudioPage() {
         setInspectorOpen(true);
         setStudioView('inspector');
       }
-      return toast.error(`Vui lòng chọn cách ghi nhận cho ${invalid.name}.`);
+      return toast.error(`Bài tập ${invalid.name} chưa có cách ghi nhận. Vui lòng cập nhật trong Quản lý bài tập rồi thêm lại vào giáo án.`);
     }
     setSaving(true);
     try {
