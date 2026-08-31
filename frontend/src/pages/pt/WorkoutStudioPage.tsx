@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../services/api';
-import { DAY_MINUTES, hasOverlap, SLOT_HEIGHT, SLOT_MINUTES, snapMinute } from '../../services/workoutStudioModel';
+import { DAY_MINUTES, DAYS_PER_WEEK, hasOverlap, planDayIndex, planDaysForWeek, planWeekCount, SLOT_HEIGHT, SLOT_MINUTES, snapMinute } from '../../services/workoutStudioModel';
 import { recommendExercises } from '../../services/workoutExerciseRecommendations';
 import { errorMessage } from '../../types';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -14,6 +14,11 @@ import DayTimeline from '../../components/workout-studio/DayTimeline';
 import StudioSidebar from '../../components/workout-studio/StudioSidebar';
 import type { ScheduledExercise, StudioTemplate, TemplateMetadata } from '../../types/workoutStudio';
 const createScheduled = (exercise: Exercise, weekNumber: number, dayNumber: number, startMinute: number): ScheduledExercise => ({ id: crypto.randomUUID(), weekNumber, dayNumber, startMinute, durationMinutes: 60, exerciseId: exercise._id, name: exercise.name });
+const hydrateScheduled = (item: Omit<ScheduledExercise, 'id'>): ScheduledExercise => {
+  const normalizedWeek = item.dayNumber > DAYS_PER_WEEK ? Math.max(item.weekNumber || 1, Math.ceil(item.dayNumber / DAYS_PER_WEEK)) : item.weekNumber || 1;
+  const normalizedDay = item.dayNumber > DAYS_PER_WEEK ? ((item.dayNumber - 1) % DAYS_PER_WEEK) + 1 : item.dayNumber;
+  return { ...item, weekNumber: normalizedWeek, dayNumber: normalizedDay, id: crypto.randomUUID() };
+};
 const emptyMetadata: TemplateMetadata = { muscleGroups: [], defaultReps: '', defaultWeight: '', defaultTempo: '', technicalNotes: '' };
 type PendingConfirmation = { kind: 'back' | 'navigate'; destination: string } | { kind: 'duration'; nextDays: number; affectedCount: number };
 type StudioView = 'schedule' | 'library' | 'inspector';
@@ -41,7 +46,7 @@ export default function WorkoutStudioPage() {
     const draft = (location.state as { aiWorkoutDraft?: any } | null)?.aiWorkoutDraft;
     if (templateId || customerMode || !draft) return;
     setTitle(draft.title || 'Giáo án AI'); setGoal(draft.goal || ''); setLevel(draft.level || 'BEGINNER'); setDurationDays(7);
-    setItems((draft.scheduledExercises || []).map((item: ScheduledExercise) => ({ ...item, weekNumber: item.weekNumber || 1, id: crypto.randomUUID() })));
+    setItems((draft.scheduledExercises || []).map(hydrateScheduled));
     setGeneratedExercises(draft.generatedExercises || []); setDirty(true);
   }, [location.state, templateId, customerMode]);
   useEffect(() => {
@@ -51,7 +56,7 @@ export default function WorkoutStudioPage() {
       setCustomerName(data.customerName || data.customerId?.fullName || 'Khách hàng');
       setTitle(data.title); setGoal(data.goal); setLevel(data.level); setDurationDays(data.durationDays || Math.max(1, data.sessions.length));
       setMetadata({ muscleGroups: data.muscleGroups || [], defaultSets: data.defaultSets, defaultReps: data.defaultReps || '', defaultWeight: data.defaultWeight || '', defaultTempo: data.defaultTempo || '', technicalNotes: data.technicalNotes || '' });
-      if (data.scheduledExercises?.length) setItems(data.scheduledExercises.map((item) => ({ ...item, id: crypto.randomUUID() })));
+      if (data.scheduledExercises?.length) setItems(data.scheduledExercises.map(hydrateScheduled));
       const persistedUnscheduled = data.unscheduledExercises?.map((exercise) => ({ ...exercise, id: crypto.randomUUID(), dayNumber: 1, startMinute: 0 })) || [];
       const legacyUnscheduled = !data.scheduledExercises?.length && !persistedUnscheduled.length ? data.sessions.flatMap((session) => session.exercises.map((exercise) => ({ id: crypto.randomUUID(), dayNumber: 1, startMinute: 0, durationMinutes: 60, exerciseId: exercise.exerciseId, name: exercise.name, sets: exercise.sets || 3, reps: exercise.reps || '', weight: exercise.weight == null ? '' : String(exercise.weight), rpe: exercise.rpe, rir: exercise.rir, tempo: exercise.tempo || '', restSeconds: exercise.restSeconds || 0, notes: exercise.notes || '' }))) : [];
       setUnscheduled([...persistedUnscheduled, ...legacyUnscheduled]);
@@ -68,23 +73,26 @@ export default function WorkoutStudioPage() {
 
   const mutate = (next: ScheduledExercise[]) => { setItems(next); setDirty(true); };
   const place = (exercise: Exercise, startMinute: number) => { const candidate = createScheduled(exercise, activeWeek, activeDay, Math.min(startMinute, 1380)); if (hasOverlap(items, candidate)) return toast.error('Khung giờ này đã có bài tập.'); mutate([...items, candidate]); setSelectedId(candidate.id); setInspectorOpen(true); closeStudioPanel(); };
-  const placeUnscheduled = (item: ScheduledExercise) => { const candidate = { ...item, dayNumber: activeDay, startMinute: Math.min(480, DAY_MINUTES - item.durationMinutes) }; if (hasOverlap(items, candidate)) return toast.error('Khung giờ này đã có bài tập.'); mutate([...items, candidate]); setUnscheduled((current) => current.filter((value) => value.id !== item.id)); setSelectedId(item.id); setInspectorOpen(true); closeStudioPanel(); };
+  const placeUnscheduled = (item: ScheduledExercise) => { const candidate = { ...item, weekNumber: activeWeek, dayNumber: activeDay, startMinute: Math.min(480, DAY_MINUTES - item.durationMinutes) }; if (hasOverlap(items, candidate)) return toast.error('Khung giờ này đã có bài tập.'); mutate([...items, candidate]); setUnscheduled((current) => current.filter((value) => value.id !== item.id)); setSelectedId(item.id); setInspectorOpen(true); closeStudioPanel(); };
   const moveScheduled = (item: ScheduledExercise, deltaMinutes: number) => { const startMinute = Math.max(0, Math.min(DAY_MINUTES - item.durationMinutes, item.startMinute + deltaMinutes)); const candidate = { ...item, startMinute }; if (hasOverlap(items, candidate)) return toast.error('Khung giờ này đã có bài tập.'); mutate(items.map((value) => value.id === item.id ? candidate : value)); setSelectedId(item.id); };
-  const drop = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); const rect = event.currentTarget.getBoundingClientRect(); const startMinute = snapMinute(((event.clientY - rect.top) / rect.height) * DAY_MINUTES); const itemId = event.dataTransfer.getData('scheduleId'); if (itemId) { const current = items.find((item) => item.id === itemId); if (!current) return; const candidate = { ...current, dayNumber: activeDay, startMinute: Math.min(startMinute, DAY_MINUTES - current.durationMinutes) }; if (hasOverlap(items, candidate)) return toast.error('Khung giờ này đã có bài tập.'); mutate(items.map((item) => item.id === itemId ? candidate : item)); return; } const exercise = library.find((item) => item._id === event.dataTransfer.getData('exerciseId')); if (exercise) place(exercise, startMinute); };
+  const drop = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); const rect = event.currentTarget.getBoundingClientRect(); const startMinute = snapMinute(((event.clientY - rect.top) / rect.height) * DAY_MINUTES); const itemId = event.dataTransfer.getData('scheduleId'); if (itemId) { const current = items.find((item) => item.id === itemId); if (!current) return; const candidate = { ...current, weekNumber: activeWeek, dayNumber: activeDay, startMinute: Math.min(startMinute, DAY_MINUTES - current.durationMinutes) }; if (hasOverlap(items, candidate)) return toast.error('Khung giờ này đã có bài tập.'); mutate(items.map((item) => item.id === itemId ? candidate : item)); return; } const exercise = library.find((item) => item._id === event.dataTransfer.getData('exerciseId')); if (exercise) place(exercise, startMinute); };
   const updateSelected = (patch: Partial<ScheduledExercise>) => { if (!selected) return; const candidate = { ...selected, ...patch }; if (candidate.startMinute + candidate.durationMinutes > DAY_MINUTES || hasOverlap(items, candidate)) return toast.error('Thời gian bài tập không hợp lệ hoặc bị trùng.'); mutate(items.map((item) => item.id === selected.id ? candidate : item)); };
   const applyDurationDays = (next: number) => {
-    const affected = items.filter((item) => item.dayNumber > next);
+    const affected = items.filter((item) => planDayIndex(item) > next);
     if (affected.length) {
       setUnscheduled((current) => [...current, ...affected]);
-      setItems((current) => current.filter((item) => item.dayNumber <= next));
+      setItems((current) => current.filter((item) => planDayIndex(item) <= next));
     }
     setDurationDays(next);
-    setActiveDay((day) => Math.min(day, next));
+    const nextActiveWeek = Math.min(activeWeek, planWeekCount(next));
+    const nextWeekDays = planDaysForWeek(next, nextActiveWeek);
+    setActiveWeek(nextActiveWeek);
+    setActiveDay((day) => Math.min(day, nextWeekDays.length));
     setDirty(true);
   };
   const changeDurationDays = (raw: number) => {
     const next = Math.max(1, Math.min(365, raw));
-    const affectedCount = items.filter((item) => item.dayNumber > next).length;
+    const affectedCount = items.filter((item) => planDayIndex(item) > next).length;
     if (affectedCount) {
       setPendingConfirmation({ kind: 'duration', nextDays: next, affectedCount });
       return;
@@ -102,12 +110,13 @@ export default function WorkoutStudioPage() {
     if (pending.kind === 'duration') applyDurationDays(pending.nextDays);
   };
   const closeStudioPanel = () => { const trigger = studioViewTabs.current[studioView]; setStudioView('schedule'); trigger?.focus(); };
-  const dayButtons = useMemo(() => Array.from({ length: durationDays }, (_, index) => index + 1), [durationDays]);
+  const weekButtons = useMemo(() => Array.from({ length: planWeekCount(durationDays) }, (_, index) => index + 1), [durationDays]);
+  const dayButtons = useMemo(() => planDaysForWeek(durationDays, activeWeek), [durationDays, activeWeek]);
 
   return <section aria-label="Workout Studio" className={`module-page workout-studio ${inspectorOpen ? 'inspector-open' : ''}`}>
     <StudioHeader contextLabel={customerMode ? `Giáo án của ${customerName}` : undefined} readOnly={readOnly} title={title} goal={goal} level={level} durationDays={durationDays} dirty={dirty} saving={saving} onBack={() => { const destination = customerMode ? '/pt/customers' : '/pt/my-workout-plans'; if (dirty) setPendingConfirmation({ kind: 'back', destination }); else navigate(destination); }} onTitleChange={(value) => { setTitle(value); setDirty(true); }} onGoalChange={(value) => { setGoal(value); setDirty(true); }} onLevelChange={(value) => { setLevel(value); setDirty(true); }} onDurationDaysChange={changeDurationDays} onSave={() => void save()} />
     <nav className="studio-period-navigation" aria-label="Thời gian giáo án">
-      <div className="studio-week-list">{Array.from({ length: Math.max(1, ...items.map((item) => item.weekNumber || 1)) }, (_, index) => index + 1).map((week) => <button key={week} type="button" aria-current={week === activeWeek} onClick={() => setActiveWeek(week)}>Tuần {week}</button>)}</div>
+      <div className="studio-week-list">{weekButtons.map((week) => <button key={week} type="button" aria-current={week === activeWeek} onClick={() => { setActiveWeek(week); setActiveDay((day) => Math.min(day, planDaysForWeek(durationDays, week).length)); }}>Tuần {week}</button>)}</div>
       <StudioDayNavigator days={dayButtons} activeDay={activeDay} totalMinutes={totalMinutes} onChange={setActiveDay} />
     </nav>
     <div className="studio-view-tabs" role="tablist" aria-label="Khu vực thiết kế giáo án">

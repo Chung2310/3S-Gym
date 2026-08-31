@@ -95,6 +95,22 @@ it('automatically recommends library exercises from the free-text plan goal', as
   expect(screen.getByRole('button', { name: /Đẩy ngực.*08:00–09:00/ })).toBeVisible();
 });
 
+it('creates another week when the plan duration exceeds seven days', async () => {
+  vi.mocked(api.get).mockResolvedValue({ data: [], message: '' });
+  const user = userEvent.setup();
+  render(<MemoryRouter><ToastProvider><WorkoutStudioPage /></ToastProvider></MemoryRouter>);
+
+  expect(screen.getByRole('button', { name: 'Tuần 1' })).toHaveAttribute('aria-current', 'true');
+  expect(screen.queryByRole('button', { name: 'Tuần 2' })).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Số ngày giáo án'), { target: { value: '8' } });
+
+  await user.click(screen.getByRole('button', { name: 'Ngày 7' }));
+  await user.click(screen.getByRole('button', { name: 'Tuần 2' }));
+  expect(screen.getByRole('button', { name: 'Tuần 2' })).toHaveAttribute('aria-current', 'true');
+  expect(screen.getByRole('button', { name: 'Ngày 1' })).toHaveAttribute('aria-current', 'true');
+  expect(screen.queryByRole('button', { name: 'Ngày 2' })).not.toBeInTheDocument();
+});
+
 it('moves a scheduled card with pointer events for touch devices', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: [{ _id: 'squat', name: 'Squat', muscleGroup: 'LEGS', level: 'BEGINNER', scope: 'PRIVATE' }], message: '' });
   const user = userEvent.setup();
