@@ -1,17 +1,15 @@
 import { useSearchParams } from 'react-router-dom';
-import { LayoutDashboard, Users, SlidersHorizontal, UserCheck, Package } from 'lucide-react';
+import { LayoutDashboard, SlidersHorizontal, UserCheck, Package } from 'lucide-react';
 import AdminDashboardPage from '../components/admin/AdminDashboardPage';
 import PtManagementView from '../components/admin/PtManagementView';
-import UserManagementView from '../components/admin/UserManagementView';
 import FeatureFlagsView from '../components/admin/FeatureFlagsView';
 import PackageTemplateView from '../components/admin/PackageTemplateView';
 
-type AdminTab = 'overview' | 'pts' | 'users' | 'packages' | 'flags';
+type AdminTab = 'overview' | 'pts' | 'packages' | 'flags';
 
-const TABS: Array<{ id: AdminTab; label: string; icon: typeof LayoutDashboard }> = [
-  { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
+const TABS: Array<{ id: AdminTab; label: string; icon: any }> = [
+  { id: 'overview', label: 'Tổng quan & KPI', icon: LayoutDashboard },
   { id: 'pts', label: 'Huấn luyện viên (PT)', icon: UserCheck },
-  { id: 'users', label: 'Toàn bộ tài khoản', icon: Users },
   { id: 'packages', label: 'Gói tập mẫu', icon: Package },
   { id: 'flags', label: 'Tính năng hệ thống', icon: SlidersHorizontal },
 ];
@@ -63,7 +61,6 @@ export default function AdminRoutes() {
       >
         {activeTab === 'overview' && <AdminDashboardPage />}
         {activeTab === 'pts' && <PtManagementView />}
-        {activeTab === 'users' && <UserManagementView />}
         {activeTab === 'packages' && <PackageTemplateView />}
         {activeTab === 'flags' && <FeatureFlagsView />}
       </div>

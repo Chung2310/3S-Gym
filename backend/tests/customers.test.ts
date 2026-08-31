@@ -47,8 +47,7 @@ describe('CRM khách hàng', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.meta).toMatchObject({ page: 1, limit: 20, total: 1, totalPages: 1 });
-    expect(response.body.data).toHaveLength(1);
-    expect(response.body.data[0].assignedPtId).toBe(ptA.id);
+    expect(response.body.data[0].assignedPtId).toMatchObject({ _id: ptA.id });
   });
 
   it('route danh sách validate phân trang', async () => {

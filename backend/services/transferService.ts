@@ -85,14 +85,47 @@ async function forceTransfer(user: AuthenticatedUser, requestId: string, payload
   return withTransaction(async (session) => {
     const customer = await CustomerProfile.findById(payload.customerId).session(session);
     if (!customer) throw businessError('Không tìm thấy khách hàng.', 404);
+
+    let fromPtName = 'Chưa có PT';
+    if (customer.assignedPtId) {
+      const fromPt = await User.findById(customer.assignedPtId).session(session);
+      if (fromPt) fromPtName = fromPt.fullName || fromPt.username || 'PT cũ';
+    }
+
     const existing = await TransferRequest.findOne({ _id: requestId, status: 'PENDING' }).session(session);
-    const transfer = existing || new TransferRequest({ _id: requestId, customerId: customer._id, fromPtId: customer.assignedPtId, toPtId: payload.toPtId, reason: payload.reason });
-    transfer.toPtId = new Types.ObjectId(payload.toPtId); transfer.toPtName = toPt.fullName || toPt.username; transfer.reason = payload.reason;
-    transfer.status = 'ADMIN_FORCED'; transfer.resolvedById = new Types.ObjectId(user.id); transfer.resolvedByName = user.fullName || user.username || ''; transfer.resolvedAt = new Date();
+    const transfer = existing || new TransferRequest({
+      _id: requestId,
+      customerId: customer._id,
+      fromPtId: customer.assignedPtId,
+      fromPtName,
+      toPtId: payload.toPtId,
+      toPtName: toPt.fullName || toPt.username,
+      reason: payload.reason,
+    });
+
+    transfer.toPtId = new Types.ObjectId(payload.toPtId);
+    transfer.toPtName = toPt.fullName || toPt.username;
+    transfer.fromPtName = fromPtName;
+    transfer.reason = payload.reason;
+    transfer.status = 'ADMIN_FORCED';
+    transfer.resolvedById = new Types.ObjectId(user.id);
+    transfer.resolvedByName = user.fullName || user.username || '';
+    transfer.resolvedAt = new Date();
+
     await transfer.save({ session });
     await CustomerProfile.updateOne({ _id: customer._id }, { assignedPtId: transfer.toPtId }, { session });
     await reassignOpenCare(customer._id, transfer.toPtId, session);
-    await recordAudit({ actor: user, action: 'TRANSFER_ADMIN_FORCED', resourceType: 'transfers', resourceId: transfer.id, customerId: customer._id, metadata: { fromPtId: String(transfer.fromPtId), toPtId: String(transfer.toPtId), reason: transfer.reason } }, session);
+    await recordAudit(
+      {
+        actor: user,
+        action: 'TRANSFER_ADMIN_FORCED',
+        resourceType: 'transfers',
+        resourceId: transfer.id,
+        customerId: customer._id,
+        metadata: { fromPtId: String(transfer.fromPtId), toPtId: String(transfer.toPtId), reason: transfer.reason },
+      },
+      session
+    );
     return transfer;
   });
 }
