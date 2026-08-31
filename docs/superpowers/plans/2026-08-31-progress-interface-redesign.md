@@ -467,7 +467,7 @@ git commit -m "feat: redesign customer progress workspace"
 - Consumes: completed UI from Tasks 1–4.
 - Produces: a clean worktree whose focused tests, full tests, typecheck, lint, and production build pass.
 
-- [ ] **Step 1: Run focused progress tests**
+- [x] **Step 1: Run focused progress tests**
 
 ```powershell
 npx vitest run frontend/tests/components/progress frontend/tests/pages/pt/ProgressPage.test.tsx frontend/tests/components/customer-portal/CustomerReportsPhotos.test.tsx frontend/tests/components/customer-portal/CustomerPortalComponents.test.tsx
@@ -475,7 +475,7 @@ npx vitest run frontend/tests/components/progress frontend/tests/pages/pt/Progre
 
 Expected: all focused tests pass.
 
-- [ ] **Step 2: Run the full test suite**
+- [x] **Step 2: Run the full test suite**
 
 ```powershell
 npm test
@@ -483,7 +483,7 @@ npm test
 
 Expected: all test files and tests pass.
 
-- [ ] **Step 3: Run typecheck**
+- [x] **Step 3: Run typecheck**
 
 ```powershell
 npm run typecheck
@@ -491,7 +491,7 @@ npm run typecheck
 
 Expected: exit code 0 with no TypeScript diagnostics.
 
-- [ ] **Step 4: Run lint**
+- [x] **Step 4: Run lint**
 
 ```powershell
 npm run lint
@@ -499,7 +499,7 @@ npm run lint
 
 Expected: exit code 0 with no Oxlint errors.
 
-- [ ] **Step 5: Run production build**
+- [x] **Step 5: Run production build**
 
 ```powershell
 npm run build
@@ -507,7 +507,7 @@ npm run build
 
 Expected: exit code 0 and a generated Vite production bundle.
 
-- [ ] **Step 6: Run final static and Git checks**
+- [x] **Step 6: Run final static and Git checks**
 
 ```powershell
 rg -n "style=" frontend/src/pages/pt/ProgressPage.tsx frontend/src/components/progress/ProgressMetricCard.tsx frontend/src/components/progress/ProgressSnapshot.tsx frontend/src/components/progress/ProgressSection.tsx frontend/src/components/progress/ProgressEmptyState.tsx frontend/src/components/progress/ProgressSkeleton.tsx frontend/src/components/progress/PtProgressWorkspace.tsx frontend/src/components/progress/ProgressOverview.tsx frontend/src/components/progress/WorkoutSessionLogger.tsx frontend/src/components/progress/WorkoutSessionDetail.tsx frontend/src/components/progress/MeasurementForm.tsx frontend/src/components/progress/ProgressCharts.tsx frontend/src/components/progress/AchievementList.tsx frontend/src/components/progress/ProgressReportGenerator.tsx frontend/src/components/customer-portal/CustomerReportsPhotos.tsx frontend/src/components/customer-portal/CustomerProgressReportSection.tsx frontend/src/components/customer-portal/CustomerProgressPhotoGallery.tsx frontend/src/components/customer-portal/CustomerProgressAchievements.tsx frontend/src/components/customer-portal/ProgressPhotoLightbox.tsx
@@ -517,7 +517,7 @@ git status --short
 
 Expected: no `style=` matches, no whitespace errors, and only intentional uncommitted files if a final verification fix has not yet been committed.
 
-- [ ] **Step 7: Commit any verification-only fixes**
+- [x] **Step 7: Commit any verification-only fixes** *(skipped: no verification fixes required)*
 
 ```powershell
 git add frontend/src frontend/tests
