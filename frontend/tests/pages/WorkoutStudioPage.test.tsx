@@ -9,6 +9,16 @@ import WorkoutStudioPage from '../../src/pages/pt/WorkoutStudioPage';
 
 vi.mock('../../src/services/api', () => ({ api: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } }));
 
+const getScheduledCards = (name: RegExp) => screen
+  .getAllByRole('button', { name })
+  .filter((element) => element.classList.contains('studio-scheduled-item'));
+
+const getScheduledCard = (name: RegExp) => {
+  const card = getScheduledCards(name)[0];
+  if (!card) throw new Error(`Scheduled card not found: ${name}`);
+  return card;
+};
+
 it('adds an exercise to a proportional day timeline and prevents overlap', async () => {
   vi.mocked(api.get).mockResolvedValue({ data: [{ _id: 'squat', name: 'Squat', muscleGroup: 'LEGS', level: 'BEGINNER', scope: 'PRIVATE' }, { _id: 'row', name: 'Barbell Row', muscleGroup: 'BACK', level: 'INTERMEDIATE', scope: 'PRIVATE' }], message: '' });
   const user = userEvent.setup();
@@ -33,8 +43,12 @@ it('adds an exercise to a proportional day timeline and prevents overlap', async
   await user.click(screen.getByRole('button', { name: 'Đóng thuộc tính giáo án' }));
   expect(within(views).getByRole('tab', { name: 'Lịch tập' })).toHaveAttribute('aria-selected', 'true');
   expect(inspectorTab).toHaveFocus();
+  await user.click(libraryTab);
   const exercise = await screen.findByRole('button', { name: 'Thêm bài Squat' });
   await user.click(exercise);
+  expect(libraryTab).toHaveFocus();
+  expect(within(views).getByRole('tab', { name: 'Lịch tập' })).toHaveAttribute('aria-selected', 'true');
+  expect(screen.getByRole('button', { name: 'Mở thuộc tính: Squat, 08:00 đến 09:00' })).toHaveClass('studio-touch-schedule-action');
   expect(screen.getByRole('complementary', { name: 'Thuộc tính bài tập đã chọn' })).toHaveClass('studio-inspector');
   expect(screen.getByRole('button', { name: 'Bỏ khỏi lịch' })).toHaveClass('studio-inspector-danger');
   expect(screen.getByLabelText('Ngày của bài tập')).toBeVisible();
@@ -44,14 +58,14 @@ it('adds an exercise to a proportional day timeline and prevents overlap', async
     expect(screen.queryByLabelText(label)).not.toBeInTheDocument();
   }
   expect(screen.getByText('Chưa lưu')).toBeVisible();
-  expect(screen.getByRole('button', { name: /Squat.*08:00–09:00/ })).toHaveStyle('--studio-item-top: 640px; --studio-item-height: 80px');
+  expect(getScheduledCard(/Squat.*08:00–09:00/)).toHaveStyle('--studio-item-top: 640px; --studio-item-height: 80px');
   await user.click(exercise);
-  expect(screen.getAllByRole('button', { name: /Squat.*08:00–09:00/ })).toHaveLength(1);
+  expect(getScheduledCards(/Squat.*08:00–09:00/)).toHaveLength(1);
   fireEvent.change(screen.getByLabelText('Thời lượng bài tập'), { target: { value: '30' } });
-  expect(screen.getByRole('button', { name: /Squat.*08:00–08:30/ })).toHaveStyle('--studio-item-height: 40px');
+  expect(getScheduledCard(/Squat.*08:00–08:30/)).toHaveStyle('--studio-item-height: 40px');
   await user.type(screen.getByLabelText('Tìm bài tập'), 'row');
   await user.click(screen.getByRole('button', { name: 'Tăng thời lượng 15 phút' }));
-  expect(screen.getByRole('button', { name: /Squat.*08:00.*08:45/ })).toHaveStyle('--studio-item-height: 60px');
+  expect(getScheduledCard(/Squat.*08:00.*08:45/)).toHaveStyle('--studio-item-height: 60px');
   await user.click(screen.getByRole('button', { name: 'Giảm thời lượng 15 phút' }));
   expect(screen.queryByRole('button', { name: 'Thêm bài Squat' })).not.toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Thêm bài Barbell Row' })).toBeVisible();
@@ -90,12 +104,12 @@ it('moves a scheduled card with pointer events for touch devices', async () => {
   expect(studio).toHaveClass('inspector-open');
   await user.click(screen.getByRole('button', { name: 'Bỏ chọn bài tập' }));
   expect(studio).not.toHaveClass('inspector-open');
-  const card = screen.getByRole('button', { name: /Squat.*08:00.*09:00/ });
+  const card = getScheduledCard(/Squat.*08:00.*09:00/);
   fireEvent.pointerDown(card, { clientY: 100, pointerId: 1 });
   fireEvent.pointerMove(window, { clientY: 120, pointerId: 1 });
   expect(screen.getByText('Dự kiến 08:15–09:15')).toBeVisible();
   fireEvent.pointerUp(window, { pointerId: 1 });
-  expect(screen.getByRole('button', { name: /Squat.*08:15.*09:15/ })).toBeVisible();
+  expect(getScheduledCard(/Squat.*08:15.*09:15/)).toBeVisible();
 });
 
 it('blocks internal links while the studio has unsaved changes', async () => {
@@ -169,10 +183,10 @@ it('moves a selected card by 15 minutes with the keyboard and saves a new studio
   await user.type(screen.getByLabelText('Mục tiêu'), 'Tăng cơ');
   await user.click(await screen.findByRole('button', { name: 'Thêm bài Squat' }));
   expect(within(screen.getByRole('region', { name: 'Thuộc tính giáo án' })).getByRole('tab', { name: 'Bài tập' })).toHaveAttribute('aria-selected', 'true');
-  const card = screen.getByRole('button', { name: /Squat.*08:00–09:00/ });
+  const card = getScheduledCard(/Squat.*08:00–09:00/);
   card.focus();
   await user.keyboard('{ArrowDown}');
-  expect(screen.getByRole('button', { name: /Squat.*08:15–09:15/ })).toBeVisible();
+  expect(getScheduledCard(/Squat.*08:15–09:15/)).toBeVisible();
   await user.click(screen.getByRole('button', { name: 'Lưu giáo án' }));
   expect(await screen.findByTestId('location')).toHaveTextContent('/pt/my-workout-plans/new-plan/edit');
   expect(api.post).toHaveBeenCalledWith('/api/workout-templates', expect.objectContaining({ durationDays: 7, muscleGroups: ['LEGS'], defaultSets: 4, defaultReps: '8-12', defaultWeight: '60-70% 1RM', defaultTempo: '3-1-1-0', technicalNotes: 'Giữ thân người ổn định.', scheduledExercises: [expect.objectContaining({ startMinute: 495, durationMinutes: 60 })] }));
@@ -208,7 +222,7 @@ it('loads and saves a customer snapshot without updating the source template', a
   expect(screen.getByRole('checkbox', { name: 'LEGS' })).toBeChecked();
   expect(screen.getByLabelText('Sets chung')).toHaveValue(4);
   expect(screen.getByLabelText('Ghi chú kỹ thuật chung')).toHaveValue('Giữ thân ổn định.');
-  await user.click(screen.getByRole('button', { name: /Squat.*08:00–09:00/ }));
+  await user.click(getScheduledCard(/Squat.*08:00–09:00/));
   await user.click(screen.getByRole('button', { name: 'Tăng thời lượng 15 phút' }));
   await user.click(screen.getByRole('button', { name: 'Lưu giáo án' }));
   expect(api.patch).toHaveBeenCalledWith('/api/customers/customer-1/workout-plans/plan-1', expect.objectContaining({ durationDays: 7 }));

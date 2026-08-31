@@ -1847,7 +1847,7 @@ a {
 .exercise-video-link:hover { color: var(--primary-color); text-decoration: underline; }
 .exercise-card-video-empty { margin: 0; color: #8b9ca8; font-size: .75rem; }
 .exercise-card-actions { padding-top: 16px; border-top: 1px solid #e6eef3; }
-.exercise-card-action, .exercise-video-remove { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border: 1px solid #bad9e7; border-radius: 9px; background: #f1f9fc; color: var(--primary-color); font: inherit; font-size: .78rem; font-weight: 750; cursor: pointer; transition: border-color .2s ease, background .2s ease, color .2s ease, transform .2s ease; }
+.exercise-card-action, .exercise-video-remove { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border: 1px solid #bad9e7; border-radius: 9px; background: #f1f9fc; color: var(--primary-color); font: inherit; font-size: .78rem; font-weight: 750; cursor: pointer; transition: border-color .2s ease, background .2s ease, color .2s ease, transform .2s ease; }
 .exercise-card-action:hover { border-color: #77bdd9; background: #e5f6fc; }
 .exercise-card-action.is-delete, .exercise-video-remove { border-color: #fecaca; background: #fff7f7; color: #b42318; }
 .exercise-card-action.is-delete:hover, .exercise-video-remove:hover { border-color: #fca5a5; background: #fff0f0; color: #991b1b; }
@@ -2009,7 +2009,7 @@ a {
 }
 
 /* Workout Studio responsive workspace */
-.workout-studio { --studio-sticky-header-offset: 176px; display: grid; min-width: 0; gap: 16px; }
+.workout-studio { --studio-sticky-header-offset: 204px; display: grid; min-width: 0; gap: 16px; }
 .studio-view-tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid #dce8f0; border-radius: 12px; background: #edf5f8; }
 .studio-view-tabs [role="tab"] { min-height: 44px; flex: 1; border: 0; border-radius: 9px; background: transparent; color: #526b7e; font: inherit; font-size: .78rem; font-weight: 800; cursor: pointer; }
 .studio-view-tabs [role="tab"]:focus-visible { outline: 3px solid rgba(0, 156, 215, .3); outline-offset: 2px; }
@@ -2150,6 +2150,7 @@ a {
 .studio-move-preview { margin: 0; font-size: .72rem; font-weight: 800; }
 .studio-move-preview.is-valid { color: #166534; }
 .studio-move-preview.is-invalid { color: #b42318; }
+.studio-touch-schedule-list { display: none; }
 .studio-timeline { position: relative; min-width: 520px; min-height: 1920px; height: 1920px; margin-left: 0; border: 0; background: #f8fbfc; }
 .studio-hour-grid { position: absolute; inset: 0; display: grid; grid-template-rows: repeat(24, 80px) 1px; pointer-events: none; }
 .studio-hour { position: relative; right: auto; left: auto; height: auto; border-top: 1px solid #dbe7ee; color: #718391; font-size: .68rem; font-variant-numeric: tabular-nums; }
@@ -2175,7 +2176,7 @@ a {
 .studio-inspector-header strong { display: block; margin-top: 5px; overflow: hidden; color: #16324a; font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
 .studio-inspector-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .studio-inspector-fields label, .studio-inspector-duration > span { display: grid; gap: 6px; color: #526b7e; font-size: .7rem; font-weight: 800; }
-.studio-inspector :is(input, select) { width: 100%; min-height: 42px; padding: 8px 9px; border: 1px solid #cbdbe7; border-radius: 9px; background: #fff; color: #16324a; font: inherit; font-size: .76rem; outline: none; }
+.studio-inspector :is(input, select) { width: 100%; min-height: 44px; padding: 8px 9px; border: 1px solid #cbdbe7; border-radius: 9px; background: #fff; color: #16324a; font: inherit; font-size: .76rem; outline: none; }
 .studio-inspector :is(input, select):focus-visible { border-color: var(--secondary-color); box-shadow: 0 0 0 3px rgba(0, 156, 215, .14); }
 .studio-inspector-duration { display: grid; gap: 6px; }
 .studio-inspector-duration > div { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 6px; }
@@ -2194,7 +2195,10 @@ a {
 @media (max-width: 1023px) {
   .studio-inspector-region, .studio-library-region { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
   .workout-studio .studio-inspector { position: static; inset: auto; z-index: auto; display: grid; max-height: none; overflow: visible; box-shadow: none; }
-  .studio-scheduled-item::before { position: absolute; top: 50%; right: -4px; left: -4px; height: max(44px, var(--studio-item-height)); transform: translateY(-50%); content: ""; }
+  .studio-touch-schedule-list { display: grid; min-width: 520px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; padding: 10px 0; }
+  .studio-touch-schedule-action { display: grid; min-height: 44px; gap: 3px; padding: 8px 10px; border: 1px solid #b8dbe9; border-radius: 9px; background: #f1faff; color: #16324a; font: inherit; text-align: left; cursor: pointer; }
+  .studio-touch-schedule-action strong { overflow: hidden; font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+  .studio-touch-schedule-action span { color: #607689; font-size: .66rem; font-variant-numeric: tabular-nums; }
 }
 
 @media (min-width: 1024px) {
