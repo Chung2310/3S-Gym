@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { User, Award, Upload } from 'lucide-react';
+import { User, Award, ShieldCheck, Upload } from 'lucide-react';
 import FormField from './FormField';
 import ProfileFormModal from './ProfileFormModal';
 import { useToast } from './ToastProvider';
@@ -18,13 +18,14 @@ interface PtFormState {
   yearsOfExperience: number | string;
   certificates: string;
   bio: string;
+  username: string;
+  password: string;
+  status: string;
 }
 
 export interface PtRecord extends Partial<Omit<PtFormState, 'certificates' | 'dateOfBirth'>> {
   _id?: string;
   id?: string;
-  username?: string;
-  status?: string;
   certificates?: string[] | string;
   dateOfBirth?: string | Date | null;
   [key: string]: unknown;
@@ -49,6 +50,9 @@ const emptyForm: PtFormState = {
   yearsOfExperience: 0,
   certificates: '',
   bio: '',
+  username: '',
+  password: '',
+  status: 'ACTIVE',
 };
 
 function formFromPt(pt?: PtRecord | null): PtFormState {
@@ -65,6 +69,9 @@ function formFromPt(pt?: PtRecord | null): PtFormState {
     yearsOfExperience: pt.yearsOfExperience != null ? pt.yearsOfExperience : 0,
     certificates: Array.isArray(pt.certificates) ? pt.certificates.join('\n') : typeof pt.certificates === 'string' ? pt.certificates : '',
     bio: (pt.bio as string) || '',
+    username: (pt.username as string) || '',
+    password: '',
+    status: (pt.status as string) || 'ACTIVE',
   };
 }
 
@@ -125,13 +132,13 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
         .map((value) => value.trim())
         .filter(Boolean),
       bio: form.bio?.trim() || '',
+      status: form.status || 'ACTIVE',
     };
 
     if (!editing) {
       payload.role = 'PT';
-      payload.status = 'ACTIVE';
-      payload.username = form.phone.trim() || `pt_${Date.now()}`;
-      payload.password = '3sGym@2026';
+      payload.username = form.username.trim();
+      payload.password = form.password.trim();
     }
 
     try {
@@ -339,6 +346,50 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
               onChange={change}
             />
           </div>
+        </div>
+      </section>
+
+      {/* Section 3: Tài khoản & Trạng thái */}
+      <section className="profile-form-section">
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <ShieldCheck size={16} color="var(--secondary-color)" /> {editing ? 'Trạng thái tài khoản' : 'Cấp tài khoản đăng nhập'}
+        </h3>
+        <div className="profile-form-grid">
+          {!editing ? (
+            <>
+              <FormField
+                label="Tên đăng nhập"
+                name="username"
+                value={form.username}
+                onChange={change}
+                required
+                placeholder="pt_tuan"
+              />
+              <FormField
+                label="Mật khẩu ban đầu"
+                name="password"
+                type="password"
+                minLength={8}
+                autoComplete="new-password"
+                value={form.password}
+                onChange={change}
+                required
+                placeholder="Tối thiểu 8 ký tự"
+              />
+            </>
+          ) : (
+            <FormField
+              label="Tên đăng nhập"
+              name="username"
+              value={form.username}
+              onChange={change}
+              readOnly
+            />
+          )}
+          <FormField label="Trạng thái tài khoản" name="status" as="select" value={form.status} onChange={change}>
+            <option value="ACTIVE">Hoạt động (ACTIVE)</option>
+            <option value="LOCKED">Tạm khóa (LOCKED)</option>
+          </FormField>
         </div>
       </section>
     </ProfileFormModal>

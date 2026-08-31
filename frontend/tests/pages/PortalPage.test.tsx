@@ -59,6 +59,9 @@ describe('PortalPage', () => {
     expect(screen.getByLabelText('Số năm kinh nghiệm')).toBeInTheDocument();
     expect(screen.getByLabelText('Chứng chỉ & Bằng cấp (mỗi dòng một chứng chỉ)')).toBeInTheDocument();
     expect(screen.getByLabelText('Giới thiệu bản thân & Triết lý huấn luyện')).toBeInTheDocument();
+    expect(screen.getByLabelText('Tên đăng nhập')).toBeRequired();
+    expect(screen.getByLabelText('Mật khẩu ban đầu')).toBeRequired();
+    expect(screen.getByLabelText('Trạng thái tài khoản')).toBeInTheDocument();
   });
 
   it('Admin sửa PT trong popup với dữ liệu điền sẵn', async () => {
