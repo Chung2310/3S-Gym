@@ -163,27 +163,31 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
           {proposal && step === 1 && (
             <div className="workout-wizard-summary">
               <div className="workout-wizard-summary-heading">
-                <strong>Đề xuất phân tích</strong>
-                <span>{proposal.trainingMethod}</span>
+                <strong className="workout-wizard-title">Đề xuất phân tích</strong>
+                <span className="workout-availability-summary">{availabilityText}</span>
               </div>
-              <p className="workout-availability-summary">{availabilityText}</p>
+              {proposal.trainingMethod && (
+                <div className="workout-wizard-method-box">
+                  <div className="workout-wizard-method-title">Định hướng & Phương pháp huấn luyện</div>
+                  <p className="workout-wizard-method-text">{proposal.trainingMethod}</p>
+                </div>
+              )}
               <dl className="workout-wizard-review">
                 <div><dt>Chu kỳ</dt><dd>{proposal.durationWeeks} tuần</dd></div>
                 <div><dt>Tần suất</dt><dd>{proposal.sessionsPerWeek} buổi/tuần</dd></div>
                 <div><dt>Thời lượng</dt><dd>{proposal.minutesPerSession} phút/buổi</dd></div>
-                <div><dt>Phân bổ</dt><dd>{proposal.trainingSplit}</dd></div>
+                <div className="is-full-width"><dt>Phân bổ lịch tập</dt><dd className="split-content">{proposal.trainingSplit}</dd></div>
               </dl>
             </div>
           )}
           {proposal && step === 2 && (
             <div className="workout-wizard-summary">
               <div className="workout-wizard-summary-heading">
-                <strong>Điều chỉnh đề xuất</strong>
-                <span>{proposal.trainingMethod}</span>
+                <strong className="workout-wizard-title">Điều chỉnh đề xuất</strong>
+                <span className="workout-availability-summary">{availabilityText}</span>
               </div>
-              <p className="workout-availability-summary">{availabilityText}</p>
-              <div className="module-field-grid">
-                <label className="module-field">
+              <div className="workout-wizard-fields-grid">
+                <label className="module-field workout-wizard-field-card">
                   Số tuần
                   <input
                     aria-label="Số tuần"
@@ -194,8 +198,9 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
                     value={proposal.durationWeeks}
                     onChange={(event) => setProposal({ ...proposal, durationWeeks: Number(event.target.value) })}
                   />
+                  <span className="field-hint">Từ 1 đến 12 tuần</span>
                 </label>
-                <label className="module-field">
+                <label className="module-field workout-wizard-field-card">
                   Số buổi mỗi tuần
                   <input
                     aria-label="Số buổi mỗi tuần"
@@ -206,8 +211,9 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
                     value={proposal.sessionsPerWeek}
                     onChange={(event) => setProposal({ ...proposal, sessionsPerWeek: Number(event.target.value) })}
                   />
+                  <span className="field-hint">Từ 1 đến 7 buổi/tuần</span>
                 </label>
-                <label className="module-field">
+                <label className="module-field workout-wizard-field-card">
                   Số phút mỗi buổi
                   <input
                     aria-label="Số phút mỗi buổi"
@@ -219,6 +225,7 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
                     value={proposal.minutesPerSession}
                     onChange={(event) => setProposal({ ...proposal, minutesPerSession: Number(event.target.value) })}
                   />
+                  <span className="field-hint">Bước nhảy 15 phút</span>
                 </label>
               </div>
             </div>
@@ -226,15 +233,18 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
           {proposal && step === 3 && (
             <div className="workout-wizard-summary">
               <div className="workout-wizard-summary-heading">
-                <strong>Sẵn sàng tạo giáo án</strong>
-                <span>{proposal.trainingMethod}</span>
+                <strong className="workout-wizard-title">Sẵn sàng tạo giáo án</strong>
+                <span className="workout-availability-summary">{availabilityText}</span>
               </div>
-              <p className="workout-availability-summary">{availabilityText}</p>
+              <div className="workout-wizard-confirm-guide">
+                Hệ thống AI sẽ phân tích và xếp lịch bài tập cụ thể cho từng buổi dựa trên các thông số đã duyệt dưới đây.
+              </div>
               <dl className="workout-wizard-review">
                 <div><dt>Chu kỳ</dt><dd>{proposal.durationWeeks} tuần</dd></div>
                 <div><dt>Tần suất</dt><dd>{proposal.sessionsPerWeek} buổi/tuần</dd></div>
                 <div><dt>Thời lượng</dt><dd>{proposal.minutesPerSession} phút/buổi</dd></div>
                 <div><dt>Cấp độ</dt><dd>{proposal.level}</dd></div>
+                <div className="is-full-width"><dt>Phân bổ lịch tập</dt><dd className="split-content">{proposal.trainingSplit}</dd></div>
               </dl>
             </div>
           )}

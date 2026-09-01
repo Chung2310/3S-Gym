@@ -43,7 +43,7 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
 
   let lastError: unknown = null;
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const bodyPayload: Record<string, any> = {
         model,
@@ -54,8 +54,6 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
 
       if (reasoningEffort && reasoningEffort !== 'none') {
         bodyPayload.reasoning = { effort: reasoningEffort };
-      } else {
-        bodyPayload.reasoning = { effort: 'none' };
       }
 
       if (options.jsonMode) {
@@ -101,15 +99,11 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
       }
       return { value: content.trim(), provider: 'openrouter', model, usage: normalizedUsage(data.usage) };
     } catch (err: any) {
-      const isRateLimit = err?.status === 503 || err?.code === ERROR_CODES.UNAVAILABLE;
-      if (isRateLimit) {
-        lastError = err;
-        if (attempt < 2 && process.env.NODE_ENV !== 'test') {
-          await new Promise((r) => setTimeout(r, 1200));
-          continue;
-        }
-      } else {
-        lastError = err;
+      lastError = err;
+      const isRetryable = err?.status === 503 || err?.status === 502 || err?.code === ERROR_CODES.UNAVAILABLE || err?.code === ERROR_CODES.EXTERNAL;
+      if (isRetryable && attempt < 3 && process.env.NODE_ENV !== 'test') {
+        await new Promise((r) => setTimeout(r, 1500 * attempt));
+        continue;
       }
       break;
     }
@@ -163,7 +157,7 @@ export function generateWorkoutDraft(prompt: string): Promise<string>;
 export async function generateWorkoutDraft(context: AiBillingContext | string, prompt?: string): Promise<string> {
   return billOrLegacy(context, prompt, {
     temperature: 0.1,
-    maxTokens: 8192,
+    maxTokens: 16384,
     reasoningEffort: 'none',
   });
 }
@@ -202,7 +196,7 @@ export function generateText(prompt: string): Promise<string>;
 export async function generateText(context: AiBillingContext | string, prompt?: string): Promise<string> {
   return billOrLegacy(context, prompt, {
     temperature: 0.1,
-    maxTokens: 8192,
+    maxTokens: 16384,
     reasoningEffort: 'none',
   });
 }
