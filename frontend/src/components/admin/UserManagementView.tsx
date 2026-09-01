@@ -12,11 +12,13 @@ import {
   Search,
   Phone,
   Mail,
+  Coins,
 } from 'lucide-react';
 import Pagination from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import UserFormModal, { type UserRecord } from '../../components/ui/UserFormModal';
+import CreditAdjustmentModal, { type TargetCreditUser } from '../../components/credits/CreditAdjustmentModal';
 import { useToast } from '../../components/ui/ToastProvider';
 import { api } from '../../services/api';
 import type { PaginationMeta, UserRole } from '../../types';
@@ -32,6 +34,8 @@ export default function UserManagementView() {
   const [formUser, setFormUser] = useState<UserRecord | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteUser, setDeleteUser] = useState<UserRecord | null>(null);
+  const [creditTargetUser, setCreditTargetUser] = useState<TargetCreditUser | null>(null);
+  const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const loadUsers = useCallback(
@@ -168,30 +172,57 @@ export default function UserManagementView() {
           Quản lý toàn bộ tài khoản
         </h2>
 
-        <button
-          type="button"
-          onClick={() => {
-            setFormUser(null);
-            setIsCreateOpen(true);
-          }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '9px 18px',
-            borderRadius: '10px',
-            border: 0,
-            background: '#003b70',
-            color: '#ffffff',
-            fontSize: '0.84rem',
-            fontWeight: 750,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0, 59, 112, 0.25)',
-          }}
-        >
-          <Plus size={16} />
-          <span>Thêm tài khoản mới</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setCreditTargetUser(null);
+              setIsCreditModalOpen(true);
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 16px',
+              borderRadius: '10px',
+              border: '1.5px solid #bae6fd',
+              background: '#f0f9ff',
+              color: '#0369a1',
+              fontSize: '0.84rem',
+              fontWeight: 750,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.1)',
+            }}
+          >
+            <Coins size={16} />
+            <span>Cấp credit tài khoản</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setFormUser(null);
+              setIsCreateOpen(true);
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 18px',
+              borderRadius: '10px',
+              border: 0,
+              background: '#003b70',
+              color: '#ffffff',
+              fontSize: '0.84rem',
+              fontWeight: 750,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 59, 112, 0.25)',
+            }}
+          >
+            <Plus size={16} />
+            <span>Thêm tài khoản mới</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Chips Lọc Nhanh Vai Trò */}
@@ -534,6 +565,37 @@ export default function UserManagementView() {
                         <button
                           type="button"
                           onClick={() => {
+                            setCreditTargetUser({
+                              id: item._id || item.id,
+                              fullName: item.fullName,
+                              username: item.username,
+                              role: item.role,
+                              phone: item.phone,
+                              email: item.email,
+                            });
+                            setIsCreditModalOpen(true);
+                          }}
+                          title="Cấp credit cho tài khoản này"
+                          style={{
+                            padding: '5px 9px',
+                            borderRadius: '6px',
+                            border: '1px solid #bae6fd',
+                            background: '#f0f9ff',
+                            color: '#0369a1',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: 700,
+                            fontSize: '0.74rem',
+                          }}
+                        >
+                          <Coins size={13} />
+                          <span>Cấp credit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
                             setFormUser(item);
                             setIsCreateOpen(true);
                           }}
@@ -609,6 +671,16 @@ export default function UserManagementView() {
         confirmLabel="Xóa vĩnh viễn"
         onClose={() => setDeleteUser(null)}
         onConfirm={handleDeleteUser}
+      />
+
+      {/* Modal Cấp Credit */}
+      <CreditAdjustmentModal
+        open={isCreditModalOpen}
+        targetUser={creditTargetUser}
+        onClose={() => {
+          setIsCreditModalOpen(false);
+          setCreditTargetUser(null);
+        }}
       />
     </div>
   );
