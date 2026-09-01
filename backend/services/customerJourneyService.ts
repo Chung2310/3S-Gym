@@ -16,6 +16,7 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { analyzeProgress } from './progressAnalyticsService.js';
+import { resolveWorkoutPlanTracking } from './exerciseTrackingService.js';
 
 const fail = (message: string, status: number) => new AppError({ message, status, code: status === 403 ? ERROR_CODES.AUTHORIZATION : ERROR_CODES.NOT_FOUND });
 
@@ -110,6 +111,10 @@ export async function getJourney(user: AuthenticatedUser, options: { customerId?
     customer.assignedPtId ? User.findById(customer.assignedPtId, 'fullName username phone email avatarUrl').lean() : null,
     WorkoutPlan.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ createdAt: -1 }).lean(),
   ]);
+  const selectedActivePlan = activePlan || publishedWorkoutPlans.find((plan) => plan.status === 'PUBLISHED') || null;
+  const resolvedActivePlan = selectedActivePlan
+    ? await resolveWorkoutPlanTracking(selectedActivePlan as unknown as Record<string, unknown>)
+    : null;
   const analytics = analyzeProgress({ sessions: sessions as unknown as Parameters<typeof analyzeProgress>[0]['sessions'], measurements: measurements as unknown as Parameters<typeof analyzeProgress>[0]['measurements'], ...(typeof options.from === 'string' ? { periodStart: options.from } : {}), ...(typeof options.to === 'string' ? { periodEnd: options.to } : {}) });
   return {
     customer: {
@@ -140,7 +145,7 @@ export async function getJourney(user: AuthenticatedUser, options: { customerId?
     calendar,
     photos,
     plans: {
-      active: activePlan || publishedWorkoutPlans.find((p) => p.status === 'PUBLISHED') || null,
+      active: resolvedActivePlan,
       history: planHistory,
       published: publishedWorkoutPlans,
     },

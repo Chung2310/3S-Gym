@@ -38,7 +38,7 @@ const availabilitySlots = Joi.array()
   .messages({ ...commonMessages, custom: '{{#message}}' });
 
 export const workoutProposalFields = {
-  durationWeeks: Joi.number().integer().min(4).max(12).required(),
+  durationWeeks: Joi.number().integer().min(1).max(12).required(),
   sessionsPerWeek: Joi.number().integer().min(1).max(7).required(),
   minutesPerSession: Joi.number().integer().min(15).max(240).required(),
   level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED').required(),
