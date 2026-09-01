@@ -17,6 +17,14 @@ beforeEach(() => {
   }));
 });
 
+it('requires selecting a customer before proposal analysis', async () => {
+  const user = userEvent.setup();
+  render(<AiWorkoutWizard open customers={customers} onClose={vi.fn()} onGenerated={vi.fn()} />);
+  await user.click(screen.getByRole('button', { name: 'Phân tích bằng AI' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Vui lòng chọn học viên.');
+  expect(api.post).not.toHaveBeenCalled();
+});
+
 it('requires availability before proposal analysis', async () => {
   const user = userEvent.setup();
   render(<AiWorkoutWizard open customers={customers} onClose={vi.fn()} onGenerated={vi.fn()} />);
