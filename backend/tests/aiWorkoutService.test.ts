@@ -34,6 +34,8 @@ it('returns a validated proposal for a customer assigned to the PT', async () =>
     'workout-proposal-test',
   )).resolves.toMatchObject({ durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60 });
   expect(latestPrompt()).toContain(JSON.stringify(availabilitySlots));
+  expect(latestPrompt()).toContain('2 ngày rảnh, 2 khung giờ');
+  expect(latestPrompt()).toContain('120 phút');
 });
 
 it('accepts schedules in different weeks at the same time', () => {
@@ -56,4 +58,6 @@ it('creates a week-based draft without persisting it', async () => {
     ],
   });
   expect(latestPrompt()).toContain(JSON.stringify(availabilitySlots));
+  expect(latestPrompt()).toContain('2 ngày rảnh, 2 khung giờ');
+  expect(latestPrompt()).toContain('120 phút');
 });

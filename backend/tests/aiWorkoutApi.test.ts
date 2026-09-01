@@ -30,14 +30,12 @@ it('returns an AI workout proposal for an assigned customer without persisting a
   expect(response.body.data).toMatchObject({ durationWeeks: 8, sessionsPerWeek: 4 });
 });
 
-it('does not persist templates while generating a draft', async () => {
-  expect(await WorkoutTemplate.countDocuments()).toBe(0);
-});
-
 it('returns a generated draft without persisting it', async () => {
   const pt = await User.findOne({ username: 'ai-api-pt' }).orFail();
   const customer = await CustomerProfile.findOne({ phone: '0907000088' }).orFail();
   const token = jwt.sign({ id: pt.id, role: pt.role }, process.env.JWT_SECRET || 'secret_key');
+  const templateCount = await WorkoutTemplate.countDocuments();
   const response = await request(app).post('/api/ai/workout-generations').set('Authorization', `Bearer ${token}`).send({ customerId: customer.id, proposal: { durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Full body', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }, availabilitySlots, additionalRequest: '' });
   expect(response.status).toBe(200);
+  expect(await WorkoutTemplate.countDocuments()).toBe(templateCount);
 });

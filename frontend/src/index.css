@@ -5660,7 +5660,7 @@ a {
   min-width: 0;
 }
 
-.workout-availability-slot input {
+.workout-availability-slot :is(input, select) {
   width: 100%;
 }
 

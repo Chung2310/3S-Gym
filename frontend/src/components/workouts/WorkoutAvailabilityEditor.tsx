@@ -12,6 +12,7 @@ interface Props {
 }
 
 const days = [1, 2, 3, 4, 5, 6, 7];
+const endMinuteOptions = Array.from({ length: 96 }, (_, index) => (index + 1) * 15);
 const sortSlots = (slots: WorkoutAvailabilitySlot[]) => [...slots].sort((left, right) => (
   left.dayNumber - right.dayNumber || left.startMinute - right.startMinute
 ));
@@ -74,16 +75,18 @@ export default function WorkoutAvailabilityEditor({ value, disabled, onChange }:
                   <span className="workout-availability-separator" aria-hidden="true">đến</span>
                   <label className="module-field">
                     Kết thúc
-                    <input
+                    <select
                       aria-label={`Kết thúc ${dayLabel}, khung ${slotNumber}`}
-                      type="time"
-                      step="900"
                       disabled={disabled}
-                      value={minuteLabel(slot.endMinute)}
+                      value={slot.endMinute}
                       onChange={(event) => updateSlot(slot, {
-                        endMinute: minuteFromTimeValue(event.target.value),
+                        endMinute: Number(event.target.value),
                       })}
-                    />
+                    >
+                      {endMinuteOptions.map((minute) => <option key={minute} value={minute}>
+                        {minuteLabel(minute)}
+                      </option>)}
+                    </select>
                   </label>
                   <button
                     type="button"
