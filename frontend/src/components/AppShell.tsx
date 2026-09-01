@@ -345,7 +345,7 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
           </nav>
 
           <div className="portal-header-actions">
-            <Link to="/wallet" aria-label="Ví credit" className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-bold text-primary transition hover:border-secondary hover:bg-white">
+            <Link to="/wallet" aria-label="Ví credit" className="portal-credit-chip">
               <WalletCards size={17} aria-hidden="true" />
               <span>{walletLoading ? '… credit' : `${wallet?.availableCredits ?? 0} credit`}</span>
             </Link>

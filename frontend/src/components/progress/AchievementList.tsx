@@ -1,4 +1,4 @@
-import { Trophy } from 'lucide-react';
+import { Award, Trophy } from 'lucide-react';
 import type { AchievementDto } from '../../types';
 import ProgressEmptyState from './ProgressEmptyState';
 import ProgressSection from './ProgressSection';
@@ -31,13 +31,12 @@ export default function AchievementList({ achievements }: { achievements: Achiev
   return (
     <ProgressSection
       title="Thành tích cá nhân"
-      description="Những cột mốc nổi bật được tổng hợp từ lịch sử tập luyện."
       count={achievements.length}
     >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {achievements.map((item) => (
           <article
-            className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 transition hover:-translate-y-0.5 hover:border-secondary/30 motion-reduce:transform-none motion-reduce:transition-none"
+            className="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 transition-all hover:shadow-2xs hover:border-sky-300"
             key={`${item.exerciseName}-${item.kind}`}
           >
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-secondary">{labels[item.kind]}</p>

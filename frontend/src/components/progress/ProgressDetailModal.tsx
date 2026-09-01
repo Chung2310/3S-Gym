@@ -19,7 +19,6 @@ export default function ProgressDetailModal({
     <ProgressModal
       open={Boolean(item)}
       title={`Tiến độ ${item?.customer.fullName || ''}`}
-      description="Toàn bộ hành trình, chỉ số và lịch sử của khách hàng."
       loading={loading}
       onClose={onClose}
     >

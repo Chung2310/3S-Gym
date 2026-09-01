@@ -335,6 +335,98 @@ Mảnh UI chuyên biệt cho từng tính năng, được IMPORT bởi pages:
 - Hiển thị Họ tên + SĐT, **KHÔNG** hiển thị ObjectId thô
 - Dùng `CustomerSelect` cho form chọn học viên
 
+### 3.5. BẮT BUỘC Dùng CSS Class Chuẩn Từ Design System (`index.css`)
+
+> **NGUYÊN TẮC QUAN TRỌNG**: Khi xây trang mới hoặc refactor trang cũ, **PHẢI dùng các CSS class đã có sẵn** trong `frontend/src/index.css` thay vì tự viết Tailwind classes. Tự viết Tailwind sẽ gây lệch padding, đè chữ, border không khớp với phần còn lại của hệ thống.
+
+#### CSS Classes cho Page Layout & Metric Cards
+
+| Class | Mục đích | Ghi chú |
+|---|---|---|
+| `pt-view-container` | Container chính của trang | `flex-direction: column; gap: 18px` |
+| `pt-view-header` | Header trang (title + action buttons) | Có `border-bottom`, `padding-bottom: 14px` |
+| `pt-metrics-banner` | Grid chứa các metric card | `grid; auto-fit; minmax(220px, 1fr)` |
+| `pt-metric-card` | Thẻ metric thống kê | `padding: 14px 18px; border-radius: 14px; flex` |
+| `pt-metric-label` | Label trên metric card | `0.74rem; uppercase; #64748b` |
+| `pt-metric-val` | Giá trị số lớn trong metric | `1.55rem; 800; font Oswald` |
+| `pt-metric-sub` | Mô tả phụ dưới giá trị metric | `0.74rem; 600` |
+| `pt-metric-icon` | Khối icon tròn trong metric card | `42x42px; border-radius: 11px` |
+
+#### CSS Classes cho Toolbar & Grid Cards
+
+| Class | Mục đích | Ghi chú |
+|---|---|---|
+| `pt-toolbar` | Thanh lọc/tìm kiếm | `padding: 12px 16px; border-radius: 14px` |
+| `pt-grid` | Grid danh sách cards | `auto-fill; minmax(330px, 1fr); gap: 16px` |
+| `pt-card` | Thẻ card đơn vị (học viên, PT...) | `border-radius: 16px; hover border-color: #7dd3fc` |
+| `pt-card-body` | Nội dung chính card | `padding: 18px; gap: 12px` |
+| `pt-card-footer` | Footer card chứa actions | `background: #f8fafc; border-top` |
+
+#### CSS Classes cho PT Dashboard
+
+| Class | Mục đích |
+|---|---|
+| `pt-dash-container` | Container dashboard chuyên biệt |
+| `pt-dash-header` | Header dashboard |
+| `pt-dash-metrics-4` | Grid 4 metric cards |
+| `pt-dash-metric-card` | Metric card (có stripe) |
+| `pt-dash-metric-label/val/icon` | Các phần tử trong metric |
+| `pt-dash-main-card` | Card lớn chứa bảng dữ liệu |
+| `pt-dash-toolbar` | Toolbar trong dashboard |
+| `pt-dash-search-box/input/icon/clear` | Ô tìm kiếm |
+| `pt-dash-filter-chips/btn` | Filter tabs/chips |
+| `pt-dash-table/th/td` | Bảng dữ liệu |
+
+#### CSS Classes cho Portal Shell
+
+| Class | Mục đích |
+|---|---|
+| `.portal-shell .section-header` | Header section (có h1/h2 color primary) |
+| `.portal-shell .section-header h1` | Tiêu đề trang (`1.25rem; 750`) |
+
+#### Ví dụ đúng — Dùng CSS class chuẩn:
+```tsx
+// ✅ ĐÚNG — Dùng class từ design system
+<div className="pt-view-container">
+  <div className="pt-view-header">
+    <h2 className="text-xl font-bold text-[#003b70]">Tiêu đề</h2>
+  </div>
+  <div className="pt-metrics-banner">
+    <article className="pt-metric-card">
+      <div>
+        <div className="pt-metric-label">Label</div>
+        <div className="pt-metric-val text-[#003b70]">42</div>
+        <div className="pt-metric-sub text-sky-600">Mô tả</div>
+      </div>
+      <div className="pt-metric-icon bg-sky-50 text-sky-600">
+        <Icon size={20} />
+      </div>
+    </article>
+  </div>
+  <div className="pt-grid">
+    <article className="pt-card group">
+      <div className="pt-card-body">...</div>
+      <div className="pt-card-footer">...</div>
+    </article>
+  </div>
+</div>
+```
+
+#### Ví dụ sai — Tự viết Tailwind thay thế:
+```tsx
+// ❌ SAI — Tự viết Tailwind gây lệch spacing, đè chữ
+<article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[...]">
+  <p className="text-xs font-bold uppercase">{label}</p>
+  <p className="text-4xl font-bold">{value}</p>  // ← text quá to, đè viền
+</article>
+```
+
+#### Quy tắc bổ sung:
+1. **Trước khi xây trang mới**: Mở `PtManagementView.tsx` hoặc `PtDashboardPage.tsx` làm template tham chiếu.
+2. **Icon color** trong metric cards: Kết hợp class chuẩn + Tailwind color: `className="pt-metric-icon bg-sky-50 text-sky-600"`.
+3. **Search input padding**: Dùng Tailwind `pl-10` thay vì `style={{ paddingLeft: '38px' }}` (vì contract test cấm `style={{`).
+4. **Không dùng `font-oswald`/`font-montserrat`** cho metric cards — class `pt-metric-val` đã có `font-family: 'Oswald'` tích hợp sẵn.
+
 ---
 
 ## 4. Design Tokens

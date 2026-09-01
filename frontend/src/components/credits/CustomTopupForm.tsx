@@ -30,28 +30,23 @@ export default function CustomTopupForm({ value, selected, onChange, onSelect }:
   return (
     <div
       onClick={onSelect}
-      className={`rounded-2xl border p-5 transition-all duration-200 ${
-        selected
-          ? 'border-secondary bg-sky-50/50 shadow-md shadow-sky-500/5 ring-2 ring-secondary'
-          : 'border-slate-200 bg-white hover:border-sky-300'
-      }`}
+      className={`wallet-custom-topup${selected ? ' wallet-custom-topup--selected' : ''}`}
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <label className="flex cursor-pointer items-center gap-3">
           <input
             type="radio"
             name="credit-package"
             checked={selected}
             onChange={onSelect}
-            className="h-4 w-4 text-secondary focus:ring-secondary"
           />
           <div>
-            <span className="flex items-center gap-2 text-sm font-bold text-slate-800">
+            <span className="flex items-center gap-2 font-bold">
               <Coins size={16} className="text-secondary" />
               Số tiền tùy chọn
             </span>
-            <span className="text-xs text-slate-500">
-              Từ 10.000đ đến 50.000.000đ, theo bước 1.000đ.
+            <span className="hint">
+              Từ 10.000đ đến 50.000.000đ (bội số của 1.000đ).
             </span>
           </div>
         </label>
@@ -65,7 +60,7 @@ export default function CustomTopupForm({ value, selected, onChange, onSelect }:
       </div>
 
       {/* Quick Amount Presets */}
-      <div className="mt-4">
+      <div className="mt-3.5">
         <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-400">
           Mức nạp nhanh phổ biến:
         </span>
@@ -80,15 +75,15 @@ export default function CustomTopupForm({ value, selected, onChange, onSelect }:
                   e.stopPropagation();
                   handlePresetClick(preset.amount);
                 }}
-                className={`relative flex flex-col items-center justify-center rounded-xl border py-2.5 px-2 text-center transition-all ${
+                className={`relative flex flex-col items-center justify-center rounded-xl border py-2.5 px-2 text-center transition-all cursor-pointer ${
                   isPresetActive
-                    ? 'border-secondary bg-secondary text-white font-bold shadow-sm shadow-secondary/20'
+                    ? 'border-secondary bg-sky-600 text-white font-bold shadow-xs'
                     : 'border-slate-200 bg-slate-50/80 text-slate-700 font-semibold hover:border-sky-300 hover:bg-white'
                 }`}
               >
                 {preset.popular && (
                   <span className={`absolute -top-2 rounded-full px-1.5 py-0.2 text-[9px] font-bold ${
-                    isPresetActive ? 'bg-amber-400 text-slate-900' : 'bg-secondary text-white'
+                    isPresetActive ? 'bg-amber-400 text-slate-900' : 'bg-sky-500 text-white'
                   }`}>
                     Hot
                   </span>
@@ -104,27 +99,21 @@ export default function CustomTopupForm({ value, selected, onChange, onSelect }:
       </div>
 
       {/* Manual Input field */}
-      <div className="mt-4">
-        <div className="relative">
-          <input
-            aria-label="Số tiền nạp tùy chọn"
-            className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-4 pr-16 text-base font-bold text-slate-900 placeholder:font-normal placeholder:text-slate-400 outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20"
-            type="number"
-            min={10000}
-            max={50000000}
-            step={1000}
-            value={value}
-            onFocus={onSelect}
-            onChange={(event) => {
-              onSelect();
-              onChange(event.target.value);
-            }}
-            placeholder="Ví dụ: 100000"
-          />
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
-            <span className="font-bold text-slate-400">VNĐ</span>
-          </div>
-        </div>
+      <div className="mt-3.5">
+        <input
+          aria-label="Số tiền nạp tùy chọn"
+          type="number"
+          min={10000}
+          max={50000000}
+          step={1000}
+          value={value}
+          onFocus={onSelect}
+          onChange={(event) => {
+            onSelect();
+            onChange(event.target.value);
+          }}
+          placeholder="Ví dụ: 100000"
+        />
 
         {numericVal > 0 && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">

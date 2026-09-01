@@ -41,37 +41,45 @@ export default function ProgressModal({
 
   return (
     <div
-      className="fixed inset-0 z-[1100] flex items-end justify-center bg-slate-950/65 backdrop-blur-sm sm:items-center sm:p-6"
+      className="modal-backdrop"
       role="presentation"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <section
-        className="flex max-h-[96vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-2xl bg-slate-50 shadow-2xl sm:max-h-[94vh] sm:rounded-2xl"
+        className="profile-form-modal modal-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+        {/* Header dùng class chuẩn profile-form-header từ index.css */}
+        <header className="profile-form-header">
           <div>
-            <h2 className="font-oswald text-2xl font-bold uppercase text-primary" id={titleId}>{title}</h2>
-            {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+            <h2 id={titleId}>{title}</h2>
+            {description && <p>{description}</p>}
           </div>
           <button
             ref={closeButton}
             type="button"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary motion-reduce:transition-none"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 flex items-center justify-center transition-all cursor-pointer shrink-0"
             aria-label="Đóng"
             onClick={onClose}
           >
-            <X size={21} aria-hidden="true" />
+            <X size={18} />
           </button>
         </header>
-        <div className="overflow-y-auto p-4 sm:p-6">
+
+        {/* Body dùng class chuẩn profile-form-body từ index.css */}
+        <div className="profile-form-body">
           {loading ? (
-            <div className="grid min-h-52 place-items-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-500" role="status">
-              Đang tải dữ liệu tiến độ...
+            <div className="flex flex-col items-center justify-center min-h-64 p-8 text-center text-slate-500" role="status">
+              <div className="h-8 w-8 animate-spin rounded-full border-3 border-sky-600 border-t-transparent mb-3" />
+              <p className="text-xs font-bold text-slate-700">Đang tải dữ liệu tiến độ...</p>
+              <p className="text-[11px] text-slate-400 mt-1">Vui lòng chờ trong giây lát</p>
             </div>
-          ) : children}
+          ) : (
+            children
+          )}
         </div>
       </section>
     </div>

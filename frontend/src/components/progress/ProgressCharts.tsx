@@ -46,7 +46,7 @@ function MetricChart({ label, unit, values }: { label: string; unit: string; val
   }));
 
   return (
-    <svg className="h-44 w-full text-secondary" role="img" aria-label={`Biểu đồ ${label}`} viewBox="0 0 300 140">
+    <svg className="h-44 w-full text-sky-600" role="img" aria-label={`Biểu đồ ${label}`} viewBox="0 0 300 140">
       <polyline
         points={coordinates.map((item) => `${item.x},${item.y}`).join(' ')}
         fill="none"
@@ -83,7 +83,7 @@ const configs = [
 
 export default function ProgressCharts({ measurements }: { measurements: Measurement[] }) {
   return (
-    <ProgressSection title="Biểu đồ tiến độ" description="Theo dõi thay đổi chỉ số cơ thể qua từng lần đo.">
+    <ProgressSection title="Biểu đồ tiến độ">
       <div className="grid gap-4 lg:grid-cols-2">
         {configs.map((config) => {
           const values = measurements
@@ -95,8 +95,8 @@ export default function ProgressCharts({ measurements }: { measurements: Measure
             .filter((item): item is ChartValue => typeof item.value === 'number');
 
           return (
-            <article className="rounded-xl border border-slate-200 bg-slate-50/60 p-3" key={config.key}>
-              <h3 className="text-sm font-bold capitalize text-slate-800">{config.label}</h3>
+            <article className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-2xs" key={config.key}>
+              <h3 className="text-xs font-bold capitalize text-[#003b70]">{config.label}</h3>
               <MetricChart label={config.label} unit={config.unit} values={values} />
             </article>
           );
