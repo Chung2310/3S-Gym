@@ -74,27 +74,54 @@ async function downContentDefaults(metadata: Record<string, unknown>) {
   }
 }
 
-const defaultPolicy = (taskType: AiTaskType) => ({
-  taskType,
-  enabled: true,
-  maxReservationCredits: taskType === 'IMAGE_GENERATION' ? 50 : 20,
-  fallbackCredits: taskType === 'IMAGE_GENERATION' ? 10 : 1,
-  markupBasisPoints: 12_500,
-  minBillableCredits: 1,
-});
+const defaultPolicy = (taskType: AiTaskType) => {
+  const isHeavyTask =
+    taskType === 'TEXT_WORKOUT' ||
+    taskType === 'TEXT_ROADMAP' ||
+    taskType === 'TEXT_NUTRITION' ||
+    taskType === 'IMAGE_GENERATION';
+
+  const isMediumTask = taskType === 'OCR_INBODY';
+
+  const credits = isHeavyTask ? 10 : isMediumTask ? 5 : 1;
+
+  return {
+    taskType,
+    enabled: true,
+    maxReservationCredits: credits,
+    fallbackCredits: credits,
+    markupBasisPoints: 12_500,
+    minBillableCredits: credits,
+  };
+};
 
 export async function ensureCreditReferenceData(): Promise<Pick<CreditMigrationMetadata, 'pricingIds' | 'policyIds'>> {
   await Promise.all([CreditPricing.createIndexes(), AiBillingPolicy.createIndexes()]);
   const pricing = await CreditPricing.updateOne(
     { key: 'GLOBAL' },
-    { $setOnInsert: { key: 'GLOBAL', vndPerCredit: 1_000, usdToVnd: 26_000 } },
+    {
+      $set: { vndPerCredit: 100 },
+      $setOnInsert: { key: 'GLOBAL', usdToVnd: 26_000 },
+    },
     { upsert: true },
   );
-  const policies = await Promise.all(AI_TASK_TYPES.map((taskType) => AiBillingPolicy.updateOne(
-    { taskType },
-    { $setOnInsert: defaultPolicy(taskType) },
-    { upsert: true },
-  )));
+  const policies = await Promise.all(
+    AI_TASK_TYPES.map((taskType) => {
+      const policy = defaultPolicy(taskType);
+      return AiBillingPolicy.updateOne(
+        { taskType },
+        {
+          $set: {
+            maxReservationCredits: policy.maxReservationCredits,
+            fallbackCredits: policy.fallbackCredits,
+            minBillableCredits: policy.minBillableCredits,
+          },
+          $setOnInsert: policy,
+        },
+        { upsert: true },
+      );
+    }),
+  );
   return {
     pricingIds: pricing.upsertedId ? [String(pricing.upsertedId)] : [],
     policyIds: policies.flatMap((result) => result.upsertedId ? [String(result.upsertedId)] : []),
