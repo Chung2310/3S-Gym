@@ -169,9 +169,14 @@ export default function UserFormModal({
     }
   };
 
-  const modalTitle = editing
-    ? `Sửa tài khoản ${form.role}`
-    : `Tạo tài khoản ${form.role}`;
+  const roleName =
+    form.role === 'CUSTOMER'
+      ? 'Hội viên'
+      : form.role === 'PT'
+        ? 'Huấn luyện viên (PT)'
+        : 'Quản trị viên (Admin)';
+
+  const modalTitle = editing ? `Sửa tài khoản ${roleName}` : `Tạo tài khoản ${roleName}`;
 
   return (
     <ProfileFormModal
