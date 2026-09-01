@@ -21,6 +21,7 @@ build/
 dist-server/
 coverage/
 logs/
+.runlogs/
 scratch/
 uploads/
 tmp/
@@ -32,6 +33,7 @@ temp/
 .DS_Store
 Thumbs.db
 *.log
+~$*
 
 # Local databases & dumps
 *.sqlite
@@ -50,3 +52,32 @@ service-account*.json
 service_account*.json
 .worktrees/
 .superpowers/
+
+# Local-only automated tests
+backend/tests/
+frontend/tests/
+**/*.test.ts
+**/*.test.tsx
+!backend/tests/
+backend/tests/*
+!backend/tests/customerWorkoutStudioParity.test.ts
+!backend/tests/aiWorkoutAvailability.test.ts
+!backend/tests/aiWorkoutService.test.ts
+!backend/tests/aiWorkoutApi.test.ts
+!frontend/tests/
+frontend/tests/*
+!frontend/tests/services/
+frontend/tests/services/*
+!frontend/tests/services/workoutAvailability.test.ts
+!frontend/tests/components/
+frontend/tests/components/*
+!frontend/tests/components/workouts/
+frontend/tests/components/workouts/*
+!frontend/tests/components/workouts/AiWorkoutWizard.test.tsx
+!frontend/tests/components/IndexCssRedesignContract.test.ts
+!frontend/tests/pages/
+frontend/tests/pages/*
+!frontend/tests/pages/pt/
+frontend/tests/pages/pt/*
+!frontend/tests/pages/pt/WorkoutStudioAvailability.test.tsx
+.codex*

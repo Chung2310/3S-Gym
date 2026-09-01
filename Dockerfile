@@ -1,25 +1,20 @@
 # Step 1: Build frontend
-FROM node:22-alpine AS frontend-builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN npm run build && npm run build:backend
 
-# Step 2: Build backend & Runner
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3008
 
-# Copy dependencies and source
 COPY package*.json ./
 RUN npm ci --omit=dev
-COPY backend/ ./backend/
-
-# Copy built frontend assets (dist) to backend/public
-COPY --from=frontend-builder /app/dist ./backend/public
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 3008
-CMD ["node", "backend/server.js"]
+CMD ["npm", "run", "start:production"]

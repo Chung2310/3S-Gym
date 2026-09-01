@@ -37,6 +37,9 @@ jobs:
       - name: Run Lint
         run: npm run lint
 
+      - name: Run Type Check
+        run: npm run typecheck
+
       - name: Build Frontend check (PR only)
         if: github.event_name == 'pull_request'
         run: npm run build
@@ -142,9 +145,12 @@ jobs:
           port: ${{ secrets.SSH_PORT || '22' }}
           envs: ENV_FILE_CONTENT
           script: |
+            set -eu
+
             TARGET_DIR="/opt/3s-gym/staging"
             IMAGE_TAG="develop"
             CONTAINER_NAME="3s-gym-staging"
+            IMAGE_REF="ghcr.io/chung2310/3s-gym:${IMAGE_TAG}"
 
             # Tạo thư mục đích nếu chưa tồn tại và chuyển vào
             mkdir -p "$TARGET_DIR"
@@ -161,11 +167,20 @@ jobs:
             IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose pull
 
             # Khởi động lại container mới (Docker compose tự động recreate và restart với downtime tối thiểu)
-            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose up -d --remove-orphans
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose up -d --force-recreate --remove-orphans
+
+            # Không báo deploy thành công nếu container vẫn chạy image cũ.
+            EXPECTED_IMAGE_ID="$(docker image inspect "$IMAGE_REF" --format '{{.Id}}')"
+            RUNNING_IMAGE_ID="$(docker inspect "$CONTAINER_NAME" --format '{{.Image}}')"
+            if [ "$RUNNING_IMAGE_ID" != "$EXPECTED_IMAGE_ID" ]; then
+              echo "Image verification failed: expected $EXPECTED_IMAGE_ID, running $RUNNING_IMAGE_ID"
+              exit 1
+            fi
+            docker compose ps
 
             # Giải phóng dung lượng ổ đĩa bằng cách xóa các image dangling/rác cũ và build cache
-            docker image prune -f
-            docker builder prune -f
+            docker image prune -f || true
+            docker builder prune -f || true
 
       # --- Triển khai lên Production (nhánh production) ---
       - name: Copy docker-compose.yml to Production VPS
@@ -191,9 +206,12 @@ jobs:
           port: ${{ secrets.SSH_PORT_PROD || '22' }}
           envs: ENV_FILE_CONTENT
           script: |
+            set -eu
+
             TARGET_DIR="/opt/3s-gym/production"
             IMAGE_TAG="production"
             CONTAINER_NAME="3s-gym-production"
+            IMAGE_REF="ghcr.io/chung2310/3s-gym:${IMAGE_TAG}"
 
             # Tạo thư mục đích nếu chưa tồn tại và chuyển vào
             mkdir -p "$TARGET_DIR"
@@ -210,8 +228,17 @@ jobs:
             IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose pull
 
             # Khởi động lại container mới
-            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose up -d --remove-orphans
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose up -d --force-recreate --remove-orphans
+
+            # Không báo deploy thành công nếu container vẫn chạy image cũ.
+            EXPECTED_IMAGE_ID="$(docker image inspect "$IMAGE_REF" --format '{{.Id}}')"
+            RUNNING_IMAGE_ID="$(docker inspect "$CONTAINER_NAME" --format '{{.Image}}')"
+            if [ "$RUNNING_IMAGE_ID" != "$EXPECTED_IMAGE_ID" ]; then
+              echo "Image verification failed: expected $EXPECTED_IMAGE_ID, running $RUNNING_IMAGE_ID"
+              exit 1
+            fi
+            docker compose ps
 
             # Giải phóng dung lượng ổ đĩa bằng cách xóa các image dangling/rác cũ và build cache
-            docker image prune -f
-            docker builder prune -f
+            docker image prune -f || true
+            docker builder prune -f || true
