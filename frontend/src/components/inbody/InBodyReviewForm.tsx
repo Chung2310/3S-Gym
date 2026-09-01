@@ -11,6 +11,33 @@ interface InBodyReviewFormProps {
   onConfirmed: (draft: InBodyOcrDraft) => void;
 }
 
+function formatInBodyWarning(text: string): string {
+  const t = text.trim();
+  const lower = t.toLowerCase();
+  if (lower.includes('segmental fat') && lower.includes('estimated')) {
+    return 'Chỉ số phân bố mỡ từng phần (tay, chân, thân) là giá trị ước tính từ thuật toán máy đo.';
+  }
+  if ((lower.includes('segmental lean') || lower.includes('segmental muscle')) && lower.includes('estimated')) {
+    return 'Chỉ số phân bố cơ từng phần (tay, chân, thân) là giá trị ước tính từ thuật toán máy đo.';
+  }
+  if (lower.includes('ecw') && lower.includes('estimated')) {
+    return 'Tỷ lệ nước ngoại bào (ECW/TBW) là số liệu ước tính từ điện trở kháng.';
+  }
+  if (lower.includes('body composition') && lower.includes('estimated')) {
+    return 'Thành phần cơ thể là số liệu ước tính từ dòng điện sinh học BIA.';
+  }
+  if (lower.includes('impedance')) {
+    return 'Dữ liệu trở kháng điện sinh học đo được từ các điện cực tiếp xúc.';
+  }
+  if (lower.includes('blurry') || lower.includes('blur') || lower.includes('unclear')) {
+    return 'Ảnh chụp phiếu đo có vùng hơi mờ, PT vui lòng đối chiếu kỹ lại số đo trên phiếu gốc.';
+  }
+  if (lower.includes('confidence') && (lower.includes('low') || lower.includes('thấp'))) {
+    return 'Độ nét của ảnh phiếu đo chưa cao, vui lòng rà soát lại các số liệu.';
+  }
+  return t;
+}
+
 const numberValue = (value: string): number | undefined => (value.trim() === '' ? undefined : Number(value));
 
 export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFormProps) {
@@ -93,17 +120,19 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           style={{
             background: '#fffbeb',
             border: '1px solid #fde68a',
-            borderRadius: '8px',
-            padding: '10px 14px',
-            fontSize: '0.82rem',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            fontSize: '0.84rem',
             color: '#92400e',
           }}
           aria-label="Cảnh báo OCR"
         >
-          <strong style={{ display: 'block', marginBottom: '4px' }}>⚠️ Lưu ý kiểm tra:</strong>
-          <ul className="panel" aria-label="Cảnh báo OCR" style={{ margin: 0, paddingLeft: '18px' }}>
+          <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '0.88rem' }}>
+            <span>⚠️</span> <span>Lưu ý kiểm tra từ phiếu đo:</span>
+          </strong>
+          <ul className="panel" aria-label="Cảnh báo OCR" style={{ margin: 0, paddingLeft: '20px', lineHeight: 1.5 }}>
             {warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
+              <li key={warning}>{formatInBodyWarning(warning)}</li>
             ))}
           </ul>
         </div>
@@ -138,7 +167,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
 
       <div className="inbody-form-row-3">
         <label className="inbody-input-label">
-          <span>BMI</span>
+          <span>BMI (Chỉ số thể trọng)</span>
           <input
             aria-label="BMI"
             type="number"
@@ -150,7 +179,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         </label>
 
         <label className="inbody-input-label">
-          <span>Tỷ lệ mỡ (%)</span>
+          <span>Tỷ lệ mỡ cơ thể (%)</span>
           <input
             aria-label="Tỷ lệ mỡ (%)"
             type="number"
@@ -162,7 +191,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         </label>
 
         <label className="inbody-input-label">
-          <span>Khối lượng cơ (kg SMM)</span>
+          <span>Khối lượng cơ (SMM kg)</span>
           <input
             aria-label="Khối lượng cơ (kg)"
             type="number"
@@ -176,7 +205,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
 
       <div className="inbody-form-row-3">
         <label className="inbody-input-label">
-          <span>Mỡ nội tạng (Level)</span>
+          <span>Mỡ nội tạng (Level 1-20)</span>
           <input
             aria-label="Mỡ nội tạng"
             type="number"
@@ -188,7 +217,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         </label>
 
         <label className="inbody-input-label">
-          <span>BMR (kcal)</span>
+          <span>BMR - Trao đổi chất (kcal)</span>
           <input
             aria-label="BMR"
             type="number"
@@ -212,7 +241,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
 
       <div className="inbody-form-row-3">
         <label className="inbody-input-label">
-          <span>Lượng nước (L)</span>
+          <span>Lượng nước cơ thể - TBW (L)</span>
           <input
             aria-label="Lượng nước"
             type="number"
@@ -224,7 +253,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         </label>
 
         <label className="inbody-input-label">
-          <span>Khoáng xương (kg)</span>
+          <span>Khoáng chất xương (kg)</span>
           <input
             aria-label="Khoáng xương"
             type="number"
@@ -236,7 +265,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         </label>
 
         <label className="inbody-input-label">
-          <span>Tỷ lệ eo/mông (WHR)</span>
+          <span>Tỷ lệ eo / hông (WHR)</span>
           <input
             aria-label="Tỷ lệ eo/mông"
             type="number"

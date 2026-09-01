@@ -54,6 +54,33 @@ function normalizedUsage(usage: { prompt_tokens?: unknown; completion_tokens?: u
   return result;
 }
 
+function normalizeInBodyWarning(warning: string): string {
+  const w = warning.trim();
+  const lower = w.toLowerCase();
+  if (lower.includes('segmental fat') && lower.includes('estimated')) {
+    return 'Chỉ số phân bố mỡ từng phần (tay, chân, thân) là giá trị ước tính từ thuật toán máy đo.';
+  }
+  if ((lower.includes('segmental lean') || lower.includes('segmental muscle')) && lower.includes('estimated')) {
+    return 'Chỉ số phân bố cơ từng phần (tay, chân, thân) là giá trị ước tính từ thuật toán máy đo.';
+  }
+  if (lower.includes('ecw') && lower.includes('estimated')) {
+    return 'Tỉ lệ nước ngoại bào (ECW/TBW) là số liệu ước tính từ điện trở kháng.';
+  }
+  if (lower.includes('body composition') && lower.includes('estimated')) {
+    return 'Thành phần cơ thể là số liệu ước tính từ dòng điện sinh học BIA.';
+  }
+  if (lower.includes('impedance')) {
+    return 'Dữ liệu trở kháng điện sinh học đo được từ các điện cực tiếp xúc.';
+  }
+  if (lower.includes('blurry') || lower.includes('blur') || lower.includes('unclear')) {
+    return 'Ảnh chụp phiếu đo có vùng hơi mờ, PT vui lòng đối chiếu kỹ lại số đo trên phiếu gốc.';
+  }
+  if (lower.includes('confidence') && (lower.includes('low') || lower.includes('thấp'))) {
+    return 'Độ nét của ảnh phiếu đo chưa cao, vui lòng rà soát lại các số liệu.';
+  }
+  return w;
+}
+
 async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResult<InBodyExtraction>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Dịch vụ OCR InBody chưa được cấu hình.' });
@@ -64,7 +91,7 @@ async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResu
       body: JSON.stringify({
         model: APP_POLICY.AI_MODEL, temperature: 0,
         messages: [{ role: 'user', content: [
-          { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm: weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, bodyWater, boneMineral, waistHipRatio, segmentalMuscle (rightArm, leftArm, trunk, rightLeg, leftLeg), segmentalFat (rightArm, leftArm, trunk, rightLeg, leftLeg), confidence (số thực từ 0.0 đến 1.0) và warnings (mảng chuỗi cảnh báo nếu có). Chỉ trả JSON thuần túy.' },
+          { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm: weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, bodyWater, boneMineral, waistHipRatio, segmentalMuscle (rightArm, leftArm, trunk, rightLeg, leftLeg), segmentalFat (rightArm, leftArm, trunk, rightLeg, leftLeg), confidence (số thực từ 0.0 đến 1.0) và warnings (mảng chuỗi cảnh báo bằng tiếng Việt dễ hiểu nếu có, ví dụ: "Chỉ số mỡ từng phần là ước tính của máy đo", tuyệt đối không dùng tiếng Anh kỹ thuật như "Segmental fat is estimated"). Chỉ trả JSON thuần túy.' },
           { type: 'image_url', image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` } },
         ] }],
       }),
@@ -116,7 +143,9 @@ async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResu
       segmentalMuscle: sanitizeSegment(parsed.segmentalMuscle),
       segmentalFat: sanitizeSegment(parsed.segmentalFat),
       confidence,
-      warnings: Array.isArray(parsed.warnings) ? parsed.warnings.filter((w): w is string => typeof w === 'string') : [],
+      warnings: Array.isArray(parsed.warnings)
+        ? parsed.warnings.filter((w): w is string => typeof w === 'string').map(normalizeInBodyWarning)
+        : [],
     };
     return { value, provider: 'openrouter', model: APP_POLICY.AI_MODEL, usage: normalizedUsage(payload.usage) };
   } catch (error) {
