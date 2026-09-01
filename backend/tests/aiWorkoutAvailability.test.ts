@@ -5,6 +5,7 @@ import {
 } from '../validators/aiWorkoutValidator.js';
 import {
   availabilityProposalDefaults,
+  normalizeWorkoutSessionTimings,
   scheduleWorkoutSessions,
 } from '../services/workoutAvailabilityScheduler.js';
 
@@ -80,6 +81,41 @@ describe('AI workout availability scheduler', () => {
     expect(availabilityProposalDefaults([
       { dayNumber: 1, startMinute: 0, endMinute: 1440 },
     ])).toEqual({ sessionsPerWeek: 1, minutesPerSession: 240 });
+  });
+
+  it('packs overlapping AI exercises sequentially inside the approved session', () => {
+    expect(normalizeWorkoutSessionTimings([
+      { name: 'Squat', weekNumber: 1, dayNumber: 2, startMinute: 480, durationMinutes: 60 },
+      { name: 'Row', weekNumber: 1, dayNumber: 2, startMinute: 480, durationMinutes: 60 },
+      { name: 'Plank', weekNumber: 1, dayNumber: 2, startMinute: 480, durationMinutes: 60 },
+      { name: 'Run', weekNumber: 1, dayNumber: 2, startMinute: 480, durationMinutes: 60 },
+    ], 60)).toEqual([
+      expect.objectContaining({ name: 'Squat', startMinute: 480, durationMinutes: 15 }),
+      expect.objectContaining({ name: 'Row', startMinute: 495, durationMinutes: 15 }),
+      expect.objectContaining({ name: 'Plank', startMinute: 510, durationMinutes: 15 }),
+      expect.objectContaining({ name: 'Run', startMinute: 525, durationMinutes: 15 }),
+    ]);
+  });
+
+  it('keeps every exercise on the 15-minute grid when a session exceeds capacity', () => {
+    const items = Array.from({ length: 5 }, (_, index) => ({
+      name: `Exercise ${index + 1}`,
+      weekNumber: 1,
+      dayNumber: 2,
+      startMinute: 480,
+      durationMinutes: 60,
+    }));
+
+    expect(normalizeWorkoutSessionTimings(items, 60).map((item) => [
+      item.startMinute,
+      item.durationMinutes,
+    ])).toEqual([
+      [480, 15],
+      [495, 15],
+      [510, 15],
+      [525, 15],
+      [540, 15],
+    ]);
   });
 
   it('moves whole sessions into fitting recurring slots and preserves offsets', () => {
