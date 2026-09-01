@@ -112,11 +112,13 @@ export async function ensureCreditReferenceData(): Promise<Pick<CreditMigrationM
         { taskType },
         {
           $set: {
+            enabled: policy.enabled,
             maxReservationCredits: policy.maxReservationCredits,
             fallbackCredits: policy.fallbackCredits,
+            markupBasisPoints: policy.markupBasisPoints,
             minBillableCredits: policy.minBillableCredits,
           },
-          $setOnInsert: policy,
+          $setOnInsert: { taskType },
         },
         { upsert: true },
       );

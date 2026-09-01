@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import type { Model, QueryFilter, Types } from 'mongoose';
 import User, { type IUser, type UserDocument, type UserRole, type UserStatus } from '../models/User.js';
-import CustomerProfile, { type CustomerProfileDocument, type ICustomerProfile } from '../models/CustomerProfile.js';
+import CustomerProfile, { type ICustomerProfile } from '../models/CustomerProfile.js';
 import InBodyRecord from '../models/InBodyRecord.js';
 import Goal from '../models/Goal.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
