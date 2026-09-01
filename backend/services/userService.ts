@@ -163,12 +163,33 @@ async function listUsers(query: UserListQuery) {
     filter.role = query.role;
   }
   if (query.status === 'ACTIVE' || query.status === 'LOCKED') filter.status = query.status;
-  if (typeof query.keyword === 'string' && query.keyword) {
-    const escaped = query.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (typeof query.keyword === 'string' && query.keyword.trim()) {
+    const raw = query.keyword.trim();
+    const escaped = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const digitsOnly = raw.replace(/\D/g, '');
+
+    const customerMatches = await CustomerProfile.find({
+      $or: [
+        { phone: { $regex: escaped, $options: 'i' } },
+        ...(digitsOnly.length >= 3 ? [{ phone: { $regex: digitsOnly, $options: 'i' } }] : []),
+        { fullName: { $regex: escaped, $options: 'i' } },
+      ],
+      userId: { $ne: null },
+    })
+      .select('userId')
+      .lean();
+
+    const matchedUserIds = customerMatches
+      .map((c) => c.userId)
+      .filter((id): id is Types.ObjectId => Boolean(id));
+
     filter.$or = [
       { username: { $regex: escaped, $options: 'i' } },
       { fullName: { $regex: escaped, $options: 'i' } },
       { email: { $regex: escaped, $options: 'i' } },
+      { phone: { $regex: escaped, $options: 'i' } },
+      ...(digitsOnly.length >= 3 && digitsOnly !== raw ? [{ phone: { $regex: digitsOnly, $options: 'i' } }] : []),
+      ...(matchedUserIds.length > 0 ? [{ _id: { $in: matchedUserIds } }] : []),
     ];
   }
   const [users, total] = await Promise.all([
