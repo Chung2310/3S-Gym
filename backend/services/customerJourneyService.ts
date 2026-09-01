@@ -1,7 +1,7 @@
-import { Types } from 'mongoose';
+import { Types, type QueryFilter } from 'mongoose';
 import BodyMeasurement from '../models/BodyMeasurement.js';
 import CalendarEvent from '../models/CalendarEvent.js';
-import CustomerProfile from '../models/CustomerProfile.js';
+import CustomerProfile, { type CustomerProfileDocument, type ICustomerProfile } from '../models/CustomerProfile.js';
 import ProgressPhoto from '../models/ProgressPhoto.js';
 import ProgressReport from '../models/ProgressReport.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
@@ -27,9 +27,48 @@ async function staffCustomer(user: AuthenticatedUser, customerId: string) {
 }
 
 async function ownCustomer(user: AuthenticatedUser) {
-  const customer = await CustomerProfile.findOne({ userId: user.id }).lean();
-  if (!customer) throw fail('Không tìm thấy hồ sơ khách hàng.', 404);
-  return customer;
+  const existing = await CustomerProfile.findOne({ userId: user.id }).lean();
+  if (existing) return existing;
+
+  const dbUser = await User.findById(user.id);
+  if (dbUser) {
+    if (dbUser.phone || dbUser.email) {
+      const filterConditions: Array<QueryFilter<ICustomerProfile>> = [];
+      if (dbUser.phone) filterConditions.push({ phone: dbUser.phone });
+      if (dbUser.email) filterConditions.push({ email: dbUser.email.toLowerCase() });
+
+      const matched = (await CustomerProfile.findOne({
+        $or: filterConditions,
+        userId: { $in: [null, undefined] },
+      } as QueryFilter<ICustomerProfile>)) as CustomerProfileDocument | null;
+      if (matched) {
+        matched.userId = new Types.ObjectId(user.id);
+        await matched.save();
+        return matched.toObject();
+      }
+    }
+
+    const defaultPt = await User.findOne({ role: 'PT', status: 'ACTIVE' }).lean();
+    if (defaultPt) {
+      const [created] = await CustomerProfile.create([
+        {
+          userId: new Types.ObjectId(user.id),
+          assignedPtId: defaultPt._id,
+          fullName: dbUser.fullName || dbUser.username,
+          phone: dbUser.phone || '0000000000',
+          email: dbUser.email || null,
+          gender: dbUser.gender || 'OTHER',
+          dateOfBirth: dbUser.dateOfBirth ? new Date(dbUser.dateOfBirth) : null,
+          status: 'ACTIVE',
+          initialGoal: 'Cải thiện thể lực và vóc dáng',
+          medicalNotes: '',
+          internalNotes: '',
+        },
+      ]);
+      return created.toObject();
+    }
+  }
+  throw fail('Không tìm thấy hồ sơ khách hàng. Vui lòng liên hệ quản trị viên để gán PT phụ trách.', 404);
 }
 
 function dateFilter(field: string, from?: unknown, to?: unknown) {

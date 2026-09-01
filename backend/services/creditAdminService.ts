@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AppError } from '../errors/AppError.js';
 import { Types, type Model } from 'mongoose';
 import { ERROR_CODES } from '../errors/errorCodes.js';
@@ -46,7 +47,34 @@ export async function updatePackage(actor: AuthenticatedUser, id: string, input:
 }
 export async function deletePackage(actor: AuthenticatedUser, id: string) { const item = await CreditPackage.findByIdAndDelete(id); if (!item) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy gói credit.' }); await recordAudit({ actor, action: 'CREDIT_PACKAGE_DELETED', resourceType: 'creditPackage', resourceId: id, metadata: { amountVnd: item.amountVnd } }); }
 export async function createAdjustment(actor: AuthenticatedUser, input: { userId: string; credits: number; reason: string }, requestKey: string) {
-  return withTransaction(async (session) => { const wallet = await adjustCredits({ userId: input.userId, actorUserId: actor.id, credits: input.credits, reason: input.reason, idempotencyKey: `admin-adjustment:${requestKey}` }, session); await recordAudit({ actor, action: 'CREDIT_ADJUSTED', resourceType: 'creditWallet', resourceId: wallet.id, metadata: { credits: input.credits, reasonCode: 'MANUAL' } }, session); return { id: wallet.id, availableCredits: wallet.availableCredits, reservedCredits: wallet.reservedCredits }; });
+  const uniqueKey = `admin-adjustment:${input.userId}:${Date.now()}:${randomUUID()}`;
+  return withTransaction(async (session) => {
+    const wallet = await adjustCredits(
+      {
+        userId: input.userId,
+        actorUserId: actor.id,
+        credits: input.credits,
+        reason: input.reason,
+        idempotencyKey: uniqueKey,
+      },
+      session,
+    );
+    await recordAudit(
+      {
+        actor,
+        action: 'CREDIT_ADJUSTED',
+        resourceType: 'creditWallet',
+        resourceId: wallet.id,
+        metadata: { credits: input.credits, reasonCode: 'MANUAL', requestKey },
+      },
+      session,
+    );
+    return {
+      id: wallet.id,
+      availableCredits: wallet.availableCredits,
+      reservedCredits: wallet.reservedCredits,
+    };
+  });
 }
 async function listModel(Model: Model<unknown>, query: ListQuery, fixed: Record<string, unknown> = {}) {
   const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = { ...fixed };

@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 
-export type PaymentGateway = 'VNPAY' | 'MOMO';
+export type PaymentGateway = 'PAYOS' | 'VNPAY' | 'MOMO';
 export type PaymentOrderStatus = 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED';
 
 export interface IPaymentOrder {
@@ -28,7 +28,7 @@ const nonNegativeInteger = { type: Number, min: 0, validate: Number.isInteger, r
 const paymentOrderSchema = new Schema<IPaymentOrder>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   walletId: { type: Schema.Types.ObjectId, ref: 'CreditWallet', required: true, index: true },
-  gateway: { type: String, enum: ['VNPAY', 'MOMO'], required: true, index: true },
+  gateway: { type: String, enum: ['PAYOS', 'VNPAY', 'MOMO'], required: true, index: true },
   orderCode: { type: String, required: true, unique: true, trim: true, maxlength: 100 },
   status: { type: String, enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'], required: true, default: 'PENDING', index: true },
   source: { type: String, enum: ['PACKAGE', 'CUSTOM'], required: true },

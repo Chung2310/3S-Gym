@@ -32,7 +32,7 @@ const roleNames: Record<UserRole, string> = {
   CUSTOMER: 'Khách hàng',
 };
 
-const sectionOrder: NavigationSection[] = ['Tổng quan', 'Vận hành', 'Tri thức & trợ lý', 'Tài khoản'];
+const sectionOrder: NavigationSection[] = ['Tổng quan', 'Vận hành', 'Trợ lý AI', 'Tài khoản'];
 const sidebarStorageKey = '3s-portal-sidebar-collapsed';
 
 interface AppShellProps {

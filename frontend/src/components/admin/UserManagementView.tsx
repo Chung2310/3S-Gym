@@ -12,11 +12,13 @@ import {
   Search,
   Phone,
   Mail,
+  Coins,
 } from 'lucide-react';
 import Pagination from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import UserFormModal, { type UserRecord } from '../../components/ui/UserFormModal';
+import CreditAdjustmentModal, { type TargetCreditUser } from '../../components/credits/CreditAdjustmentModal';
 import RoleBadge from '../../components/ui/RoleBadge';
 import { useToast } from '../../components/ui/ToastProvider';
 import { api } from '../../services/api';
@@ -34,6 +36,8 @@ export default function UserManagementView({ actor }: { actor: User }) {
   const [formUser, setFormUser] = useState<UserRecord | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [deleteUser, setDeleteUser] = useState<UserRecord | null>(null);
+  const [creditTargetUser, setCreditTargetUser] = useState<TargetCreditUser | null>(null);
+  const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const loadUsers = useCallback(
@@ -101,30 +105,57 @@ export default function UserManagementView({ actor }: { actor: User }) {
           Quản lý toàn bộ tài khoản
         </h2>
 
-        <button
-          type="button"
-          onClick={() => {
-            setFormUser(null);
-            setIsCreateOpen(true);
-          }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '9px 18px',
-            borderRadius: '10px',
-            border: 0,
-            background: '#003b70',
-            color: '#ffffff',
-            fontSize: '0.84rem',
-            fontWeight: 750,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0, 59, 112, 0.25)',
-          }}
-        >
-          <Plus size={16} />
-          <span>Thêm tài khoản mới</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setCreditTargetUser(null);
+              setIsCreditModalOpen(true);
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 16px',
+              borderRadius: '10px',
+              border: '1.5px solid #bae6fd',
+              background: '#f0f9ff',
+              color: '#0369a1',
+              fontSize: '0.84rem',
+              fontWeight: 750,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(2, 132, 199, 0.1)',
+            }}
+          >
+            <Coins size={16} />
+            <span>Cấp credit tài khoản</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setFormUser(null);
+              setIsCreateOpen(true);
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '9px 18px',
+              borderRadius: '10px',
+              border: 0,
+              background: '#003b70',
+              color: '#ffffff',
+              fontSize: '0.84rem',
+              fontWeight: 750,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 59, 112, 0.25)',
+            }}
+          >
+            <Plus size={16} />
+            <span>Thêm tài khoản mới</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Chips Lọc Nhanh Vai Trò */}
@@ -393,6 +424,7 @@ export default function UserManagementView({ actor }: { actor: User }) {
               >
                 <th style={{ padding: '12px 16px', fontWeight: 750 }}>Người dùng</th>
                 <th style={{ padding: '12px 16px', fontWeight: 750 }}>Vai trò</th>
+                <th style={{ padding: '12px 16px', fontWeight: 750 }}>Số dư Credit</th>
                 <th style={{ padding: '12px 16px', fontWeight: 750 }}>Liên hệ</th>
                 <th style={{ padding: '12px 16px', fontWeight: 750 }}>Trạng thái</th>
                 <th style={{ padding: '12px 16px', fontWeight: 750, textAlign: 'right' }}>Thao tác</th>
@@ -401,14 +433,14 @@ export default function UserManagementView({ actor }: { actor: User }) {
             <tbody>
               {loading && users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan={6} style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
                     <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px', color: '#0284c7' }} />
                     <p style={{ margin: 0, fontSize: '0.85rem' }}>Đang tải danh sách tài khoản...</p>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: '48px 16px', textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan={6} style={{ padding: '48px 16px', textAlign: 'center', color: '#64748b' }}>
                     <Users size={32} style={{ color: '#cbd5e1', margin: '0 auto 8px' }} />
                     <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#1e293b' }}>Không tìm thấy tài khoản nào</p>
                     <p style={{ margin: 0, fontSize: '0.78rem' }}>Thử thay đổi bộ lọc hoặc thêm tài khoản mới.</p>
@@ -446,6 +478,27 @@ export default function UserManagementView({ actor }: { actor: User }) {
                     <td style={{ padding: '12px 16px' }}><RoleBadge role={item.role} /></td>
 
                     <td style={{ padding: '12px 16px' }}>
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '3px 8px',
+                          borderRadius: '8px',
+                          background: '#f0f9ff',
+                          border: '1px solid #bae6fd',
+                          color: '#0369a1',
+                          fontWeight: 750,
+                          fontSize: '0.78rem',
+                        }}
+                      >
+                        <Coins size={13} className="text-sky-600" />
+                        <span>{(typeof item.availableCredits === 'number' ? item.availableCredits : 0).toLocaleString('vi-VN')}</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>credit</span>
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '12px 16px' }}>
                       <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Phone size={11} color="#64748b" />
                         <span>{item.phone || '—'}</span>
@@ -464,24 +517,59 @@ export default function UserManagementView({ actor }: { actor: User }) {
 
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
-                        {canEditAccount(actor, item) && <button
-                          type="button"
-                          onClick={() => {
-                            setFormUser(item);
-                            setIsCreateOpen(true);
-                          }}
-                          title="Chỉnh sửa tài khoản"
-                          style={{
-                            padding: '5px 8px',
-                            borderRadius: '6px',
-                            border: '1px solid #cbd5e1',
-                            background: '#ffffff',
-                            color: '#475569',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <Pencil size={13} />
-                        </button>}
+                        {canEditAccount(actor, item) && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCreditTargetUser({
+                                  id: item._id || item.id,
+                                  fullName: item.fullName,
+                                  username: item.username,
+                                  role: item.role,
+                                  phone: item.phone,
+                                  email: item.email,
+                                });
+                                setIsCreditModalOpen(true);
+                              }}
+                              title="Cấp credit cho tài khoản này"
+                              style={{
+                                padding: '5px 9px',
+                                borderRadius: '6px',
+                                border: '1px solid #bae6fd',
+                                background: '#f0f9ff',
+                                color: '#0369a1',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontWeight: 700,
+                                fontSize: '0.74rem',
+                              }}
+                            >
+                              <Coins size={13} />
+                              <span>Cấp credit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormUser(item);
+                                setIsCreateOpen(true);
+                              }}
+                              title="Chỉnh sửa tài khoản"
+                              style={{
+                                padding: '5px 8px',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                background: '#ffffff',
+                                color: '#475569',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          </>
+                        )}
                         {canDeleteAccount(actor, item) && <button
                           type="button"
                           onClick={() => setDeleteUser(item)}
@@ -544,6 +632,19 @@ export default function UserManagementView({ actor }: { actor: User }) {
         confirmLabel="Xóa vĩnh viễn"
         onClose={() => setDeleteUser(null)}
         onConfirm={handleDeleteUser}
+      />
+
+      {/* Modal Cấp Credit */}
+      <CreditAdjustmentModal
+        open={isCreditModalOpen}
+        targetUser={creditTargetUser}
+        onClose={() => {
+          setIsCreditModalOpen(false);
+          setCreditTargetUser(null);
+        }}
+        onSuccess={() => {
+          loadUsers(meta.page || 1);
+        }}
       />
     </div>
   );

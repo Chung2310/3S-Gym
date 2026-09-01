@@ -31,7 +31,6 @@ export type FeatureKey =
   | 'CARE'
   | 'DASHBOARD'
   | 'NUTRITION_AI'
-  | 'KNOWLEDGE_BASE'
   | 'PT_ASSISTANT';
 
 export type FeatureState = Partial<Record<FeatureKey, boolean>>;

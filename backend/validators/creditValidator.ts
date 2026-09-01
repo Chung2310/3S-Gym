@@ -5,7 +5,7 @@ import { AI_TASK_TYPES } from '../services/creditTypes.js';
 
 export const topupSchema: RequestValidationSchema = {
   body: Joi.object({
-    gateway: Joi.string().valid('VNPAY', 'MOMO').required(),
+    gateway: Joi.string().valid('PAYOS', 'VNPAY', 'MOMO').default('PAYOS'),
     packageId: objectId,
     customAmountVnd: Joi.number().integer().min(10_000).max(50_000_000).multiple(1_000),
   }).xor('packageId', 'customAmountVnd').messages(commonMessages),
@@ -39,4 +39,4 @@ export const createPackageAdminSchema: RequestValidationSchema = { body: Joi.obj
 export const updatePackageAdminSchema: RequestValidationSchema = { params: Joi.object({ id: objectId.required() }).messages(commonMessages), body: Joi.object(packageFields).min(1).messages(commonMessages) };
 export const packageParamsAdminSchema: RequestValidationSchema = { params: Joi.object({ id: objectId.required() }).messages(commonMessages) };
 export const adjustmentAdminSchema: RequestValidationSchema = { body: Joi.object({ userId: objectId.required(), credits: Joi.number().integer().invalid(0).required(), reason: Joi.string().trim().min(3).max(500).required() }).messages(commonMessages) };
-export const adminListSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, status: Joi.string().max(50), gateway: Joi.string().valid('VNPAY', 'MOMO'), taskType: Joi.string().valid(...AI_TASK_TYPES), userId: objectId, type: Joi.string().valid('TOPUP', 'RESERVE', 'SETTLE', 'RELEASE', 'ADJUSTMENT') }).messages(commonMessages) };
+export const adminListSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, status: Joi.string().max(50), gateway: Joi.string().valid('PAYOS', 'VNPAY', 'MOMO'), taskType: Joi.string().valid(...AI_TASK_TYPES), userId: objectId, type: Joi.string().valid('TOPUP', 'RESERVE', 'SETTLE', 'RELEASE', 'ADJUSTMENT') }).messages(commonMessages) };
