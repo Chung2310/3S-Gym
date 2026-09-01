@@ -311,7 +311,7 @@ export default function MealAiConfigStudio({
           {/* Field 5: Allergies / Restrictions */}
           <div>
             <label style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' }}>
-              🚫 KIÊNG KỴ & DỊ ỨNG (AI SẼ LOẠI BỎ 100%)
+              KIÊNG KỴ & DỊ ỨNG
             </label>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {ALLERGY_CHIPS.map((chip) => {
@@ -412,7 +412,7 @@ export default function MealAiConfigStudio({
         }}
       >
         {loadingAi ? <RefreshCw size={18} className="spin" /> : <Wand2 size={18} />}
-        {loadingAi ? 'AI đang thiết kế thực đơn cơm Việt...' : `Sinh Thực Đơn AI (${mealCount} Bữa • ${targetKcalInput || 1850} kcal)`}
+        {loadingAi ? 'AI đang thiết kế thực đơn cơm Việt...' : 'Sinh Thực Đơn AI'}
       </button>
     </div>
   );

@@ -124,7 +124,7 @@ export async function getJourney(user: AuthenticatedUser, options: { customerId?
     WorkoutPlan.find({ customerId, lifecycleStatus: 'ARCHIVED' }).sort({ archivedAt: -1 }).lean(),
     ProgressReport.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ periodEnd: -1 }).lean(),
     Roadmap.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ createdAt: -1 }).lean(),
-    NutritionPlan.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ createdAt: -1 }).lean(),
+    NutritionPlan.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ startDate: -1, createdAt: -1 }).lean(),
     Goal.find({ customerId, ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ createdAt: -1 }).lean(),
     InBodyRecord.find({ customerId, ...dateFilter('measurementDate', options.from, options.to), ...(options.customerView ? { status: 'PUBLISHED' } : {}) }).sort({ measurementDate: -1 }).lean(),
     PtPackage.find({ customerId }).sort({ startDate: -1 }).lean(),

@@ -483,7 +483,7 @@ export default function CustomerOverview({ journey, onNavigateTab }: CustomerOve
                 {String(activeNutrition?.title || 'Thực đơn & Kế hoạch Calo')}
               </h3>
               <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.4 }}>
-                {activeNutrition ? `${(activeNutrition.menu as unknown[])?.length || 0} bữa/ngày: P: ${activeNutrition.macros?.protein || 0}g, C: ${activeNutrition.macros?.carbs || 0}g, F: ${activeNutrition.macros?.fat || 0}g.` : 'PT sẽ thiết lập thực đơn chi tiết cho từng bữa ăn.'}
+                {activeNutrition ? `${Array.isArray(activeNutrition.menu) && activeNutrition.menu.length > 0 ? ((activeNutrition.menu[0] as any)?.days ? ((activeNutrition.menu[0] as any).days[0]?.meals?.length || 0) : activeNutrition.menu.length) : 0} bữa/ngày: P: ${activeNutrition.macros?.protein || 0}g, C: ${activeNutrition.macros?.carbs || 0}g, F: ${activeNutrition.macros?.fat || 0}g.` : 'PT sẽ thiết lập thực đơn chi tiết cho từng bữa ăn.'}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '8px', fontSize: '0.76rem', fontWeight: 700, color: '#16a34a' }}>
