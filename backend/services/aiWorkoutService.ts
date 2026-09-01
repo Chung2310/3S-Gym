@@ -63,11 +63,8 @@ function normalizeLevel(level: unknown): 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED
   return 'INTERMEDIATE';
 }
 
-const exerciseLibraryFor = (user: AuthenticatedUser) => Exercise.find({
-  $and: [
-    { $or: [{ scope: 'GLOBAL' }, { ownerPtId: user.id }] },
-    { defaultTrackingType: { $in: classifiedTrackingTypes } },
-  ],
+const exerciseLibraryFor = (_user: AuthenticatedUser) => Exercise.find({
+  defaultTrackingType: { $in: classifiedTrackingTypes },
 }).sort({ name: 1 }).limit(200).select('_id name muscleGroup level equipment defaultTrackingType').lean();
 const exerciseCatalog = (library: Awaited<ReturnType<typeof exerciseLibraryFor>>) => library.map((exercise) => ({
   exerciseId: String(exercise._id), name: exercise.name, muscleGroup: exercise.muscleGroup,

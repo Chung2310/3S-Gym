@@ -95,24 +95,23 @@ export default function WorkoutTemplateList({ refreshKey, onEdit, onAssign }: Pr
       <div className="module-toolbar workout-toolbar">
         <div>
           <h2 id="workout-template-list-title" className="workout-toolbar-title"><Filter size={18} aria-hidden="true" /> Tìm giáo án</h2>
-          <p className="workout-toolbar-description">Tìm nhanh theo tên, mục tiêu hoặc trạng thái sử dụng.</p>
         </div>
-          <label className="workout-search">
-            <span className="sr-only">Tìm giáo án</span>
-            <Search size={17} className="workout-search-icon" aria-hidden="true" />
-            <input aria-label="Tìm giáo án" placeholder="Tìm theo tên hoặc mục tiêu giáo án..." value={search} onChange={(event) => setSearch(event.target.value)} />
-          </label>
-          <select
-            className="workout-status-filter"
-            aria-label="Trạng thái giáo án"
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="ACTIVE">Đang dùng</option>
-            <option value="ARCHIVED">Đã lưu trữ</option>
-          </select>
-          {(status || search) && <button type="button" className="workout-filter-reset" onClick={() => { setStatus(''); setSearch(''); }}><RotateCcw size={13} aria-hidden="true" /> Xóa bộ lọc</button>}
+        <label className="workout-search">
+          <span className="sr-only">Tìm giáo án</span>
+          <Search size={17} className="workout-search-icon" aria-hidden="true" />
+          <input aria-label="Tìm giáo án" placeholder="Tìm theo tên hoặc mục tiêu giáo án..." value={search} onChange={(event) => setSearch(event.target.value)} />
+        </label>
+        <select
+          className="workout-status-filter"
+          aria-label="Trạng thái giáo án"
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+        >
+          <option value="">Tất cả trạng thái</option>
+          <option value="ACTIVE">Đang dùng</option>
+          <option value="ARCHIVED">Đã lưu trữ</option>
+        </select>
+        {(status || search) && <button type="button" className="workout-filter-reset" onClick={() => { setStatus(''); setSearch(''); }}><RotateCcw size={13} aria-hidden="true" /> Xóa bộ lọc</button>}
       </div>
 
       {loading ? (

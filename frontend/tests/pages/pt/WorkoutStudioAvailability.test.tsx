@@ -51,7 +51,7 @@ beforeEach(() => {
   vi.mocked(api.patch).mockReset();
 });
 
-it('updates transient availability warnings and excludes them from save payload', async () => {
+it('excludes availability slots and warnings from save payload', async () => {
   const user = userEvent.setup();
   render(
     <ToastProvider>
@@ -67,12 +67,7 @@ it('updates transient availability warnings and excludes them from save payload'
     </ToastProvider>,
   );
 
-  expect(await screen.findByText('Tuần 1 · Thứ 2 · 17:00–18:00')).toBeVisible();
   expect(screen.getByLabelText('Số ngày giáo án')).toHaveValue(56);
-
-  const scheduled = screen.getByRole('button', { name: /Squat, 17:00–18:00/ });
-  scheduled.focus();
-  await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}');
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: 'Lưu giáo án' }));

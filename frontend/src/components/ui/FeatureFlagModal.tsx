@@ -22,7 +22,7 @@ export interface FeatureFlagModalProps {
 
 const allRoles = [
   { id: 'ADMIN', label: 'Quản trị viên (ADMIN)' },
-  { id: 'PT', label: 'Huấn luyện viên (PT)' },
+  { id: 'PT', label: 'Huấn luyện viên' },
   { id: 'CUSTOMER', label: 'Khách hàng (CUSTOMER)' },
 ];
 

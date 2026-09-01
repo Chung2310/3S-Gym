@@ -34,8 +34,8 @@ async function materializeGeneratedExercises(payload: Record<string, any>, owner
   for (const generated of payload.generatedExercises || []) {
     const name = String(generated.name).trim();
     const key = name.toLocaleLowerCase('vi');
-    let exercise = await Exercise.findOne({ ownerPtId, scope: 'PRIVATE', name: { $regex: `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } }).session(dbSession || null);
-    if (!exercise) [exercise] = await Exercise.create([{ ...generated, name, scope: 'PRIVATE', ownerPtId }], dbSession ? { session: dbSession } : undefined);
+    let exercise = await Exercise.findOne({ name: { $regex: `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } }).session(dbSession || null);
+    if (!exercise) [exercise] = await Exercise.create([{ ...generated, name, scope: 'GLOBAL', ownerPtId }], dbSession ? { session: dbSession } : undefined);
     ids.set(key, exercise._id);
   }
   for (const field of ['scheduledExercises', 'unscheduledExercises']) payload[field] = (payload[field] || []).map((item: Record<string, unknown>) => ({ ...item, exerciseId: item.exerciseId || ids.get(String(item.name || '').trim().toLocaleLowerCase('vi')) }));

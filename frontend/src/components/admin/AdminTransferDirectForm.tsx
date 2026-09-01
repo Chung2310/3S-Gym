@@ -74,7 +74,7 @@ export default function AdminTransferDirectForm({
       return;
     }
     if (!selectedToPtId) {
-      toast.error('Vui lòng chọn Huấn luyện viên (PT) tiếp nhận.');
+      toast.error('Vui lòng chọn Huấn luyện viên tiếp nhận.');
       return;
     }
     if (!transferReason.trim()) {
@@ -224,7 +224,7 @@ export default function AdminTransferDirectForm({
           {/* 2. Chọn PT nhận mới */}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              2. Chọn Huấn luyện viên (PT) tiếp nhận <span style={{ color: '#dc2626' }}>*</span>
+              2. Chọn Huấn luyện viên tiếp nhận <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <select
               value={selectedToPtId}
@@ -266,7 +266,7 @@ export default function AdminTransferDirectForm({
                 }}
               >
                 <AlertCircle size={14} />
-                <span>Hệ thống cần ít nhất 2 Huấn luyện viên (PT) để thực hiện điều chuyển.</span>
+                <span>Hệ thống cần ít nhất 2 Huấn luyện viên để thực hiện điều chuyển.</span>
               </div>
             )}
           </div>

@@ -37,7 +37,6 @@ export default function ExercisePalette(props: Props) {
           </div>
           <div>
             <h2>Thư viện bài tập</h2>
-            <p>Kéo thả hoặc nhấn dấu + để thêm</p>
           </div>
         </div>
         <span className="studio-palette-count">
@@ -90,44 +89,6 @@ export default function ExercisePalette(props: Props) {
 
       {/* Main Scrollable Area */}
       <div className="studio-palette-scroll">
-        {/* Smart Recommendations */}
-        {props.recommendations.length > 0 && (
-          <section className="studio-palette-section is-recommended">
-            <div className="studio-palette-section-heading">
-              <Sparkles aria-hidden="true" />
-              <h3>Gợi ý cho giáo án</h3>
-            </div>
-            <div className="studio-exercise-list">
-              {props.recommendations.slice(0, 5).map((exercise) => (
-                <div
-                  draggable
-                  onDragStart={(event) => event.dataTransfer.setData('exerciseId', exercise._id)}
-                  key={`rec-${exercise._id}`}
-                  className="studio-exercise-option is-recommended"
-                >
-                  <div className="studio-exercise-main">
-                    <GripVertical className="studio-drag-handle" aria-hidden="true" />
-                    <div className="studio-exercise-copy">
-                      <p className="studio-exercise-name">{exercise.name}</p>
-                      <div className="studio-exercise-badges">
-                        <span className="studio-exercise-badge">{exercise.muscleGroup}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => props.onPlace(exercise)}
-                    aria-label={`Thêm bài đề xuất ${exercise.name}`}
-                    className="studio-add-button"
-                  >
-                    <Plus aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Regular Exercises */}
         <div className="studio-exercise-list">
           {props.exercises.length === 0 ? (

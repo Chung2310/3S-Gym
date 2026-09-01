@@ -170,7 +170,7 @@ export default function PtDashboardPage() {
         <div className="pt-dash-title-wrap">
           <h1 className="pt-dash-title">
             <Activity size={24} className="text-sky-500" />
-            <span>Bảng điều khiển Huấn luyện viên (PT)</span>
+            <span>Bảng điều khiển Huấn luyện viên</span>
           </h1>
         </div>
         <button
@@ -195,13 +195,7 @@ export default function PtDashboardPage() {
               <Users size={20} className="text-[#003b70]" />
               <span>KHÁCH HÀNG CỦA TÔI</span>
             </h2>
-            <span className="pt-section-badge" style={{ background: '#e0f2fe', color: '#0369a1' }}>
-              Dữ liệu InBody Trước - Sau (BF-AT)
-            </span>
           </div>
-          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-            Tổng hợp từ các lần đo InBody định kỳ
-          </span>
         </div>
 
         {/* 4 Metrics Cards */}

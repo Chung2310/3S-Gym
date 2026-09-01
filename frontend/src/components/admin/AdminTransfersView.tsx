@@ -114,7 +114,7 @@ export default function AdminTransfersView() {
       {/* Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
         <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#003b70', margin: 0 }}>
-          Điều chuyển khách hàng (Customer Transfer)
+          Điều chuyển khách hàng
         </h2>
 
         {/* Tab Toggle */}
