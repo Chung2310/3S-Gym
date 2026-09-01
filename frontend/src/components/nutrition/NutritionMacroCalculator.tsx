@@ -1,23 +1,4 @@
 import { useState, useEffect, useId } from 'react';
-import {
-  AlertCircle,
-  ArrowRight,
-  Brain,
-  Calculator,
-  CheckCircle2,
-  Clock,
-  Droplets,
-  Flame,
-  HelpCircle,
-  Lightbulb,
-  RefreshCw,
-  Salad,
-  Sparkles,
-  Target,
-  Utensils,
-  Wand2,
-  Zap,
-} from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
@@ -282,7 +263,6 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
               gap: '6px',
             }}
           >
-            <Sparkles size={14} color={activeMode === 'AI_EXPERT' ? '#003b70' : '#38bdf8'} />
             Hỏi Chuyên Gia AI (Khuyên dùng)
           </button>
 
@@ -303,7 +283,7 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
               gap: '6px',
             }}
           >
-            <Calculator size={14} /> Công thức toán học
+            Công thức
           </button>
         </div>
       </div>
@@ -325,8 +305,8 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
         >
           {/* Base Physical Stats */}
           <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-            <h3 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#003b70', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Zap size={15} color="#00a4e4" /> Chỉ Số Thể Trạng Cơ Bản
+            <h3 style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#003b70', fontWeight: 800 }}>
+              Chỉ Số Thể Trạng Cơ Bản
             </h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '10px' }}>
@@ -394,7 +374,7 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                 }}
                 style={{ padding: '6px 14px', fontSize: '0.8rem', fontWeight: 700 }}
               >
-                <Calculator size={13} style={{ marginRight: '4px', display: 'inline' }} /> Tính Ngay
+                Tính Ngay
               </button>
             </div>
           </div>
@@ -404,8 +384,8 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
             <>
               {/* Body Type & Metabolism */}
               <div>
-                <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                  <Brain size={14} color="#8b5cf6" /> Dạng Thể Chất & Cơ Chế Chuyển Hóa
+                <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
+                  Dạng Thể Chất & Cơ Chế Chuyển Hóa
                 </label>
                 <textarea
                   rows={2}
@@ -438,8 +418,8 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
 
               {/* Schedule & Workout Times */}
               <div>
-                <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                  <Clock size={14} color="#0284c7" /> Lịch Trình Sinh Hoạt & Giờ Tập Luyện
+                <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
+                  Lịch Trình Sinh Hoạt & Giờ Tập Luyện
                 </label>
                 <textarea
                   rows={2}
@@ -472,8 +452,8 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
 
               {/* Dietary Habits & Allergies */}
               <div>
-                <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                  <Salad size={14} color="#16a34a" /> Thói Quen Ăn Uống, Dị Ứng & Nhu Cầu Đặc Thù
+                <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
+                  Thói Quen Ăn Uống, Dị Ứng & Nhu Cầu Đặc Thù
                 </label>
                 <textarea
                   rows={2}
@@ -506,8 +486,8 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
 
               {/* Goal & Custom Request */}
               <div>
-                <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                  <Target size={14} color="#ea580c" /> Mục Tiêu Cụ Thể Của Học Viên
+                <label style={{ fontSize: '0.74rem', color: '#003b70', fontWeight: 800, display: 'block', marginBottom: '4px' }}>
+                  Mục Tiêu Cụ Thể Của Học Viên
                 </label>
                 <input
                   value={fitnessGoal}
@@ -534,12 +514,10 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
                   boxShadow: '0 4px 12px rgba(0, 59, 112, 0.2)',
                   marginTop: '6px',
                 }}
               >
-                {loadingAi ? <RefreshCw size={16} className="spin" /> : <Wand2 size={16} />}
                 {loadingAi ? 'AI đang phân tích chuyển hóa & lịch trình...' : 'AI Phân Tích Thể Chất & Tính Toán Chuyên Sâu'}
               </button>
             </>
@@ -631,12 +609,9 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <RefreshCw size={20} color="#0284c7" className="spin" />
-                      <strong style={{ fontSize: '0.92rem', color: '#003b70' }}>
-                        AI Đang Tính Năng Lượng & Macro...
-                      </strong>
-                    </div>
+                    <strong style={{ fontSize: '0.92rem', color: '#003b70' }}>
+                      AI Đang Tính Năng Lượng & Macro...
+                    </strong>
                     <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0284c7' }}>
                       {loadingProgress}%
                     </span>
@@ -658,22 +633,22 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                   {/* 4 Step Progress Checklist */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '2px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: loadingStage >= 1 ? '#0369a1' : '#94a3b8', fontWeight: loadingStage === 1 ? 800 : 600 }}>
-                      {loadingStage > 1 ? <CheckCircle2 size={15} color="#16a34a" /> : loadingStage === 1 ? <RefreshCw size={13} color="#0284c7" className="spin" /> : <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid #cbd5e1' }} />}
+                      <span style={{ fontWeight: 800 }}>{loadingStage > 1 ? '✓' : '•'}</span>
                       <span>1. Phân tích thể trạng, % mỡ InBody & phân loại cơ địa</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: loadingStage >= 2 ? '#0369a1' : '#94a3b8', fontWeight: loadingStage === 2 ? 800 : 600 }}>
-                      {loadingStage > 2 ? <CheckCircle2 size={15} color="#16a34a" /> : loadingStage === 2 ? <RefreshCw size={13} color="#0284c7" className="spin" /> : <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid #cbd5e1' }} />}
+                      <span style={{ fontWeight: 800 }}>{loadingStage > 2 ? '✓' : '•'}</span>
                       <span>2. Tính toán BMR, TDEE & thâm hụt calo theo giờ tập</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: loadingStage >= 3 ? '#0369a1' : '#94a3b8', fontWeight: loadingStage === 3 ? 800 : 600 }}>
-                      {loadingStage > 3 ? <CheckCircle2 size={15} color="#16a34a" /> : loadingStage === 3 ? <RefreshCw size={13} color="#0284c7" className="spin" /> : <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid #cbd5e1' }} />}
+                      <span style={{ fontWeight: 800 }}>{loadingStage > 3 ? '✓' : '•'}</span>
                       <span>3. Phân bổ 3 chất đa lượng Protein/Carbs/Fat & thời điểm nạp</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: loadingStage >= 4 ? '#0369a1' : '#94a3b8', fontWeight: loadingStage === 4 ? 800 : 600 }}>
-                      {loadingStage > 4 ? <CheckCircle2 size={15} color="#16a34a" /> : loadingStage === 4 ? <RefreshCw size={13} color="#0284c7" className="spin" /> : <div style={{ width: 13, height: 13, borderRadius: '50%', border: '1px solid #cbd5e1' }} />}
+                      <span style={{ fontWeight: 800 }}>{loadingStage > 4 ? '✓' : '•'}</span>
                       <span>4. Tổng hợp danh mục thực phẩm nên ăn & chất bổ sung</span>
                     </div>
                   </div>
@@ -693,8 +668,8 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                 >
                   {/* Summary Box */}
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1e40af', fontWeight: 800, fontSize: '0.84rem', marginBottom: '4px' }}>
-                      <Brain size={16} /> Đánh Giá Thể Trạng & Cơ Chế Chuyển Hóa
+                    <div style={{ color: '#1e40af', fontWeight: 800, fontSize: '0.84rem', marginBottom: '4px' }}>
+                      Đánh Giá Thể Trạng & Cơ Chế Chuyển Hóa
                     </div>
                     <p style={{ margin: 0, fontSize: '0.82rem', color: '#1e293b', lineHeight: 1.5 }}>
                       {aiAnalysis.summary}
@@ -741,8 +716,8 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
 
                   {/* Water Target */}
                   <div style={{ background: '#f0fdfa', border: '1px solid #ccfbf1', borderRadius: '8px', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0f766e', fontWeight: 700 }}>
-                      <Droplets size={15} color="#0d9488" /> Lượng nước khuyến nghị:
+                    <span style={{ color: '#0f766e', fontWeight: 700 }}>
+                      Lượng nước khuyến nghị:
                     </span>
                     <strong style={{ color: '#0d9488', fontSize: '0.9rem' }}>{aiAnalysis.waterLiters || 2.5} Lít / ngày</strong>
                   </div>
@@ -750,8 +725,8 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                   {/* Timing Strategy Timeline */}
                   {aiAnalysis.timingStrategy && aiAnalysis.timingStrategy.length > 0 && (
                     <div style={{ background: '#fafaf9', border: '1px solid #e7e5e4', borderRadius: '10px', padding: '12px' }}>
-                      <div style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Clock size={14} color="#0284c7" /> Phân Bổ Thời Điểm Ăn Trong Ngày
+                      <div style={{ fontSize: '0.78rem', color: '#003b70', fontWeight: 800, marginBottom: '8px' }}>
+                        Phân Bổ Thời Điểm Ăn Trong Ngày
                       </div>
                       <div style={{ display: 'grid', gap: '6px' }}>
                         {aiAnalysis.timingStrategy.map((ts, idx) => (
@@ -781,22 +756,22 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                   {aiAnalysis.dietaryAdvice && (
                     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', fontSize: '0.8rem' }}>
                       <div style={{ marginBottom: '6px' }}>
-                        <strong style={{ color: '#15803d' }}>✅ Nên ăn: </strong>
+                        <strong style={{ color: '#15803d' }}>Nên ăn: </strong>
                         <span style={{ color: '#334155' }}>{aiAnalysis.dietaryAdvice.recommendedFoods?.join(', ')}</span>
                       </div>
                       <div style={{ marginBottom: '6px' }}>
-                        <strong style={{ color: '#dc2626' }}>❌ Cần tránh: </strong>
+                        <strong style={{ color: '#dc2626' }}>Cần tránh: </strong>
                         <span style={{ color: '#334155' }}>{aiAnalysis.dietaryAdvice.avoidFoods?.join(', ')}</span>
                       </div>
                       {aiAnalysis.dietaryAdvice.supplements && (
                         <div style={{ marginBottom: '6px' }}>
-                          <strong style={{ color: '#7c3aed' }}>💊 Thực phẩm bổ sung: </strong>
+                          <strong style={{ color: '#7c3aed' }}>Thực phẩm bổ sung: </strong>
                           <span style={{ color: '#334155' }}>{aiAnalysis.dietaryAdvice.supplements.join(', ')}</span>
                         </div>
                       )}
                       {aiAnalysis.dietaryAdvice.keyNotes && (
                         <div style={{ color: '#003b70', fontStyle: 'italic', marginTop: '4px' }}>
-                          💡 <strong>Lưu ý: </strong>{aiAnalysis.dietaryAdvice.keyNotes}
+                          <strong>Lưu ý: </strong>{aiAnalysis.dietaryAdvice.keyNotes}
                         </div>
                       )}
                     </div>
@@ -833,11 +808,10 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px',
                       boxShadow: '0 4px 12px rgba(22, 163, 74, 0.25)',
                     }}
                   >
-                    <CheckCircle2 size={16} /> Áp Dụng Sang Lên Thực Đơn AI Ngay
+                    Áp Dụng Sang Lên Thực Đơn AI Ngay
                   </button>
                 </div>
               ) : (
@@ -855,7 +829,6 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                     gap: '10px',
                   }}
                 >
-                  <Sparkles size={36} color="#00a4e4" />
                   <h4 style={{ margin: 0, fontSize: '1rem', color: '#003b70', fontWeight: 800 }}>
                     Sẵn Sàng Phân Tích Cá Nhân Hóa Bằng AI
                   </h4>
@@ -904,15 +877,15 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                 <div style={{ background: '#eff6ff', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#1d4ed8', fontWeight: 700 }}>🥩 PROTEIN</span>
+                  <span style={{ fontSize: '0.72rem', color: '#1d4ed8', fontWeight: 700 }}>PROTEIN</span>
                   <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e40af' }}>{formulaResult.macros.protein}g</div>
                 </div>
                 <div style={{ background: '#fffbeb', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 700 }}>🍚 CARBS</span>
+                  <span style={{ fontSize: '0.72rem', color: '#b45309', fontWeight: 700 }}>CARBS</span>
                   <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#92400e' }}>{formulaResult.macros.carbs}g</div>
                 </div>
                 <div style={{ background: '#fdf2f8', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '0.72rem', color: '#be185d', fontWeight: 700 }}>🥑 CHẤT BÉO</span>
+                  <span style={{ fontSize: '0.72rem', color: '#be185d', fontWeight: 700 }}>CHẤT BÉO</span>
                   <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#9d174d' }}>{formulaResult.macros.fat}g</div>
                 </div>
               </div>

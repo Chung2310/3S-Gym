@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Activity, Dumbbell, Flame, Plus, Timer, Sparkles, Check, HeartPulse, Bike, Waves, Zap } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
@@ -12,7 +11,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'STRENGTH',
     categoryLabel: 'Tập tạ / Gym',
     met: 6.5,
-    icon: Dumbbell,
     defaultDurationMinutes: 60,
     benchmarkText: '1h tập tạ ~ 400 - 500 kcal',
     description: 'Tập tạ nặng, nghỉ ngắn, superset kích thích phì đại cơ bắp tối đa.',
@@ -24,7 +22,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'CARDIO',
     categoryLabel: 'Chạy bộ',
     met: 9.8,
-    icon: Flame,
     defaultDurationMinutes: 30,
     defaultDistanceKm: 5,
     benchmarkText: 'Chạy 5km ~ 450 - 550 kcal',
@@ -37,7 +34,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'CARDIO',
     categoryLabel: 'Bơi lội',
     met: 7.5,
-    icon: Waves,
     defaultDurationMinutes: 40,
     defaultDistanceKm: 1,
     benchmarkText: 'Bơi 1km ~ 350 - 450 kcal',
@@ -50,7 +46,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'CARDIO',
     categoryLabel: 'Đạp xe',
     met: 7.5,
-    icon: Bike,
     defaultDurationMinutes: 50,
     defaultDistanceKm: 20,
     benchmarkText: 'Đạp xe 20km ~ 350 - 500 kcal',
@@ -63,7 +58,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'CARDIO',
     categoryLabel: 'Cardio / HIIT',
     met: 9.5,
-    icon: Zap,
     defaultDurationMinutes: 30,
     benchmarkText: '30 phút HIIT ~ 350 - 450 kcal',
     description: '20s nỗ lực tối đa + 10s nghỉ, hiệu ứng đốt mỡ sau tập (EPOC).',
@@ -75,7 +69,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'MARTIAL_ARTS',
     categoryLabel: 'Võ thuật',
     met: 8.5,
-    icon: HeartPulse,
     defaultDurationMinutes: 45,
     benchmarkText: '45 phút Boxing ~ 400 - 500 kcal',
     description: 'Đấm bao cát, di chuyển linh hoạt, rèn luyện phản xạ và đốt mỡ siết eo.',
@@ -87,7 +80,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'CARDIO',
     categoryLabel: 'Cardio',
     met: 10.0,
-    icon: Activity,
     defaultDurationMinutes: 30,
     benchmarkText: '30 phút nhảy dây ~ 400 - 550 kcal',
     description: '100-120 nhịp/phút, tiêu hao calo vượt trội so với chạy bộ cùng thời gian.',
@@ -99,7 +91,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'SPORTS',
     categoryLabel: 'Thể thao',
     met: 6.5,
-    icon: Activity,
     defaultDurationMinutes: 60,
     benchmarkText: '1h đối kháng ~ 360 - 480 kcal',
     description: 'Di chuyển bước chân liên tục, xoay người linh hoạt và đập cầu.',
@@ -111,7 +102,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'CARDIO',
     categoryLabel: 'Zone 2 LISS',
     met: 5.5,
-    icon: HeartPulse,
     defaultDurationMinutes: 45,
     benchmarkText: '45 phút Zone 2 ~ 250 - 350 kcal',
     description: 'Nhịp tim 60-70% Max HR, tối ưu hóa quá trình oxy hóa chất béo làm năng lượng.',
@@ -123,7 +113,6 @@ const ACTIVITIES: ActivityItem[] = [
     category: 'RECOVERY',
     categoryLabel: 'Phục hồi',
     met: 3.0,
-    icon: Sparkles,
     defaultDurationMinutes: 45,
     benchmarkText: '45 phút Yoga ~ 120 - 200 kcal',
     description: 'Giảm đau mỏi cơ, tăng tầm vận động khớp (ROM) và hạ hormone cortisol.',
@@ -219,11 +208,11 @@ export default function ActivityLibraryCalculator({ selectedCustomer, onLogged }
         {/* Quick Presets */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {[
-            { label: '🏋️ Gym 1h', actId: 'gym_hiit' },
-            { label: '🏃 Chạy 5km', actId: 'running_5k' },
-            { label: '🏊 Bơi 1km', actId: 'swimming_1k' },
-            { label: '🚴 Cycling 20km', actId: 'cycling_20k' },
-            { label: '🔥 Tabata 30p', actId: 'tabata_hiit' },
+            { label: 'Gym 1h', actId: 'gym_hiit' },
+            { label: 'Chạy 5km', actId: 'running_5k' },
+            { label: 'Bơi 1km', actId: 'swimming_1k' },
+            { label: 'Cycling 20km', actId: 'cycling_20k' },
+            { label: 'Tabata 30p', actId: 'tabata_hiit' },
           ].map((preset) => (
             <button
               key={preset.actId}
@@ -290,7 +279,6 @@ export default function ActivityLibraryCalculator({ selectedCustomer, onLogged }
           <div style={{ display: 'grid', gap: '10px', maxHeight: '520px', overflowY: 'auto', paddingRight: '4px' }}>
             {filteredActivities.map((act) => {
               const isSelected = selectedActivity.id === act.id;
-              const IconComp = act.icon;
               return (
                 <div
                   key={act.id}
@@ -310,32 +298,14 @@ export default function ActivityLibraryCalculator({ selectedCustomer, onLogged }
                     gap: '12px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '10px',
-                        background: act.badgeColor,
-                        color: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <IconComp size={20} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ fontSize: '0.9rem', color: '#1e293b' }}>{act.name}</strong>
+                      {isSelected && <span style={{ color: '#16a34a', fontWeight: 800, fontSize: '0.85rem' }}>✓</span>}
                     </div>
-
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <strong style={{ fontSize: '0.9rem', color: '#1e293b' }}>{act.name}</strong>
-                        {isSelected && <Check size={16} color="#16a34a" />}
-                      </div>
-                      <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
-                        {act.description}
-                      </p>
-                    </div>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+                      {act.description}
+                    </p>
                   </div>
 
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -461,7 +431,7 @@ export default function ActivityLibraryCalculator({ selectedCustomer, onLogged }
 
           {/* Calculation Formula Note */}
           <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.75rem', color: '#64748b' }}>
-            <span style={{ fontWeight: 700, color: '#334155' }}>💡 Công thức chuẩn ACSM:</span>
+            <span style={{ fontWeight: 700, color: '#334155' }}>Công thức chuẩn ACSM:</span>
             <div style={{ marginTop: '2px' }}>
               Calories = (MET × 3.5 × {weight}kg / 200) × {duration} phút = <strong>{calculatedCalories} kcal</strong>
             </div>
@@ -473,9 +443,9 @@ export default function ActivityLibraryCalculator({ selectedCustomer, onLogged }
             className="button button-primary"
             onClick={() => void handleSaveToLog()}
             disabled={saving}
-            style={{ padding: '12px', fontSize: '0.9rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            style={{ padding: '12px', fontSize: '0.9rem', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Plus size={16} /> {saving ? 'Đang lưu...' : `Ghi ${calculatedCalories} kcal vào Nhật Ký Tiêu Hao`}
+            {saving ? 'Đang lưu...' : `Ghi ${calculatedCalories} kcal vào Nhật Ký Tiêu Hao`}
           </button>
         </div>
       </div>
