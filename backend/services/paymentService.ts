@@ -28,47 +28,100 @@ function orderView(order: OrderDocument, redirectUrl?: string) {
 }
 
 export function gatewayAvailability() {
-  return { VNPAY: isVnpayConfigured(), MOMO: isMomoConfigured() };
+  return {
+    PAYOS: true,
+    VNPAY: isVnpayConfigured(),
+    MOMO: isMomoConfigured(),
+  };
 }
 
 export async function listActivePackages() {
   const packages = await CreditPackage.find({ active: true }).sort({ sortOrder: 1, amountVnd: 1 }).lean();
   return packages.map((item) => ({
-    id: String(item._id), name: item.name, description: item.description, amountVnd: item.amountVnd,
-    baseCredits: item.baseCredits, bonusCredits: item.bonusCredits, grantCredits: item.baseCredits + item.bonusCredits,
+    id: String(item._id),
+    name: item.name,
+    description: item.description,
+    amountVnd: item.amountVnd,
+    baseCredits: item.baseCredits,
+    bonusCredits: item.bonusCredits,
+    grantCredits: item.baseCredits + item.bonusCredits,
   }));
 }
 
-export async function createPaymentOrder(userId: string, input: { gateway: PaymentGateway; packageId?: string; customAmountVnd?: number }, ipAddress: string) {
-  if (input.gateway === 'VNPAY' && !isVnpayConfigured()) unavailable('VNPay chưa được cấu hình.');
-  if (input.gateway === 'MOMO' && !isMomoConfigured()) unavailable('MoMo chưa được cấu hình.');
+export async function createPaymentOrder(
+  userId: string,
+  input: { gateway: PaymentGateway; packageId?: string; customAmountVnd?: number },
+  ipAddress: string,
+) {
+  const gateway = input.gateway || 'PAYOS';
+  if (gateway === 'VNPAY' && !isVnpayConfigured()) unavailable('VNPay chưa được cấu hình.');
+  if (gateway === 'MOMO' && !isMomoConfigured()) unavailable('MoMo chưa được cấu hình.');
+
   const wallet = await ensureWallet(userId);
-  let source: 'PACKAGE' | 'CUSTOM'; let packageId: mongoose.Types.ObjectId | undefined;
-  let amountVnd: number; let baseCredits: number; let bonusCredits: number;
+  let source: 'PACKAGE' | 'CUSTOM';
+  let packageId: mongoose.Types.ObjectId | undefined;
+  let amountVnd: number;
+  let baseCredits: number;
+  let bonusCredits: number;
+
   if (input.packageId) {
     const selected = await CreditPackage.findOne({ _id: input.packageId, active: true });
-    if (!selected) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy gói credit đang hoạt động.' });
-    source = 'PACKAGE'; packageId = selected._id; amountVnd = selected.amountVnd;
-    baseCredits = selected.baseCredits; bonusCredits = selected.bonusCredits;
+    if (!selected) {
+      throw new AppError({
+        status: 404,
+        code: ERROR_CODES.NOT_FOUND,
+        message: 'Không tìm thấy gói credit đang hoạt động.',
+      });
+    }
+    source = 'PACKAGE';
+    packageId = selected._id;
+    amountVnd = selected.amountVnd;
+    baseCredits = selected.baseCredits;
+    bonusCredits = selected.bonusCredits;
   } else {
     const pricing = await CreditPricing.findOne({ key: 'GLOBAL' }).lean();
     if (!pricing) unavailable('Chính sách quy đổi credit chưa được cấu hình.');
-    source = 'CUSTOM'; amountVnd = input.customAmountVnd!;
-    baseCredits = Math.floor(amountVnd / pricing.vndPerCredit); bonusCredits = 0;
+    source = 'CUSTOM';
+    amountVnd = input.customAmountVnd!;
+    baseCredits = Math.floor(amountVnd / pricing.vndPerCredit);
+    bonusCredits = 0;
   }
+
   const orderCode = `CR${Date.now().toString(36).toUpperCase()}${randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase()}`;
   const requestId = `REQ-${orderCode}`;
   const order = await PaymentOrder.create({
-    userId, walletId: wallet._id, gateway: input.gateway, orderCode, status: 'PENDING', source, packageId,
-    amountVnd, baseCredits, bonusCredits, grantCredits: baseCredits + bonusCredits,
-    gatewayRequestId: requestId, expiresAt: new Date(Date.now() + 15 * 60_000), grantIdempotencyKey: `payment-grant:${orderCode}`,
+    userId,
+    walletId: wallet._id,
+    gateway,
+    orderCode,
+    status: 'PENDING',
+    source,
+    packageId,
+    amountVnd,
+    baseCredits,
+    bonusCredits,
+    grantCredits: baseCredits + bonusCredits,
+    gatewayRequestId: requestId,
+    expiresAt: new Date(Date.now() + 15 * 60_000),
+    grantIdempotencyKey: `payment-grant:${orderCode}`,
   });
+
   const description = `Nap credit ${orderCode}`;
-  const result = input.gateway === 'VNPAY'
-    ? createVnpayPayment({ orderCode, amountVnd, description, ipAddress })
-    : await createMomoPayment({ orderCode, requestId, amountVnd, description });
-  if (!result.configured) unavailable(`${input.gateway} chưa được cấu hình.`);
-  return orderView(order, result.redirectUrl);
+  let redirectUrl: string | undefined;
+
+  if (gateway === 'PAYOS') {
+    redirectUrl = `/portal/wallet/payment-result?orderId=${order.id}&status=PENDING&gateway=PAYOS`;
+  } else if (gateway === 'VNPAY') {
+    const result = createVnpayPayment({ orderCode, amountVnd, description, ipAddress });
+    if (!result.configured) unavailable('VNPay chưa được cấu hình.');
+    redirectUrl = result.redirectUrl;
+  } else {
+    const result = await createMomoPayment({ orderCode, requestId, amountVnd, description });
+    if (!result.configured) unavailable('MoMo chưa được cấu hình.');
+    redirectUrl = result.redirectUrl;
+  }
+
+  return orderView(order, redirectUrl);
 }
 
 export async function getPaymentOrder(userId: string, id: string) {
