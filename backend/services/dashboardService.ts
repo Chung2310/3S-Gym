@@ -1,15 +1,38 @@
 import CustomerProfile from '../models/CustomerProfile.js';
 import BodyMeasurement from '../models/BodyMeasurement.js';
+import InBodyRecord from '../models/InBodyRecord.js';
 import CareAlert from '../models/CareAlert.js';
 import type { AuthenticatedUser } from '../types/express.js';
 
 async function getPtDashboard(user: AuthenticatedUser) {
   const customers = await CustomerProfile.find({ assignedPtId: user.id, status: 'ACTIVE' }).lean();
   const summaries = await Promise.all(customers.map(async (customer) => {
-    const [measurements, openAlerts] = await Promise.all([
+    const [bodyMeasurements, inbodyRecords, openAlerts] = await Promise.all([
       BodyMeasurement.find({ customerId: customer._id }).sort({ measuredAt: 1 }).lean(),
+      InBodyRecord.find({ customerId: customer._id }).sort({ measurementDate: 1 }).lean(),
       CareAlert.countDocuments({ customerId: customer._id, status: 'OPEN' }),
     ]);
+
+    const convertedInbody = inbodyRecords.map((r) => ({
+      _id: r._id,
+      measuredAt: r.measurementDate,
+      weight: r.weight,
+      bodyFatPercentage: r.bodyFatPercentage ?? undefined,
+      muscleMass: r.muscleMass ?? undefined,
+    }));
+
+    const convertedBody = bodyMeasurements.map((b) => ({
+      _id: b._id,
+      measuredAt: b.measuredAt,
+      weight: b.weight,
+      bodyFatPercentage: b.bodyFatPercentage,
+      muscleMass: b.muscleMass,
+    }));
+
+    const measurements = [...convertedInbody, ...convertedBody].sort(
+      (a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime(),
+    );
+
     const sufficient = measurements.length >= 2;
     if (!sufficient) {
       return {

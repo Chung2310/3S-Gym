@@ -39,6 +39,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/pt/dashboard', label: 'Dashboard PT', section: 'Tổng quan', icon: LayoutDashboard, roles: ['PT'], feature: 'DASHBOARD' },
   { path: '/pt/customers', label: 'Khách hàng', section: 'Vận hành', icon: Users, roles: ['PT'], matchChildren: true },
   { path: '/pt/inbody', label: 'Chỉ số InBody', section: 'Vận hành', icon: Ruler, roles: ['PT'], feature: 'OCR_INBODY', matchChildren: true },
+  { path: '/pt/nutrition', label: 'Dinh dưỡng & Thực đơn', section: 'Vận hành', icon: Salad, roles: ['PT'], feature: 'NUTRITION_AI', matchChildren: true },
   { path: '/pt/roadmaps', label: 'Roadmap', section: 'Vận hành', icon: Map, roles: ['PT'], feature: 'ROADMAP', matchChildren: true },
   { path: '/pt/my-workout-plans', label: 'Giáo án của tôi', section: 'Vận hành', icon: BookOpen, roles: ['PT'], feature: 'EXERCISE_LIBRARY', matchChildren: true },
   { path: '/pt/progress', label: 'Tiến độ', section: 'Vận hành', icon: ChartNoAxesCombined, roles: ['PT'], feature: 'PROGRESS', matchChildren: true },
