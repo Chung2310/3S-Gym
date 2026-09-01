@@ -1,6 +1,7 @@
 import app from './app.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { ensureBootstrapSuperAdmin } from './services/userService.js';
+import { ensureCreditReferenceData } from './services/migrationService.js';
 import { initTelemetry, flushTelemetry } from './services/telemetryService.js';
 import { createShutdown } from './services/lifecycleService.js';
 import { logger } from './config/logger.js';
@@ -16,6 +17,7 @@ async function startServer() {
             password: env.SUPER_ADMIN_PASSWORD,
             fullName: env.SUPER_ADMIN_FULL_NAME || 'Quản lý cấp cao 3S',
         });
+        await ensureCreditReferenceData();
         await app.frontendReady;
         initTelemetry();
         const server = app.listen(PORT, () => logger.info({ port: PORT }, 'Máy chủ đã khởi động'));

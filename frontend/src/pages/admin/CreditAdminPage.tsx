@@ -263,9 +263,9 @@ export default function CreditAdminPage() {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-black text-[#003b70] font-sans">
-              1.000 đ
+              100 đ
             </span>
-            <span className="text-xs font-semibold text-slate-500">= 1 Credit tác vụ AI</span>
+            <span className="text-xs font-semibold text-slate-500">= 1 Credit (1.000 đ = 10 Credit)</span>
           </div>
         </div>
       </div>

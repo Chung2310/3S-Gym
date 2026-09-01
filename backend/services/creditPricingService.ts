@@ -10,7 +10,7 @@ export function calculateSettledCredits(usage: ProviderUsage, pricing: PricingSn
   const cost = usage.providerCostMicrousd;
   if (cost === undefined) return pricing.fallbackCredits;
   if (!Number.isSafeInteger(cost) || cost < 0) throw new Error('providerCostMicrousd phải là số nguyên không âm.');
-  if (cost === 0) return 0;
+  if (cost === 0) return pricing.minBillableCredits;
   const numerator = BigInt(cost) * BigInt(pricing.usdToVnd) * BigInt(pricing.markupBasisPoints);
   const denominator = 1_000_000n * 10_000n * BigInt(pricing.vndPerCredit);
   const rounded = Number((numerator + denominator - 1n) / denominator);

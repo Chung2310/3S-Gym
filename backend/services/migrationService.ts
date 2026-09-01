@@ -77,8 +77,18 @@ async function downContentDefaults(metadata: Record<string, unknown>) {
 const defaultPolicy = (taskType: AiTaskType) => ({
   taskType,
   enabled: true,
-  maxReservationCredits: taskType === 'IMAGE_GENERATION' ? 50 : 20,
-  fallbackCredits: taskType === 'IMAGE_GENERATION' ? 10 : 1,
+  maxReservationCredits:
+    taskType === 'TEXT_ASSISTANT'
+      ? 1
+      : taskType === 'IMAGE_GENERATION'
+        ? 20
+        : 3,
+  fallbackCredits:
+    taskType === 'TEXT_ASSISTANT'
+      ? 1
+      : taskType === 'IMAGE_GENERATION'
+        ? 10
+        : 1,
   markupBasisPoints: 12_500,
   minBillableCredits: 1,
 });
@@ -87,12 +97,18 @@ export async function ensureCreditReferenceData(): Promise<Pick<CreditMigrationM
   await Promise.all([CreditPricing.createIndexes(), AiBillingPolicy.createIndexes()]);
   const pricing = await CreditPricing.updateOne(
     { key: 'GLOBAL' },
-    { $setOnInsert: { key: 'GLOBAL', vndPerCredit: 1_000, usdToVnd: 26_000 } },
+    {
+      $set: { vndPerCredit: 100 },
+      $setOnInsert: { key: 'GLOBAL', usdToVnd: 26_000 },
+    },
     { upsert: true },
   );
   const policies = await Promise.all(AI_TASK_TYPES.map((taskType) => AiBillingPolicy.updateOne(
     { taskType },
-    { $setOnInsert: defaultPolicy(taskType) },
+    {
+      $setOnInsert: defaultPolicy(taskType),
+      ...(taskType === 'TEXT_ASSISTANT' ? { $set: { maxReservationCredits: 1, fallbackCredits: 1, minBillableCredits: 1 } } : {}),
+    },
     { upsert: true },
   )));
   return {

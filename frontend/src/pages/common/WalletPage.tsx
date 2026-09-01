@@ -205,7 +205,7 @@ export default function WalletPage() {
           <div className="wallet-section-header">
             <h2 className="wallet-section-title">Nạp credit</h2>
             <p className="wallet-section-desc">
-              1.000đ tương đương 1 credit cơ bản. Bonus được cộng thêm theo từng gói.
+              Tỉ giá 1.000đ = 10 credit cơ bản (100đ / credit). Bonus được cộng thêm theo từng gói.
             </p>
           </div>
 
