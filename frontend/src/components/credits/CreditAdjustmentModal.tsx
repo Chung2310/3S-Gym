@@ -4,7 +4,9 @@ import {
   Gift,
   LoaderCircle,
   Mail,
+  MinusCircle,
   Phone,
+  PlusCircle,
   Search,
   Shield,
   Sparkles,
@@ -26,20 +28,23 @@ export interface TargetCreditUser {
   role?: string;
   phone?: string;
   email?: string;
+  availableCredits?: number;
+  reservedCredits?: number;
 }
 
 interface CreditAdjustmentModalProps {
   open?: boolean;
   onClose?: () => void;
   targetUser?: TargetCreditUser | null;
+  mode?: 'GRANT' | 'DEDUCT';
   onSubmit?: (input: { userId: string; credits: number; reason: string }) => Promise<void>;
   onSuccess?: () => void;
   triggerButton?: React.ReactNode;
 }
 
-const PRESET_AMOUNTS = [20, 50, 100, 200, 500, 1000];
+const PRESET_AMOUNTS = [10, 20, 50, 100, 200, 500, 1000];
 
-const REASON_SUGGESTIONS = [
+const GRANT_REASON_SUGGESTIONS = [
   '🎁 Khuyến mãi chào mừng hội viên mới',
   '🏆 Thưởng đạt mục tiêu InBody xuất sắc',
   '💎 Tặng theo gói Hội viên VIP',
@@ -47,10 +52,18 @@ const REASON_SUGGESTIONS = [
   '🛠️ Bù credit do lỗi hệ thống',
 ];
 
+const DEDUCT_REASON_SUGGESTIONS = [
+  '🔻 Thu hồi credit cấp nhầm',
+  '🔻 Khấu trừ theo yêu cầu khách hàng',
+  '🔻 Điều chỉnh giảm số dư credit',
+  '🔻 Hết hạn thời gian khuyến mãi',
+];
+
 export default function CreditAdjustmentModal({
   open: controlledOpen,
   onClose: controlledOnClose,
   targetUser,
+  mode = 'GRANT',
   onSubmit,
   onSuccess,
   triggerButton,
@@ -60,22 +73,34 @@ export default function CreditAdjustmentModal({
   const isControlled = typeof controlledOpen === 'boolean';
   const open = isControlled ? controlledOpen : internalOpen;
 
+  const [isDeduct, setIsDeduct] = useState(mode === 'DEDUCT');
   const [selectedUser, setSelectedUser] = useState<TargetCreditUser | null>(targetUser || null);
   const [userSearch, setUserSearch] = useState('');
   const [searchResults, setSearchResults] = useState<TargetCreditUser[]>([]);
   const [searching, setSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const [credits, setCredits] = useState<string>('50');
-  const [reason, setReason] = useState<string>('⚡ Cấp credit trải nghiệm Trợ lý AI 3S');
+  const [rawAmount, setRawAmount] = useState<string>('50');
+  const [reason, setReason] = useState<string>(
+    mode === 'DEDUCT' ? '🔻 Thu hồi credit cấp nhầm' : '⚡ Cấp credit trải nghiệm Trợ lý AI 3S'
+  );
   const [loading, setLoading] = useState(false);
 
-  // Sync selected user when targetUser prop changes
+  // Sync selected user when targetUser prop or mode changes
   useEffect(() => {
     if (targetUser) {
       setSelectedUser(targetUser);
     }
   }, [targetUser]);
+
+  useEffect(() => {
+    setIsDeduct(mode === 'DEDUCT');
+    setReason(
+      mode === 'DEDUCT'
+        ? '🔻 Thu hồi credit cấp nhầm'
+        : '⚡ Cấp credit trải nghiệm Trợ lý AI 3S'
+    );
+  }, [mode, open]);
 
   // Debounced search for users
   useEffect(() => {
@@ -118,16 +143,15 @@ export default function CreditAdjustmentModal({
     if (targetUser) {
       setSelectedUser(targetUser);
     }
-    if (isControlled) {
-      // controlled open
-    } else {
+    if (!isControlled) {
       setInternalOpen(true);
     }
   };
 
   const userId = selectedUser?._id || selectedUser?.id || '';
-  const numCredits = Number(credits);
-  const validCredits = Number.isInteger(numCredits) && numCredits !== 0;
+  const parsedAmt = Math.abs(Number(rawAmount) || 0);
+  const numCredits = isDeduct ? -parsedAmt : parsedAmt;
+  const validCredits = Number.isInteger(parsedAmt) && parsedAmt > 0;
   const validReason = reason.trim().length >= 3;
   const valid = Boolean(userId) && validCredits && validReason;
 
@@ -153,7 +177,7 @@ export default function CreditAdjustmentModal({
       }
       onSuccess?.();
       handleClose();
-      setCredits('50');
+      setRawAmount('50');
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -193,18 +217,80 @@ export default function CreditAdjustmentModal({
 
       <ConfirmModal
         open={open}
-        title="Cấp & Điều chỉnh Credit cho tài khoản"
-        description="Số credit được cộng/trừ trực tiếp vào ví người dùng và lưu vào lịch sử đối soát (Audit Ledger)."
-        confirmLabel={loading ? 'Đang thực hiện...' : numCredits >= 0 ? `Cấp +${numCredits || 0} Credit` : `Khấu trừ ${numCredits} Credit`}
+        title={isDeduct ? 'Khấu trừ Credit tài khoản' : 'Cấp Credit cho tài khoản'}
+        description="Số credit được cập nhật trực tiếp vào số dư ví người dùng và lưu vào lịch sử đối soát (Audit Ledger)."
+        confirmLabel={
+          loading
+            ? 'Đang thực hiện...'
+            : isDeduct
+            ? `Khấu trừ -${parsedAmt || 0} Credit`
+            : `Cấp +${parsedAmt || 0} Credit`
+        }
+        danger={isDeduct}
         loading={loading}
         onClose={handleClose}
         onConfirm={handleConfirm}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 14, textAlign: 'left' }}>
+          {/* Chọn Loại thao tác: Cấp (+) hoặc Trừ (-) */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsDeduct(false);
+                setReason('⚡ Cấp credit trải nghiệm Trợ lý AI 3S');
+              }}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: 10,
+                border: !isDeduct ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                background: !isDeduct ? '#f0f9ff' : '#ffffff',
+                color: !isDeduct ? '#0369a1' : '#64748b',
+                fontWeight: 750,
+                fontSize: '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                cursor: 'pointer',
+              }}
+            >
+              <PlusCircle size={15} />
+              <span>Cấp thêm credit (+)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsDeduct(true);
+                setReason('🔻 Thu hồi credit cấp nhầm');
+              }}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: 10,
+                border: isDeduct ? '2px solid #e11d48' : '1px solid #cbd5e1',
+                background: isDeduct ? '#fff1f2' : '#ffffff',
+                color: isDeduct ? '#be123c' : '#64748b',
+                fontWeight: 750,
+                fontSize: '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                cursor: 'pointer',
+              }}
+            >
+              <MinusCircle size={15} />
+              <span>Trừ credit (-)</span>
+            </button>
+          </div>
+
           {/* 1. Chọn tài khoản người nhận */}
           <div>
             <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 750, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
-              Tài khoản nhận credit <span style={{ color: '#e11d48' }}>*</span>
+              Tài khoản thao tác <span style={{ color: '#e11d48' }}>*</span>
             </label>
 
             {selectedUser ? (
@@ -215,24 +301,24 @@ export default function CreditAdjustmentModal({
                   justifyContent: 'space-between',
                   gap: 12,
                   padding: '10px 14px',
-                  background: '#f0f9ff',
-                  border: '1.5px solid #bae6fd',
+                  background: isDeduct ? '#fff1f2' : '#f0f9ff',
+                  border: isDeduct ? '1.5px solid #fecdd3' : '1.5px solid #bae6fd',
                   borderRadius: '12px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
+                      width: 38,
+                      height: 38,
                       borderRadius: '50%',
-                      background: '#0284c7',
+                      background: isDeduct ? '#e11d48' : '#0284c7',
                       color: '#fff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 750,
-                      fontSize: '0.85rem',
+                      fontSize: '0.88rem',
                       flexShrink: 0,
                     }}
                   >
@@ -249,6 +335,11 @@ export default function CreditAdjustmentModal({
                     </div>
                     <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
                       @{selectedUser.username} {selectedUser.phone ? `· ${selectedUser.phone}` : ''}
+                      {selectedUser.availableCredits !== undefined && (
+                        <span style={{ marginLeft: 6, color: '#0284c7', fontWeight: 700 }}>
+                          (Số dư hiện tại: {selectedUser.availableCredits} credit)
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -408,28 +499,29 @@ export default function CreditAdjustmentModal({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <label style={{ fontSize: '0.74rem', fontWeight: 750, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Số credit cấp / điều chỉnh <span style={{ color: '#e11d48' }}>*</span>
+                Số credit {isDeduct ? 'khấu trừ' : 'cấp'} <span style={{ color: '#e11d48' }}>*</span>
               </label>
-              <span style={{ fontSize: '0.74rem', color: '#0369a1', fontWeight: 600 }}>
-                Quy đổi: {(Math.abs(numCredits || 0) * 1000).toLocaleString('vi-VN')} đ
+              <span style={{ fontSize: '0.74rem', color: isDeduct ? '#be123c' : '#0369a1', fontWeight: 600 }}>
+                Quy đổi: {(parsedAmt * 1000).toLocaleString('vi-VN')} đ
               </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
                 type="number"
+                min="1"
                 placeholder="Ví dụ: 50, 100, 500"
-                value={credits}
-                onChange={(e) => setCredits(e.target.value)}
+                value={rawAmount}
+                onChange={(e) => setRawAmount(e.target.value)}
                 style={{
                   flex: 1,
                   height: 40,
                   padding: '0 14px',
                   borderRadius: 10,
-                  border: '1.5px solid #cbd5e1',
+                  border: isDeduct ? '1.5px solid #fecdd3' : '1.5px solid #cbd5e1',
                   fontSize: '1.1rem',
                   fontWeight: 800,
-                  color: numCredits >= 0 ? '#0284c7' : '#e11d48',
+                  color: isDeduct ? '#e11d48' : '#0284c7',
                   outline: 'none',
                   boxSizing: 'border-box',
                   fontFamily: 'Montserrat, sans-serif',
@@ -444,28 +536,28 @@ export default function CreditAdjustmentModal({
                 <button
                   key={amt}
                   type="button"
-                  onClick={() => setCredits(String(amt))}
+                  onClick={() => setRawAmount(String(amt))}
                   style={{
                     padding: '3px 10px',
                     borderRadius: 8,
-                    border: Number(credits) === amt ? '1.5px solid #0284c7' : '1px solid #e2e8f0',
-                    background: Number(credits) === amt ? '#e0f2fe' : '#ffffff',
-                    color: Number(credits) === amt ? '#0369a1' : '#475569',
+                    border: Number(rawAmount) === amt ? (isDeduct ? '1.5px solid #e11d48' : '1.5px solid #0284c7') : '1px solid #e2e8f0',
+                    background: Number(rawAmount) === amt ? (isDeduct ? '#fff1f2' : '#e0f2fe') : '#ffffff',
+                    color: Number(rawAmount) === amt ? (isDeduct ? '#be123c' : '#0369a1') : '#475569',
                     fontSize: '0.74rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
-                  +{amt}
+                  {isDeduct ? `-${amt}` : `+${amt}`}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* 3. Lý do cấp credit */}
+          {/* 3. Lý do thao tác */}
           <div>
             <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 750, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
-              Lý do cấp credit (Bắt buộc) <span style={{ color: '#e11d48' }}>*</span>
+              Lý do (Bắt buộc) <span style={{ color: '#e11d48' }}>*</span>
             </label>
             <textarea
               rows={2}
@@ -487,7 +579,7 @@ export default function CreditAdjustmentModal({
 
             {/* Gợi ý lý do */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
-              {REASON_SUGGESTIONS.map((sug) => (
+              {(isDeduct ? DEDUCT_REASON_SUGGESTIONS : GRANT_REASON_SUGGESTIONS).map((sug) => (
                 <button
                   key={sug}
                   type="button"
@@ -510,9 +602,9 @@ export default function CreditAdjustmentModal({
             </div>
           </div>
 
-          {!valid && (userId || credits || reason) && (
+          {!valid && (userId || rawAmount || reason) && (
             <p style={{ margin: 0, fontSize: '0.74rem', color: '#e11d48', fontWeight: 600 }}>
-              Vui lòng chọn tài khoản nhận, nhập số credit khác 0 và lý do tối thiểu 3 ký tự.
+              Vui lòng chọn tài khoản, nhập số credit lớn hơn 0 và lý do tối thiểu 3 ký tự.
             </p>
           )}
         </div>

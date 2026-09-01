@@ -6,6 +6,7 @@ import InBodyRecord from '../models/InBodyRecord.js';
 import Goal from '../models/Goal.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
 import NutritionPlan from '../models/NutritionPlan.js';
+import CreditWallet from '../models/CreditWallet.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { ensureWallet } from './creditWalletService.js';
@@ -152,7 +153,18 @@ async function listUsers(query: UserListQuery) {
       .lean(),
     User.countDocuments(filter),
   ]);
-  return { users, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+
+  const userIds = users.map((u) => u._id);
+  const wallets = await CreditWallet.find({ userId: { $in: userIds } }).lean();
+  const walletMap = new Map(wallets.map((w) => [String(w.userId), w]));
+
+  const usersWithWallet = users.map((u) => ({
+    ...u,
+    availableCredits: walletMap.get(String(u._id))?.availableCredits ?? 0,
+    reservedCredits: walletMap.get(String(u._id))?.reservedCredits ?? 0,
+  }));
+
+  return { users: usersWithWallet, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 
 async function updateUser(id: string, payload: UpdateUserPayload): Promise<UserDocument> {
