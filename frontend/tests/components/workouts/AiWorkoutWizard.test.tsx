@@ -67,9 +67,9 @@ it('lets a PT edit the AI proposal before generating', async () => {
   expect(await screen.findByLabelText('Số buổi mỗi tuần')).toHaveValue(1);
   expect(screen.getByLabelText('Số phút mỗi buổi')).toHaveValue(240);
   await user.clear(screen.getByLabelText('Số tuần'));
-  await user.type(screen.getByLabelText('Số tuần'), '1');
+  await user.type(screen.getByLabelText('Số tuần'), '0');
   await user.click(screen.getByRole('button', { name: 'Tiếp tục tạo giáo án' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Số tuần phải từ 4 đến 12');
+  expect(await screen.findByRole('alert')).toHaveTextContent('Số tuần phải từ 1 đến 12');
   await user.clear(screen.getByLabelText('Số tuần'));
   await user.type(screen.getByLabelText('Số tuần'), '8');
   await user.click(screen.getByRole('button', { name: 'Tiếp tục tạo giáo án' }));

@@ -75,8 +75,8 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
 
   const continueToGeneration = () => {
     if (!proposal) return;
-    if (!Number.isInteger(proposal.durationWeeks) || proposal.durationWeeks < 4 || proposal.durationWeeks > 12) {
-      const msg = 'Số tuần phải từ 4 đến 12.';
+    if (!Number.isInteger(proposal.durationWeeks) || proposal.durationWeeks < 1 || proposal.durationWeeks > 12) {
+      const msg = 'Số tuần phải từ 1 đến 12.';
       toast.error(msg);
       setError(msg);
       return;
@@ -188,7 +188,7 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
                   <input
                     aria-label="Số tuần"
                     type="number"
-                    min="4"
+                    min="1"
                     max="12"
                     placeholder="Ví dụ: 8"
                     value={proposal.durationWeeks}
