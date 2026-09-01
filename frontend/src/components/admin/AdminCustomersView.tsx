@@ -62,9 +62,6 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [ptFilter, setPtFilter] = useState('');
-  const [appliedKeyword, setAppliedKeyword] = useState('');
-  const [appliedStatus, setAppliedStatus] = useState('');
-  const [appliedPt, setAppliedPt] = useState('');
 
   // Modals state
   const [transferCustomer, setTransferCustomer] = useState<CustomerAdminRecord | null>(null);
@@ -81,7 +78,7 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
   }, []);
 
   const loadCustomers = useCallback(
-    async (page = 1, kw = appliedKeyword, st = appliedStatus, pt = appliedPt) => {
+    async (page = 1, kw = keyword, st = statusFilter, pt = ptFilter) => {
       try {
         setLoading(true);
         const params = new URLSearchParams({ page: String(page), limit: '15' });
@@ -108,28 +105,33 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
         setLoading(false);
       }
     },
-    [appliedKeyword, appliedStatus, appliedPt]
+    [keyword, statusFilter, ptFilter, toast]
   );
 
   useEffect(() => {
     void loadPts();
-    void loadCustomers(1);
+    void loadCustomers(1, '', '', '');
   }, []);
 
-  const handleApplyFilter = () => {
-    setAppliedKeyword(keyword);
-    setAppliedStatus(statusFilter);
-    setAppliedPt(ptFilter);
+  const handleApplyFilter = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     void loadCustomers(1, keyword, statusFilter, ptFilter);
+  };
+
+  const handlePtChange = (newPt: string) => {
+    setPtFilter(newPt);
+    void loadCustomers(1, keyword, statusFilter, newPt);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    setStatusFilter(newStatus);
+    void loadCustomers(1, keyword, newStatus, ptFilter);
   };
 
   const handleResetFilter = () => {
     setKeyword('');
     setStatusFilter('');
     setPtFilter('');
-    setAppliedKeyword('');
-    setAppliedStatus('');
-    setAppliedPt('');
     void loadCustomers(1, '', '', '');
   };
 
@@ -139,7 +141,7 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
       await api.delete(`/api/customers/${deleteCustomer._id}`);
       toast.success('Đã xóa hồ sơ khách hàng.');
       setDeleteCustomer(null);
-      void loadCustomers(meta.page);
+      void loadCustomers(meta.page, keyword, statusFilter, ptFilter);
     } catch (err) {
       toast.error(errorMessage(err));
     }
@@ -215,7 +217,10 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
           gap: '10px',
         }}
       >
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', flex: 1 }}>
+        <form
+          onSubmit={handleApplyFilter}
+          style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', flex: 1 }}
+        >
           <div style={{ position: 'relative', minWidth: '240px', flex: 1 }}>
             <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
             <input
@@ -223,14 +228,13 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
               placeholder="Tìm theo họ tên, SĐT, email..."
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleApplyFilter()}
               style={{ width: '100%', height: '38px', padding: '0 12px 0 36px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
 
           <select
             value={ptFilter}
-            onChange={(e) => setPtFilter(e.target.value)}
+            onChange={(e) => handlePtChange(e.target.value)}
             style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#ffffff', color: '#1e293b', outline: 'none' }}
           >
             <option value="">Tất cả Huấn luyện viên (PT)</option>
@@ -243,7 +247,7 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => handleStatusChange(e.target.value)}
             style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#ffffff', color: '#1e293b', outline: 'none' }}
           >
             <option value="">Tất cả trạng thái</option>
@@ -253,14 +257,13 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
           </select>
 
           <button
-            type="button"
-            onClick={handleApplyFilter}
+            type="submit"
             style={{ height: '38px', padding: '0 14px', borderRadius: '8px', border: 0, background: '#0284c7', color: '#ffffff', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
           >
             Tìm kiếm
           </button>
 
-          {(appliedKeyword || appliedStatus || appliedPt) && (
+          {(Boolean(keyword.trim() || statusFilter || ptFilter)) && (
             <button
               type="button"
               onClick={handleResetFilter}
@@ -270,11 +273,11 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
               <span>Xóa lọc</span>
             </button>
           )}
-        </div>
+        </form>
 
         <button
           type="button"
-          onClick={() => void loadCustomers(meta.page)}
+          onClick={() => void loadCustomers(meta.page, keyword, statusFilter, ptFilter)}
           disabled={loading}
           style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#003b70', fontSize: '0.8rem', fontWeight: 650, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
         >
@@ -289,7 +292,7 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
         pts={pts}
         loading={loading}
         meta={meta}
-        onPageChange={(page) => void loadCustomers(page)}
+        onPageChange={(page) => void loadCustomers(page, keyword, statusFilter, ptFilter)}
         onOpenTransfer={(c) => setTransferCustomer(c)}
         onOpenEdit={(c) => setFormCustomer(c)}
         onOpenDelete={(c) => setDeleteCustomer(c)}
@@ -301,7 +304,7 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
           customer={transferCustomer}
           pts={pts}
           onClose={() => setTransferCustomer(null)}
-          onSuccess={() => void loadCustomers(meta.page)}
+          onSuccess={() => void loadCustomers(meta.page, keyword, statusFilter, ptFilter)}
         />
       )}
 
@@ -311,7 +314,7 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
           customer={formCustomer}
           pts={pts}
           onClose={() => setFormCustomer(undefined)}
-          onSuccess={() => void loadCustomers(meta.page)}
+          onSuccess={() => void loadCustomers(meta.page, keyword, statusFilter, ptFilter)}
         />
       )}
 

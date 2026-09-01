@@ -5,7 +5,12 @@ import Exercise from '../models/Exercise.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { generateText } from './aiProvider.js';
+import {
+  availabilityProposalDefaults,
+  scheduleWorkoutSessions,
+} from './workoutAvailabilityScheduler.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import type { WorkoutAvailabilitySlot } from '../types/workoutAvailability.js';
 
 export interface WorkoutProposal {
   durationWeeks: number;
@@ -18,7 +23,12 @@ export interface WorkoutProposal {
   restrictions: string[];
 }
 
-export interface WorkoutGenerationInput { customerId: string; proposal: WorkoutProposal; additionalRequest?: string }
+export interface WorkoutGenerationInput {
+  customerId: string;
+  proposal: WorkoutProposal;
+  availabilitySlots: WorkoutAvailabilitySlot[];
+  additionalRequest?: string;
+}
 
 interface AiScheduledExercise {
   exerciseId?: string;
@@ -54,18 +64,37 @@ const exerciseCatalog = (library: Awaited<ReturnType<typeof exerciseLibraryFor>>
   exerciseId: String(exercise._id), name: exercise.name, muscleGroup: exercise.muscleGroup,
   level: exercise.level, equipment: exercise.equipment, trackingType: exercise.defaultTrackingType,
 }));
+const availabilityPrompt = (slots: WorkoutAvailabilitySlot[]) => {
+  const dayCount = new Set(slots.map((slot) => slot.dayNumber)).size;
+  const defaults = availabilityProposalDefaults(slots);
+  const durations = slots.map((slot) => (
+    `ngày ${slot.dayNumber}: ${slot.endMinute - slot.startMinute} phút`
+  )).join(', ');
+  return `${dayCount} ngày rảnh, ${slots.length} khung giờ (${durations}). Cấu hình tự tính bắt buộc: ${defaults.sessionsPerWeek} buổi/tuần, ${defaults.minutesPerSession} phút/buổi. Dữ liệu: ${JSON.stringify(slots)}`;
+};
 
-function parseProposal(raw: string): WorkoutProposal {
+function parseProposal(
+  raw: string,
+  defaults: Pick<WorkoutProposal, 'sessionsPerWeek' | 'minutesPerSession'>,
+): WorkoutProposal {
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về đề xuất hợp lệ.' });
   let value: unknown;
   try { value = JSON.parse(match[0]); } catch { throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về đề xuất hợp lệ.' }); }
-  const proposal = value as Partial<WorkoutProposal>;
+  const proposal = {
+    ...(value as Partial<WorkoutProposal>),
+    ...defaults,
+  };
   if (!Number.isInteger(proposal.durationWeeks) || proposal.durationWeeks! < 4 || proposal.durationWeeks! > 12 || !Number.isInteger(proposal.sessionsPerWeek) || proposal.sessionsPerWeek! < 1 || proposal.sessionsPerWeek! > 7 || !Number.isInteger(proposal.minutesPerSession) || proposal.minutesPerSession! < 15 || proposal.minutesPerSession! > 240 || !['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(String(proposal.level)) || typeof proposal.trainingMethod !== 'string' || typeof proposal.trainingSplit !== 'string' || !Array.isArray(proposal.priorityMuscleGroups) || !Array.isArray(proposal.restrictions)) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về đề xuất thiếu hoặc sai dữ liệu.' });
   return proposal as WorkoutProposal;
 }
 
-export async function createWorkoutProposal(user: AuthenticatedUser, customerId: string, requestKey: string): Promise<WorkoutProposal> {
+export async function createWorkoutProposal(
+  user: AuthenticatedUser,
+  customerId: string,
+  availabilitySlots: WorkoutAvailabilitySlot[],
+  requestKey: string,
+): Promise<WorkoutProposal> {
   const customer = await CustomerProfile.findOne({ _id: customerId, assignedPtId: user.id }).lean();
   if (!customer) throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền tạo giáo án cho học viên này.' });
   const [goal, inbody, library] = await Promise.all([
@@ -73,8 +102,9 @@ export async function createWorkoutProposal(user: AuthenticatedUser, customerId:
     InBodyRecord.findOne({ customerId: customer._id }).sort({ measurementDate: -1, createdAt: -1 }).lean(),
     exerciseLibraryFor(user),
   ]);
-  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-proposal` }, `Trả về duy nhất JSON đề xuất giáo án 4-12 tuần cho học viên ${customer.fullName}. Mục tiêu: ${goal?.title || customer.initialGoal || 'chưa có'}. InBody: ${inbody ? `cân nặng ${inbody.weight}, mỡ ${inbody.bodyFatPercentage ?? 'chưa có'}` : 'chưa có'}. Sức khỏe: ${customer.medicalNotes || 'không có'}. Hãy phân tích khả năng đáp ứng của thư viện bài tập hiện có của PT khi đề xuất phương pháp và lịch tập; ưu tiên các bài phù hợp trong thư viện, chỉ dự kiến tạo bài mới nếu thật sự thiếu. Thư viện: ${JSON.stringify(exerciseCatalog(library))}. JSON gồm durationWeeks, sessionsPerWeek, minutesPerSession, level, trainingMethod, trainingSplit, priorityMuscleGroups, restrictions.`);
-  return parseProposal(raw);
+  const proposalDefaults = availabilityProposalDefaults(availabilitySlots);
+  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-proposal` }, `Trả về duy nhất JSON đề xuất giáo án 4-12 tuần cho học viên ${customer.fullName}. Mục tiêu: ${goal?.title || customer.initialGoal || 'chưa có'}. InBody: ${inbody ? `cân nặng ${inbody.weight}, mỡ ${inbody.bodyFatPercentage ?? 'chưa có'}` : 'chưa có'}. Sức khỏe: ${customer.medicalNotes || 'không có'}. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(availabilitySlots)}. Mỗi ngày chỉ xếp tối đa một buổi tập; dùng đúng sessionsPerWeek và minutesPerSession đã được hệ thống tự tính. Hãy phân tích khả năng đáp ứng của thư viện bài tập hiện có của PT khi đề xuất phương pháp và lịch tập; ưu tiên các bài phù hợp trong thư viện, chỉ dự kiến tạo bài mới nếu thật sự thiếu. Thư viện: ${JSON.stringify(exerciseCatalog(library))}. JSON gồm durationWeeks, sessionsPerWeek, minutesPerSession, level, trainingMethod, trainingSplit, priorityMuscleGroups, restrictions.`);
+  return parseProposal(raw, proposalDefaults);
 }
 
 export async function generateWorkoutDraft(user: AuthenticatedUser, input: WorkoutGenerationInput, requestKey: string) {
@@ -83,7 +113,7 @@ export async function generateWorkoutDraft(user: AuthenticatedUser, input: Worko
   const proposal = input.proposal;
   if (proposal.durationWeeks < 4 || proposal.durationWeeks > 12) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Chu kỳ AI phải từ 4 đến 12 tuần.' });
   const library = await exerciseLibraryFor(user);
-  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-draft` }, `Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises, generatedExercises. Ưu tiên tối đa bài phù hợp trong thư viện. Bài có sẵn: scheduledExercises dùng exerciseId. Chỉ khi không có bài phù hợp mới tạo bài mới: thêm đầy đủ vào generatedExercises và scheduledExercises tham chiếu bằng generatedExerciseName trùng chính xác tên bài mới. Mỗi scheduledExercises chỉ gồm exerciseId hoặc generatedExerciseName (chỉ một trong hai), weekNumber, dayNumber, startMinute, durationMinutes; không trả về trackingType, prescription hay thông số mục tiêu trong lịch. Mỗi generatedExercises gồm name, muscleGroup, level, defaultTrackingType, equipment, description, technique, commonMistakes, contraindications, variants; defaultTrackingType chỉ là STRENGTH, BODYWEIGHT, CARDIO, INTERVAL hoặc MOBILITY. Ngày không có bài là ngày nghỉ hợp lệ. Thời gian dùng bước 15 phút và không trùng nhau. Cấu hình: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}. Thư viện: ${JSON.stringify(exerciseCatalog(library))}.`);
+  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-draft` }, `Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises, generatedExercises. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(input.availabilitySlots)}. Mỗi ngày chỉ có tối đa một buổi tập; ưu tiên xếp nguyên buổi vào một khung giờ rảnh đủ dài. Nếu lịch rảnh không đủ, vẫn tạo đầy đủ số buổi và hệ thống sẽ sắp lại, cảnh báo PT. Ưu tiên tối đa bài phù hợp trong thư viện. Bài có sẵn: scheduledExercises dùng exerciseId. Chỉ khi không có bài phù hợp mới tạo bài mới: thêm đầy đủ vào generatedExercises và scheduledExercises tham chiếu bằng generatedExerciseName trùng chính xác tên bài mới. Mỗi scheduledExercises chỉ gồm exerciseId hoặc generatedExerciseName (chỉ một trong hai), weekNumber, dayNumber, startMinute, durationMinutes; không trả về trackingType, prescription hay thông số mục tiêu trong lịch. Mỗi generatedExercises gồm name, muscleGroup, level, defaultTrackingType, equipment, description, technique, commonMistakes, contraindications, variants; defaultTrackingType chỉ là STRENGTH, BODYWEIGHT, CARDIO, INTERVAL hoặc MOBILITY. Ngày không có bài là ngày nghỉ hợp lệ. Thời gian dùng bước 15 phút và không trùng nhau. Cấu hình: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}. Thư viện: ${JSON.stringify(exerciseCatalog(library))}.`);
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về giáo án hợp lệ.' });
   let draft: any;
@@ -119,5 +149,16 @@ export async function generateWorkoutDraft(user: AuthenticatedUser, input: Worko
     const current = sortedSchedule[index];
     if (previous.weekNumber === current.weekNumber && previous.dayNumber === current.dayNumber && current.startMinute < previous.startMinute + previous.durationMinutes) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về các bài tập bị trùng thời gian.' });
   }
-  return { ...draft, scheduledExercises, generatedExercises };
+  const scheduled = scheduleWorkoutSessions(
+    scheduledExercises,
+    input.availabilitySlots,
+    proposal.sessionsPerWeek,
+  );
+  return {
+    ...draft,
+    scheduledExercises: scheduled.scheduledExercises,
+    availabilitySlots: input.availabilitySlots,
+    scheduleWarnings: scheduled.scheduleWarnings,
+    generatedExercises,
+  };
 }

@@ -13,4 +13,5 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ToastApi>(() => ({ success: (message) => show('success', message), error: (message) => show('error', message), info: (message) => show('info', message) }), [show]);
   return <ToastContext.Provider value={value}>{children}<div className="toast-stack z-[10000]" aria-live="polite">{items.map((item) => { const Icon = icons[item.type]; return <div className={`toast toast-${item.type}`} key={item.id}><Icon size={20} /><span>{item.message}</span><button type="button" aria-label="Đóng thông báo" onClick={() => remove(item.id)}><X size={16} /></button></div>; })}</div></ToastContext.Provider>;
 }
-export function useToast(): ToastApi { const context = useContext(ToastContext); if (!context) throw new Error('useToast phải được sử dụng bên trong ToastProvider.'); return context; }
+const noopToast: ToastApi = { success: () => {}, error: () => {}, info: () => {} };
+export function useToast(): ToastApi { const context = useContext(ToastContext); return context || noopToast; }

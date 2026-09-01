@@ -10,6 +10,7 @@ import { validate } from '../middlewares/validate.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { createWorkoutTemplateSchema, listWorkoutTemplatesSchema, updateWorkoutTemplateSchema, workoutTemplateIdSchema } from '../validators/workoutValidator.js';
+import { mergedStudioScheduleError } from '../validators/workoutPlanFields.js';
 
 const router = express.Router();
 router.use(authenticate, authorize('PT'));
@@ -63,6 +64,11 @@ router.get('/:id', validate(workoutTemplateIdSchema), asyncHandler(async (req, r
 router.patch('/:id', validate(updateWorkoutTemplateSchema), asyncHandler(async (req, res) => {
   const item = await WorkoutTemplate.findOne({ _id: req.params.id, ownerPtId: req.user!.id });
   if (!item) throw missing();
+  const scheduleError = mergedStudioScheduleError({
+    durationDays: item.durationDays,
+    scheduledExercises: item.scheduledExercises,
+  }, req.body);
+  if (scheduleError) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: scheduleError });
   for (const [key, value] of Object.entries(req.body)) item.set(key, value);
   if (Object.prototype.hasOwnProperty.call(req.body, 'scheduledExercises')) item.set('sessions', sessionsFromSchedule(req.body.scheduledExercises));
   item.version += 1;
