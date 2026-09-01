@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronDown, ChevronUp, Layers } from 'lucide-react';
 import { api } from '../../services/api';
 import { errorMessage } from '../../types';
 import { useToast } from '../ui/ToastProvider';
@@ -58,11 +59,43 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
     waistHipRatio: draft.waistHipRatio?.toString() ?? '',
   });
 
+  const hasSegmentalData = Boolean(
+    (draft.segmentalMuscle && Object.values(draft.segmentalMuscle).some((v) => v != null)) ||
+    (draft.segmentalFat && Object.values(draft.segmentalFat).some((v) => v != null))
+  );
+  const [showSegmental, setShowSegmental] = useState(hasSegmentalData);
+  const [segmentalMuscle, setSegmentalMuscle] = useState<Record<string, string>>({
+    rightArm: draft.segmentalMuscle?.rightArm?.toString() ?? '',
+    leftArm: draft.segmentalMuscle?.leftArm?.toString() ?? '',
+    trunk: draft.segmentalMuscle?.trunk?.toString() ?? '',
+    rightLeg: draft.segmentalMuscle?.rightLeg?.toString() ?? '',
+    leftLeg: draft.segmentalMuscle?.leftLeg?.toString() ?? '',
+  });
+  const [segmentalFat, setSegmentalFat] = useState<Record<string, string>>({
+    rightArm: draft.segmentalFat?.rightArm?.toString() ?? '',
+    leftArm: draft.segmentalFat?.leftArm?.toString() ?? '',
+    trunk: draft.segmentalFat?.trunk?.toString() ?? '',
+    rightLeg: draft.segmentalFat?.rightLeg?.toString() ?? '',
+    leftLeg: draft.segmentalFat?.leftLeg?.toString() ?? '',
+  });
+
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
 
   const submit = async () => {
     setLoading(true);
     try {
+      const cleanSegmental = (seg: Record<string, string>) => {
+        const hasAny = Object.values(seg).some((v) => v.trim() !== '');
+        if (!hasAny) return undefined;
+        return {
+          rightArm: numberValue(seg.rightArm) ?? null,
+          leftArm: numberValue(seg.leftArm) ?? null,
+          trunk: numberValue(seg.trunk) ?? null,
+          rightLeg: numberValue(seg.rightLeg) ?? null,
+          leftLeg: numberValue(seg.leftLeg) ?? null,
+        };
+      };
+
       const payload = {
         measurementDate: form.measurementDate,
         weight: numberValue(form.weight),
@@ -76,6 +109,8 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         bodyWater: numberValue(form.bodyWater),
         boneMineral: numberValue(form.boneMineral),
         waistHipRatio: numberValue(form.waistHipRatio),
+        segmentalMuscle: cleanSegmental(segmentalMuscle),
+        segmentalFat: cleanSegmental(segmentalFat),
       };
       const result = await api.patch<InBodyOcrDraft>(`/api/inbody/${draft._id}/confirm-ocr`, payload);
       toast.success(result.message);
@@ -165,7 +200,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         </label>
       </div>
 
-      <div className="inbody-form-row-3">
+      <div className="inbody-form-row-4">
         <label className="inbody-input-label">
           <span>BMI (Chỉ số thể trọng)</span>
           <input
@@ -179,7 +214,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         </label>
 
         <label className="inbody-input-label">
-          <span>Tỷ lệ mỡ cơ thể (%)</span>
+          <span>Tỷ lệ mỡ (%)</span>
           <input
             aria-label="Tỷ lệ mỡ (%)"
             type="number"
@@ -187,6 +222,18 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             placeholder="vd: 18.5"
             value={form.bodyFatPercentage}
             onChange={(event) => change('bodyFatPercentage', event.target.value)}
+          />
+        </label>
+
+        <label className="inbody-input-label">
+          <span>Khối lượng mỡ (kg)</span>
+          <input
+            aria-label="Khối lượng mỡ (kg)"
+            type="number"
+            step="0.1"
+            placeholder="vd: 12.1"
+            value={form.bodyFatMass}
+            onChange={(event) => change('bodyFatMass', event.target.value)}
           />
         </label>
 
@@ -275,6 +322,102 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             onChange={(event) => change('waistHipRatio', event.target.value)}
           />
         </label>
+      </div>
+
+      <div
+        style={{
+          border: '1px solid #e0f2fe',
+          borderRadius: '10px',
+          overflow: 'hidden',
+          background: '#f8fafc',
+          marginTop: '4px',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setShowSegmental(!showSegmental)}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#f0f9ff',
+            border: 'none',
+            borderBottom: showSegmental ? '1px solid #e0f2fe' : 'none',
+            cursor: 'pointer',
+            fontWeight: 700,
+            fontSize: '0.88rem',
+            color: '#003b70',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Layers size={16} color="#0284c7" /> Phân Tích Cơ & Mỡ Từng Phân Vùng (Segmental - Tùy chọn)
+          </span>
+          {showSegmental ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {showSegmental && (
+          <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px', background: '#ffffff' }}>
+            <div>
+              <strong style={{ fontSize: '0.84rem', color: '#15803d', display: 'block', marginBottom: '8px' }}>
+                💪 Khối lượng cơ từng phần (kg):
+              </strong>
+              <div className="inbody-form-row-5">
+                {[
+                  { key: 'rightArm', label: 'Tay Phải' },
+                  { key: 'leftArm', label: 'Tay Trái' },
+                  { key: 'trunk', label: 'Thân Mình' },
+                  { key: 'rightLeg', label: 'Chân Phải' },
+                  { key: 'leftLeg', label: 'Chân Trái' },
+                ].map((item) => (
+                  <label key={item.key} style={{ fontSize: '0.78rem', color: '#475569', margin: 0 }}>
+                    <span>{item.label}</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="kg"
+                      value={segmentalMuscle[item.key]}
+                      onChange={(e) =>
+                        setSegmentalMuscle((prev) => ({ ...prev, [item.key]: e.target.value }))
+                      }
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '2px', fontSize: '0.82rem' }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <strong style={{ fontSize: '0.84rem', color: '#b45309', display: 'block', marginBottom: '8px' }}>
+                🧀 Khối lượng mỡ từng phần (kg):
+              </strong>
+              <div className="inbody-form-row-5">
+                {[
+                  { key: 'rightArm', label: 'Tay Phải' },
+                  { key: 'leftArm', label: 'Tay Trái' },
+                  { key: 'trunk', label: 'Thân Mình' },
+                  { key: 'rightLeg', label: 'Chân Phải' },
+                  { key: 'leftLeg', label: 'Chân Trái' },
+                ].map((item) => (
+                  <label key={item.key} style={{ fontSize: '0.78rem', color: '#475569', margin: 0 }}>
+                    <span>{item.label}</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="kg"
+                      value={segmentalFat[item.key]}
+                      onChange={(e) =>
+                        setSegmentalFat((prev) => ({ ...prev, [item.key]: e.target.value }))
+                      }
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginTop: '2px', fontSize: '0.82rem' }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', gap: '10px' }}>
