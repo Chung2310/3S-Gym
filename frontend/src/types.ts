@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'PT' | 'CUSTOMER';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'PT' | 'CUSTOMER';
 export interface User { _id?: string; id?: string; username: string; role: UserRole; fullName?: string; phone?: string; email?: string; status?: string; avatarUrl?: string }
 export interface Session { token: string; user: User }
 export interface PaginationMeta { page: number; limit?: number; total?: number; totalPages: number }
@@ -39,4 +39,5 @@ export * from './types/roadmap';
 export * from './types/progress';
 export * from './types/exerciseTracking';
 export * from './types/exercise';
+export * from './types/adminAccount';
 

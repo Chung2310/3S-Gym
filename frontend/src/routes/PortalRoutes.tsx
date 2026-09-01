@@ -13,13 +13,13 @@ import MyWorkoutPlans from '../components/workouts/MyWorkoutPlans';
 import WorkoutStudioPage from '../pages/pt/WorkoutStudioPage';
 import ProgressPage from '../pages/pt/ProgressPage';
 import NutritionPage from '../pages/pt/NutritionPage';
-import CarePage from '../pages/pt/CarePage';
 import PtAssistantPage from '../pages/pt/PtAssistantPage';
 import KnowledgeSearchPage from '../pages/pt/KnowledgeSearchPage';
 import AdminKnowledgePage from '../pages/admin/AdminKnowledgePage';
 import AdminCustomersPage from '../pages/admin/AdminCustomersPage';
 import AdminTransfersPage from '../pages/admin/AdminTransfersPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
+import AdminAccountsPage from '../pages/admin/AdminAccountsPage';
 import CustomerPortalPage from '../pages/customer/CustomerPortalPage';
 import NotificationsPage from '../pages/common/NotificationsPage';
 import ConsultationTool from '../pages/ConsultationTool';
@@ -33,11 +33,12 @@ import type { Session, User } from '../types';
 import { CreditWalletProvider } from '../contexts/CreditWalletContext';
 
 const roleDestinations = {
+  SUPER_ADMIN: '/admin',
   ADMIN: '/admin',
   PT: '/pt/customers',
   CUSTOMER: '/me',
 } as const;
-const roleLabels = { ADMIN: 'ADMIN', PT: 'PT', CUSTOMER: 'khách hàng' } as const;
+const roleLabels = { SUPER_ADMIN: 'quản trị cấp cao', ADMIN: 'ADMIN', PT: 'PT', CUSTOMER: 'khách hàng' } as const;
 
 function PortalContent({ user }: { user: User }) {
   const { features } = useFeatures();
@@ -87,7 +88,15 @@ function PortalContent({ user }: { user: User }) {
           path="admin/users"
           element={
             <FeatureRoute user={user} roles={['ADMIN']}>
-              <AdminUsersPage />
+              <AdminUsersPage user={user} />
+            </FeatureRoute>
+          }
+        />
+        <Route
+          path="admin/admin-accounts"
+          element={
+            <FeatureRoute user={user} roles={['SUPER_ADMIN']}>
+              <AdminAccountsPage user={user} />
             </FeatureRoute>
           }
         />

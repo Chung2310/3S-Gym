@@ -26,6 +26,7 @@ import { useMobile } from '../hooks/useMobile';
 import { useCreditWallet } from '../contexts/CreditWalletContext';
 
 const roleNames: Record<UserRole, string> = {
+  SUPER_ADMIN: 'Quản trị cấp cao',
   ADMIN: 'Quản lý hệ thống',
   PT: 'Huấn luyện viên',
   CUSTOMER: 'Khách hàng',

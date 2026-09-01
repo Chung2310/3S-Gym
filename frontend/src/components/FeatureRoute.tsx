@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import type { FeatureKey, User, UserRole } from '../types';
 import { useFeatures } from '../services/features';
+import { hasRequiredRole } from '../services/roles';
 
 interface FeatureRouteProps {
   children: ReactNode;
@@ -19,7 +20,7 @@ function FeatureAccess({ children, feature }: Pick<FeatureRouteProps, 'children'
 }
 
 export default function FeatureRoute({ children, user, roles, feature }: FeatureRouteProps) {
-  if (!roles.includes(user.role)) return <Navigate to="/portal" replace />;
+  if (!hasRequiredRole(user.role, roles)) return <Navigate to="/portal" replace />;
   if (!feature) return children;
   return <FeatureAccess feature={feature}>{children}</FeatureAccess>;
 }

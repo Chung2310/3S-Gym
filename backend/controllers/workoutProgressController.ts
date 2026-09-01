@@ -1,8 +1,8 @@
 import { asyncHandler } from '../middlewares/asyncHandler.js';
 import { success } from '../middlewares/response.js';
 import * as service from '../services/workoutProgressService.js';
-const listTemplates = asyncHandler(async (req, res) => { const result = await service.listTemplates(req.user!, req.query); return success(res, { message: 'Láº¥y danh sÃ¡ch giÃ¡o Ã¡n máº«u thÃ nh cÃ´ng.', data: result.items, meta: result.meta }); });
-const updateTemplate = asyncHandler(async (req, res) => success(res, { message: 'Cáº­p nháº­t giÃ¡o Ã¡n máº«u thÃ nh cÃ´ng.', data: await service.updateTemplate(req.user!, String(req.params.id), req.body) }));
+const listTemplates = asyncHandler(async (req, res) => { const result = await service.listTemplates(req.user!, req.query); return success(res, { message: 'Lấy danh sách giáo án mẫu thành công.', data: result.items, meta: result.meta }); });
+const updateTemplate = asyncHandler(async (req, res) => success(res, { message: 'Cập nhật giáo án mẫu thành công.', data: await service.updateTemplate(req.user!, String(req.params.id), req.body) }));
 const getTemplate = asyncHandler(async (req, res) => success(res, { message: 'Lấy giáo án mẫu thành công.', data: await service.getTemplate(req.user!, String(req.params.id)) }));
 const archiveTemplate = asyncHandler(async (req, res) => success(res, { message: 'Lưu trữ giáo án mẫu thành công.', data: await service.archiveTemplate(req.user!, String(req.params.id)) }));
 const deleteTemplate = asyncHandler(async (req, res) => { await service.deleteTemplate(req.user!, String(req.params.id)); return success(res, { message: 'Xóa giáo án mẫu thành công.', data: null }); });

@@ -1,19 +1,25 @@
 import { CircleAlert } from 'lucide-react';
-import type { CustomerJourneyDto, CustomerProgressOverview } from '../../types/progress';
+import type { CustomerJourneyDto, CustomerProgressOverview, DailyProgressGroup } from '../../types/progress';
 import CustomerJourney from '../customer-portal/CustomerJourney';
+import DailyProgressReports from './DailyProgressReports';
 import ProgressEmptyState from './ProgressEmptyState';
 import ProgressModal from './ProgressModal';
+import ProgressReportGenerator from './ProgressReportGenerator';
 
 export default function ProgressDetailModal({
   item,
   journey,
+  dailyReportGroups,
   loading,
   onClose,
+  onRefresh,
 }: {
   item: CustomerProgressOverview | null;
   journey: CustomerJourneyDto | null;
+  dailyReportGroups: DailyProgressGroup[];
   loading: boolean;
   onClose: () => void;
+  onRefresh: () => void;
 }) {
   return (
     <ProgressModal
@@ -23,7 +29,16 @@ export default function ProgressDetailModal({
       onClose={onClose}
     >
       {journey ? (
-        <CustomerJourney journey={journey} />
+        <CustomerJourney
+          journey={journey}
+          reportComposer={(
+            <ProgressReportGenerator
+              customerId={journey.customer._id}
+              onSaved={onRefresh}
+            />
+          )}
+          dailyReportContent={<DailyProgressReports groups={dailyReportGroups} />}
+        />
       ) : (
         <ProgressEmptyState
           icon={CircleAlert}

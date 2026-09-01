@@ -14,6 +14,7 @@ import type { UserPayload } from './userService.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { isAdminRole } from './roles.js';
 
 export interface CustomerPayload {
   assignedPtId?: string; fullName?: string; phone?: string; email?: string; dateOfBirth?: string;
@@ -42,14 +43,14 @@ function customerChanges(payload: CustomerPayload): Record<string, unknown> {
 function notFound() { return new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' }); }
 
 function scopedFilter(user: AuthenticatedUser, extra: QueryFilter<ICustomerProfile> = {}): QueryFilter<ICustomerProfile> {
-  return user.role === 'ADMIN' ? extra : { ...extra, assignedPtId: new Types.ObjectId(user.id) };
+  return isAdminRole(user.role) ? extra : { ...extra, assignedPtId: new Types.ObjectId(user.id) };
 }
 
 async function listCustomers(user: AuthenticatedUser, query: CustomerQuery) {
   const page = Number(query.page || 1);
   const limit = Number(query.limit || 20);
   const filter = scopedFilter(user);
-  if (user.role === 'ADMIN' && typeof query.ptId === 'string') filter.assignedPtId = new Types.ObjectId(query.ptId);
+  if (isAdminRole(user.role) && typeof query.ptId === 'string') filter.assignedPtId = new Types.ObjectId(query.ptId);
   if (query.status === 'ACTIVE' || query.status === 'INACTIVE' || query.status === 'LEAD') filter.status = query.status;
   if (typeof query.keyword === 'string' && query.keyword) {
     const escaped = query.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -83,7 +84,7 @@ async function getCustomer(user: AuthenticatedUser, id: string) {
 }
 
 async function createCustomer(user: AuthenticatedUser, payload: CustomerPayload) {
-  const assignedPtId = user.role === 'ADMIN' ? payload.assignedPtId : user.id;
+  const assignedPtId = isAdminRole(user.role) ? payload.assignedPtId : user.id;
   if (!assignedPtId) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng chọn PT phụ trách.' });
   return CustomerProfile.create({ ...customerChanges(payload), assignedPtId: new Types.ObjectId(assignedPtId) });
 }

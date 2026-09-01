@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-export type UserRole = 'ADMIN' | 'PT' | 'CUSTOMER';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'PT' | 'CUSTOMER';
 export type UserStatus = 'ACTIVE' | 'LOCKED';
 
 export interface IUser {
@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema<IUser>({
     },
     role: {
         type: String,
-        enum: ['ADMIN', 'PT', 'CUSTOMER'],
+        enum: ['SUPER_ADMIN', 'ADMIN', 'PT', 'CUSTOMER'],
         default: 'PT'
     },
     status: {
@@ -51,6 +51,11 @@ const userSchema = new mongoose.Schema<IUser>({
         default: 'ACTIVE'
     }
 }, { timestamps: true });
+
+userSchema.index(
+    { role: 1 },
+    { name: 'unique_super_admin_role', unique: true, partialFilterExpression: { role: 'SUPER_ADMIN' } }
+);
 
 const User = mongoose.model<IUser>('User', userSchema);
 export type UserDocument = mongoose.HydratedDocument<IUser>;

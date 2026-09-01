@@ -12,6 +12,7 @@ import {
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { isAdminRole } from './roles.js';
 
 function parseJson(text: string): Record<string, unknown> {
   if (!text || typeof text !== 'string') {
@@ -52,7 +53,7 @@ function parseJson(text: string): Record<string, unknown> {
 export async function createNutritionDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string) {
   const customer = await CustomerProfile.findById(customerId).lean();
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
-  if (String(customer.assignedPtId) !== user.id && user.role !== 'ADMIN') {
+  if (String(customer.assignedPtId) !== user.id && !isAdminRole(user.role)) {
     throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền quản lý khách hàng này.' });
   }
 
@@ -137,7 +138,7 @@ Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown giải thí
 export async function createWorkoutDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string) {
   const customer = await CustomerProfile.findById(customerId).lean();
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
-  if (String(customer.assignedPtId) !== user.id && user.role !== 'ADMIN') {
+  if (String(customer.assignedPtId) !== user.id && !isAdminRole(user.role)) {
     throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền quản lý khách hàng này.' });
   }
 
@@ -166,7 +167,7 @@ Trả về DUY NHẤT 1 JSON object hợp lệ gồm: title, sessions (buổi t�
 export async function createRoadmapDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string) {
   const customer = await CustomerProfile.findById(customerId).lean();
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
-  if (String(customer.assignedPtId) !== user.id && user.role !== 'ADMIN') {
+  if (String(customer.assignedPtId) !== user.id && !isAdminRole(user.role)) {
     throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền quản lý khách hàng này.' });
   }
 
@@ -355,7 +356,7 @@ export async function analyzeNutritionByAi(user: AuthenticatedUser, payload: Nut
   if (payload.customerId) {
     const customer = await CustomerProfile.findById(payload.customerId).lean();
     if (customer) {
-      if (String(customer.assignedPtId) !== user.id && user.role !== 'ADMIN') {
+      if (String(customer.assignedPtId) !== user.id && !isAdminRole(user.role)) {
         throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền quản lý khách hàng này.' });
       }
       customerName = customer.fullName;

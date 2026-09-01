@@ -17,12 +17,14 @@ import Pagination from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import UserFormModal, { type UserRecord } from '../../components/ui/UserFormModal';
+import RoleBadge from '../../components/ui/RoleBadge';
 import { useToast } from '../../components/ui/ToastProvider';
 import { api } from '../../services/api';
-import type { PaginationMeta, UserRole } from '../../types';
+import { canDeleteAccount, canEditAccount } from '../../services/roles';
+import type { PaginationMeta, User, UserRole } from '../../types';
 import { errorMessage } from '../../types';
 
-export default function UserManagementView() {
+export default function UserManagementView({ actor }: { actor: User }) {
   const toast = useToast();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0, total: 0 });
@@ -82,75 +84,6 @@ export default function UserManagementView() {
   };
 
   const hasActiveFilters = Boolean(keyword || roleFilter || statusFilter);
-
-  const renderRoleBadge = (role?: string) => {
-    switch (role) {
-      case 'ADMIN':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 9px',
-              borderRadius: '20px',
-              fontSize: '0.72rem',
-              fontWeight: 750,
-              background: '#f3e8ff',
-              color: '#6b21a8',
-              border: '1px solid #e9d5ff',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Shield size={11} />
-            <span>Quản trị viên</span>
-          </span>
-        );
-      case 'PT':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 9px',
-              borderRadius: '20px',
-              fontSize: '0.72rem',
-              fontWeight: 750,
-              background: '#f0fdf4',
-              color: '#166534',
-              border: '1px solid #bbf7d0',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Dumbbell size={11} />
-            <span>Huấn luyện viên (PT)</span>
-          </span>
-        );
-      case 'CUSTOMER':
-      default:
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 9px',
-              borderRadius: '20px',
-              fontSize: '0.72rem',
-              fontWeight: 750,
-              background: '#f0f9ff',
-              color: '#0369a1',
-              border: '1px solid #bae6fd',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <UserIcon size={11} />
-            <span>Hội viên (Customer)</span>
-          </span>
-        );
-    }
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -510,7 +443,7 @@ export default function UserManagementView() {
                       </div>
                     </td>
 
-                    <td style={{ padding: '12px 16px' }}>{renderRoleBadge(item.role)}</td>
+                    <td style={{ padding: '12px 16px' }}><RoleBadge role={item.role} /></td>
 
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -531,7 +464,7 @@ export default function UserManagementView() {
 
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
-                        <button
+                        {canEditAccount(actor, item) && <button
                           type="button"
                           onClick={() => {
                             setFormUser(item);
@@ -548,8 +481,8 @@ export default function UserManagementView() {
                           }}
                         >
                           <Pencil size={13} />
-                        </button>
-                        <button
+                        </button>}
+                        {canDeleteAccount(actor, item) && <button
                           type="button"
                           onClick={() => setDeleteUser(item)}
                           title="Xóa tài khoản"
@@ -563,7 +496,8 @@ export default function UserManagementView() {
                           }}
                         >
                           <Trash2 size={13} />
-                        </button>
+                        </button>}
+                        {!canEditAccount(actor, item) && !canDeleteAccount(actor, item) && <span aria-label="Không có thao tác">—</span>}
                       </div>
                     </td>
                   </tr>
@@ -588,6 +522,7 @@ export default function UserManagementView() {
       <UserFormModal
         open={isCreateOpen}
         user={formUser}
+        actorRole={actor.role}
         defaultRole={(roleFilter as UserRole) || 'PT'}
         onClose={() => {
           setIsCreateOpen(false);

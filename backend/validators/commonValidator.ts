@@ -10,6 +10,10 @@ export const objectId = Joi.string().custom((value: string, helpers) => (
 
 export const email = Joi.string().trim().email().messages(commonMessages);
 export const isoDate = Joi.date().iso().messages(commonMessages);
+export const sixDigitPassword = Joi.string().pattern(/^\d{6}$/).messages({
+  ...commonMessages,
+  'string.pattern.base': 'Mật khẩu phải gồm đúng 6 chữ số.',
+});
 
 export const paginationQuery = {
   page: Joi.number().integer().min(1).default(1).messages(commonMessages),
