@@ -63,7 +63,7 @@ function achievementsFrom(sessions: SessionInput[], periodStart?: Date | string,
 
 function bodyDeltasFrom(measurements: MeasurementInput[]) {
   const sorted = [...measurements].sort((a, b) => time(a.measuredAt) - time(b.measuredAt));
-  const keys = ['weight', 'bodyFatPercentage', 'muscleMass', 'chest', 'waist', 'hips', 'arm', 'thigh', 'calf'] as const;
+  const keys = ['weight', 'bodyFatPercentage', 'bodyFatMass', 'muscleMass', 'visceralFatLevel', 'inbodyScore', 'waistHipRatio', 'chest', 'waist', 'hips', 'arm', 'thigh', 'calf'] as const;
   const result: Record<string, number> = {};
   for (const key of keys) {
     const values = sorted.map((item) => key in item ? item[key as 'weight'] : item.measurements?.[key]).filter((value): value is number => finite(value));
