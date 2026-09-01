@@ -93,10 +93,65 @@ async function getCustomer(user: AuthenticatedUser, id: string) {
 async function createCustomer(user: AuthenticatedUser, payload: CustomerPayload) {
   const assignedPtId = isAdminRole(user.role) ? payload.assignedPtId : user.id;
   if (!assignedPtId) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng chọn PT phụ trách.' });
+
+  const phone = payload.phone?.trim();
+  if (phone) {
+    const existingPhone = await CustomerProfile.exists({ phone });
+    if (existingPhone) {
+      throw new AppError({
+        status: 409,
+        code: ERROR_CODES.DUPLICATE,
+        message: 'Số điện thoại đã được sử dụng bởi khách hàng khác.',
+      });
+    }
+  }
+
+  const email = payload.email?.trim()?.toLowerCase();
+  if (email) {
+    const existingEmail = await CustomerProfile.exists({ email });
+    if (existingEmail) {
+      throw new AppError({
+        status: 409,
+        code: ERROR_CODES.DUPLICATE,
+        message: 'Email đã được sử dụng bởi khách hàng khác.',
+      });
+    }
+  }
+
   return CustomerProfile.create({ ...customerChanges(payload), assignedPtId: new Types.ObjectId(assignedPtId) });
 }
 
 async function updateCustomer(user: AuthenticatedUser, id: string, payload: CustomerPayload) {
+  const phone = payload.phone?.trim();
+  if (phone) {
+    const existingPhone = await CustomerProfile.exists({
+      _id: { $ne: id },
+      phone,
+    });
+    if (existingPhone) {
+      throw new AppError({
+        status: 409,
+        code: ERROR_CODES.DUPLICATE,
+        message: 'Số điện thoại đã được sử dụng bởi khách hàng khác.',
+      });
+    }
+  }
+
+  const email = payload.email?.trim()?.toLowerCase();
+  if (email) {
+    const existingEmail = await CustomerProfile.exists({
+      _id: { $ne: id },
+      email,
+    });
+    if (existingEmail) {
+      throw new AppError({
+        status: 409,
+        code: ERROR_CODES.DUPLICATE,
+        message: 'Email đã được sử dụng bởi khách hàng khác.',
+      });
+    }
+  }
+
   const customer = await CustomerProfile.findOneAndUpdate(scopedFilter(user, { _id: id }), customerChanges(payload), { returnDocument: 'after', runValidators: true }).populate('userId', 'username email status role createdAt').lean();
   if (!customer) throw notFound();
   return customer;
