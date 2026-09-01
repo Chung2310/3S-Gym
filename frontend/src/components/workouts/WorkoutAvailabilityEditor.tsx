@@ -1,6 +1,5 @@
 import type { WorkoutAvailabilitySlot } from '../../types/workoutAvailability';
 import {
-  minuteFromTimeValue,
   minuteLabel,
   weekdayLabel,
 } from '../../services/workoutAvailability';
@@ -12,6 +11,7 @@ interface Props {
 }
 
 const days = [1, 2, 3, 4, 5, 6, 7];
+const startMinuteOptions = Array.from({ length: 96 }, (_, index) => index * 15);
 const endMinuteOptions = Array.from({ length: 96 }, (_, index) => (index + 1) * 15);
 const sortSlots = (slots: WorkoutAvailabilitySlot[]) => [...slots].sort((left, right) => (
   left.dayNumber - right.dayNumber || left.startMinute - right.startMinute
@@ -61,16 +61,18 @@ export default function WorkoutAvailabilityEditor({ value, disabled, onChange }:
                 return <div className="workout-availability-slot" key={`${dayNumber}-${index}-${slot.startMinute}`}>
                   <label className="module-field">
                     Bắt đầu
-                    <input
+                    <select
                       aria-label={`Bắt đầu ${dayLabel}, khung ${slotNumber}`}
-                      type="time"
-                      step="900"
                       disabled={disabled}
-                      value={minuteLabel(slot.startMinute)}
+                      value={slot.startMinute}
                       onChange={(event) => updateSlot(slot, {
-                        startMinute: minuteFromTimeValue(event.target.value),
+                        startMinute: Number(event.target.value),
                       })}
-                    />
+                    >
+                      {startMinuteOptions.map((minute) => <option key={minute} value={minute}>
+                        {minuteLabel(minute)}
+                      </option>)}
+                    </select>
                   </label>
                   <span className="workout-availability-separator" aria-hidden="true">đến</span>
                   <label className="module-field">

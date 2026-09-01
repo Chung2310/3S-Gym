@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { api } from '../../services/api';
-import { availabilityError, availabilitySummary } from '../../services/workoutAvailability';
+import {
+  availabilityError,
+  availabilityProposalDefaults,
+  availabilitySummary,
+} from '../../services/workoutAvailability';
 import { errorMessage } from '../../types';
 import type { WorkoutAvailabilitySlot } from '../../types/workoutAvailability';
 import WorkoutAvailabilityEditor from './WorkoutAvailabilityEditor';
@@ -18,8 +22,9 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
   const [step, setStep] = useState(0);
   if (!open) return null;
   const availability = availabilitySummary(availabilitySlots);
+  const proposalDefaults = availabilityProposalDefaults(availabilitySlots);
   const availabilityText = `${availability.dayCount} ngày rảnh · ${availability.slotCount} khung giờ`;
-  const analyze = async () => { if (!customerId) return setError('Vui lòng chọn học viên.'); const slotError = availabilityError(availabilitySlots); if (slotError) return setError(slotError); setLoading(true); setError(''); try { const result = await api.post<Proposal>('/api/ai/workout-proposals', { customerId, availabilitySlots }); setProposal(result.data); setStep(1); } catch (cause) { setError(errorMessage(cause)); } finally { setLoading(false); } };
+  const analyze = async () => { if (!customerId) return setError('Vui lòng chọn học viên.'); const slotError = availabilityError(availabilitySlots); if (slotError) return setError(slotError); setLoading(true); setError(''); try { const result = await api.post<Proposal>('/api/ai/workout-proposals', { customerId, availabilitySlots }); setProposal({ ...result.data, ...proposalDefaults }); setStep(1); } catch (cause) { setError(errorMessage(cause)); } finally { setLoading(false); } };
   const generate = async () => { if (!proposal) return; setLoading(true); setError(''); try { const result = await api.post('/api/ai/workout-generations', { customerId, proposal, availabilitySlots, additionalRequest: '' }); onGenerated(result.data); } catch (cause) { setError(errorMessage(cause)); } finally { setLoading(false); } };
   const continueToGeneration = () => {
     if (!proposal) return;
@@ -44,7 +49,7 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
         <ol className="workout-wizard-progress" aria-label="Tiến trình tạo giáo án">
           {steps.map((label, index) => <li key={label} className={index < step ? 'is-complete' : index === step ? 'is-active' : ''} aria-current={index === step ? 'step' : undefined}><span>{index + 1}</span>{label}</li>)}
         </ol>
-        {step === 0 && <div className="module-form workout-wizard-form"><label className="module-field">Học viên<select aria-label="Học viên" value={customerId} disabled={loading} onChange={(event) => setCustomerId(event.target.value)}><option value="">Chọn học viên...</option>{customers.map((customer) => <option key={customer._id} value={customer._id}>{customer.fullName} · {customer.phone}</option>)}</select></label><WorkoutAvailabilityEditor value={availabilitySlots} disabled={loading} onChange={setAvailabilitySlots} /></div>}
+        {step === 0 && <div className="module-form workout-wizard-form"><label className="module-field">Học viên<select aria-label="Học viên" value={customerId} disabled={loading} onChange={(event) => setCustomerId(event.target.value)}><option value="">Chọn học viên...</option>{customers.map((customer) => <option key={customer._id} value={customer._id}>{customer.fullName} · {customer.phone}</option>)}</select></label><WorkoutAvailabilityEditor value={availabilitySlots} disabled={loading} onChange={setAvailabilitySlots} />{proposalDefaults.sessionsPerWeek > 0 && <p className="workout-availability-calculation" aria-live="polite">Tự tính: {proposalDefaults.sessionsPerWeek} buổi/tuần · {proposalDefaults.minutesPerSession} phút/buổi</p>}</div>}
         {proposal && step === 1 && <div className="workout-wizard-summary"><div className="workout-wizard-summary-heading"><strong>Đề xuất phân tích</strong><span>{proposal.trainingMethod}</span></div><p className="workout-availability-summary">{availabilityText}</p><dl className="workout-wizard-review"><div><dt>Chu kỳ</dt><dd>{proposal.durationWeeks} tuần</dd></div><div><dt>Tần suất</dt><dd>{proposal.sessionsPerWeek} buổi/tuần</dd></div><div><dt>Thời lượng</dt><dd>{proposal.minutesPerSession} phút/buổi</dd></div><div><dt>Phân bổ</dt><dd>{proposal.trainingSplit}</dd></div></dl></div>}
         {proposal && step === 2 && <div className="workout-wizard-summary"><div className="workout-wizard-summary-heading"><strong>Điều chỉnh đề xuất</strong><span>{proposal.trainingMethod}</span></div><p className="workout-availability-summary">{availabilityText}</p><div className="module-field-grid"><label className="module-field">Số tuần<input aria-label="Số tuần" type="number" min="4" max="12" placeholder="Ví dụ: 8" value={proposal.durationWeeks} onChange={(event) => setProposal({ ...proposal, durationWeeks: Number(event.target.value) })} /></label><label className="module-field">Số buổi mỗi tuần<input aria-label="Số buổi mỗi tuần" type="number" min="1" max="7" placeholder="Ví dụ: 4" value={proposal.sessionsPerWeek} onChange={(event) => setProposal({ ...proposal, sessionsPerWeek: Number(event.target.value) })} /></label><label className="module-field">Số phút mỗi buổi<input aria-label="Số phút mỗi buổi" type="number" min="15" max="240" step="15" placeholder="Ví dụ: 60" value={proposal.minutesPerSession} onChange={(event) => setProposal({ ...proposal, minutesPerSession: Number(event.target.value) })} /></label></div></div>}
         {proposal && step === 3 && <div className="workout-wizard-summary"><div className="workout-wizard-summary-heading"><strong>Sẵn sàng tạo giáo án</strong><span>{proposal.trainingMethod}</span></div><p className="workout-availability-summary">{availabilityText}</p><dl className="workout-wizard-review"><div><dt>Chu kỳ</dt><dd>{proposal.durationWeeks} tuần</dd></div><div><dt>Tần suất</dt><dd>{proposal.sessionsPerWeek} buổi/tuần</dd></div><div><dt>Thời lượng</dt><dd>{proposal.minutesPerSession} phút/buổi</dd></div><div><dt>Cấp độ</dt><dd>{proposal.level}</dd></div></dl></div>}

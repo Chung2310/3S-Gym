@@ -5,7 +5,10 @@ import Exercise from '../models/Exercise.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { generateText } from './aiProvider.js';
-import { scheduleWorkoutSessions } from './workoutAvailabilityScheduler.js';
+import {
+  availabilityProposalDefaults,
+  scheduleWorkoutSessions,
+} from './workoutAvailabilityScheduler.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import type { WorkoutAvailabilitySlot } from '../types/workoutAvailability.js';
 
@@ -63,18 +66,25 @@ const exerciseCatalog = (library: Awaited<ReturnType<typeof exerciseLibraryFor>>
 }));
 const availabilityPrompt = (slots: WorkoutAvailabilitySlot[]) => {
   const dayCount = new Set(slots.map((slot) => slot.dayNumber)).size;
+  const defaults = availabilityProposalDefaults(slots);
   const durations = slots.map((slot) => (
     `ngày ${slot.dayNumber}: ${slot.endMinute - slot.startMinute} phút`
   )).join(', ');
-  return `${dayCount} ngày rảnh, ${slots.length} khung giờ (${durations}). Dữ liệu: ${JSON.stringify(slots)}`;
+  return `${dayCount} ngày rảnh, ${slots.length} khung giờ (${durations}). Cấu hình tự tính bắt buộc: ${defaults.sessionsPerWeek} buổi/tuần, ${defaults.minutesPerSession} phút/buổi. Dữ liệu: ${JSON.stringify(slots)}`;
 };
 
-function parseProposal(raw: string): WorkoutProposal {
+function parseProposal(
+  raw: string,
+  defaults: Pick<WorkoutProposal, 'sessionsPerWeek' | 'minutesPerSession'>,
+): WorkoutProposal {
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về đề xuất hợp lệ.' });
   let value: unknown;
   try { value = JSON.parse(match[0]); } catch { throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về đề xuất hợp lệ.' }); }
-  const proposal = value as Partial<WorkoutProposal>;
+  const proposal = {
+    ...(value as Partial<WorkoutProposal>),
+    ...defaults,
+  };
   if (!Number.isInteger(proposal.durationWeeks) || proposal.durationWeeks! < 4 || proposal.durationWeeks! > 12 || !Number.isInteger(proposal.sessionsPerWeek) || proposal.sessionsPerWeek! < 1 || proposal.sessionsPerWeek! > 7 || !Number.isInteger(proposal.minutesPerSession) || proposal.minutesPerSession! < 15 || proposal.minutesPerSession! > 240 || !['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(String(proposal.level)) || typeof proposal.trainingMethod !== 'string' || typeof proposal.trainingSplit !== 'string' || !Array.isArray(proposal.priorityMuscleGroups) || !Array.isArray(proposal.restrictions)) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về đề xuất thiếu hoặc sai dữ liệu.' });
   return proposal as WorkoutProposal;
 }
@@ -92,8 +102,9 @@ export async function createWorkoutProposal(
     InBodyRecord.findOne({ customerId: customer._id }).sort({ measurementDate: -1, createdAt: -1 }).lean(),
     exerciseLibraryFor(user),
   ]);
-  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-proposal` }, `Trả về duy nhất JSON đề xuất giáo án 4-12 tuần cho học viên ${customer.fullName}. Mục tiêu: ${goal?.title || customer.initialGoal || 'chưa có'}. InBody: ${inbody ? `cân nặng ${inbody.weight}, mỡ ${inbody.bodyFatPercentage ?? 'chưa có'}` : 'chưa có'}. Sức khỏe: ${customer.medicalNotes || 'không có'}. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(availabilitySlots)}. Mỗi ngày chỉ xếp tối đa một buổi tập; hãy chọn sessionsPerWeek và minutesPerSession phù hợp với các khung giờ này. Nếu lịch rảnh không đủ, vẫn đề xuất cấu hình tốt nhất và hệ thống sẽ cảnh báo PT. Hãy phân tích khả năng đáp ứng của thư viện bài tập hiện có của PT khi đề xuất phương pháp và lịch tập; ưu tiên các bài phù hợp trong thư viện, chỉ dự kiến tạo bài mới nếu thật sự thiếu. Thư viện: ${JSON.stringify(exerciseCatalog(library))}. JSON gồm durationWeeks, sessionsPerWeek, minutesPerSession, level, trainingMethod, trainingSplit, priorityMuscleGroups, restrictions.`);
-  return parseProposal(raw);
+  const proposalDefaults = availabilityProposalDefaults(availabilitySlots);
+  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-proposal` }, `Trả về duy nhất JSON đề xuất giáo án 4-12 tuần cho học viên ${customer.fullName}. Mục tiêu: ${goal?.title || customer.initialGoal || 'chưa có'}. InBody: ${inbody ? `cân nặng ${inbody.weight}, mỡ ${inbody.bodyFatPercentage ?? 'chưa có'}` : 'chưa có'}. Sức khỏe: ${customer.medicalNotes || 'không có'}. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(availabilitySlots)}. Mỗi ngày chỉ xếp tối đa một buổi tập; dùng đúng sessionsPerWeek và minutesPerSession đã được hệ thống tự tính. Hãy phân tích khả năng đáp ứng của thư viện bài tập hiện có của PT khi đề xuất phương pháp và lịch tập; ưu tiên các bài phù hợp trong thư viện, chỉ dự kiến tạo bài mới nếu thật sự thiếu. Thư viện: ${JSON.stringify(exerciseCatalog(library))}. JSON gồm durationWeeks, sessionsPerWeek, minutesPerSession, level, trainingMethod, trainingSplit, priorityMuscleGroups, restrictions.`);
+  return parseProposal(raw, proposalDefaults);
 }
 
 export async function generateWorkoutDraft(user: AuthenticatedUser, input: WorkoutGenerationInput, requestKey: string) {

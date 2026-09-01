@@ -25,14 +25,14 @@ it('returns a validated proposal for a customer assigned to the PT', async () =>
   const password = await bcrypt.hash('MatKhau123!', 10);
   const pt = await User.create({ username: 'ai-workout-pt', password, role: 'PT' });
   const customer = await CustomerProfile.create({ fullName: 'Khách AI', phone: '0907000099', assignedPtId: pt.id, initialGoal: 'Giảm mỡ' });
-  vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({ durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Progressive overload', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }));
+  vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({ durationWeeks: 8, sessionsPerWeek: 99, minutesPerSession: 999, level: 'BEGINNER', trainingMethod: 'Progressive overload', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }));
 
   await expect(createWorkoutProposal(
     { id: pt.id, role: 'PT' },
     customer.id,
     availabilitySlots,
     'workout-proposal-test',
-  )).resolves.toMatchObject({ durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60 });
+  )).resolves.toMatchObject({ durationWeeks: 8, sessionsPerWeek: 2, minutesPerSession: 120 });
   expect(latestPrompt()).toContain(JSON.stringify(availabilitySlots));
   expect(latestPrompt()).toContain('2 ngày rảnh, 2 khung giờ');
   expect(latestPrompt()).toContain('120 phút');
@@ -60,4 +60,5 @@ it('creates a week-based draft without persisting it', async () => {
   expect(latestPrompt()).toContain(JSON.stringify(availabilitySlots));
   expect(latestPrompt()).toContain('2 ngày rảnh, 2 khung giờ');
   expect(latestPrompt()).toContain('120 phút');
+  expect(latestPrompt()).toContain('2 buổi/tuần, 120 phút/buổi');
 });

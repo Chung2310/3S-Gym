@@ -27,7 +27,11 @@ it('returns an AI workout proposal for an assigned customer without persisting a
   const token = jwt.sign({ id: pt.id, role: pt.role }, process.env.JWT_SECRET || 'secret_key');
   const response = await request(app).post('/api/ai/workout-proposals').set('Authorization', `Bearer ${token}`).send({ customerId: customer.id, availabilitySlots });
   expect(response.status).toBe(200);
-  expect(response.body.data).toMatchObject({ durationWeeks: 8, sessionsPerWeek: 4 });
+  expect(response.body.data).toMatchObject({
+    durationWeeks: 8,
+    sessionsPerWeek: 2,
+    minutesPerSession: 120,
+  });
 });
 
 it('returns a generated draft without persisting it', async () => {

@@ -5696,6 +5696,17 @@ a {
   font-weight: 750;
 }
 
+.workout-availability-calculation {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  background: #f0f9ff;
+  color: var(--primary-color);
+  font-size: .8rem;
+  font-weight: 700;
+}
+
 .workout-wizard-form .module-field :is(select, input),
 .workout-wizard-summary .module-field :is(select, input) {
   min-height: 44px;

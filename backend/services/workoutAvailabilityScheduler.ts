@@ -27,6 +27,29 @@ const externalScheduleError = (message: string) => new AppError({
   message,
 });
 
+export function availabilityProposalDefaults(slots: WorkoutAvailabilitySlot[]): {
+  sessionsPerWeek: number;
+  minutesPerSession: number;
+} {
+  const longestSlotByDay = new Map<number, number>();
+
+  for (const slot of slots) {
+    const duration = slot.endMinute - slot.startMinute;
+    if (duration <= 0) continue;
+    longestSlotByDay.set(
+      slot.dayNumber,
+      Math.max(longestSlotByDay.get(slot.dayNumber) ?? 0, duration),
+    );
+  }
+
+  return {
+    sessionsPerWeek: longestSlotByDay.size,
+    minutesPerSession: longestSlotByDay.size === 0
+      ? 0
+      : Math.min(240, ...longestSlotByDay.values()),
+  };
+}
+
 function groupSessions<T extends SchedulableExercise>(items: T[]): WorkoutSession<T>[] {
   const groups = new Map<string, T[]>();
   for (const item of items) {

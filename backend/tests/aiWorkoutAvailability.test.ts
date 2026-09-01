@@ -3,7 +3,10 @@ import {
   workoutGenerationRequestSchema,
   workoutProposalRequestSchema,
 } from '../validators/aiWorkoutValidator.js';
-import { scheduleWorkoutSessions } from '../services/workoutAvailabilityScheduler.js';
+import {
+  availabilityProposalDefaults,
+  scheduleWorkoutSessions,
+} from '../services/workoutAvailabilityScheduler.js';
 
 const proposal = {
   durationWeeks: 8,
@@ -63,6 +66,21 @@ describe('AI workout availability scheduler', () => {
     { name: 'Row', weekNumber: 1, dayNumber: 2, startMinute: 510, durationMinutes: 30 },
     { name: 'Run', weekNumber: 1, dayNumber: 4, startMinute: 600, durationMinutes: 60 },
   ];
+
+  it('derives frequency and duration from recurring availability', () => {
+    expect(availabilityProposalDefaults([
+      { dayNumber: 1, startMinute: 480, endMinute: 540 },
+      { dayNumber: 1, startMinute: 600, endMinute: 720 },
+      { dayNumber: 3, startMinute: 480, endMinute: 570 },
+      { dayNumber: 5, startMinute: 480, endMinute: 780 },
+    ])).toEqual({ sessionsPerWeek: 3, minutesPerSession: 90 });
+  });
+
+  it('caps the derived session duration at four hours', () => {
+    expect(availabilityProposalDefaults([
+      { dayNumber: 1, startMinute: 0, endMinute: 1440 },
+    ])).toEqual({ sessionsPerWeek: 1, minutesPerSession: 240 });
+  });
 
   it('moves whole sessions into fitting recurring slots and preserves offsets', () => {
     const result = scheduleWorkoutSessions(items, [
