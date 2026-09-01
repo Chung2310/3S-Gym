@@ -7763,6 +7763,79 @@ a {
   color: #16a34a;
 }
 
+/* PayOS QR Payment Method Banner / Card */
+.wallet-payos-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #f0f9ff 100%);
+  border: 1.5px solid #bae6fd;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.wallet-payos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wallet-payos-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: var(--primary-color);
+  font-family: 'Montserrat', sans-serif;
+}
+
+.wallet-payos-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: #15803d;
+}
+
+.wallet-payos-desc {
+  font-size: 0.8rem;
+  color: #334155;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.wallet-payos-banks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.74rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.wallet-payos-bank-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #003b70;
+}
+
 /* Label for section subsections */
 .wallet-field-label {
   display: block;

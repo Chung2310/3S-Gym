@@ -86,7 +86,7 @@ export default function AdminCustomerFormModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
+        zIndex: 10050,
         padding: '16px',
       }}
     >

@@ -123,7 +123,7 @@ export default function InBodyDetailModal({
         inset: 0,
         backgroundColor: 'rgba(15, 23, 42, 0.65)',
         backdropFilter: 'blur(4px)',
-        zIndex: 1000,
+        zIndex: 10050,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

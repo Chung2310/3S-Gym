@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  CreditCard,
+  CheckCircle2,
   History,
   LoaderCircle,
+  QrCode,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   WalletCards,
+  Zap,
 } from 'lucide-react';
 import CreditLedgerTable from '../../components/credits/CreditLedgerTable';
 import CreditPackageGrid from '../../components/credits/CreditPackageGrid';
@@ -15,7 +18,7 @@ import { useToast } from '../../components/ui/ToastProvider';
 import { useCreditWallet } from '../../contexts/CreditWalletContext';
 import { creditsService } from '../../services/credits';
 import { errorMessage } from '../../types';
-import type { CreditLedgerEntry, CreditPackageResponse, PaymentGateway } from '../../types/credits';
+import type { CreditLedgerEntry, CreditPackageResponse } from '../../types/credits';
 
 export default function WalletPage() {
   const { wallet, loading: walletLoading, refresh: refreshWallet } = useCreditWallet();
@@ -28,7 +31,6 @@ export default function WalletPage() {
   const [selectedId, setSelectedId] = useState('');
   const [custom, setCustom] = useState('');
   const [customSelected, setCustomSelected] = useState(false);
-  const [gateway, setGateway] = useState<PaymentGateway>('VNPAY');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -70,8 +72,6 @@ export default function WalletPage() {
         } else {
           setCustomSelected(true);
         }
-        const first = (['VNPAY', 'MOMO'] as const).find((item) => nextCatalog.gateways[item]);
-        if (first) setGateway(first);
       })
       .catch((cause) => active && setError(errorMessage(cause)))
       .finally(() => active && setLoading(false));
@@ -88,18 +88,28 @@ export default function WalletPage() {
     customAmount <= 50_000_000 &&
     customAmount % 1_000 === 0;
 
-  const canSubmit =
-    Boolean(catalog?.gateways[gateway]) &&
-    (customSelected ? customValid : Boolean(selectedId)) &&
-    !submitting;
+  const currentPackage = useMemo(
+    () => catalog?.packages.find((item) => item.id === selectedId),
+    [catalog, selectedId],
+  );
+
+  const paymentAmountVnd = useMemo(() => {
+    if (customSelected) return customValid ? customAmount : 0;
+    return currentPackage?.amountVnd || 0;
+  }, [customAmount, customSelected, customValid, currentPackage]);
 
   const estimated = useMemo(
     () =>
       customSelected && customValid
         ? Math.floor(customAmount / 1_000)
-        : catalog?.packages.find((item) => item.id === selectedId)?.grantCredits || 0,
-    [catalog, customAmount, customSelected, customValid, selectedId],
+        : currentPackage?.grantCredits || 0,
+    [currentPackage, customAmount, customSelected, customValid],
   );
+
+  const canSubmit =
+    (customSelected ? customValid : Boolean(selectedId)) &&
+    paymentAmountVnd >= 10_000 &&
+    !submitting;
 
   const checkout = async () => {
     if (!canSubmit) return;
@@ -107,8 +117,8 @@ export default function WalletPage() {
     try {
       const order = await creditsService.createTopup(
         customSelected
-          ? { gateway, customAmountVnd: customAmount }
-          : { gateway, packageId: selectedId },
+          ? { gateway: 'PAYOS', customAmountVnd: customAmount }
+          : { gateway: 'PAYOS', packageId: selectedId },
       );
       const url = new URL(order.redirectUrl || '', window.location.origin);
       const allowed =
@@ -149,7 +159,7 @@ export default function WalletPage() {
 
   return (
     <div className="mx-auto max-w-6xl" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* 1. Banner Ví AI 3S Gym — Dùng class wallet-banner từ index.css */}
+      {/* 1. Banner Ví AI 3S Gym */}
       <section className="wallet-banner">
         <div className="wallet-banner-inner">
           <div>
@@ -189,17 +199,18 @@ export default function WalletPage() {
         </div>
       </section>
 
-      {/* 2. Nạp credit — Dùng pt-card--static + pt-card-body từ index.css */}
+      {/* 2. Nạp credit — Thiết kế tối ưu hóa cho thanh toán Quét mã QR PayOS */}
       <div className="pt-card--static">
         <div className="pt-card-body">
           <div className="wallet-section-header">
             <h2 className="wallet-section-title">Nạp credit</h2>
             <p className="wallet-section-desc">
-              1.000đ tương đương 1 credit cơ bản. Bonus được cộng thêm theo từng gói.
+              Tỉ giá 1.000đ = 10 credit cơ bản (100đ / credit). Bonus được cộng thêm theo từng gói.
             </p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Gói nạp định sẵn */}
             <CreditPackageGrid
               packages={catalog?.packages || []}
               selectedId={customSelected ? '' : selectedId}
@@ -209,6 +220,7 @@ export default function WalletPage() {
               }}
             />
 
+            {/* Nhập số tiền tùy chỉnh */}
             <CustomTopupForm
               value={custom}
               selected={customSelected}
@@ -225,39 +237,43 @@ export default function WalletPage() {
               </p>
             )}
 
-            {/* Cổng thanh toán */}
-            <div style={{ paddingTop: 8 }}>
-              <span className="wallet-field-label">Cổng thanh toán</span>
-              <div className="wallet-radio-group">
-                {(['VNPAY', 'MOMO'] as const).map((item) => {
-                  const isAvailable = Boolean(catalog?.gateways[item]);
-                  const isChecked = gateway === item;
-                  return (
-                    <label
-                      key={item}
-                      className={`wallet-radio-label${isChecked ? ' wallet-radio-label--selected' : ''}${!isAvailable ? ' wallet-radio-label--disabled' : ''}`}
-                    >
-                      <input
-                        type="radio"
-                        name="gateway"
-                        value={item}
-                        disabled={!isAvailable}
-                        checked={isChecked}
-                        onChange={() => setGateway(item)}
-                      />
-                      <span>{item === 'VNPAY' ? 'VNPay' : 'MoMo'}</span>
-                    </label>
-                  );
-                })}
+            {/* Khối giới thiệu phương thức quét mã VietQR qua PayOS */}
+            <div className="wallet-payos-card">
+              <div className="wallet-payos-header">
+                <div className="wallet-payos-title">
+                  <QrCode size={20} className="text-sky-600 shrink-0" />
+                  <span>Chuyển khoản VietQR tự động qua PayOS</span>
+                </div>
+                <span className="wallet-payos-badge">
+                  <Zap size={13} />
+                  <span>Xác nhận tự động 24/7</span>
+                </span>
+              </div>
+
+              <p className="wallet-payos-desc">
+                Hệ thống tự động tạo mã VietQR động chứa chính xác số tiền và nội dung chuyển khoản. Bạn chỉ cần mở app Ngân hàng hoặc Ví điện tử bất kỳ để quét mã. Credit được cộng vào ví ngay sau 3 giây.
+              </p>
+
+              <div className="wallet-payos-banks">
+                <span>Hỗ trợ mọi ngân hàng:</span>
+                <span className="wallet-payos-bank-tag">Vietcombank</span>
+                <span className="wallet-payos-bank-tag">MB Bank</span>
+                <span className="wallet-payos-bank-tag">Techcombank</span>
+                <span className="wallet-payos-bank-tag">ACB</span>
+                <span className="wallet-payos-bank-tag">VPBank</span>
+                <span className="wallet-payos-bank-tag">MoMo / ZaloPay</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>và 40+ ngân hàng Napas247</span>
               </div>
             </div>
 
-            {/* Khối Xác Nhận Thanh Toán */}
+            {/* Khối Xác Nhận & Nút Tạo Mã QR */}
             <div className="wallet-confirm-strip">
               <div>
-                <span className="wallet-confirm-label">Bạn sẽ nhận được</span>
+                <span className="wallet-confirm-label">
+                  Số tiền thanh toán: {paymentAmountVnd.toLocaleString('vi-VN')} đ
+                </span>
                 <div className="wallet-confirm-amount">
-                  {estimated.toLocaleString('vi-VN')} <span className="unit">credit</span>
+                  {estimated.toLocaleString('vi-VN')} <span className="unit">credit nhận được</span>
                 </div>
               </div>
               <button
@@ -265,25 +281,26 @@ export default function WalletPage() {
                 disabled={!canSubmit}
                 onClick={checkout}
                 className="wallet-submit-btn"
+                style={{ padding: '0 20px', minWidth: 220 }}
               >
                 {submitting ? (
-                  <LoaderCircle className="animate-spin" size={16} style={{ flexShrink: 0 }} />
+                  <LoaderCircle className="animate-spin" size={18} style={{ flexShrink: 0 }} />
                 ) : (
-                  <CreditCard size={16} style={{ flexShrink: 0 }} />
+                  <QrCode size={18} style={{ flexShrink: 0 }} />
                 )}
-                <span>{submitting ? 'Đang tạo thanh toán…' : 'Thanh toán an toàn'}</span>
+                <span>{submitting ? 'Đang tạo mã QR...' : 'Tạo mã QR thanh toán PayOS'}</span>
               </button>
             </div>
 
             <p className="wallet-disclaimer">
               <ShieldCheck size={15} />
-              <span>Credit chỉ được cộng sau khi xác nhận thanh toán hợp lệ từ cổng thanh toán.</span>
+              <span>Giao dịch bảo mật qua PayOS / Napas247. Vui lòng quét đúng mã QR để hệ thống cộng credit tự động.</span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* 3. Lịch sử credit — Dùng pt-card--static + pt-card-body từ index.css */}
+      {/* 3. Lịch sử credit */}
       <div className="pt-card--static">
         <div className="pt-card-body">
           <div className="wallet-history-header">

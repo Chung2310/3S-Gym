@@ -180,9 +180,14 @@ export default function UserFormModal({
     }
   };
 
-  const modalTitle = editing
-    ? `Sửa tài khoản ${form.role}`
-    : `Tạo tài khoản ${form.role}`;
+  const roleName =
+    form.role === 'CUSTOMER'
+      ? 'Hội viên'
+      : form.role === 'PT'
+        ? 'Huấn luyện viên (PT)'
+        : 'Quản trị viên (Admin)';
+
+  const modalTitle = editing ? `Sửa tài khoản ${roleName}` : `Tạo tài khoản ${roleName}`;
 
   return (
     <ProfileFormModal
@@ -275,7 +280,20 @@ export default function UserFormModal({
             ))}
           </FormField>
 
-          <FormField label="Họ tên" name="fullName" value={form.fullName} onChange={change} required />
+          <FormField
+            label="Họ tên"
+            name="fullName"
+            placeholder={
+              form.role === 'CUSTOMER'
+                ? 'Nhập họ và tên hội viên (VD: Nguyễn Văn A)...'
+                : form.role === 'PT'
+                  ? 'Nhập họ và tên HLV (VD: Trần Văn B)...'
+                  : 'Nhập họ và tên quản trị viên...'
+            }
+            value={form.fullName}
+            onChange={change}
+            required
+          />
           <FormField
             label="Ngày sinh"
             name="dateOfBirth"
@@ -297,10 +315,30 @@ export default function UserFormModal({
           <Phone size={16} /> Liên hệ
         </h3>
         <div className="profile-form-grid">
-          <FormField label="Số điện thoại" name="phone" value={form.phone} onChange={change} required />
-          <FormField label="Email" name="email" type="email" value={form.email} onChange={change} />
+          <FormField
+            label="Số điện thoại"
+            name="phone"
+            placeholder="Nhập số điện thoại (VD: 0912345678)..."
+            value={form.phone}
+            onChange={change}
+            required
+          />
+          <FormField
+            label="Email"
+            name="email"
+            type="email"
+            placeholder="Nhập email (VD: khachhang@example.com)..."
+            value={form.email}
+            onChange={change}
+          />
           <div className="grid-full-width">
-            <FormField label="Địa chỉ" name="address" value={form.address} onChange={change} />
+            <FormField
+              label="Địa chỉ"
+              name="address"
+              placeholder="Nhập địa chỉ cư trú (VD: Số 123 Đường Cầu Giấy, Hà Nội)..."
+              value={form.address}
+              onChange={change}
+            />
           </div>
         </div>
       </section>
@@ -311,7 +349,13 @@ export default function UserFormModal({
             <Award size={16} /> Chuyên môn PT
           </h3>
           <div className="profile-form-grid">
-            <FormField label="Chuyên môn" name="specialization" value={form.specialization} onChange={change} />
+            <FormField
+              label="Chuyên môn"
+              name="specialization"
+              placeholder="VD: Tăng cơ, Giảm mỡ, Phục hồi chức năng..."
+              value={form.specialization}
+              onChange={change}
+            />
             <FormField
               label="Số năm kinh nghiệm"
               name="yearsOfExperience"
@@ -319,6 +363,7 @@ export default function UserFormModal({
               min={0}
               max={80}
               step={1}
+              placeholder="VD: 3"
               value={form.yearsOfExperience}
               onChange={change}
             />
@@ -328,7 +373,7 @@ export default function UserFormModal({
                 name="certificates"
                 as="textarea"
                 rows={3}
-                placeholder="Mỗi chứng chỉ một dòng"
+                placeholder="Mỗi chứng chỉ một dòng (VD: NASM-CPT, CSCS)..."
                 value={form.certificates}
                 onChange={change}
               />
@@ -340,6 +385,7 @@ export default function UserFormModal({
                 as="textarea"
                 rows={3}
                 maxLength={1000}
+                placeholder="Mô tả kinh nghiệm, phương pháp huấn luyện và phong cách làm việc..."
                 value={form.bio}
                 onChange={change}
               />
@@ -356,6 +402,7 @@ export default function UserFormModal({
           <FormField
             label="Tên đăng nhập"
             name="username"
+            placeholder="Nhập tên đăng nhập (VD: hoangtuananh123)..."
             value={form.username}
             onChange={change}
             readOnly={editing}

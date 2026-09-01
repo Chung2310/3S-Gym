@@ -229,7 +229,12 @@ export default function CustomerDetailModal({
 
   const hasAccount = Boolean(userAccount || (detail?.userId && typeof detail.userId === 'string'));
 
-  const isSubModalOpen = showPackageModal || showConsultationModal || showPhotoModal;
+  const isSubModalOpen =
+    showPackageModal ||
+    showConsultationModal ||
+    showPhotoModal ||
+    Boolean(selectedInbodyRecord) ||
+    showInbodyManualModal;
 
   if (!open || !customer) return null;
 
