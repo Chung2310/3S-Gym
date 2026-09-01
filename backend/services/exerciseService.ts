@@ -4,10 +4,11 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { recordAudit } from './auditService.js';
+import { isAdminRole } from './roles.js';
 
 type ExerciseResponse = Record<string, unknown> & { id?: string; ownerPtId?: unknown; videoUrl?: string; videos?: IExercise['videos'] };
 function canManageExercise(user: AuthenticatedUser, exercise: { ownerPtId?: unknown }): boolean {
-  return user.role === 'ADMIN' || Boolean(exercise.ownerPtId && String(exercise.ownerPtId) === user.id);
+  return isAdminRole(user.role) || Boolean(exercise.ownerPtId && String(exercise.ownerPtId) === user.id);
 }
 function normalizeExerciseVideos(user: AuthenticatedUser, value: unknown): ExerciseResponse & { canManage: boolean } {
   const documentLike = value as { toObject?: () => unknown; id?: unknown };
@@ -22,7 +23,7 @@ function normalizeExerciseVideos(user: AuthenticatedUser, value: unknown): Exerc
 }
 
 async function create(user: AuthenticatedUser, payload: Partial<IExercise>) {
-  const scope = payload.scope || (user.role === 'ADMIN' ? 'GLOBAL' : 'PRIVATE');
+  const scope = payload.scope || (isAdminRole(user.role) ? 'GLOBAL' : 'PRIVATE');
   const exercise = await Exercise.create({ ...payload, scope, ownerPtId: user.role === 'PT' ? user.id : undefined });
   await recordAudit({ actor: user, action: 'EXERCISE_CREATED', resourceType: 'exercise', resourceId: exercise.id });
   return normalizeExerciseVideos(user, exercise);
@@ -32,7 +33,7 @@ async function list(user: AuthenticatedUser, query: Record<string, unknown>) {
   const limit = Number(query.limit || 20);
   const andClauses: QueryFilter<IExercise>[] = [];
 
-  if (user.role !== 'ADMIN') {
+  if (!isAdminRole(user.role)) {
     andClauses.push({ $or: [{ scope: 'GLOBAL' as const }, { ownerPtId: new Types.ObjectId(user.id) }] });
   }
   if (typeof query.muscleGroup === 'string' && query.muscleGroup.trim()) {

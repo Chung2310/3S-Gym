@@ -1,4 +1,5 @@
 import type { WorkoutSessionDto } from '../../types';
+import { formatWorkoutSessionTime } from '../../services/workoutSessionTime';
 import { exerciseRpes, exerciseVolume } from '../../utils/sessionTracking';
 import TrackingResultSummary from './tracking/TrackingResultSummary';
 
@@ -15,7 +16,7 @@ export default function WorkoutSessionDetail({ session }: { session: WorkoutSess
         <h3 className="font-oswald text-xl font-bold uppercase text-primary">
           {session.planSnapshot.title || 'Buổi tập'} · {session.planSnapshot.session?.name || 'Không tên'}
         </h3>
-        <p className="mt-1 text-sm text-slate-500">{new Date(session.performedAt).toLocaleDateString('vi-VN')}</p>
+        <p className="mt-1 text-sm text-slate-500">{formatWorkoutSessionTime(session.performedAt)}</p>
       </header>
 
       <div className="flex flex-wrap gap-2">

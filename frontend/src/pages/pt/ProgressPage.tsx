@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CircleAlert } from 'lucide-react';
 import ProgressDashboard from '../../components/progress/ProgressDashboard';
 import ProgressDetailModal from '../../components/progress/ProgressDetailModal';
@@ -7,6 +7,7 @@ import ProgressSkeleton from '../../components/progress/ProgressSkeleton';
 import WorkoutSessionModal from '../../components/progress/WorkoutSessionModal';
 import { useToast } from '../../components/ui/ToastProvider';
 import { api } from '../../services/api';
+import { buildDailyProgressGroups } from '../../services/dailyProgressReports';
 import { errorMessage, type CustomerJourneyDto, type CustomerProgressOverview } from '../../types';
 
 const retryButtonClass = 'inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 motion-reduce:transition-none';
@@ -20,6 +21,10 @@ export default function ProgressPage() {
   const [detailItem, setDetailItem] = useState<CustomerProgressOverview | null>(null);
   const [workoutItem, setWorkoutItem] = useState<CustomerProgressOverview | null>(null);
   const [journey, setJourney] = useState<CustomerJourneyDto | null>(null);
+  const dailyReportGroups = useMemo(
+    () => journey ? buildDailyProgressGroups(journey) : [],
+    [journey],
+  );
 
   const loadOverview = useCallback(async () => {
     setOverviewError(null);
@@ -62,6 +67,16 @@ export default function ProgressPage() {
     }
   };
 
+  const refreshDetail = async () => {
+    if (!detailItem) return;
+    try {
+      const result = await api.get<CustomerJourneyDto>(`/api/customers/${detailItem.customer._id}/journey`);
+      setJourney(result.data);
+    } catch (caught) {
+      toast.error(errorMessage(caught));
+    }
+  };
+
   const saved = () => {
     close();
     void loadOverview();
@@ -95,8 +110,10 @@ export default function ProgressPage() {
       <ProgressDetailModal
         item={detailItem}
         journey={detailItem ? journey : null}
+        dailyReportGroups={detailItem ? dailyReportGroups : []}
         loading={journeyLoading}
         onClose={close}
+        onRefresh={() => void refreshDetail()}
       />
       <WorkoutSessionModal
         item={workoutItem}

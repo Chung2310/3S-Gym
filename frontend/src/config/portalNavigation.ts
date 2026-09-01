@@ -15,6 +15,7 @@ import {
   WalletCards,
 } from 'lucide-react';
 import type { FeatureKey, FeatureState, User, UserRole } from '../types';
+import { hasRequiredRole } from '../services/roles';
 
 export type NavigationSection = 'Tổng quan' | 'Vận hành' | 'Tri thức & trợ lý' | 'Tài khoản';
 export interface NavigationItem { path: string; label: string; section: NavigationSection; icon: LucideIcon; roles: UserRole[]; feature?: FeatureKey; matchChildren?: boolean }
@@ -25,6 +26,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/admin', label: 'Quản trị & HLV PT', section: 'Vận hành', icon: LayoutDashboard, roles: ['ADMIN'] },
   { path: '/admin/customers', label: 'Tất cả khách hàng', section: 'Vận hành', icon: Users, roles: ['ADMIN'], matchChildren: true },
   { path: '/admin/transfers', label: 'Điều chuyển khách', section: 'Vận hành', icon: ArrowRightLeft, roles: ['ADMIN'], matchChildren: true },
+  { path: '/admin/admin-accounts', label: 'Tài khoản Admin', section: 'Vận hành', icon: ShieldCheck, roles: ['SUPER_ADMIN'], matchChildren: true },
   { path: '/admin/users', label: 'Quản lý tài khoản', section: 'Vận hành', icon: ShieldCheck, roles: ['ADMIN'], matchChildren: true },
   { path: '/admin/knowledge', label: 'Kho tri thức', section: 'Tri thức & trợ lý', icon: BookOpen, roles: ['ADMIN'], feature: 'KNOWLEDGE_BASE', matchChildren: true },
 
@@ -48,7 +50,7 @@ export const portalNavigation: NavigationItem[] = [
 ];
 
 export function visibleNavigation(user: User, features: FeatureState = {}): NavigationItem[] {
-  return portalNavigation.filter((item) => item.roles.includes(user.role) && (!item.feature || features[item.feature] === true));
+  return portalNavigation.filter((item) => hasRequiredRole(user.role, item.roles) && (!item.feature || features[item.feature] === true));
 }
 
 export function itemMatchesPath(item: NavigationItem, pathname: string): boolean {

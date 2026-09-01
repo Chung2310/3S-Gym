@@ -1,11 +1,12 @@
 /* oxlint-disable unicorn/no-thenable */
 import Joi from 'joi';
 import type { RequestValidationSchema } from '../middlewares/validate.js';
-import { commonMessages, email, idParams, nonEmptyPatch, paginationQuery } from './commonValidator.js';
+import { commonMessages, email, idParams, nonEmptyPatch, paginationQuery, sixDigitPassword } from './commonValidator.js';
 
-const roles = ['ADMIN', 'PT', 'CUSTOMER'];
+const roles = ['SUPER_ADMIN', 'ADMIN', 'PT', 'CUSTOMER'];
+const creatableRoles = ['ADMIN', 'PT', 'CUSTOMER'];
 const profileFields = {
-  password: Joi.string().min(8).messages(commonMessages), fullName: Joi.string().trim().messages(commonMessages),
+  password: sixDigitPassword, fullName: Joi.string().trim().messages(commonMessages),
   phone: Joi.string().trim().messages(commonMessages), email: email.allow('', null),
   avatarUrl: Joi.string().uri().allow('', null).messages(commonMessages), dateOfBirth: Joi.date().max('now').allow(null).messages(commonMessages),
   gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').messages(commonMessages),
@@ -16,12 +17,12 @@ const profileFields = {
 };
 export const listUsersSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, role: Joi.string().valid(...roles), status: Joi.string().valid('ACTIVE', 'LOCKED'), keyword: Joi.string().allow('') }).messages(commonMessages) };
 export const createUserSchema: RequestValidationSchema = { body: Joi.object({
-  username: Joi.string().trim().min(3).required(), password: profileFields.password.required(), role: Joi.string().valid(...roles).required(),
+  username: Joi.string().trim().min(3).required(), password: profileFields.password.required(), role: Joi.string().valid(...creatableRoles).required(),
   fullName: Joi.when('role', { is: 'PT', then: Joi.string().trim().required(), otherwise: Joi.string().trim() }),
   phone: Joi.when('role', { is: 'PT', then: Joi.string().trim().required(), otherwise: Joi.string().trim() }),
   email: profileFields.email, avatarUrl: profileFields.avatarUrl, dateOfBirth: profileFields.dateOfBirth, gender: profileFields.gender,
   yearsOfExperience: profileFields.yearsOfExperience, certificates: profileFields.certificates, bio: profileFields.bio,
   address: profileFields.address, specialization: profileFields.specialization, status: profileFields.status,
 }).messages(commonMessages) };
-export const updateUserSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...profileFields, password: Joi.string().min(8).allow('', null).messages(commonMessages), username: Joi.string(), role: Joi.string().valid(...roles) }) };
+export const updateUserSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...profileFields, password: sixDigitPassword.allow('', null), username: Joi.forbidden(), role: Joi.forbidden() }) };
 export const deleteUserSchema: RequestValidationSchema = { params: idParams() };

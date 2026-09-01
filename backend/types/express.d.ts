@@ -1,9 +1,10 @@
 import type { JwtPayload } from 'jsonwebtoken';
 import type { AppLogger } from '../config/logger.js';
+import type { UserRole } from '../models/User.js';
 
 export interface AuthenticatedUser extends JwtPayload {
   id: string;
-  role: 'ADMIN' | 'PT' | 'CUSTOMER';
+  role: UserRole;
   username?: string;
   fullName?: string;
 }

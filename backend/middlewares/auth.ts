@@ -5,6 +5,7 @@ import type { NextFunction, Request, Response, RequestHandler } from 'express';
 import type { AuthenticatedUser } from '../types/express.js';
 import { getEnv } from '../config/env.js';
 import User from '../models/User.js';
+import { hasRequiredRole } from '../services/roles.js';
 
 async function authenticate(req: Request, _res: Response, next: NextFunction) {
   const authorization = req.headers.authorization || '';
@@ -31,7 +32,7 @@ async function authenticate(req: Request, _res: Response, next: NextFunction) {
 
 function authorize(...roles: AuthenticatedUser['role'][]): RequestHandler {
   return (req, _res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user || !hasRequiredRole(req.user.role, roles)) {
       return next(new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền thực hiện thao tác này.' }));
     }
     return next();

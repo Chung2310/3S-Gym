@@ -28,18 +28,9 @@ const measurementValidator = (req: Request): ValidationIssue[] => {
 };
 */
 router.post('/workout-templates', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(createWorkoutTemplateSchema), controller.createTemplate);
-router.get('/workout-templates', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(listWorkoutTemplatesSchema), controller.listTemplates); /*
-  const errors = listValidator(req);
-  if (req.query.status && !['ACTIVE', 'ARCHIVED'].includes(String(req.query.status))) errors.push({ field: 'status', message: 'Tráº¡ng thÃ¡i giÃ¡o Ã¡n khÃ´ng há»£p lá»‡.' });
-  return errors;
-*/
+router.get('/workout-templates', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(listWorkoutTemplatesSchema), controller.listTemplates);
 router.get('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(workoutTemplateIdSchema), controller.getTemplate);
-router.patch('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(updateWorkoutTemplateSchema), controller.updateTemplate); /*
-  const errors: ValidationIssue[] = mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'MÃ£ giÃ¡o Ã¡n khÃ´ng há»£p lá»‡.' }];
-  if (req.body.title !== undefined && (typeof req.body.title !== 'string' || !req.body.title.trim())) errors.push({ field: 'title', message: 'TÃªn giÃ¡o Ã¡n khÃ´ng há»£p lá»‡.' });
-  if (req.body.sessions !== undefined && (!Array.isArray(req.body.sessions) || req.body.sessions.length === 0)) errors.push({ field: 'sessions', message: 'GiÃ¡o Ã¡n pháº£i cÃ³ Ã­t nháº¥t má»™t buá»•i.' });
-  return errors;
-*/
+router.patch('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(updateWorkoutTemplateSchema), controller.updateTemplate);
 router.patch('/workout-templates/:id/archive', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(workoutTemplateIdSchema), controller.archiveTemplate);
 router.delete('/workout-templates/:id', ...auth, requireFeature('EXERCISE_LIBRARY'), validate(workoutTemplateIdSchema), controller.deleteTemplate);
 router.post('/workout-sessions', ...auth, requireFeature('PROGRESS'), validate(createWorkoutSessionSchema), controller.createSession);

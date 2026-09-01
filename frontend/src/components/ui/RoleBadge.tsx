@@ -6,6 +6,7 @@ interface RoleBadgeProps {
 }
 
 const roleConfig: Record<string, { label: string; className: string; Icon: typeof ShieldCheck }> = {
+  SUPER_ADMIN: { label: 'Super Admin', className: 'border-amber-300 bg-amber-50 text-amber-800', Icon: ShieldCheck },
   ADMIN: { label: 'Admin', className: 'role-badge-admin', Icon: ShieldCheck },
   PT: { label: 'Huấn luyện viên', className: 'role-badge-pt', Icon: Dumbbell },
   CUSTOMER: { label: 'Khách hàng', className: 'role-badge-customer', Icon: UserIcon },

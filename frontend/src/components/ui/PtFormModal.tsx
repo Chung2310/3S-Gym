@@ -4,6 +4,12 @@ import FormField from './FormField';
 import ProfileFormModal from './ProfileFormModal';
 import { useToast } from './ToastProvider';
 import { api } from '../../services/api';
+import {
+  isSixDigitPassword,
+  PASSWORD_ERROR,
+  PASSWORD_HINT,
+  PASSWORD_INPUT_PATTERN,
+} from '../../services/passwordValidation';
 import { errorMessage } from '../../types';
 
 interface PtFormState {
@@ -135,9 +141,13 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
     };
 
     if (!editing) {
+      if (!isSixDigitPassword(form.password)) {
+        toast.error(PASSWORD_ERROR);
+        return;
+      }
       payload.role = 'PT';
       payload.username = form.username.trim();
-      payload.password = form.password.trim();
+      payload.password = form.password;
       payload.status = form.status || 'ACTIVE';
     }
 
@@ -368,12 +378,15 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
               label="Mật khẩu ban đầu"
               name="password"
               type="password"
-              minLength={8}
+              minLength={6}
+              maxLength={6}
+              inputMode="numeric"
+              pattern={PASSWORD_INPUT_PATTERN}
               autoComplete="new-password"
               value={form.password}
               onChange={change}
               required
-              placeholder="Tối thiểu 8 ký tự"
+              placeholder={PASSWORD_HINT}
             />
             <FormField label="Trạng thái tài khoản" name="status" as="select" value={form.status} onChange={change}>
               <option value="ACTIVE">Hoạt động (ACTIVE)</option>

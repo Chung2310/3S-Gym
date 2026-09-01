@@ -109,7 +109,7 @@ Khi mã nguồn được merge thành công vào các nhánh chỉ định, CD s
 
 `.env` chỉ dùng cho secret và thông tin phụ thuộc môi trường triển khai: Node environment, port, MongoDB, JWT secret, CORS, tài khoản bootstrap admin, OpenRouter, URL ứng dụng và Cloudinary. Các timeout, rate limit, JWT policy, model AI/OCR, vector index, giới hạn upload/body, log level và shutdown timeout là policy cố định trong `backend/config/env.ts`.
 
-Sau khi triển khai, phải thay ngay `ADMIN_PASSWORD` tạm bằng mật khẩu mạnh. Không commit `.env`; `.env.example` luôn để trống password và API credential.
+Sau khi triển khai, phải cấu hình `SUPER_ADMIN_USERNAME` và `SUPER_ADMIN_PASSWORD`; mật khẩu phải gồm đúng 6 chữ số và cần được giữ bí mật. Không commit `.env`; `.env.example` luôn để trống password và API credential.
 
 ## Log hệ thống và API
 

@@ -54,9 +54,9 @@ async function runProductionSmoke(sourceEnv = process.env) {
   env.NODE_ENV ||= 'test';
   env.JWT_SECRET ||= `${randomUUID()}${randomUUID()}`;
   env.PORT ||= '5057';
-  env.ADMIN_USERNAME ||= `smoke-${randomUUID()}`;
-  env.ADMIN_PASSWORD ||= `${randomUUID()}-Aa1!`;
-  env.ADMIN_FULL_NAME ||= 'Production Smoke Admin';
+  env.SUPER_ADMIN_USERNAME ||= `smoke-${randomUUID()}`;
+  env.SUPER_ADMIN_PASSWORD ||= '123456';
+  env.SUPER_ADMIN_FULL_NAME ||= 'Production Smoke Super Admin';
 
   const baseUrl = `http://127.0.0.1:${env.PORT}`;
   const child = spawn(process.execPath, ['dist/backend/bootstrap.js'], {
@@ -82,7 +82,7 @@ async function runProductionSmoke(sourceEnv = process.env) {
     const login = await requestJson(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ username: env.ADMIN_USERNAME, password: env.ADMIN_PASSWORD }),
+      body: JSON.stringify({ username: env.SUPER_ADMIN_USERNAME, password: env.SUPER_ADMIN_PASSWORD }),
     });
     const token = login?.data?.token;
     if (typeof token !== 'string' || !token) throw new Error('Smoke login did not return an access token.');

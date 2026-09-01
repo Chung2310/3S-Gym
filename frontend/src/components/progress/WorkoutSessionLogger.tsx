@@ -3,6 +3,7 @@ import { ClipboardList } from 'lucide-react';
 import { api } from '../../services/api';
 import { buildBodyMeasurementInput } from '../../services/bodyMeasurement';
 import { uploadWorkoutProgressPhotos } from '../../services/progressPhotos';
+import { localWorkoutSessionTime, workoutSessionIso } from '../../services/workoutSessionTime';
 import { errorMessage, TRACKING_TYPE_LABELS, type BodyMeasurementDraft, type BodyweightPrescription, type BodyweightResult, type CardioPrescription, type CardioResult, type CompletedSetResult, type IntervalPrescription, type IntervalResult, type MobilityPrescription, type MobilityResult, type StrengthPrescription, type StrengthResult, type TrackingPrescription, type TrackingResult, type TrackingType, type WorkoutProgressPhotoDraft } from '../../types';
 import { useToast } from '../ui/ToastProvider';
 import ProgressEmptyState from './ProgressEmptyState';
@@ -45,7 +46,8 @@ function resultEditor(exercise: PlannedExercise, value: TrackingResult, onChange
 
 export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }: Props) {
   const toast = useToast(); const idempotencyKey = useRef(key()); const submitting = useRef(false);
-  const [sessionIndex, setSessionIndex] = useState(0); const [performedAt, setPerformedAt] = useState('');
+  const [sessionIndex, setSessionIndex] = useState(0);
+  const [recordedAt, setRecordedAt] = useState(localWorkoutSessionTime);
   const [attendance, setAttendance] = useState<'PRESENT' | 'LATE' | 'ABSENT'>('PRESENT');
   const [feeling, setFeeling] = useState(''); const [notes, setNotes] = useState(''); const [loading, setLoading] = useState(false);
   const [measurement, setMeasurement] = useState<BodyMeasurementDraft>({});
@@ -55,7 +57,11 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
   const initialResults = useMemo(() => exercises.map(materialize), [exercises]);
   const results = editedResults[sessionIndex] || initialResults;
   const hasUnclassified = exercises.some((exercise) => !exercise.trackingType || exercise.trackingType === 'UNCLASSIFIED');
-  useEffect(() => { setSessionIndex(0); setEditedResults({}); }, [activePlan?._id, activePlan?.version]);
+  useEffect(() => {
+    setSessionIndex(0);
+    setEditedResults({});
+    setRecordedAt(localWorkoutSessionTime());
+  }, [customerId, activePlan?._id, activePlan?.version]);
 
   if (!activePlan) return <ProgressEmptyState icon={ClipboardList} title="Chưa có giáo án đang áp dụng" description="Hãy gán giáo án cho khách hàng trước khi ghi nhận một buổi tập mới." />;
 
@@ -65,7 +71,11 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
     return { ...current, [sessionIndex]: next };
   });
   const submit = async (event: FormEvent) => {
-    event.preventDefault(); if (submitting.current || (attendance !== 'ABSENT' && hasUnclassified)) return; submitting.current = true; setLoading(true);
+    event.preventDefault();
+    if (submitting.current || (attendance !== 'ABSENT' && hasUnclassified)) return;
+    const performedAt = workoutSessionIso(recordedAt.recordedDate, recordedAt.recordedTime);
+    if (!performedAt) { toast.error('Ngày hoặc giờ ghi nhận không hợp lệ.'); return; }
+    submitting.current = true; setLoading(true);
     try {
       const exerciseResults = attendance === 'ABSENT' ? [] : exercises.map((exercise, exerciseIndex) => ({ ...(exercise.exerciseId ? { exerciseId: exercise.exerciseId } : {}), exerciseIndex, result: stripClientIds(results[exerciseIndex].result), ...(results[exerciseIndex].notes ? { notes: results[exerciseIndex].notes } : {}) }));
       const bodyMeasurement = attendance === 'ABSENT' ? undefined : buildBodyMeasurementInput(measurement);
@@ -76,9 +86,10 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
   };
   return <form aria-label="Ghi nhận buổi tập" className="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 font-montserrat sm:p-6" onSubmit={submit}>
     <div><h2 className="font-oswald text-2xl font-bold uppercase text-primary">Ghi nhận buổi tập</h2><p className="mt-1 font-montserrat text-sm text-slate-600">{activePlan.title}</p></div>
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <label className="grid gap-1 text-sm font-semibold text-slate-700"><span>Buổi tập</span><select className="min-h-11 rounded-lg border border-slate-300 px-3" value={sessionIndex} onChange={(event) => setSessionIndex(Number(event.target.value))}>{(activePlan.sessions || []).map((session, index) => <option key={`${session.name}-${index}`} value={index}>{session.name}</option>)}</select></label>
-      <label className="grid gap-1 text-sm font-semibold text-slate-700"><span>Ngày tập</span><input className="min-h-11 rounded-lg border border-slate-300 px-3" aria-label="Ngày tập" type="date" value={performedAt} onChange={(event) => setPerformedAt(event.target.value)} required /></label>
+      <label className="grid gap-1 text-sm font-semibold text-slate-700"><span>Ngày ghi nhận</span><input className="min-h-11 rounded-lg border border-slate-300 px-3 outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20 motion-reduce:transition-none" aria-label="Ngày ghi nhận" type="date" placeholder="Chọn ngày ghi nhận" value={recordedAt.recordedDate} onChange={(event) => setRecordedAt((current) => ({ ...current, recordedDate: event.target.value }))} required /></label>
+      <label className="grid gap-1 text-sm font-semibold text-slate-700"><span>Giờ ghi nhận</span><input className="min-h-11 rounded-lg border border-slate-300 px-3 outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20 motion-reduce:transition-none" aria-label="Giờ ghi nhận" type="time" step={60} placeholder="Chọn giờ ghi nhận" value={recordedAt.recordedTime} onChange={(event) => setRecordedAt((current) => ({ ...current, recordedTime: event.target.value }))} required /></label>
       <label className="grid gap-1 text-sm font-semibold text-slate-700"><span>Điểm danh</span><select aria-label="Điểm danh" className="min-h-11 rounded-lg border border-slate-300 px-3" value={attendance} onChange={(event) => setAttendance(event.target.value as typeof attendance)}><option value="PRESENT">Có mặt</option><option value="LATE">Đi muộn</option><option value="ABSENT">Vắng</option></select></label>
     </div>
     {attendance !== 'ABSENT' && exercises.map((exercise, exerciseIndex) => <fieldset className="rounded-xl border border-slate-200 p-4" key={`${exercise.exerciseId || exercise.name}-${exerciseIndex}`}><legend className="flex items-center gap-2 px-2 font-bold text-primary"><span>{exercise.name}</span><span className="rounded-full bg-sky-50 px-2 py-0.5 text-[0.65rem] font-bold text-secondary">{TRACKING_TYPE_LABELS[exercise.trackingType || 'UNCLASSIFIED']}</span></legend><div className="mt-2">{resultEditor(exercise, results[exerciseIndex].result, (result) => updateResult(exerciseIndex, result))}</div></fieldset>)}

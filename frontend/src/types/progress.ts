@@ -13,7 +13,7 @@ export interface WorkoutProgressPhotoInput { photoUrl: string; angle: ProgressPh
 export interface WorkoutSetLog { reps?: number; weight?: number; rpe?: number; rir?: number; completed: boolean }
 export interface WorkoutExerciseLog { exerciseId?: string; name: string; trackingType?: SessionTrackingType; prescribedSnapshot?: TrackingPrescription; result?: TrackingResult; sets?: WorkoutSetLog[]; notes?: string }
 export interface WorkoutSessionDto { _id: string; performedAt: string; attendance: 'PRESENT' | 'ABSENT' | 'LATE'; absenceReason?: string; workoutPlanId?: string; workoutPlanVersion?: number; planSnapshot: { title?: string; session?: { name?: string } }; exerciseLogs: WorkoutExerciseLog[]; feeling?: string; notes?: string }
-export interface BodyMeasurementDto { _id: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements: CircumferenceMeasurements }
+export interface BodyMeasurementDto { _id: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements?: CircumferenceMeasurements }
 export type DataQualityLevel = 'COMPLETE' | 'PARTIAL' | 'INSUFFICIENT';
 export interface DataQuality { level: DataQualityLevel; reasons: string[] }
 export type AchievementKind =
@@ -38,6 +38,8 @@ export interface TrackingAnalyticsDto {
 }
 export interface JourneyAnalytics { totalSessions: number; totalVolume: number; averageRpe: number | null; attendance: { present: number; late: number; absent: number; rate: number | null }; streakWeeks: number; tracking: TrackingAnalyticsDto; bodyDeltas?: Record<string, number>; achievements: AchievementDto[]; dataQuality: DataQuality }
 export interface JourneyProgressReport { [key: string]: unknown; _id: string; periodStart: string; periodEnd: string; summary: string; status: 'DRAFT' | 'PUBLISHED'; metrics?: Record<string, unknown> }
+export interface JourneyProgressPhoto { [key: string]: unknown; _id?: string; photoUrl?: string; stage?: string; angle?: string; takenDate?: string }
+export interface DailyProgressGroup { dateKey: string; sessions: WorkoutSessionDto[]; measurements: BodyMeasurementDto[]; photos: JourneyProgressPhoto[] }
 export interface PtPackageDto {
   _id?: string;
   name: string;
@@ -118,14 +120,7 @@ export interface CustomerJourneyDto {
     status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
     [key: string]: unknown;
   }>;
-  photos: Array<{
-    _id?: string;
-    photoUrl?: string;
-    stage?: string;
-    angle?: string;
-    takenDate?: string;
-    [key: string]: unknown;
-  }>;
+  photos: JourneyProgressPhoto[];
   plans: {
     active: Record<string, unknown> | null;
     history: Array<Record<string, unknown>>;

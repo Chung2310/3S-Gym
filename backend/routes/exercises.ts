@@ -25,12 +25,6 @@ const queryValidator = (req: Request): ValidationIssue[] => {
 router.get('/', ...base, validate(listExercisesSchema), controller.list);
 router.get('/:id', ...base, validate(contentIdSchema), controller.get);
 router.post('/', ...base, validate(createExerciseSchema), controller.create);
-router.patch('/:id', ...base, validate(updateExerciseSchema), controller.update); /*
-  const errors: ValidationIssue[] = mongoose.isValidObjectId(req.params.id) ? [] : [{ field: 'id', message: 'MÃ£ bÃ i táº­p khÃ´ng há»£p lá»‡.' }];
-  if (req.body.name !== undefined && (typeof req.body.name !== 'string' || !req.body.name.trim())) errors.push({ field: 'name', message: 'TÃªn bÃ i táº­p khÃ´ng há»£p lá»‡.' });
-  if (req.body.level !== undefined && !['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(req.body.level)) errors.push({ field: 'level', message: 'Cáº¥p Ä‘á»™ bÃ i táº­p khÃ´ng há»£p lá»‡.' });
-  for (const field of ['scope', 'ownerPtId']) if (Object.prototype.hasOwnProperty.call(req.body, field)) errors.push({ field, message: `KhÃ´ng Ä‘Æ°á»£c phÃ©p cáº­p nháº­t ${field}.` });
-  return errors;
-*/
+router.patch('/:id', ...base, validate(updateExerciseSchema), controller.update);
 router.delete('/:id', ...base, validate(contentIdSchema), controller.remove);
 export default router;
