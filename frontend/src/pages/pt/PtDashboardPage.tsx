@@ -109,7 +109,7 @@ export default function PtDashboardPage() {
   const topTransformers = useMemo(() => {
     if (!data?.customers) return [];
     return data.customers
-      .filter((c) => c.dataStatus === 'READY' && (c.score ?? 0) >= 65 && c.changes)
+      .filter((c) => c.dataStatus === 'READY' && c.changes && (c.score ?? 0) >= 50)
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
       .slice(0, 4);
   }, [data]);

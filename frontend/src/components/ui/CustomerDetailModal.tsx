@@ -19,6 +19,7 @@ import {
   Phone,
   Plus,
   Ruler,
+  Salad,
   Shield,
   Sliders,
   Sparkles,
@@ -26,8 +27,10 @@ import {
   Trash2,
   User,
   UserPlus,
+  Utensils,
   X,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import FormField from './FormField';
 import StatusBadge from './StatusBadge';
 import { useToast } from './ToastProvider';
@@ -76,7 +79,7 @@ interface CustomerDetailModalProps {
   onGrantAccount?: (customer: CustomerFullDetail) => void;
 }
 
-type DetailTab = 'overview' | 'packages' | 'consultations' | 'photos' | 'plans' | 'workouts' | 'inbody';
+type DetailTab = 'overview' | 'packages' | 'consultations' | 'photos' | 'plans' | 'nutrition' | 'workouts' | 'inbody';
 
 export default function CustomerDetailModal({
   open,
@@ -85,6 +88,7 @@ export default function CustomerDetailModal({
   onEditCustomer,
   onGrantAccount,
 }: CustomerDetailModalProps) {
+  const navigate = useNavigate();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [detail, setDetail] = useState<CustomerFullDetail | null>(null);
@@ -103,6 +107,7 @@ export default function CustomerDetailModal({
   const [photos, setPhotos] = useState<any[]>([]);
   const [inbodies, setInbodies] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [nutritionPlans, setNutritionPlans] = useState<any[]>([]);
 
   // Drag-to-scroll & overflow scroll support for tabs
   const tabsContainerRef = useRef<HTMLDivElement | null>(null);
@@ -176,13 +181,14 @@ export default function CustomerDetailModal({
     if (!customer?._id) return;
     try {
       setLoading(true);
-      const [resCustomer, resPackages, resConsultations, resPhotos, resInbody, resSessions] = await Promise.allSettled([
+      const [resCustomer, resPackages, resConsultations, resPhotos, resInbody, resSessions, resNutrition] = await Promise.allSettled([
         api.get<CustomerFullDetail>(`/api/customers/${customer._id}`),
         api.get<any[]>(`/api/customers/${customer._id}/packages?limit=50`),
         api.get<any[]>(`/api/customers/${customer._id}/consultations?limit=50`),
         api.get<any[]>(`/api/customers/${customer._id}/photos?limit=50`),
         api.get<any[]>(`/api/inbody?customerId=${customer._id}&limit=50`),
         api.get<any>(`/api/workout-sessions?customerId=${customer._id}&limit=50`),
+        api.get<any[]>(`/api/nutrition-plans?customerId=${customer._id}&limit=50`),
       ]);
 
       if (resCustomer.status === 'fulfilled' && resCustomer.value.data) {
@@ -202,6 +208,9 @@ export default function CustomerDetailModal({
       }
       if (resSessions.status === 'fulfilled' && resSessions.value.data) {
         setSessions(Array.isArray(resSessions.value.data) ? resSessions.value.data : resSessions.value.data?.items || []);
+      }
+      if (resNutrition.status === 'fulfilled' && resNutrition.value.data) {
+        setNutritionPlans(Array.isArray(resNutrition.value.data) ? resNutrition.value.data : []);
       }
     } catch (error) {
       toast.error(errorMessage(error));
@@ -486,6 +495,7 @@ export default function CustomerDetailModal({
                   { id: 'consultations', label: 'Lịch sử tư vấn', icon: MessageSquare, count: consultations.length },
                   { id: 'photos', label: 'Ảnh Before / After', icon: Camera, count: photos.length },
                   { id: 'plans', label: 'Giáo án', icon: ClipboardList, count: null },
+                  { id: 'nutrition', label: 'Thực đơn Dinh dưỡng', icon: Salad, count: nutritionPlans.length },
                   { id: 'workouts', label: 'Lịch sử tập luyện', icon: Dumbbell, count: sessions.length },
                   { id: 'inbody', label: 'InBody & Số đo', icon: Ruler, count: inbodies.length },
                 ].map((tab) => {
@@ -896,6 +906,108 @@ export default function CustomerDetailModal({
 
             {activeTab === 'plans' && customer?._id && (
               <CustomerWorkoutPlanTab customerId={customer._id} customerName={detail?.fullName || customer.fullName || 'Khách hàng'} />
+            )}
+
+            {/* TAB: THỰC ĐƠN DINH DƯỠNG */}
+            {activeTab === 'nutrition' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#003b70' }}>
+                    Kế hoạch Thực đơn Dinh dưỡng ({nutritionPlans.length})
+                  </h3>
+                  <button
+                    type="button"
+                    className="button button-primary"
+                    onClick={() => {
+                      onClose();
+                      navigate('/pt/nutrition');
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}
+                  >
+                    <Utensils size={15} /> Mở Trợ Lý Dinh Dưỡng
+                  </button>
+                </div>
+
+                {nutritionPlans.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                    <Salad size={36} style={{ color: '#94a3b8', margin: '0 auto 10px' }} />
+                    <p style={{ color: '#64748b', margin: '0 0 12px' }}>Chưa có kế hoạch thực đơn dinh dưỡng nào cho học viên.</p>
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => {
+                        onClose();
+                        navigate('/pt/nutrition');
+                      }}
+                    >
+                      Thiết kế thực đơn ngay
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {nutritionPlans.map((plan: any) => (
+                      <div
+                        key={plan._id}
+                        style={{
+                          background: '#ffffff',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          padding: '16px 20px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '14px',
+                        }}
+                      >
+                        <div style={{ flex: '1 1 280px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                            <strong style={{ color: '#003b70', fontSize: '1rem' }}>{plan.title || 'Thực đơn Dinh dưỡng'}</strong>
+                            <StatusBadge status={plan.status || 'DRAFT'} />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.82rem', color: '#475569', flexWrap: 'wrap', marginTop: '6px' }}>
+                            {plan.targetCalories && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#e11d48', fontWeight: 700 }}>
+                                <span>🔥</span> {plan.targetCalories.toLocaleString()} kcal/ngày
+                              </span>
+                            )}
+                            {plan.macros && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem' }}>
+                                <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                                  Protein: {plan.macros.protein}g
+                                </span>
+                                <span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                                  Carbs: {plan.macros.carbs}g
+                                </span>
+                                <span style={{ background: '#fce7f3', color: '#9d174d', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                                  Fat: {plan.macros.fat}g
+                                </span>
+                              </span>
+                            )}
+                            <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>
+                              Tạo: {plan.createdAt ? new Date(plan.createdAt).toLocaleDateString('vi-VN') : '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="button button-secondary"
+                            style={{ fontSize: '0.8rem', padding: '6px 14px', fontWeight: 600 }}
+                            onClick={() => {
+                              onClose();
+                              navigate('/pt/nutrition');
+                            }}
+                          >
+                            <Utensils size={13} style={{ marginRight: '4px' }} /> Mở Studio
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* TAB 5: WORKOUTS */}
