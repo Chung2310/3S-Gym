@@ -19,11 +19,11 @@ export interface UserPayload {
   password: string;
   role: UserRole;
   fullName?: string;
-  email?: string;
+  email?: string | null;
   avatarUrl?: string;
   dateOfBirth?: string | Date | null;
   gender?: IUser['gender'];
-  phone?: string;
+  phone?: string | null;
   address?: string;
   specialization?: string;
   yearsOfExperience?: number;
@@ -52,6 +52,10 @@ function assertSixDigitPassword(password: string): void {
   }
 }
 
+function optionalContact(value: string | null | undefined): string | undefined {
+  return value?.trim() || undefined;
+}
+
 async function createUser(payload: UserPayload) {
   assertSixDigitPassword(payload.password);
   const existing = await User.exists({ username: payload.username.trim() });
@@ -64,28 +68,25 @@ async function createUser(payload: UserPayload) {
   }
   const password = await bcrypt.hash(payload.password, 10);
   return withTransaction(async (session) => {
-    const [user] = await User.create(
-      [
-        {
-          username: payload.username.trim(),
-          password,
-          role: payload.role,
-          fullName: payload.fullName || '',
-          email: payload.email || undefined,
-          avatarUrl: payload.avatarUrl || '',
-          dateOfBirth: payload.dateOfBirth || null,
-          gender: payload.gender || 'OTHER',
-          phone: payload.phone || undefined,
-          address: payload.address || '',
-          specialization: payload.specialization || '',
-          yearsOfExperience: payload.yearsOfExperience ?? 0,
-          certificates: payload.certificates || [],
-          bio: payload.bio || '',
-          status: payload.status || 'ACTIVE',
-        },
-      ],
-      { session },
-    );
+    const [user] = await User.create([
+      {
+        username: payload.username.trim(),
+        password,
+        role: payload.role,
+        fullName: payload.fullName || '',
+        email: optionalContact(payload.email),
+        avatarUrl: payload.avatarUrl || '',
+        dateOfBirth: payload.dateOfBirth || null,
+        gender: payload.gender || 'OTHER',
+        phone: optionalContact(payload.phone),
+        address: payload.address || '',
+        specialization: payload.specialization || '',
+        yearsOfExperience: payload.yearsOfExperience ?? 0,
+        certificates: payload.certificates || [],
+        bio: payload.bio || '',
+        status: payload.status || 'ACTIVE',
+      },
+    ], { session });
     await ensureWallet(user.id, session);
 
     // If role is CUSTOMER, ensure a linked CustomerProfile exists
@@ -215,170 +216,37 @@ async function listUsers(query: UserListQuery) {
   return { users: usersWithWallet, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 
-async function updateUser(id: string, payload: UpdateUserPayload): Promise<UserDocument> {
+async function updatePt(id: string, payload: UpdatePtPayload): Promise<UserDocument> {
   const user = await User.findById(id);
-  if (!user) {
-    throw new AppError({
-      status: 404,
-      code: ERROR_CODES.NOT_FOUND,
-      message: 'Không tìm thấy tài khoản.',
-    });
-  }
-
-  const fields: Array<keyof UpdateUserPayload> = [
-    'avatarUrl',
-    'dateOfBirth',
-    'gender',
-    'phone',
-    'email',
-    'fullName',
-    'address',
-    'specialization',
-    'yearsOfExperience',
-    'certificates',
-    'bio',
-    'status',
-  ];
+  if (!user || user.role !== 'PT') throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài khoản PT.' });
+  const fields: Array<keyof UpdatePtPayload> = ['avatarUrl', 'dateOfBirth', 'gender', 'fullName', 'address', 'specialization', 'yearsOfExperience', 'certificates', 'bio', 'status'];
+  if (Object.prototype.hasOwnProperty.call(payload, 'email')) user.set('email', optionalContact(payload.email));
+  if (Object.prototype.hasOwnProperty.call(payload, 'phone')) user.set('phone', optionalContact(payload.phone));
   for (const field of fields) {
     const value = payload[field];
-    if (value !== undefined) {
-      user.set(
-        field,
-        value === '' && ['email', 'phone'].includes(field)
-          ? undefined
-          : value === '' && field === 'dateOfBirth'
-            ? null
-            : value,
-      );
-    }
+    if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
   }
-  if (payload.password && payload.password.trim()) {
-    assertSixDigitPassword(payload.password.trim());
-    user.password = await bcrypt.hash(payload.password.trim(), 10);
+  if (payload.password) {
+    assertSixDigitPassword(payload.password);
+    user.password = await bcrypt.hash(payload.password, 10);
   }
   await user.save();
-
-  // If role is CUSTOMER, synchronize with CustomerProfile
-  if (user.role === 'CUSTOMER') {
-    let customer = await CustomerProfile.findOne({ userId: user._id });
-    if (!customer && (user.phone || user.email)) {
-      const matchConditions: Array<QueryFilter<ICustomerProfile>> = [];
-      if (user.phone) matchConditions.push({ phone: user.phone });
-      if (user.email) matchConditions.push({ email: user.email.toLowerCase() });
-
-      customer = await CustomerProfile.findOne({
-        $or: matchConditions,
-        userId: { $in: [null, undefined] },
-      } as QueryFilter<ICustomerProfile>);
-      if (customer) {
-        customer.userId = user._id;
-      }
-    }
-
-    if (!customer) {
-      const defaultPt = await User.findOne({ role: 'PT', status: 'ACTIVE' });
-      if (defaultPt) {
-        customer = new CustomerProfile({
-          userId: user._id,
-          assignedPtId: defaultPt._id,
-          fullName: user.fullName || user.username,
-          phone: user.phone || '0000000000',
-          email: user.email || null,
-          gender: user.gender || 'OTHER',
-          dateOfBirth: user.dateOfBirth,
-          status: 'ACTIVE',
-          initialGoal: 'Cải thiện thể lực và vóc dáng',
-          medicalNotes: '',
-          internalNotes: '',
-        });
-      }
-    }
-
-    if (customer) {
-      if (payload.fullName !== undefined) customer.fullName = user.fullName || customer.fullName;
-      if (payload.phone !== undefined && user.phone) customer.phone = user.phone;
-      if (payload.email !== undefined) customer.email = user.email || null;
-      if (payload.gender !== undefined) customer.gender = user.gender || 'OTHER';
-      if (payload.dateOfBirth !== undefined) {
-        customer.dateOfBirth = user.dateOfBirth ? new Date(user.dateOfBirth) : null;
-      }
-      if (payload.status !== undefined) {
-        customer.status = user.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE';
-      }
-      await customer.save();
-    }
-  }
-
   return user;
 }
 
-const updatePt = updateUser;
-
-async function deleteUser(id: string): Promise<void> {
-  const user = await User.findById(id);
-  if (!user) {
-    throw new AppError({
-      status: 404,
-      code: ERROR_CODES.NOT_FOUND,
-      message: 'Không tìm thấy tài khoản.',
-    });
-  }
-
-  if (user.role === 'PT') {
-    if (await CustomerProfile.exists({ assignedPtId: id })) {
-      throw new AppError({
-        status: 409,
-        code: ERROR_CODES.DUPLICATE,
-        message: 'Vui lòng chuyển hết khách sang PT khác trước khi xóa PT.',
-      });
-    }
-    const contentModels: Array<Model<OwnedContent>> = [
-      InBodyRecord as unknown as Model<OwnedContent>,
-      Goal as unknown as Model<OwnedContent>,
-      WorkoutPlan as unknown as Model<OwnedContent>,
-      NutritionPlan as unknown as Model<OwnedContent>,
-    ];
-    await User.db.transaction(async (session) => {
-      for (const Model of contentModels) {
-        const items = await Model.find({ ptId: id }).session(session);
-        for (const item of items) {
-          const customer = await CustomerProfile.findById(item.customerId).session(session);
-          const currentPt =
-            customer && (await User.findOne({ _id: customer.assignedPtId, role: 'PT' }).session(session));
-          if (!currentPt) {
-            throw new AppError({
-              status: 409,
-              code: ERROR_CODES.DUPLICATE,
-              message: 'Không thể xóa PT vì có nội dung chưa có PT hiện tại tiếp quản.',
-            });
-          }
-          item.ptId = currentPt._id;
-          await item.save({ session });
-        }
-      }
-      await User.deleteOne({ _id: id, role: 'PT' }, { session });
-    });
-    return;
-  }
-
-  if (user.role === 'CUSTOMER') {
-    await CustomerProfile.updateMany({ userId: id }, { $unset: { userId: 1 } });
-    await User.deleteOne({ _id: id });
-    return;
-  }
-
-  const adminCount = await User.countDocuments({ role: 'ADMIN' });
-  if (adminCount <= 1) {
-    throw new AppError({
-      status: 400,
-      code: ERROR_CODES.VALIDATION,
-      message: 'Không thể xóa tài khoản Quản trị viên duy nhất.',
-    });
-  }
-  await User.deleteOne({ _id: id });
+async function deletePt(id: string): Promise<void> {
+  const pt = await User.findOne({ _id: id, role: 'PT' });
+  if (!pt) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài khoản PT.' });
+  if (await CustomerProfile.exists({ assignedPtId: id })) throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'Vui lòng chuyển hết khách sang PT khác trước khi xóa PT.' });
+  const contentModels: Array<Model<OwnedContent>> = [
+    InBodyRecord as unknown as Model<OwnedContent>, Goal as unknown as Model<OwnedContent>,
+    WorkoutPlan as unknown as Model<OwnedContent>, NutritionPlan as unknown as Model<OwnedContent>,
+  ];
+  await withTransaction(async (session) => {
+    await Promise.all(contentModels.map((item) => item.deleteMany({ ptId: id }).session(session)));
+    await User.deleteOne({ _id: id }, { session });
+  });
 }
-
-const deletePt = deleteUser;
 
 async function updateManagedUser(actor: AuthenticatedUser, id: string, payload: UpdateUserPayload): Promise<UserDocument> {
   const user = await User.findById(id);
@@ -398,7 +266,9 @@ async function updateManagedUser(actor: AuthenticatedUser, id: string, payload: 
     throw forbidden('Không thể khóa tài khoản quản trị cấp cao.', 409);
   }
 
-  const fields: Array<keyof UpdateUserPayload> = ['avatarUrl', 'dateOfBirth', 'gender', 'phone', 'email', 'fullName', 'address', 'specialization', 'yearsOfExperience', 'certificates', 'bio', 'status'];
+  const fields: Array<keyof UpdateUserPayload> = ['avatarUrl', 'dateOfBirth', 'gender', 'fullName', 'address', 'specialization', 'yearsOfExperience', 'certificates', 'bio', 'status'];
+  if (Object.prototype.hasOwnProperty.call(payload, 'email')) user.set('email', optionalContact(payload.email));
+  if (Object.prototype.hasOwnProperty.call(payload, 'phone')) user.set('phone', optionalContact(payload.phone));
   for (const field of fields) {
     const value = payload[field];
     if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);

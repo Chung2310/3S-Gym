@@ -15,6 +15,7 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { isAdminRole } from './roles.js';
+import { withTransaction } from './transactionService.js';
 
 export interface CustomerPayload {
   assignedPtId?: string; fullName?: string; phone?: string; email?: string; dateOfBirth?: string;
@@ -120,7 +121,7 @@ async function deletePackage(user: AuthenticatedUser, customerId: string, packag
 async function deleteCustomer(user: AuthenticatedUser, customerId: string) {
   const customer = await CustomerProfile.findOne(scopedFilter(user, { _id: customerId }));
   if (!customer) throw notFound();
-  await CustomerProfile.db.transaction(async (session) => {
+  await withTransaction(async (session) => {
     const options = { session };
     await PtPackage.deleteMany({ customerId }, options);
     await InBodyRecord.deleteMany({ customerId }, options);
