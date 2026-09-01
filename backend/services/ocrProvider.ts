@@ -86,6 +86,20 @@ async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResu
   if (!apiKey) throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Dịch vụ OCR InBody chưa được cấu hình.' });
   const ocrModel = process.env.OPENROUTER_OCR_MODEL || process.env.OCR_MODEL || APP_POLICY.OCR_MODEL;
   try {
+    const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+    const fileContent = isPdf
+      ? {
+          type: 'file',
+          file: {
+            filename: file.originalname || 'inbody.pdf',
+            file_data: `data:application/pdf;base64,${file.buffer.toString('base64')}`,
+          },
+        }
+      : {
+          type: 'image_url',
+          image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` },
+        };
+
     const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -93,7 +107,7 @@ async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResu
         model: ocrModel, temperature: 0,
         messages: [{ role: 'user', content: [
           { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm: weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, bodyWater, boneMineral, waistHipRatio, segmentalMuscle (rightArm, leftArm, trunk, rightLeg, leftLeg), segmentalFat (rightArm, leftArm, trunk, rightLeg, leftLeg), confidence (số thực từ 0.0 đến 1.0) và warnings (mảng chuỗi cảnh báo bằng tiếng Việt dễ hiểu nếu có, ví dụ: "Chỉ số mỡ từng phần là ước tính của máy đo", tuyệt đối không dùng tiếng Anh kỹ thuật như "Segmental fat is estimated"). Chỉ trả JSON thuần túy.' },
-          { type: 'image_url', image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` } },
+          fileContent,
         ] }],
       }),
     }, getEnv().PROVIDER_TIMEOUT_MS);
