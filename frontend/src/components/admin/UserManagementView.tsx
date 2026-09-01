@@ -491,6 +491,7 @@ export default function UserManagementView() {
               >
                 <th style={{ padding: '12px 16px', fontWeight: 750 }}>Người dùng</th>
                 <th style={{ padding: '12px 16px', fontWeight: 750 }}>Vai trò</th>
+                <th style={{ padding: '12px 16px', fontWeight: 750 }}>Số dư Credit</th>
                 <th style={{ padding: '12px 16px', fontWeight: 750 }}>Liên hệ</th>
                 <th style={{ padding: '12px 16px', fontWeight: 750 }}>Trạng thái</th>
                 <th style={{ padding: '12px 16px', fontWeight: 750, textAlign: 'right' }}>Thao tác</th>
@@ -499,14 +500,14 @@ export default function UserManagementView() {
             <tbody>
               {loading && users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan={6} style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
                     <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px', color: '#0284c7' }} />
                     <p style={{ margin: 0, fontSize: '0.85rem' }}>Đang tải danh sách tài khoản...</p>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: '48px 16px', textAlign: 'center', color: '#64748b' }}>
+                  <td colSpan={6} style={{ padding: '48px 16px', textAlign: 'center', color: '#64748b' }}>
                     <Users size={32} style={{ color: '#cbd5e1', margin: '0 auto 8px' }} />
                     <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#1e293b' }}>Không tìm thấy tài khoản nào</p>
                     <p style={{ margin: 0, fontSize: '0.78rem' }}>Thử thay đổi bộ lọc hoặc thêm tài khoản mới.</p>
@@ -542,6 +543,27 @@ export default function UserManagementView() {
                     </td>
 
                     <td style={{ padding: '12px 16px' }}>{renderRoleBadge(item.role)}</td>
+
+                    <td style={{ padding: '12px 16px' }}>
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '3px 8px',
+                          borderRadius: '8px',
+                          background: '#f0f9ff',
+                          border: '1px solid #bae6fd',
+                          color: '#0369a1',
+                          fontWeight: 750,
+                          fontSize: '0.78rem',
+                        }}
+                      >
+                        <Coins size={13} className="text-sky-600" />
+                        <span>{(typeof item.availableCredits === 'number' ? item.availableCredits : 0).toLocaleString('vi-VN')}</span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>credit</span>
+                      </div>
+                    </td>
 
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -680,6 +702,9 @@ export default function UserManagementView() {
         onClose={() => {
           setIsCreditModalOpen(false);
           setCreditTargetUser(null);
+        }}
+        onSuccess={() => {
+          loadUsers(meta.page || 1);
         }}
       />
     </div>
