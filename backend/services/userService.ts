@@ -14,8 +14,8 @@ import { recordAudit } from './auditService.js';
 import type { AuthenticatedUser } from '../types/express.js';
 
 export interface UserPayload {
-  username: string; password: string; role: UserRole; fullName?: string; email?: string;
-  avatarUrl?: string; dateOfBirth?: string | Date | null; gender?: IUser['gender']; phone?: string;
+  username: string; password: string; role: UserRole; fullName?: string; email?: string | null;
+  avatarUrl?: string; dateOfBirth?: string | Date | null; gender?: IUser['gender']; phone?: string | null;
   address?: string; specialization?: string; yearsOfExperience?: number; certificates?: string[];
   bio?: string; status?: UserStatus;
 }
@@ -31,6 +31,10 @@ function assertSixDigitPassword(password: string): void {
   }
 }
 
+function optionalContact(value: string | null | undefined): string | undefined {
+  return value?.trim() || undefined;
+}
+
 async function createUser(payload: UserPayload) {
   assertSixDigitPassword(payload.password);
   const existing = await User.exists({ username: payload.username.trim() });
@@ -39,8 +43,8 @@ async function createUser(payload: UserPayload) {
   return withTransaction(async (session) => {
     const [user] = await User.create([{
       username: payload.username.trim(), password, role: payload.role, fullName: payload.fullName || '',
-      email: payload.email || undefined, avatarUrl: payload.avatarUrl || '', dateOfBirth: payload.dateOfBirth || null,
-      gender: payload.gender || 'OTHER', phone: payload.phone || undefined, address: payload.address || '',
+      email: optionalContact(payload.email), avatarUrl: payload.avatarUrl || '', dateOfBirth: payload.dateOfBirth || null,
+      gender: payload.gender || 'OTHER', phone: optionalContact(payload.phone), address: payload.address || '',
       specialization: payload.specialization || '', yearsOfExperience: payload.yearsOfExperience ?? 0,
       certificates: payload.certificates || [], bio: payload.bio || '', status: payload.status || 'ACTIVE',
     }], { session });
@@ -90,7 +94,9 @@ async function listUsers(query: UserListQuery) {
 async function updatePt(id: string, payload: UpdatePtPayload): Promise<UserDocument> {
   const user = await User.findById(id);
   if (!user || user.role !== 'PT') throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài khoản PT.' });
-  const fields: Array<keyof UpdatePtPayload> = ['avatarUrl', 'dateOfBirth', 'gender', 'phone', 'email', 'fullName', 'address', 'specialization', 'yearsOfExperience', 'certificates', 'bio', 'status'];
+  const fields: Array<keyof UpdatePtPayload> = ['avatarUrl', 'dateOfBirth', 'gender', 'fullName', 'address', 'specialization', 'yearsOfExperience', 'certificates', 'bio', 'status'];
+  if (Object.prototype.hasOwnProperty.call(payload, 'email')) user.set('email', optionalContact(payload.email));
+  if (Object.prototype.hasOwnProperty.call(payload, 'phone')) user.set('phone', optionalContact(payload.phone));
   for (const field of fields) {
     const value = payload[field];
     if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
@@ -144,7 +150,9 @@ async function updateManagedUser(actor: AuthenticatedUser, id: string, payload: 
     throw forbidden('Không thể khóa tài khoản quản trị cấp cao.', 409);
   }
 
-  const fields: Array<keyof UpdateUserPayload> = ['avatarUrl', 'dateOfBirth', 'gender', 'phone', 'email', 'fullName', 'address', 'specialization', 'yearsOfExperience', 'certificates', 'bio', 'status'];
+  const fields: Array<keyof UpdateUserPayload> = ['avatarUrl', 'dateOfBirth', 'gender', 'fullName', 'address', 'specialization', 'yearsOfExperience', 'certificates', 'bio', 'status'];
+  if (Object.prototype.hasOwnProperty.call(payload, 'email')) user.set('email', optionalContact(payload.email));
+  if (Object.prototype.hasOwnProperty.call(payload, 'phone')) user.set('phone', optionalContact(payload.phone));
   for (const field of fields) {
     const value = payload[field];
     if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
