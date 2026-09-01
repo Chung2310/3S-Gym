@@ -54,8 +54,9 @@ export default function AdminCustomerFormModal({
 
     try {
       setSubmitting(true);
+      const { assignedPtId, ...profileFields } = formData;
       const payload = {
-        ...formData,
+        ...profileFields,
         height: formData.height ? Number(formData.height) : undefined,
         initialWeight: formData.initialWeight ? Number(formData.initialWeight) : undefined,
       };
@@ -64,7 +65,7 @@ export default function AdminCustomerFormModal({
         await api.patch(`/api/customers/${customer._id}`, payload);
         toast.success('Cập nhật thông tin khách hàng thành công!');
       } else {
-        await api.post('/api/customers', payload);
+        await api.post('/api/customers', { ...payload, assignedPtId });
         toast.success('Thêm khách hàng mới thành công!');
       }
       onSuccess();

@@ -10,7 +10,8 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { withTransaction } from './transactionService.js';
-import { assertCompatibleResult, normalizePlanExercise } from './exerciseTrackingService.js';
+import { assertCompatibleResult, normalizePlanExercise, resolvePlanExercisesTracking } from './exerciseTrackingService.js';
+import { mergedStudioScheduleError } from '../validators/workoutPlanFields.js';
 
 interface TemplatePayload { title: string; goal: string; level: string; durationDays?: number; muscleGroups?: string[]; defaultSets?: number; defaultReps?: string; defaultWeight?: string; defaultTempo?: string; technicalNotes?: string; scheduledExercises?: Array<Record<string, unknown>>; unscheduledExercises?: Array<Record<string, unknown>>; sessions?: Array<Record<string, unknown>> }
 interface SessionPayload {
@@ -64,6 +65,11 @@ async function updateTemplate(user: AuthenticatedUser, id: string, payload: Part
   const filter = { _id: id, ...(user.role === 'PT' ? { ownerPtId: new Types.ObjectId(user.id) } : {}) };
   const template = await WorkoutTemplate.findOne(filter);
   if (!template) throw fail('Workout template not found.', 404);
+  const scheduleError = mergedStudioScheduleError({
+    durationDays: template.durationDays,
+    scheduledExercises: template.scheduledExercises,
+  }, payload as unknown as Record<string, unknown>);
+  if (scheduleError) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: scheduleError });
   for (const field of ['title', 'goal', 'level', 'durationDays', 'muscleGroups', 'defaultSets', 'defaultReps', 'defaultWeight', 'defaultTempo', 'technicalNotes', 'scheduledExercises', 'unscheduledExercises', 'sessions'] as const) if (payload[field] !== undefined) template.set(field, payload[field]);
   if (payload.scheduledExercises) template.set('sessions', sessionsFromSchedule(payload.scheduledExercises));
   template.version += 1;
@@ -88,8 +94,8 @@ async function createSession(user: AuthenticatedUser, payload: SessionPayload) {
       if (plan.version !== payload.workoutPlanVersion) throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Giáo án đã được cập nhật. Vui lòng tải lại trước khi ghi buổi tập.' });
       const selectedRawSession = (plan.sessions as unknown as Array<{ name: string; exercises: Array<Record<string, unknown>> }>)[Number(payload.sessionIndex)];
       if (!selectedRawSession) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Buổi tập trong giáo án không hợp lệ.' });
-      const selectedSession = { name: selectedRawSession.name, exercises: selectedRawSession.exercises.map((exercise) => {
-        const normalized = normalizePlanExercise(exercise);
+      const resolvedSessionExercises = await resolvePlanExercisesTracking(selectedRawSession.exercises, mongoSession);
+      const selectedSession = { name: selectedRawSession.name, exercises: resolvedSessionExercises.map((normalized) => {
         return { ...(normalized.exerciseId ? { exerciseId: normalized.exerciseId } : {}), name: normalized.name, trackingType: normalized.trackingType, prescription: { ...normalized.prescription } };
       }) };
       const exerciseResults = payload.exerciseResults || [];

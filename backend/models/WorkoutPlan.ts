@@ -7,7 +7,7 @@ const exerciseSchema = new mongoose.Schema({
 }, { _id: false });
 const sessionSchema = new mongoose.Schema({ name: { type: String, required: true }, exercises: { type: [exerciseSchema], default: [] } }, { _id: false });
 const scheduledExerciseSchema = new mongoose.Schema({
-  dayNumber: { type: Number, required: true, min: 1 }, startMinute: { type: Number, required: true, min: 0, max: 1425 }, durationMinutes: { type: Number, required: true, min: 15, max: 1440 },
+  weekNumber: { type: Number, min: 1, default: 1 }, dayNumber: { type: Number, required: true, min: 1, max: 7 }, startMinute: { type: Number, required: true, min: 0, max: 1425 }, durationMinutes: { type: Number, required: true, min: 15, max: 1440 },
   exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, sets: Number, reps: String, weight: String, rpe: Number, rir: Number, tempo: String, restSeconds: Number, notes: String,
   trackingType: { type: String, enum: TRACKING_TYPES, default: 'UNCLASSIFIED' }, prescription: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
 }, { _id: false });

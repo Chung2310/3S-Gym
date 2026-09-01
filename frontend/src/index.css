@@ -5577,6 +5577,136 @@ a {
   background: #f8fbfc;
 }
 
+.workout-availability {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.workout-availability-heading h3 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: .92rem;
+}
+
+.workout-availability-heading p {
+  margin: 4px 0 0;
+  color: #607689;
+  font-size: .74rem;
+}
+
+.workout-availability-days,
+.workout-availability-slot-list {
+  display: grid;
+  gap: 8px;
+}
+
+.workout-availability-day {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #dce8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.workout-availability-day-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workout-availability-day-heading strong {
+  color: #16324a;
+  font-size: .8rem;
+}
+
+.workout-availability-add,
+.workout-availability-remove {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #c8dce8;
+  border-radius: 9px;
+  background: #f8fbfc;
+  color: var(--primary-color);
+  font: inherit;
+  font-size: .7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.workout-availability-add:hover:not(:disabled) {
+  border-color: var(--secondary-color);
+  background: #eef9fd;
+}
+
+.workout-availability-empty {
+  margin: 0;
+  color: #8193a0;
+  font-size: .7rem;
+}
+
+.workout-availability-slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #edf3f6;
+}
+
+.workout-availability-slot .module-field {
+  min-width: 0;
+}
+
+.workout-availability-slot :is(input, select) {
+  width: 100%;
+}
+
+.workout-availability-separator {
+  min-height: 44px;
+  align-content: center;
+  color: #718391;
+  font-size: .7rem;
+}
+
+.workout-availability-remove {
+  min-height: 44px;
+  border-color: #fecaca;
+  background: #fff7f7;
+  color: #b42318;
+}
+
+.workout-availability-remove:hover:not(:disabled) {
+  border-color: #fca5a5;
+  background: #fff1f1;
+}
+
+.workout-availability-add:disabled,
+.workout-availability-remove:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.workout-availability-summary {
+  margin: -4px 0 0;
+  color: #526b7e;
+  font-size: .74rem;
+  font-weight: 750;
+}
+
+.workout-availability-calculation {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  background: #f0f9ff;
+  color: var(--primary-color);
+  font-size: .8rem;
+  font-weight: 700;
+}
+
 .workout-wizard-form .module-field :is(select, input),
 .workout-wizard-summary .module-field :is(select, input) {
   min-height: 44px;
@@ -5813,6 +5943,23 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .workout-availability-day-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workout-availability-slot {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workout-availability-separator {
+    display: none;
+  }
+
+  .workout-availability-remove {
+    grid-column: 1 / -1;
+  }
+
   .workout-customer-plan-toolbar {
     grid-template-columns: 1fr;
   }
@@ -5842,6 +5989,61 @@ a {
   display: grid;
   min-width: 0;
   gap: 16px;
+}
+
+.studio-availability-warning {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid #f2c66d;
+  border-radius: 12px;
+  background: #fff9e8;
+  color: #6f4b08;
+}
+
+.studio-availability-warning-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+
+.studio-availability-warning-heading strong {
+  font-size: .82rem;
+}
+
+.studio-availability-warning-heading span {
+  font-size: .72rem;
+}
+
+.studio-availability-warning-list {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.studio-availability-warning-list li {
+  max-width: 100%;
+  padding: 6px 9px;
+  border: 1px solid #f3d792;
+  border-radius: 8px;
+  background: #fff;
+  font-size: .7rem;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  .studio-availability-warning-heading,
+  .studio-availability-warning-list {
+    display: grid;
+  }
 }
 
 .studio-view-tabs {

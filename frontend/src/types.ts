@@ -39,4 +39,5 @@ export * from './types/progress';
 export * from './types/exerciseTracking';
 export * from './types/exercise';
 export * from './types/adminAccount';
+export * from './types/workoutAvailability';
 

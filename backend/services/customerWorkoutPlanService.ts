@@ -5,6 +5,7 @@ import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { mergedStudioScheduleError } from '../validators/workoutPlanFields.js';
 
 function fail(message: string, status: number) {
   return new AppError({ message, status, code: status === 404 ? ERROR_CODES.NOT_FOUND : status === 403 ? ERROR_CODES.AUTHORIZATION : ERROR_CODES.VALIDATION });
@@ -130,6 +131,11 @@ export async function getCustomerWorkoutPlan(user: AuthenticatedUser, customerId
 export async function updateCustomerWorkoutPlan(user: AuthenticatedUser, customerId: string, planId: string, payload: Record<string, unknown>) {
   const plan = await getCustomerWorkoutPlan(user, customerId, planId);
   if (plan.get('lifecycleStatus') !== 'ACTIVE') throw fail('Không thể sửa giáo án đã lưu trong lịch sử.', 409);
+  const scheduleError = mergedStudioScheduleError({
+    durationDays: plan.get('durationDays'),
+    scheduledExercises: plan.get('scheduledExercises'),
+  }, payload);
+  if (scheduleError) throw fail(scheduleError, 400);
   assertClassifiedPlan({ ...plan.toObject(), ...payload });
   const mutable = ['title', 'goal', 'level', 'durationDays', 'muscleGroups', 'defaultSets', 'defaultReps', 'defaultWeight', 'defaultTempo', 'technicalNotes', 'scheduledExercises', 'unscheduledExercises', 'sessions'];
   for (const field of mutable) if (Object.prototype.hasOwnProperty.call(payload, field)) plan.set(field, payload[field]);

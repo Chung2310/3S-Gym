@@ -22,7 +22,7 @@ export interface CustomerPayload {
   gender?: ICustomerProfile['gender']; height?: number | ''; initialWeight?: number | '';
   medicalNotes?: string; initialGoal?: string; internalNotes?: string; status?: ICustomerProfile['status'];
 }
-interface CustomerQuery { page?: unknown; limit?: unknown; ptId?: unknown; status?: unknown; keyword?: unknown; sort?: unknown; order?: unknown }
+interface CustomerQuery { page?: unknown; limit?: unknown; ptId?: unknown; status?: unknown; keyword?: unknown; search?: unknown; sort?: unknown; order?: unknown }
 interface PackagePayload { name?: string; totalSessions?: number; startDate?: string | Date; endDate?: string | Date; status?: 'ACTIVE' | 'EXPIRED' | 'COMPLETED' | 'CANCELLED' }
 interface PackageQuery { page?: unknown; limit?: unknown; status?: unknown }
 
@@ -89,12 +89,18 @@ async function listCustomers(user: AuthenticatedUser, query: CustomerQuery) {
   const page = Number(query.page || 1);
   const limit = Number(query.limit || 20);
   const filter = scopedFilter(user);
-  if (isAdminRole(user.role) && typeof query.ptId === 'string') filter.assignedPtId = new Types.ObjectId(query.ptId);
-  if (query.status === 'ACTIVE' || query.status === 'INACTIVE' || query.status === 'LEAD') filter.status = query.status;
-  if (typeof query.keyword === 'string' && query.keyword) {
-    const escaped = query.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (isAdminRole(user.role) && typeof query.ptId === 'string' && query.ptId.trim()) {
+    filter.assignedPtId = new Types.ObjectId(query.ptId.trim());
+  }
+  if (query.status === 'ACTIVE' || query.status === 'INACTIVE' || query.status === 'LEAD') {
+    filter.status = query.status;
+  }
+  const rawKeyword = typeof query.keyword === 'string' ? query.keyword.trim() : typeof query.search === 'string' ? query.search.trim() : '';
+  if (rawKeyword) {
+    const escaped = rawKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { fullName: { $regex: escaped, $options: 'i' } }, { phone: { $regex: escaped, $options: 'i' } },
+      { fullName: { $regex: escaped, $options: 'i' } },
+      { phone: { $regex: escaped, $options: 'i' } },
       { email: { $regex: escaped, $options: 'i' } },
     ];
   }
@@ -126,6 +132,18 @@ async function createCustomer(user: AuthenticatedUser, payload: CustomerPayload)
   const assignedPtId = isAdminRole(user.role) ? payload.assignedPtId : user.id;
   if (!assignedPtId) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng chọn PT phụ trách.' });
 
+  const phone = payload.phone?.trim();
+  if (phone) {
+    const existingPhone = await CustomerProfile.exists({ phone });
+    if (existingPhone) {
+      throw new AppError({
+        status: 409,
+        code: ERROR_CODES.DUPLICATE,
+        message: 'Số điện thoại đã được sử dụng bởi khách hàng khác.',
+      });
+    }
+  }
+
   if (payload.email && typeof payload.email === 'string' && payload.email.trim()) {
     await assertEmailNotTaken(payload.email);
   }
@@ -136,6 +154,21 @@ async function createCustomer(user: AuthenticatedUser, payload: CustomerPayload)
 async function updateCustomer(user: AuthenticatedUser, id: string, payload: CustomerPayload) {
   const existing = await CustomerProfile.findOne(scopedFilter(user, { _id: id }));
   if (!existing) throw notFound();
+
+  const phone = payload.phone?.trim();
+  if (phone) {
+    const existingPhone = await CustomerProfile.exists({
+      _id: { $ne: id },
+      phone,
+    });
+    if (existingPhone) {
+      throw new AppError({
+        status: 409,
+        code: ERROR_CODES.DUPLICATE,
+        message: 'Số điện thoại đã được sử dụng bởi khách hàng khác.',
+      });
+    }
+  }
 
   if (payload.email && typeof payload.email === 'string' && payload.email.trim()) {
     await assertEmailNotTaken(payload.email, id, existing.userId);

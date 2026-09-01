@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { api } from '../../services/api';
 import { DAY_MINUTES, DAYS_PER_WEEK, hasOverlap, planDayIndex, planDaysForWeek, planWeekCount, SLOT_HEIGHT, SLOT_MINUTES, snapMinute } from '../../services/workoutStudioModel';
 import { recommendExercises } from '../../services/workoutExerciseRecommendations';
+import { outsideAvailabilityWarnings } from '../../services/workoutAvailability';
 import { errorMessage, type Exercise } from '../../types';
 import { useToast } from '../../components/ui/ToastProvider';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -11,7 +12,9 @@ import StudioDayNavigator from '../../components/workout-studio/StudioDayNavigat
 import ExercisePalette from '../../components/workout-studio/ExercisePalette';
 import DayTimeline from '../../components/workout-studio/DayTimeline';
 import StudioSidebar from '../../components/workout-studio/StudioSidebar';
-import type { ScheduledExercise, StudioTemplate, TemplateMetadata } from '../../types/workoutStudio';
+import AvailabilityWarningBanner from '../../components/workout-studio/AvailabilityWarningBanner';
+import type { WorkoutAvailabilitySlot } from '../../types/workoutAvailability';
+import type { AiWorkoutStudioDraft, ScheduledExercise, StudioTemplate, TemplateMetadata } from '../../types/workoutStudio';
 import { normalizePlanExercise, planExerciseFromLibrary } from '../../utils/exerciseTracking';
 const createScheduled = (exercise: Exercise, weekNumber: number, dayNumber: number, startMinute: number): ScheduledExercise => ({ id: crypto.randomUUID(), weekNumber, dayNumber, startMinute, durationMinutes: 60, ...planExerciseFromLibrary(exercise) });
 const hydrateScheduled = (item: Omit<ScheduledExercise, 'id'>): ScheduledExercise => {
@@ -35,22 +38,31 @@ export default function WorkoutStudioPage() {
   const studioViewTabs = useRef<Partial<Record<StudioView, HTMLButtonElement | null>>>({});
   const studioPanelCloses = useRef<Partial<Record<StudioView, HTMLButtonElement | null>>>({});
   const [generatedExercises, setGeneratedExercises] = useState<unknown[]>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<WorkoutAvailabilitySlot[]>([]);
   const selected = items.find((item) => item.id === selectedId); const dayItems = items.filter((item) => (item.weekNumber || 1) === activeWeek && item.dayNumber === activeDay); const totalMinutes = dayItems.reduce((sum, item) => sum + item.durationMinutes, 0);
   const muscleGroups = [...new Set(library.map((exercise) => exercise.muscleGroup))].sort();
   const metadataMuscleGroups = [...new Set([...muscleGroups, ...metadata.muscleGroups])].sort();
   const filteredLibrary = library.filter((exercise) => `${exercise.name} ${exercise.muscleGroup}`.toLocaleLowerCase('vi').includes(exerciseQuery.trim().toLocaleLowerCase('vi')) && (!muscleGroup || exercise.muscleGroup === muscleGroup) && (!exerciseLevel || exercise.level === exerciseLevel));
   const recommendedExercises = useMemo(() => recommendExercises(library, { goal, level, muscleGroups: metadata.muscleGroups }), [library, goal, level, metadata.muscleGroups]);
+  const availabilityWarnings = useMemo(
+    () => outsideAvailabilityWarnings(items, availabilitySlots),
+    [items, availabilitySlots],
+  );
 
   useEffect(() => { api.get<Exercise[]>('/api/exercises?page=1&limit=100').then(({ data }) => setLibrary(data)).catch((error: unknown) => toast.error(errorMessage(error))); }, [toast]);
   useEffect(() => {
-    const draft = (location.state as { aiWorkoutDraft?: any } | null)?.aiWorkoutDraft;
-    if (templateId || customerMode || !draft) return;
-    setTitle(draft.title || 'Giáo án AI'); setGoal(draft.goal || ''); setLevel(draft.level || 'BEGINNER'); setDurationDays(7);
+    const draft = (location.state as { aiWorkoutDraft?: AiWorkoutStudioDraft } | null)?.aiWorkoutDraft;
+    if (templateId || customerMode || !draft) {
+      setAvailabilitySlots([]);
+      return;
+    }
+    setTitle(draft.title || 'Giáo án AI'); setGoal(draft.goal || ''); setLevel(draft.level || 'BEGINNER'); setDurationDays(Math.max(1, draft.durationWeeks * 7));
     setItems((draft.scheduledExercises || []).map(hydrateScheduled));
-    setGeneratedExercises(draft.generatedExercises || []); setDirty(true);
+    setGeneratedExercises(draft.generatedExercises || []); setAvailabilitySlots(draft.availabilitySlots || []); setDirty(true);
   }, [location.state, templateId, customerMode]);
   useEffect(() => {
     if (!templateId && !customerMode) return;
+    setAvailabilitySlots([]);
     const resourcePath = customerMode ? `/api/customers/${customerId}/workout-plans/${planId}` : `/api/workout-templates/${templateId}`;
     api.get<StudioTemplate & { customerName?: string; customerId?: { fullName?: string } }>(resourcePath).then(({ data }) => {
       setCustomerName(data.customerName || data.customerId?.fullName || 'Khách hàng');
@@ -144,6 +156,7 @@ export default function WorkoutStudioPage() {
 
   return <section aria-label="Workout Studio" className={`module-page workout-studio ${inspectorOpen ? 'inspector-open' : ''}`}>
     <StudioHeader contextLabel={customerMode ? `Giáo án của ${customerName}` : undefined} readOnly={readOnly} title={title} goal={goal} level={level} durationDays={durationDays} dirty={dirty} saving={saving} onBack={() => { const destination = customerMode ? '/pt/customers' : '/pt/my-workout-plans'; if (dirty) setPendingConfirmation({ kind: 'back', destination }); else navigate(destination); }} onTitleChange={(value) => { setTitle(value); setDirty(true); }} onGoalChange={(value) => { setGoal(value); setDirty(true); }} onLevelChange={(value) => { setLevel(value); setDirty(true); }} onDurationDaysChange={changeDurationDays} onSave={() => void save()} />
+    <AvailabilityWarningBanner warnings={availabilityWarnings} />
     <nav className="studio-period-navigation" aria-label="Thời gian giáo án">
       <div className="studio-week-list">{weekButtons.map((week) => <button key={week} type="button" aria-current={week === activeWeek} onClick={() => { setActiveWeek(week); setActiveDay((day) => Math.min(day, planDaysForWeek(durationDays, week).length)); }}>Tuần {week}</button>)}</div>
       <StudioDayNavigator days={dayButtons} activeDay={activeDay} totalMinutes={totalMinutes} onChange={setActiveDay} />

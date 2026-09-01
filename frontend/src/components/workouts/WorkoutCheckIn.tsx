@@ -17,6 +17,18 @@ export default function WorkoutCheckIn({ onCompleted }: WorkoutCheckInProps) {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (submitting.current) return;
+    if (!form.customerId) {
+      toast.error('Vui lòng chọn học viên / khách hàng.');
+      return;
+    }
+    if (!form.templateId?.trim()) {
+      toast.error('Vui lòng nhập mã giáo án.');
+      return;
+    }
+    if (!form.performedAt) {
+      toast.error('Vui lòng chọn ngày tập.');
+      return;
+    }
     submitting.current = true;
     setLoading(true);
     try {
@@ -33,7 +45,7 @@ export default function WorkoutCheckIn({ onCompleted }: WorkoutCheckInProps) {
     }
   };
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
-  return <form className="panel" onSubmit={submit}>
+  return <form className="panel" noValidate onSubmit={submit}>
     <h2>Check-in buổi tập</h2>
     <div className="form-grid">
       <CustomerSelect
