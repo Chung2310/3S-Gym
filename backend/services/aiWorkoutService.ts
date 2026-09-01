@@ -128,7 +128,19 @@ Cấu hình: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalReque
 
   const draft = extractJson(raw);
   if (!draft || typeof draft !== 'object') throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về giáo án hợp lệ.' });
-  if (!Array.isArray(draft.scheduledExercises) || !Array.isArray(draft.generatedExercises)) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về giáo án thiếu hoặc sai dữ liệu.' });
+
+  if (!Array.isArray(draft.scheduledExercises)) {
+    draft.scheduledExercises = Array.isArray(draft.schedule)
+      ? draft.schedule
+      : Array.isArray(draft.exercises)
+        ? draft.exercises
+        : [];
+  }
+  if (!Array.isArray(draft.generatedExercises)) {
+    draft.generatedExercises = Array.isArray(draft.newExercises)
+      ? draft.newExercises
+      : [];
+  }
 
   draft.title = draft.title || `Giáo án ${proposal.trainingSplit} (${proposal.durationWeeks} tuần)`;
   draft.goal = draft.goal || customer.initialGoal || 'Cải thiện thể lực toàn diện';
@@ -140,26 +152,27 @@ Cấu hình: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalReque
   const libraryById = new Map(library.map((exercise) => [String(exercise._id), exercise]));
   const libraryByName = new Map(library.map((exercise) => [normalizeExerciseName(exercise.name), exercise]));
   const generatedExercises = (draft.generatedExercises as AiGeneratedExercise[]).map((exercise) => {
-    if (!exercise?.name?.trim() || !exercise.muscleGroup?.trim()) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về bài tập mới thiếu thông tin.' });
-    const level = normalizeLevel(exercise.level);
-    const defaultTrackingType = classifiedTrackingTypes.includes(exercise.defaultTrackingType) ? exercise.defaultTrackingType : 'STRENGTH';
-    return { name: exercise.name.trim(), muscleGroup: exercise.muscleGroup.trim(), level, defaultTrackingType, equipment: Array.isArray(exercise.equipment) ? exercise.equipment : [], description: exercise.description || '', technique: exercise.technique || '', commonMistakes: Array.isArray(exercise.commonMistakes) ? exercise.commonMistakes : [], contraindications: Array.isArray(exercise.contraindications) ? exercise.contraindications : [], variants: Array.isArray(exercise.variants) ? exercise.variants : [] };
+    const name = exercise?.name?.trim() || 'Bài tập mới';
+    const muscleGroup = exercise?.muscleGroup?.trim() || 'Toàn thân';
+    const level = normalizeLevel(exercise?.level);
+    const defaultTrackingType = classifiedTrackingTypes.includes(exercise?.defaultTrackingType) ? exercise.defaultTrackingType : 'STRENGTH';
+    return { name, muscleGroup, level, defaultTrackingType, equipment: Array.isArray(exercise.equipment) ? exercise.equipment : [], description: exercise.description || '', technique: exercise.technique || '', commonMistakes: Array.isArray(exercise.commonMistakes) ? exercise.commonMistakes : [], contraindications: Array.isArray(exercise.contraindications) ? exercise.contraindications : [], variants: Array.isArray(exercise.variants) ? exercise.variants : [] };
   }).filter((exercise) => !libraryByName.has(normalizeExerciseName(exercise.name)));
   const generatedByName = new Map(generatedExercises.map((exercise) => [normalizeExerciseName(exercise.name), exercise]));
+
   const scheduledExercises = (draft.scheduledExercises as AiScheduledExercise[]).map((item) => {
-    const existingExercise = item.exerciseId ? libraryById.get(String(item.exerciseId)) : libraryByName.get(normalizeExerciseName(item.generatedExerciseName));
+    const existingExercise = item.exerciseId ? libraryById.get(String(item.exerciseId)) : libraryByName.get(normalizeExerciseName(item.generatedExerciseName || (item as any).name));
     const generatedExercise = item.generatedExerciseName ? generatedByName.get(normalizeExerciseName(item.generatedExerciseName)) : undefined;
-    const hasRef = existingExercise || generatedExercise;
-    if (!hasRef) throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về bài tập tham chiếu không tồn tại trong danh mục.' });
-    const exercise = existingExercise || generatedExercise!;
+    const exerciseName = existingExercise?.name || generatedExercise?.name || item.generatedExerciseName || (item as any).name || 'Bài tập thể lực';
+    const trackingType = existingExercise?.defaultTrackingType || generatedExercise?.defaultTrackingType || 'STRENGTH';
     const weekNumber = Math.min(proposal.durationWeeks, Math.max(1, Math.round(Number(item.weekNumber) || 1)));
     const dayNumber = Math.min(7, Math.max(1, Math.round(Number(item.dayNumber) || 1)));
     const startMinute = Math.min(1425, Math.max(0, Math.round((Number(item.startMinute) || 0) / 15) * 15));
     const durationMinutes = Math.min(1440 - startMinute, Math.max(15, Math.round((Number(item.durationMinutes) || 30) / 15) * 15));
     return {
       ...(existingExercise ? { exerciseId: String(existingExercise._id) } : {}),
-      name: exercise.name,
-      trackingType: exercise.defaultTrackingType,
+      name: exerciseName,
+      trackingType,
       prescription: {},
       weekNumber,
       dayNumber,
