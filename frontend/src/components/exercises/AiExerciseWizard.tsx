@@ -6,7 +6,6 @@ import { api } from '../../services/api';
 import {
   errorMessage,
   type AiExerciseDraft,
-  type AiExerciseGenerationMode,
   type AiExerciseGenerationRequest,
   type ClassifiedTrackingType,
   type Exercise,
@@ -17,21 +16,6 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
 }
-
-interface RequestForm {
-  mode: AiExerciseGenerationMode;
-  muscleGroup: string;
-  level: Exercise['level'];
-  defaultTrackingType: ClassifiedTrackingType;
-  equipment: string;
-  quantity: number;
-  additionalRequest: string;
-}
-
-const initialRequest: RequestForm = {
-  mode: 'SINGLE', muscleGroup: '', level: 'BEGINNER', defaultTrackingType: 'STRENGTH',
-  equipment: '', quantity: 1, additionalRequest: '',
-};
 
 const trackingOptions: Array<{ value: ClassifiedTrackingType; label: string }> = [
   { value: 'STRENGTH', label: 'Sức mạnh · mức tạ' },
@@ -49,12 +33,15 @@ function lines(value: string): string[] {
 }
 
 function isValidDraft(draft: AiExerciseDraft): boolean {
-  return Boolean(draft.name.trim() && draft.muscleGroup.trim() && draft.level && draft.defaultTrackingType);
+  return Boolean(
+    draft.name.trim() && draft.muscleGroup.trim() && draft.level && draft.defaultTrackingType
+    && draft.description.trim() && draft.technique.trim(),
+  );
 }
 
 export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
   const toast = useToast();
-  const [request, setRequest] = useState<RequestForm>(initialRequest);
+  const [prompt, setPrompt] = useState('');
   const [drafts, setDrafts] = useState<AiExerciseDraft[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [step, setStep] = useState<'CONFIG' | 'REVIEW'>('CONFIG');
@@ -63,7 +50,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
   const [discardedCount, setDiscardedCount] = useState(0);
 
   const reset = () => {
-    setRequest(initialRequest);
+    setPrompt('');
     setDrafts([]);
     setSelected(new Set());
     setStep('CONFIG');
@@ -77,26 +64,13 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
     onClose();
   };
 
-  const changeMode = (mode: AiExerciseGenerationMode) => {
-    setRequest((current) => ({ ...current, mode, quantity: mode === 'SINGLE' ? 1 : 2 }));
-  };
-
   const generate = async () => {
-    if (!request.muscleGroup.trim()) {
-      setError('Vui lòng nhập nhóm cơ.');
+    const normalizedPrompt = prompt.trim();
+    if (normalizedPrompt.length < 3) {
+      setError('Vui lòng nhập yêu cầu tạo bài tập.');
       return;
     }
-    if (request.mode === 'BATCH' && (!Number.isInteger(request.quantity) || request.quantity < 2 || request.quantity > 10)) {
-      setError('Số lượng phải từ 2 đến 10.');
-      return;
-    }
-    const payload: AiExerciseGenerationRequest = {
-      ...request,
-      muscleGroup: request.muscleGroup.trim(),
-      equipment: request.equipment.split(',').map((item) => item.trim()).filter(Boolean),
-      quantity: request.mode === 'SINGLE' ? 1 : request.quantity,
-      additionalRequest: request.additionalRequest.trim(),
-    };
+    const payload: AiExerciseGenerationRequest = { prompt: normalizedPrompt };
     setLoading(true);
     setError('');
     try {
@@ -134,7 +108,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
       return;
     }
     if (selectedInvalid) {
-      setError('Vui lòng điền đủ tên, nhóm cơ, cấp độ và cách ghi nhận cho các bài đã chọn.');
+      setError('Vui lòng điền đủ tên, nhóm cơ, cấp độ, cách ghi nhận, mô tả và kỹ thuật cho các bài đã chọn.');
       return;
     }
     setLoading(true);
@@ -163,10 +137,10 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
     <FormModal
       open={open}
       title="Tạo bài tập bằng AI"
-      description="AI tạo bản nháp để bạn kiểm tra và chỉnh sửa trước khi lưu."
+      description="Nhập yêu cầu tự nhiên, AI sẽ tự xác định số lượng và điền đầy đủ thông tin từng bài."
       size="xl"
       className="max-h-[94vh] overflow-hidden"
-      dirty={Boolean(request.muscleGroup || request.equipment || request.additionalRequest || drafts.length)}
+      dirty={Boolean(prompt || drafts.length)}
       loading={loading}
       submitLabel={step === 'CONFIG' ? 'Tạo bản nháp' : saveLabel}
       submitDisabled={step === 'REVIEW' && (!selected.size || selectedInvalid)}
@@ -181,15 +155,9 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
       </ol>
 
       {step === 'CONFIG' ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="module-field"><span>Chế độ tạo</span><select aria-label="Chế độ tạo" value={request.mode} disabled={loading} onChange={(event) => changeMode(event.target.value as AiExerciseGenerationMode)}><option value="SINGLE">Một bài tập</option><option value="BATCH">Nhiều bài tập</option></select></label>
-          <label className="module-field"><span>Nhóm cơ</span><input aria-label="Nhóm cơ" placeholder="Ví dụ: Lưng, chân hoặc toàn thân" value={request.muscleGroup} disabled={loading} onChange={(event) => setRequest((current) => ({ ...current, muscleGroup: event.target.value }))} required /></label>
-          <label className="module-field"><span>Cấp độ</span><select aria-label="Cấp độ" value={request.level} disabled={loading} onChange={(event) => setRequest((current) => ({ ...current, level: event.target.value as Exercise['level'] }))}><option value="BEGINNER">Cơ bản</option><option value="INTERMEDIATE">Trung cấp</option><option value="ADVANCED">Nâng cao</option></select></label>
-          <label className="module-field"><span>Cách ghi nhận</span><select aria-label="Cách ghi nhận" value={request.defaultTrackingType} disabled={loading} onChange={(event) => setRequest((current) => ({ ...current, defaultTrackingType: event.target.value as ClassifiedTrackingType }))}>{trackingOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          <label className="module-field"><span>Thiết bị</span><input aria-label="Thiết bị" placeholder="Ví dụ: Cáp, tạ đơn; phân cách bằng dấu phẩy" value={request.equipment} disabled={loading} onChange={(event) => setRequest((current) => ({ ...current, equipment: event.target.value }))} /></label>
-          {request.mode === 'BATCH' && <label className="module-field"><span>Số lượng</span><input aria-label="Số lượng" type="number" placeholder="Từ 2 đến 10" value={request.quantity} disabled={loading} onChange={(event) => setRequest((current) => ({ ...current, quantity: Number(event.target.value) }))} /></label>}
-          <label className="module-field md:col-span-2"><span>Yêu cầu thêm</span><textarea aria-label="Yêu cầu thêm" placeholder="Ví dụ: ưu tiên bài dễ hướng dẫn cho người mới..." value={request.additionalRequest} disabled={loading} onChange={(event) => setRequest((current) => ({ ...current, additionalRequest: event.target.value }))} /></label>
-          <div className="md:col-span-2 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700"><Sparkles className="mt-0.5 shrink-0 text-sky-600" size={18} /><p>Video không do AI tạo. Bạn có thể bổ sung video đã xác minh sau khi lưu bài tập.</p></div>
+        <div className="grid gap-4">
+          <label className="module-field"><span>Yêu cầu tạo bài tập</span><textarea aria-label="Yêu cầu tạo bài tập" rows={5} placeholder="Ví dụ: Tạo 5 bài tập cơ bụng cho người mới, không cần dụng cụ" value={prompt} disabled={loading} onChange={(event) => setPrompt(event.target.value)} required /></label>
+          <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700"><Sparkles className="mt-0.5 shrink-0 text-sky-600" size={18} /><p>Ghi số lượng từ 1 đến 10 ngay trong câu lệnh. AI sẽ tự điền tên, nhóm cơ, cấp độ, cách ghi nhận, thiết bị, mô tả, kỹ thuật, lỗi thường gặp, chống chỉ định và biến thể. Video được bổ sung sau khi bạn duyệt bài.</p></div>
         </div>
       ) : (
         <div className="space-y-4">

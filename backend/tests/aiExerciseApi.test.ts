@@ -5,10 +5,11 @@ import request from 'supertest';
 import { beforeAll, beforeEach, afterAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../services/aiProvider.js', () => ({
-  generateText: vi.fn().mockResolvedValue(JSON.stringify({ exercises: [
-    { name: 'Cable Row', muscleGroup: 'Lưng', level: 'INTERMEDIATE', defaultTrackingType: 'STRENGTH', equipment: ['Cáp'], description: '', technique: 'Kéo khuỷu tay về sau.', commonMistakes: [], contraindications: [], variants: [] },
-    { name: 'Lat Pulldown', muscleGroup: 'Lưng', level: 'INTERMEDIATE', defaultTrackingType: 'STRENGTH', equipment: ['Cáp'], description: '', technique: 'Kéo thanh về ngực trên.', commonMistakes: [], contraindications: [], variants: [] },
-  ] })),
+  generateText: vi.fn().mockResolvedValue(JSON.stringify({ exercises: Array.from({ length: 5 }, (_, index) => ({
+    name: `Core Exercise ${index + 1}`, muscleGroup: 'Cơ bụng', level: 'BEGINNER', defaultTrackingType: 'BODYWEIGHT',
+    equipment: [], description: 'Bài tập tăng sức mạnh vùng cơ bụng.', technique: 'Giữ cột sống trung lập và siết cơ bụng.',
+    commonMistakes: ['Nín thở'], contraindications: [], variants: ['Biến thể nhẹ hơn'],
+  })) })),
 }));
 
 import app from '../app.js';
@@ -42,8 +43,7 @@ async function enableLibrary(roles: UserRole[] = ['ADMIN', 'PT']): Promise<void>
 }
 
 const generationBody = {
-  mode: 'BATCH', muscleGroup: 'Lưng', level: 'INTERMEDIATE', defaultTrackingType: 'STRENGTH',
-  equipment: ['Cáp'], quantity: 2, additionalRequest: '',
+  prompt: 'tao 5 bai tap co bung',
 };
 
 describe('POST /api/ai/exercise-generations', () => {
@@ -58,7 +58,9 @@ describe('POST /api/ai/exercise-generations', () => {
       .send(generationBody);
 
     expect(response.status).toBe(200);
-    expect(response.body.data).toMatchObject({ drafts: [{ name: 'Cable Row' }, { name: 'Lat Pulldown' }], discardedCount: 0 });
+    expect(response.body.data.drafts).toHaveLength(5);
+    expect(response.body.data.drafts[0]).toMatchObject({ name: 'Core Exercise 1' });
+    expect(response.body.data.discardedCount).toBe(0);
     expect(await Exercise.countDocuments()).toBe(before);
   });
 
@@ -76,18 +78,19 @@ describe('POST /api/ai/exercise-generations', () => {
     expect(response.status).toBe(403);
   });
 
-  it('rejects a batch above ten exercises', async () => {
+  it('rejects a prompt requesting more than ten exercises', async () => {
     await enableLibrary();
     const token = await tokenFor('PT');
-    const response = await request(app).post('/api/ai/exercise-generations').set('Authorization', `Bearer ${token}`).send({ ...generationBody, quantity: 11 });
+    const response = await request(app).post('/api/ai/exercise-generations').set('Authorization', `Bearer ${token}`).send({ prompt: 'Tạo 11 bài tập chân' });
     expect(response.status).toBe(400);
   });
 
-  it('requires a quantity of one in single mode', async () => {
+  it('defaults to one exercise when the prompt omits a quantity', async () => {
     await enableLibrary();
     const token = await tokenFor('PT');
-    const response = await request(app).post('/api/ai/exercise-generations').set('Authorization', `Bearer ${token}`).send({ ...generationBody, mode: 'SINGLE', quantity: 2 });
-    expect(response.status).toBe(400);
+    const response = await request(app).post('/api/ai/exercise-generations').set('Authorization', `Bearer ${token}`).send({ prompt: 'Tạo bài tập plank cơ bản' });
+    expect(response.status).toBe(200);
+    expect(response.body.data.drafts).toHaveLength(1);
   });
 });
 

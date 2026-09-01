@@ -6,13 +6,8 @@ import { generateText } from '../services/aiProvider.js';
 import { generateExerciseDrafts } from '../services/aiExerciseService.js';
 
 const input = {
-  mode: 'BATCH' as const,
-  muscleGroup: 'Chân',
-  level: 'BEGINNER' as const,
-  defaultTrackingType: 'STRENGTH' as const,
-  equipment: ['Tạ đơn'],
+  prompt: 'Tạo 2 bài tập chân với tạ đơn cho người mới',
   quantity: 2,
-  additionalRequest: 'Ưu tiên kỹ thuật dễ hướng dẫn.',
 };
 
 const validDraft = (name: string) => ({
@@ -41,7 +36,7 @@ describe('generateExerciseDrafts', () => {
 
     expect(generateText).toHaveBeenCalledWith(
       { userId: 'pt-1', taskType: 'TEXT_WORKOUT', requestKey: 'request-1:text-exercise-generation' },
-      expect.stringContaining('Ưu tiên kỹ thuật dễ hướng dẫn.'),
+      expect.stringContaining('CHÍNH XÁC 2 bài'),
     );
     expect(result).toEqual({
       drafts: [validDraft('Goblet Squat'), validDraft('Dumbbell Romanian Deadlift')],
@@ -52,19 +47,17 @@ describe('generateExerciseDrafts', () => {
     expect(result.drafts[0]).not.toHaveProperty('ownerPtId');
   });
 
-  it('accepts fenced root-array JSON and defaults optional fields', async () => {
-    vi.mocked(generateText).mockResolvedValueOnce('```json\n[{"name":"Plank","muscleGroup":"Core","level":"BEGINNER","defaultTrackingType":"BODYWEIGHT"}]\n```');
+  it('accepts fenced root-array JSON with every schema field', async () => {
+    const plank = { ...validDraft('Plank'), muscleGroup: 'Cơ bụng', defaultTrackingType: 'BODYWEIGHT' };
+    vi.mocked(generateText).mockResolvedValueOnce(`\`\`\`json\n${JSON.stringify([plank])}\n\`\`\``);
 
     const result = await generateExerciseDrafts(
       { id: 'admin-1', role: 'ADMIN' },
-      { ...input, mode: 'SINGLE', quantity: 1, defaultTrackingType: 'BODYWEIGHT' },
+      { prompt: 'Tạo một bài tập cơ bụng', quantity: 1 },
       'request-2',
     );
 
-    expect(result.drafts).toEqual([{
-      name: 'Plank', muscleGroup: 'Core', level: 'BEGINNER', defaultTrackingType: 'BODYWEIGHT',
-      equipment: [], description: '', technique: '', commonMistakes: [], contraindications: [], variants: [],
-    }]);
+    expect(result.drafts).toEqual([plank]);
   });
 
   it('discards invalid and duplicate drafts before applying the quantity limit', async () => {
@@ -90,6 +83,13 @@ describe('generateExerciseDrafts', () => {
 
     await expect(generateExerciseDrafts({ id: 'pt-1', role: 'PT' }, input, 'request-4'))
       .rejects.toMatchObject({ status: 502, message: 'AI không trả về bài tập hợp lệ.' });
+  });
+
+  it('rejects a partial result instead of returning fewer exercises than requested', async () => {
+    vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({ exercises: [validDraft('Goblet Squat')] }));
+
+    await expect(generateExerciseDrafts({ id: 'pt-1', role: 'PT' }, input, 'request-partial'))
+      .rejects.toMatchObject({ status: 502, message: 'AI chưa tạo đủ 2 bài tập hợp lệ. Vui lòng thử lại.' });
   });
 
   it('rejects malformed JSON', async () => {

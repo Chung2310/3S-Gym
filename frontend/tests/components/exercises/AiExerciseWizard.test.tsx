@@ -29,18 +29,11 @@ describe('AiExerciseWizard', () => {
     const onSaved = vi.fn();
     render(<AiExerciseWizard open onClose={vi.fn()} onSaved={onSaved} />);
 
-    await user.selectOptions(screen.getByLabelText('Chế độ tạo'), 'BATCH');
-    await user.type(screen.getByLabelText('Nhóm cơ'), 'Lưng');
-    await user.selectOptions(screen.getByLabelText('Cấp độ'), 'INTERMEDIATE');
-    await user.selectOptions(screen.getByLabelText('Cách ghi nhận'), 'STRENGTH');
-    await user.type(screen.getByLabelText('Thiết bị'), 'Cáp');
-    await user.clear(screen.getByLabelText('Số lượng'));
-    await user.type(screen.getByLabelText('Số lượng'), '2');
+    await user.type(screen.getByLabelText('Yêu cầu tạo bài tập'), 'tao 2 bai tap co lung voi cap');
     await user.click(screen.getByRole('button', { name: 'Tạo bản nháp' }));
 
     expect(api.post).toHaveBeenNthCalledWith(1, '/api/ai/exercise-generations', {
-      mode: 'BATCH', muscleGroup: 'Lưng', level: 'INTERMEDIATE', defaultTrackingType: 'STRENGTH',
-      equipment: ['Cáp'], quantity: 2, additionalRequest: '',
+      prompt: 'tao 2 bai tap co lung voi cap',
     });
     await user.clear(await screen.findByLabelText('Tên bài tập 1'));
     await user.type(screen.getByLabelText('Tên bài tập 1'), 'Cable Row chỉnh sửa');
@@ -53,21 +46,17 @@ describe('AiExerciseWizard', () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
-  it('fixes quantity at one in single mode', () => {
+  it('shows a natural-language prompt with the expected example', () => {
     render(<AiExerciseWizard open onClose={vi.fn()} onSaved={vi.fn()} />);
-    expect(screen.getByLabelText('Chế độ tạo')).toHaveValue('SINGLE');
-    expect(screen.queryByLabelText('Số lượng')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Yêu cầu tạo bài tập')).toHaveAttribute('placeholder', expect.stringContaining('Tạo 5 bài tập cơ bụng'));
   });
 
-  it('validates batch quantity before calling the API', async () => {
+  it('validates a too-short prompt before calling the API', async () => {
     const user = userEvent.setup();
     render(<AiExerciseWizard open onClose={vi.fn()} onSaved={vi.fn()} />);
-    await user.selectOptions(screen.getByLabelText('Chế độ tạo'), 'BATCH');
-    await user.type(screen.getByLabelText('Nhóm cơ'), 'Lưng');
-    await user.clear(screen.getByLabelText('Số lượng'));
-    await user.type(screen.getByLabelText('Số lượng'), '11');
+    await user.type(screen.getByLabelText('Yêu cầu tạo bài tập'), 'ab');
     await user.click(screen.getByRole('button', { name: 'Tạo bản nháp' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Số lượng phải từ 2 đến 10');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Vui lòng nhập yêu cầu tạo bài tập');
     expect(api.post).not.toHaveBeenCalled();
   });
 
@@ -75,10 +64,10 @@ describe('AiExerciseWizard', () => {
     vi.mocked(api.post).mockRejectedValueOnce(new Error('AI tạm thời không phản hồi.'));
     const user = userEvent.setup();
     render(<AiExerciseWizard open onClose={vi.fn()} onSaved={vi.fn()} />);
-    await user.type(screen.getByLabelText('Nhóm cơ'), 'Vai');
+    await user.type(screen.getByLabelText('Yêu cầu tạo bài tập'), 'Tạo 3 bài tập vai');
     await user.click(screen.getByRole('button', { name: 'Tạo bản nháp' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('AI tạm thời không phản hồi.');
-    expect(screen.getByLabelText('Nhóm cơ')).toHaveValue('Vai');
+    expect(screen.getByLabelText('Yêu cầu tạo bài tập')).toHaveValue('Tạo 3 bài tập vai');
   });
 
   it('keeps edited drafts and selections after saving fails', async () => {
@@ -87,7 +76,7 @@ describe('AiExerciseWizard', () => {
       .mockRejectedValueOnce(new Error('Không thể lưu bài tập.'));
     const user = userEvent.setup();
     render(<AiExerciseWizard open onClose={vi.fn()} onSaved={vi.fn()} />);
-    await user.type(screen.getByLabelText('Nhóm cơ'), 'Lưng');
+    await user.type(screen.getByLabelText('Yêu cầu tạo bài tập'), 'Tạo 2 bài tập cơ lưng');
     await user.click(screen.getByRole('button', { name: 'Tạo bản nháp' }));
     await user.clear(await screen.findByLabelText('Tên bài tập 1'));
     await user.type(screen.getByLabelText('Tên bài tập 1'), 'Cable Row đã sửa');
@@ -101,7 +90,7 @@ describe('AiExerciseWizard', () => {
     vi.mocked(api.post).mockResolvedValueOnce({ data: { drafts: generatedDrafts, discardedCount: 0 }, message: '' });
     const user = userEvent.setup();
     render(<AiExerciseWizard open onClose={vi.fn()} onSaved={vi.fn()} />);
-    await user.type(screen.getByLabelText('Nhóm cơ'), 'Lưng');
+    await user.type(screen.getByLabelText('Yêu cầu tạo bài tập'), 'Tạo 2 bài tập cơ lưng');
     await user.click(screen.getByRole('button', { name: 'Tạo bản nháp' }));
     await user.click(await screen.findByLabelText('Chọn tất cả'));
     expect(screen.getByRole('button', { name: 'Lưu 0 bài tập' })).toBeDisabled();

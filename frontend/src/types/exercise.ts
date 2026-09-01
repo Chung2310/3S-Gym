@@ -14,8 +14,6 @@ export interface Exercise {
   canManage: boolean;
 }
 
-export type AiExerciseGenerationMode = 'SINGLE' | 'BATCH';
-
 export interface AiExerciseDraft {
   name: string;
   muscleGroup: string;
@@ -30,11 +28,5 @@ export interface AiExerciseDraft {
 }
 
 export interface AiExerciseGenerationRequest {
-  mode: AiExerciseGenerationMode;
-  muscleGroup: string;
-  level: Exercise['level'];
-  defaultTrackingType: ClassifiedTrackingType;
-  equipment: string[];
-  quantity: number;
-  additionalRequest: string;
+  prompt: string;
 }
