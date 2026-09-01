@@ -58,7 +58,7 @@ function exercisesFromPlan(plan: Record<string, any>) {
 
 function assertClassifiedPlan(plan: Record<string, any>) {
   const exercise = exercisesFromPlan(plan).find((item) => !item.trackingType || item.trackingType === 'UNCLASSIFIED');
-  if (exercise) throw fail(`Hãy phân loại cách ghi nhận cho bài tập "${String(exercise.name || 'Chưa đặt tên')}" trước khi lưu giáo án.`, 400);
+  if (exercise) throw fail(`Bài tập "${String(exercise.name || 'Chưa đặt tên')}" chưa có cách ghi nhận. Vui lòng cập nhật trong Quản lý bài tập rồi thêm lại vào giáo án.`, 400);
 }
 
 async function supportsTransactions() {

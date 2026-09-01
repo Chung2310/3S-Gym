@@ -1,10 +1,12 @@
 import { Search, X, RotateCcw, RefreshCw } from 'lucide-react';
 
 interface ExerciseFilterProps {
-  muscleGroup: string;
+  keyword: string;
+  muscleGroup?: string;
   level: string;
   trackingType: string;
-  onMuscleGroupChange: (value: string) => void;
+  onKeywordChange: (value: string) => void;
+  onMuscleGroupChange?: (value: string) => void;
   onLevelChange: (value: string) => void;
   onTrackingTypeChange: (value: string) => void;
   onFilter: () => void;
@@ -12,32 +14,38 @@ interface ExerciseFilterProps {
 }
 
 export default function ExerciseFilter({
-  muscleGroup,
+  keyword,
   level,
   trackingType,
-  onMuscleGroupChange,
+  onKeywordChange,
   onLevelChange,
   onTrackingTypeChange,
   onFilter,
   onClear,
 }: ExerciseFilterProps) {
   return (
-    <div className="module-toolbar exercise-toolbar xl:!grid-cols-[minmax(0,1fr)_11rem_15rem_auto_auto]" role="search" aria-label="Bộ lọc bài tập">
+    <div className="module-toolbar exercise-toolbar" role="search" aria-label="Bộ lọc bài tập">
       <div className="exercise-filter-search">
         <Search size={16} className="exercise-filter-search-icon" aria-hidden="true" />
         <input
-          aria-label="Nhóm cơ"
-          value={muscleGroup}
-          onChange={(e) => onMuscleGroupChange(e.target.value)}
-          placeholder="Lọc theo nhóm cơ..."
+          aria-label="Tìm kiếm bài tập"
+          value={keyword}
+          onChange={(e) => onKeywordChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onFilter();
+            }
+          }}
+          placeholder="Tìm tên bài tập, nhóm cơ, thiết bị..."
           className="exercise-filter-input"
         />
-        {muscleGroup && (
+        {keyword && (
           <button
             type="button"
             className="exercise-filter-clear-input"
-            onClick={() => onMuscleGroupChange('')}
-            aria-label="Xóa lọc nhóm cơ"
+            onClick={() => onKeywordChange('')}
+            aria-label="Xóa từ khóa tìm kiếm"
           >
             <X size={12} />
           </button>
@@ -50,7 +58,7 @@ export default function ExerciseFilter({
         value={level}
         onChange={(e) => onLevelChange(e.target.value)}
       >
-        <option value="">Tất cả</option>
+        <option value="">Tất cả cấp độ</option>
         <option value="BEGINNER">Cơ bản</option>
         <option value="INTERMEDIATE">Trung cấp</option>
         <option value="ADVANCED">Nâng cao</option>
@@ -75,7 +83,7 @@ export default function ExerciseFilter({
         <RefreshCw size={15} /> Lọc bài tập
       </button>
 
-      {(muscleGroup || level || trackingType) && (
+      {(keyword || level || trackingType) && (
         <button type="button" className="exercise-filter-reset" onClick={onClear}>
           <RotateCcw size={13} /> Xóa lọc
         </button>

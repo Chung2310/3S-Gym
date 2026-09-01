@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CreditCard, History, LoaderCircle, ShieldCheck, WalletCards } from 'lucide-react';
+import {
+  CreditCard,
+  History,
+  LoaderCircle,
+  RefreshCw,
+  ShieldCheck,
+  WalletCards,
+} from 'lucide-react';
 import CreditLedgerTable from '../../components/credits/CreditLedgerTable';
 import CreditPackageGrid from '../../components/credits/CreditPackageGrid';
 import CustomTopupForm from '../../components/credits/CustomTopupForm';
@@ -11,7 +18,7 @@ import { errorMessage } from '../../types';
 import type { CreditLedgerEntry, CreditPackageResponse, PaymentGateway } from '../../types/credits';
 
 export default function WalletPage() {
-  const { wallet, loading: walletLoading } = useCreditWallet();
+  const { wallet, loading: walletLoading, refresh: refreshWallet } = useCreditWallet();
   const toast = useToast();
   const [catalog, setCatalog] = useState<CreditPackageResponse | null>(null);
   const [entries, setEntries] = useState<CreditLedgerEntry[]>([]);
@@ -23,13 +30,30 @@ export default function WalletPage() {
   const [customSelected, setCustomSelected] = useState(false);
   const [gateway, setGateway] = useState<PaymentGateway>('VNPAY');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const loadLedger = async (nextPage = page, nextType = type) => {
-    const result = await creditsService.ledger(nextPage, nextType);
-    setEntries(result.items);
-    setTotalPages(result.meta?.totalPages || 1);
+    try {
+      const result = await creditsService.ledger(nextPage, nextType);
+      setEntries(result.items);
+      setTotalPages(result.meta?.totalPages || 1);
+    } catch (cause) {
+      toast.error(errorMessage(cause));
+    }
+  };
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refreshWallet?.(), loadLedger(1, type)]);
+      toast.success('Đã đồng bộ số dư credit mới nhất.');
+    } catch {
+      toast.error('Không thể làm mới số dư.');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   useEffect(() => {
@@ -40,11 +64,18 @@ export default function WalletPage() {
         setCatalog(nextCatalog);
         setEntries(ledger.items);
         setTotalPages(ledger.meta?.totalPages || 1);
+        if (nextCatalog.packages && nextCatalog.packages.length > 0) {
+          setSelectedId(nextCatalog.packages[0].id);
+          setCustomSelected(false);
+        } else {
+          setCustomSelected(true);
+        }
         const first = (['VNPAY', 'MOMO'] as const).find((item) => nextCatalog.gateways[item]);
         if (first) setGateway(first);
       })
       .catch((cause) => active && setError(errorMessage(cause)))
       .finally(() => active && setLoading(false));
+
     return () => {
       active = false;
     };
@@ -52,10 +83,15 @@ export default function WalletPage() {
 
   const customAmount = Number(custom);
   const customValid =
-    Number.isInteger(customAmount) && customAmount >= 10_000 && customAmount <= 50_000_000 && customAmount % 1_000 === 0;
+    Number.isInteger(customAmount) &&
+    customAmount >= 10_000 &&
+    customAmount <= 50_000_000 &&
+    customAmount % 1_000 === 0;
 
   const canSubmit =
-    Boolean(catalog?.gateways[gateway]) && (customSelected ? customValid : Boolean(selectedId)) && !submitting;
+    Boolean(catalog?.gateways[gateway]) &&
+    (customSelected ? customValid : Boolean(selectedId)) &&
+    !submitting;
 
   const estimated = useMemo(
     () =>
@@ -70,7 +106,9 @@ export default function WalletPage() {
     setSubmitting(true);
     try {
       const order = await creditsService.createTopup(
-        customSelected ? { gateway, customAmountVnd: customAmount } : { gateway, packageId: selectedId },
+        customSelected
+          ? { gateway, customAmountVnd: customAmount }
+          : { gateway, packageId: selectedId },
       );
       const url = new URL(order.redirectUrl || '', window.location.origin);
       const allowed =
@@ -100,7 +138,10 @@ export default function WalletPage() {
 
   if (error) {
     return (
-      <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700 font-medium max-w-6xl mx-auto">
+      <div
+        role="alert"
+        className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700 font-medium max-w-6xl mx-auto"
+      >
         {error}
       </div>
     );
@@ -125,11 +166,25 @@ export default function WalletPage() {
             </div>
           </div>
 
-          <div className="wallet-reserved">
-            <span className="wallet-reserved-label">Đang tạm giữ</span>
-            <div className="wallet-reserved-amount">
-              {wallet?.reservedCredits ?? 0} <span className="unit">credit</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="wallet-reserved">
+              <span className="wallet-reserved-label">Đang tạm giữ</span>
+              <div className="wallet-reserved-amount">
+                {wallet?.reservedCredits ?? 0} <span className="unit">credit</span>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={handleManualRefresh}
+              disabled={refreshing || walletLoading}
+              className="button button-secondary"
+              style={{ minHeight: 36, height: 36, padding: '0 12px', fontSize: '0.78rem' }}
+              title="Đồng bộ số dư ví"
+            >
+              <RefreshCw size={13} className={refreshing || walletLoading ? 'animate-spin' : ''} />
+              <span>{refreshing ? 'Đang tải...' : 'Làm mới'}</span>
+            </button>
           </div>
         </div>
       </section>
@@ -236,6 +291,7 @@ export default function WalletPage() {
               <History size={18} />
               <span>Lịch sử giao dịch credit</span>
             </div>
+
             <select
               aria-label="Lọc loại giao dịch"
               value={type}

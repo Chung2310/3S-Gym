@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { CalendarDays, Camera, ClipboardList, Dumbbell } from 'lucide-react';
+import { CalendarDays, Camera, ClipboardList, Clock3, Dumbbell, MapPin } from 'lucide-react';
 import type { CustomerJourneyDto } from '../../types';
 import AchievementList from '../progress/AchievementList';
 import ProgressCharts from '../progress/ProgressCharts';
@@ -22,32 +22,71 @@ const tabs = [
 type JourneyTab = typeof tabs[number];
 
 function SchedulePanel({ journey }: { journey: CustomerJourneyDto }) {
+  const now = Date.now();
+  const upcomingEvents = journey.calendar
+    .filter((event) => {
+      const startsAt = event.startsAt ? new Date(event.startsAt).getTime() : Number.NaN;
+      return Number.isFinite(startsAt)
+        && startsAt >= now
+        && event.status !== 'COMPLETED'
+        && event.status !== 'CANCELLED';
+    })
+    .sort((left, right) => new Date(String(left.startsAt)).getTime() - new Date(String(right.startsAt)).getTime());
+
   return (
     <div className="space-y-4">
       <ProgressSection
-        title="Lịch tập"
-        description="Các lịch hẹn tập luyện đã được sắp xếp cho khách hàng."
-        count={journey.calendar.length}
+        title="Lịch sắp tới"
+        description="Các lịch hẹn tập luyện sắp tới đã được PT sắp xếp cho khách hàng."
+        count={upcomingEvents.length}
       >
-        {journey.calendar.length > 0 ? (
+        {upcomingEvents.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {journey.calendar.map((event) => (
-              <article
-                className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
-                key={String(event._id)}
-              >
-                <h3 className="font-bold text-slate-900">{String(event.title)}</h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {new Date(String(event.startsAt)).toLocaleString('vi-VN')}
-                </p>
-              </article>
-            ))}
+            {upcomingEvents.map((event) => {
+              const startsAt = new Date(String(event.startsAt));
+
+              return (
+                <article
+                  className="rounded-xl border border-sky-200 bg-sky-50/60 p-4"
+                  key={String(event._id)}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-secondary ring-1 ring-sky-200">
+                      <CalendarDays size={19} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="font-bold leading-6 text-slate-900">{String(event.title || 'Buổi tập cùng PT')}</h3>
+                      <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-primary">
+                        <Clock3 size={14} className="shrink-0" aria-hidden="true" />
+                        <span>
+                          {startsAt.toLocaleDateString('vi-VN', {
+                            weekday: 'long',
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          })}
+                          {' · '}
+                          {startsAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </p>
+                      {event.location && (
+                        <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
+                          <MapPin size={14} className="shrink-0" aria-hidden="true" />
+                          <span>{event.location}</span>
+                        </p>
+                      )}
+                      {event.notes && <p className="mt-2 text-sm leading-6 text-slate-600">{event.notes}</p>}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
           <ProgressEmptyState
             icon={CalendarDays}
-            title="Chưa có lịch tập"
-            description="Lịch tập sắp tới sẽ xuất hiện tại đây."
+            title="Chưa có lịch sắp tới"
+            description="Lịch hẹn mới sẽ xuất hiện tại đây sau khi PT sắp xếp."
           />
         )}
       </ProgressSection>

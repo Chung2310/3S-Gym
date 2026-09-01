@@ -58,3 +58,4 @@ backend/tests/
 frontend/tests/
 **/*.test.ts
 **/*.test.tsx
+.codex*

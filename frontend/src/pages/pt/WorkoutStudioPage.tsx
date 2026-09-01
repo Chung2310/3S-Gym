@@ -101,7 +101,36 @@ export default function WorkoutStudioPage() {
   };
   const beginResize = (event: ReactPointerEvent, item: ScheduledExercise) => { event.preventDefault(); event.stopPropagation(); const startY = event.clientY; const original = item.durationMinutes; const move = (pointer: PointerEvent) => { const durationMinutes = Math.max(15, Math.round((original + ((pointer.clientY - startY) / SLOT_HEIGHT) * SLOT_MINUTES) / SLOT_MINUTES) * SLOT_MINUTES); const candidate = { ...item, durationMinutes: Math.min(durationMinutes, DAY_MINUTES - item.startMinute) }; if (!hasOverlap(items, candidate)) mutate(items.map((value) => value.id === item.id ? candidate : value)); }; const end = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); }; window.addEventListener('pointermove', move); window.addEventListener('pointerup', end); };
   const beginMove = (event: ReactPointerEvent, item: ScheduledExercise) => { if (event.button !== 0) return; event.preventDefault(); setSelectedId(item.id); const startY = event.clientY; let candidate = item; let valid = true; const move = (pointer: PointerEvent) => { const deltaMinutes = Math.round((pointer.clientY - startY) / SLOT_HEIGHT) * SLOT_MINUTES; const startMinute = Math.max(0, Math.min(DAY_MINUTES - item.durationMinutes, item.startMinute + deltaMinutes)); candidate = { ...item, startMinute }; valid = !hasOverlap(items, candidate); setMovePreview({ id: item.id, startMinute, valid }); const wrapper = timelineWrapRef.current; if (wrapper) { const rect = wrapper.getBoundingClientRect(); const scrollDelta = pointer.clientY < rect.top + 64 ? -48 : pointer.clientY > rect.bottom - 64 ? 48 : 0; if (scrollDelta) { if (typeof wrapper.scrollBy === 'function') wrapper.scrollBy({ top: scrollDelta }); else wrapper.scrollTop += scrollDelta; } } }; const end = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); setMovePreview(undefined); if (candidate.startMinute !== item.startMinute) { if (valid) mutate(items.map((value) => value.id === item.id ? candidate : value)); else toast.error('Khung giờ này đã có bài tập.'); } }; window.addEventListener('pointermove', move); window.addEventListener('pointerup', end); };
-  const save = async () => { if (readOnly) return; if (!title.trim() || !goal.trim() || !items.length) return toast.error('Vui lòng nhập thông tin và xếp ít nhất một bài tập.'); const invalid = [...items, ...unscheduled].find((item) => item.trackingType === 'UNCLASSIFIED' || !item.trackingType); if (invalid) { const scheduledInvalid = items.find((item) => item.id === invalid.id); if (scheduledInvalid) { setSelectedId(scheduledInvalid.id); setSidebarTab('exercise'); setInspectorOpen(true); setStudioView('inspector'); } return toast.error(`Vui lòng chọn cách ghi nhận cho ${invalid.name}.`); } setSaving(true); try { const scheduledExercises = items.map(({ id: _id, ...item }) => item); const unscheduledExercises = unscheduled.map(({ id: _id, dayNumber: _dayNumber, startMinute: _startMinute, ...item }) => item); const payload = { title, goal, level, durationDays, ...metadata, scheduledExercises, unscheduledExercises, ...(generatedExercises.length ? { generatedExercises } : {}) }; const result = customerMode ? await api.patch<{ _id: string }>(`/api/customers/${customerId}/workout-plans/${planId}`, payload) : templateId ? await api.patch<{ _id: string }>(`/api/workout-templates/${templateId}`, payload) : await api.post<{ _id: string }>('/api/workout-templates', payload); toast.success(result.message); setDirty(false); if (!templateId && !customerMode) navigate(`/pt/my-workout-plans/${result.data._id}/edit`, { replace: true }); } catch (error) { toast.error(errorMessage(error)); } finally { setSaving(false); } };
+  const save = async () => {
+    if (readOnly) return;
+    if (!title.trim() || !goal.trim() || !items.length) return toast.error('Vui lòng nhập thông tin và xếp ít nhất một bài tập.');
+
+    const invalid = [...items, ...unscheduled].find((item) => item.trackingType === 'UNCLASSIFIED' || !item.trackingType);
+    if (invalid) {
+      const scheduledInvalid = items.find((item) => item.id === invalid.id);
+      if (scheduledInvalid) {
+        setSelectedId(scheduledInvalid.id);
+        setSidebarTab('exercise');
+        setInspectorOpen(true);
+        setStudioView('inspector');
+      }
+      return toast.error(`Bài tập ${invalid.name} chưa có cách ghi nhận. Vui lòng cập nhật trong Quản lý bài tập rồi thêm lại vào giáo án.`);
+    }
+    setSaving(true);
+    try {
+      const scheduledExercises = items.map(({ id: _id, ...item }) => item);
+      const unscheduledExercises = unscheduled.map(({ id: _id, weekNumber: _weekNumber, dayNumber: _dayNumber, startMinute: _startMinute, ...item }) => item);
+      const payload = { title, goal, level, durationDays, ...metadata, scheduledExercises, unscheduledExercises, ...(generatedExercises.length ? { generatedExercises } : {}) };
+      const result = customerMode ? await api.patch<{ _id: string }>(`/api/customers/${customerId}/workout-plans/${planId}`, payload) : templateId ? await api.patch<{ _id: string }>(`/api/workout-templates/${templateId}`, payload) : await api.post<{ _id: string }>('/api/workout-templates', payload);
+      toast.success(result.message);
+      setDirty(false);
+      if (!templateId && !customerMode) navigate(`/pt/my-workout-plans/${result.data._id}/edit`, { replace: true });
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
   const confirmPendingAction = () => {
     const pending = pendingConfirmation;
     setPendingConfirmation(undefined);
@@ -136,7 +165,7 @@ export default function WorkoutStudioPage() {
         <StudioSidebar activeTab={sidebarTab} metadata={metadata} muscleGroupOptions={metadataMuscleGroups} readOnly={readOnly} selected={selected} days={dayButtons} onTabChange={setSidebarTab} onMetadataChange={(value) => { setMetadata(value); setDirty(true); }} onExerciseUpdate={updateSelected} onUnscheduled={() => { if (!selected) return; mutate(items.filter((item) => item.id !== selected.id)); setUnscheduled((current) => [...current, selected]); setSelectedId(undefined); setSidebarTab('template'); closeStudioPanel(); }} />
       </section>
     </div>
-    {selected && <button type="button" aria-label="Bỏ chọn bài tập" className="studio-selection-clear" onClick={() => { setSelectedId(undefined); setSidebarTab('template'); setInspectorOpen(false); setStudioView('schedule'); }}>×</button>}
+    {selected && studioView === 'schedule' && <button type="button" aria-label="Bỏ chọn bài tập" className="studio-selection-clear" onClick={() => { setSelectedId(undefined); setSidebarTab('template'); setInspectorOpen(false); setStudioView('schedule'); }}>×</button>}
     <ConfirmModal open={Boolean(pendingConfirmation)} title={pendingConfirmation?.kind === 'back' ? 'Bỏ thay đổi chưa lưu?' : pendingConfirmation?.kind === 'navigate' ? 'Rời Studio?' : 'Giảm số ngày giáo án?'} description={pendingConfirmation?.kind === 'duration' ? `${pendingConfirmation.affectedCount} bài tập ở các ngày bị cắt sẽ chuyển về Chưa xếp lịch.` : 'Các chỉnh sửa chưa lưu trong Studio sẽ bị mất.'} danger={pendingConfirmation?.kind !== 'duration'} confirmLabel={pendingConfirmation?.kind === 'back' ? 'Bỏ thay đổi' : pendingConfirmation?.kind === 'navigate' ? 'Rời Studio' : 'Tiếp tục'} onClose={() => setPendingConfirmation(undefined)} onConfirm={confirmPendingAction} />
   </section>;
 }

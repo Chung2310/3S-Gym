@@ -3,6 +3,7 @@ import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutSession from '../models/WorkoutSession.js';
 import BodyMeasurement from '../models/BodyMeasurement.js';
+import ProgressPhoto, { type PhotoAngle } from '../models/ProgressPhoto.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import PtPackage from '../models/PtPackage.js';
 import { AppError } from '../errors/AppError.js';
@@ -15,6 +16,8 @@ interface TemplatePayload { title: string; goal: string; level: string; duration
 interface SessionPayload {
   customerId: string; workoutPlanId: string; workoutPlanVersion: number; sessionIndex: number; performedAt: string; attendance: 'PRESENT' | 'ABSENT' | 'LATE';
   idempotencyKey: string; exerciseResults?: Array<{ exerciseId?: string; exerciseIndex: number; result: Record<string, unknown>; notes?: string }>; absenceReason?: string; feeling?: string; notes?: string;
+  bodyMeasurement?: Omit<MeasurementPayload, 'customerId' | 'measuredAt'>;
+  progressPhotos?: Array<{ photoUrl: string; angle: PhotoAngle }>;
 }
 interface MeasurementPayload { customerId: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements?: Record<string, number> }
 
@@ -111,6 +114,27 @@ async function createSession(user: AuthenticatedUser, payload: SessionPayload) {
         attendance: payload.attendance, absenceReason: payload.absenceReason, feeling: payload.feeling, notes: payload.notes, idempotencyKey: payload.idempotencyKey,
         planSnapshot: { workoutPlanId: plan._id, title: plan.title, version: plan.version, sessionIndex: payload.sessionIndex, session: selectedSession }, exerciseLogs,
       }], { session: mongoSession });
+      if (payload.bodyMeasurement && payload.attendance !== 'ABSENT') {
+        const measurement = normalizeMeasurementPayload({
+          customerId: payload.customerId,
+          measuredAt: payload.performedAt,
+          ...payload.bodyMeasurement,
+        });
+        await BodyMeasurement.create([{ ...measurement, customerId, ptId }], { session: mongoSession });
+      }
+      if (payload.progressPhotos?.length && payload.attendance !== 'ABSENT') {
+        await ProgressPhoto.insertMany(payload.progressPhotos.map((photo) => ({
+          customerId,
+          ptId,
+          photoUrl: photo.photoUrl,
+          takenDate: payload.performedAt,
+          stage: 'PROGRESS',
+          angle: photo.angle,
+          weight: payload.bodyMeasurement?.weight,
+          bodyFat: payload.bodyMeasurement?.bodyFatPercentage,
+          notes: `Ảnh ghi nhận cùng buổi tập: ${selectedSession.name}`,
+        })), { session: mongoSession });
+      }
       if (payload.attendance === 'PRESENT' || payload.attendance === 'LATE') {
         const selectedPackage = await PtPackage.findOne({ customerId, status: 'ACTIVE', remainingSessions: { $gt: 0 } })
           .sort({ endDate: 1 }).session(mongoSession);

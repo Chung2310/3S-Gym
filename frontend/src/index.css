@@ -30,8 +30,6 @@
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 /* Visually hidden but accessible to screen readers and crawlers */
@@ -898,6 +896,7 @@ a {
   margin-left: auto;
 }
 
+<<<<<<< HEAD
 .portal-credit-chip {
   display: inline-flex;
   align-items: center;
@@ -930,6 +929,8 @@ a {
   flex-shrink: 0;
 }
 
+=======
+>>>>>>> origin/develop
 .portal-notification-wrap {
   position: relative;
 }
@@ -4608,7 +4609,7 @@ a {
 }
 
 .exercise-toolbar {
-  grid-template-columns: minmax(0, 1fr) 13rem auto auto;
+  grid-template-columns: minmax(0, 1fr) 11rem 15rem auto auto;
   align-items: end;
 }
 
@@ -4793,6 +4794,17 @@ a {
 .exercise-badge.is-global {
   background: #e8eef8;
   color: #304f7a;
+}
+
+.exercise-card-tracking {
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.exercise-badge.is-unclassified {
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #b45309;
 }
 
 .exercise-level.is-beginner {
@@ -6236,6 +6248,12 @@ a {
   cursor: pointer;
 }
 
+.studio-week-list button,
+.studio-day-list button {
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
 .studio-week-list button[aria-current="true"],
 .studio-day-list button[aria-current="true"] {
   border-color: var(--secondary-color);
@@ -6759,6 +6777,25 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
+.studio-scheduled-item.is-compact .studio-scheduled-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.studio-scheduled-item.is-compact .studio-scheduled-content strong {
+  min-width: 0;
+  line-height: 1rem;
+}
+
+.studio-scheduled-item.is-compact .studio-scheduled-content>span {
+  flex: 0 0 auto;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .studio-scheduled-item.is-selected {
   border-color: var(--secondary-color);
   box-shadow: 0 0 0 3px rgba(0, 164, 228, .18), 0 10px 22px rgba(0, 59, 112, .12);
@@ -6795,6 +6832,10 @@ a {
   border-radius: 999px;
   background: #77b9d2;
   content: "";
+}
+
+.studio-scheduled-item.is-compact .studio-resize-handle::after {
+  display: none;
 }
 
 .studio-sidebar {
@@ -6935,6 +6976,21 @@ a {
 .studio-inspector-duration input {
   min-width: 0;
   text-align: center;
+}
+
+.studio-inspector-tracking {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.studio-inspector-tracking-note {
+  margin: 0;
+  color: #64748b;
+  font-size: .75rem;
+  line-height: 1.25rem;
 }
 
 .studio-inspector-danger {

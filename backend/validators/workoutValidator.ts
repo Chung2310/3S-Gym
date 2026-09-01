@@ -2,11 +2,11 @@ import Joi from 'joi';
 import type { RequestValidationSchema } from '../middlewares/validate.js';
 import { commonMessages, idParams, nonEmptyPatch, objectId, paginationQuery } from './commonValidator.js';
 const classifiedTrackingType = Joi.string().valid('STRENGTH', 'BODYWEIGHT', 'CARDIO', 'INTERVAL', 'MOBILITY');
-const strengthPrescription = Joi.object({ sets: Joi.number().integer().min(1).required(), reps: Joi.string().allow(''), targetWeight: Joi.number().min(0), targetRpe: Joi.number().min(0).max(10), targetRir: Joi.number().min(0), restSeconds: Joi.number().min(0) }).unknown(false);
-const bodyweightPrescription = Joi.object({ sets: Joi.number().integer().min(1).required(), reps: Joi.string().allow(''), addedWeight: Joi.number().min(0), targetRpe: Joi.number().min(0).max(10), targetRir: Joi.number().min(0), restSeconds: Joi.number().min(0) }).unknown(false);
-const cardioPrescription = Joi.object({ durationMinutes: Joi.number().positive(), distanceKm: Joi.number().positive(), targetPaceSecondsPerKm: Joi.number().positive(), targetHeartRate: Joi.number().positive(), inclinePercent: Joi.number().min(0), targetRpe: Joi.number().min(0).max(10) }).or('durationMinutes', 'distanceKm').unknown(false);
-const intervalPrescription = Joi.object({ rounds: Joi.number().integer().min(1).required(), workSeconds: Joi.number().positive(), restSeconds: Joi.number().min(0), distanceMetersPerRound: Joi.number().positive(), repsPerRound: Joi.number().integer().positive(), targetRpe: Joi.number().min(0).max(10) }).unknown(false);
-const mobilityPrescription = Joi.object({ durationMinutes: Joi.number().positive(), reps: Joi.number().integer().positive(), side: Joi.string().valid('LEFT', 'RIGHT', 'BOTH'), targetDiscomfort: Joi.number().min(0).max(10) }).or('durationMinutes', 'reps').unknown(false);
+const strengthPrescription = Joi.object({ sets: Joi.number().integer().min(1), reps: Joi.string().allow(''), targetWeight: Joi.number().min(0), targetRpe: Joi.number().min(0).max(10), targetRir: Joi.number().min(0), restSeconds: Joi.number().min(0) }).unknown(false);
+const bodyweightPrescription = Joi.object({ sets: Joi.number().integer().min(1), reps: Joi.string().allow(''), addedWeight: Joi.number().min(0), targetRpe: Joi.number().min(0).max(10), targetRir: Joi.number().min(0), restSeconds: Joi.number().min(0) }).unknown(false);
+const cardioPrescription = Joi.object({ durationMinutes: Joi.number().positive(), distanceKm: Joi.number().positive(), targetPaceSecondsPerKm: Joi.number().positive(), targetHeartRate: Joi.number().positive(), inclinePercent: Joi.number().min(0), targetRpe: Joi.number().min(0).max(10) }).unknown(false);
+const intervalPrescription = Joi.object({ rounds: Joi.number().integer().min(1), workSeconds: Joi.number().positive(), restSeconds: Joi.number().min(0), distanceMetersPerRound: Joi.number().positive(), repsPerRound: Joi.number().integer().positive(), targetRpe: Joi.number().min(0).max(10) }).unknown(false);
+const mobilityPrescription = Joi.object({ durationMinutes: Joi.number().positive(), reps: Joi.number().integer().positive(), side: Joi.string().valid('LEFT', 'RIGHT', 'BOTH'), targetDiscomfort: Joi.number().min(0).max(10) }).unknown(false);
 const trackingPrescription = Joi.alternatives().conditional('trackingType', { switch: [
   { is: 'STRENGTH', then: strengthPrescription.required() }, { is: 'BODYWEIGHT', then: bodyweightPrescription.required() },
   { is: 'CARDIO', then: cardioPrescription.required() }, { is: 'INTERVAL', then: intervalPrescription.required() },
@@ -17,13 +17,27 @@ const templateExercise = Joi.object(templateExerciseFields).messages(commonMessa
 const templateSession = Joi.object({ name: Joi.string().trim().required(), exercises: Joi.array().items(templateExercise).required() }).messages(commonMessages);
 const scheduledExercise = Joi.object({ ...templateExerciseFields, weekNumber: Joi.number().integer().min(1).default(1), dayNumber: Joi.number().integer().min(1).required(), startMinute: Joi.number().integer().min(0).max(1425).multiple(15).required(), durationMinutes: Joi.number().integer().min(15).max(1440).multiple(15).required() }).messages(commonMessages);
 const unscheduledExercise = Joi.object({ ...templateExerciseFields, durationMinutes: Joi.number().integer().min(15).max(1440).multiple(15).required() }).messages(commonMessages);
-const generatedExercise = Joi.object({ name: Joi.string().trim().required(), muscleGroup: Joi.string().trim().required(), level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED').required(), equipment: Joi.array().items(Joi.string()).default([]), description: Joi.string().allow('').default(''), technique: Joi.string().allow('').default(''), commonMistakes: Joi.array().items(Joi.string()).default([]), contraindications: Joi.array().items(Joi.string()).default([]), variants: Joi.array().items(Joi.string()).default([]) }).messages(commonMessages);
+const generatedExercise = Joi.object({ name: Joi.string().trim().required(), muscleGroup: Joi.string().trim().required(), level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED').required(), defaultTrackingType: classifiedTrackingType.required(), equipment: Joi.array().items(Joi.string()).default([]), description: Joi.string().allow('').default(''), technique: Joi.string().allow('').default(''), commonMistakes: Joi.array().items(Joi.string()).default([]), contraindications: Joi.array().items(Joi.string()).default([]), variants: Joi.array().items(Joi.string()).default([]) }).messages(commonMessages);
 const validateStudioSchedule = (value: Record<string, unknown>, helpers: Joi.CustomHelpers) => {
-  const durationDays = Number(value.durationDays || 0); const items = (value.scheduledExercises || []) as Array<{ dayNumber: number; startMinute: number; durationMinutes: number }>;
-  if (!items.length) return value;
-  for (const item of items) if (item.dayNumber > durationDays || item.startMinute + item.durationMinutes > 1440) return helpers.message({ custom: 'Lịch bài tập vượt quá ngày hoặc khung 24 giờ.' });
-  const sorted = [...items].sort((a, b) => Number((a as { weekNumber?: number }).weekNumber || 1) - Number((b as { weekNumber?: number }).weekNumber || 1) || a.dayNumber - b.dayNumber || a.startMinute - b.startMinute);
-  for (let index = 1; index < sorted.length; index += 1) { const previous = sorted[index - 1] as { weekNumber?: number; dayNumber: number; startMinute: number; durationMinutes: number }; const current = sorted[index] as typeof previous; if (Number(previous.weekNumber || 1) === Number(current.weekNumber || 1) && previous.dayNumber === current.dayNumber && current.startMinute < previous.startMinute + previous.durationMinutes) return helpers.message({ custom: 'Các bài tập trong cùng ngày không được trùng thời gian.' }); }
+  const durationDays = Number(value.durationDays || 0);
+  const items = (value.scheduledExercises || []) as Array<{ weekNumber?: number; dayNumber: number; startMinute: number; durationMinutes: number }>;
+
+  if (items.length > 0) {
+    for (const item of items) {
+      const dayIndex = ((Number(item.weekNumber || 1) - 1) * 7) + Number(item.dayNumber);
+      if (dayIndex > durationDays || item.startMinute + item.durationMinutes > 1440) {
+        return helpers.message({ custom: 'Lịch bài tập vượt quá ngày hoặc khung 24 giờ.' });
+      }
+    }
+    const sorted = [...items].sort((a, b) => Number((a as { weekNumber?: number }).weekNumber || 1) - Number((b as { weekNumber?: number }).weekNumber || 1) || a.dayNumber - b.dayNumber || a.startMinute - b.startMinute);
+    for (let index = 1; index < sorted.length; index += 1) {
+      const previous = sorted[index - 1] as { weekNumber?: number; dayNumber: number; startMinute: number; durationMinutes: number };
+      const current = sorted[index] as typeof previous;
+      if (Number(previous.weekNumber || 1) === Number(current.weekNumber || 1) && previous.dayNumber === current.dayNumber && current.startMinute < previous.startMinute + previous.durationMinutes) {
+        return helpers.message({ custom: 'Các bài tập trong cùng ngày không được trùng thời gian.' });
+      }
+    }
+  }
   return value;
 };
 const templateFields = { title: Joi.string().trim(), goal: Joi.string(), level: Joi.string(), durationDays: Joi.number().integer().min(1).max(365), muscleGroups: Joi.array().items(Joi.string().trim().min(1).max(100)).max(20), defaultSets: Joi.number().integer().min(1).max(100), defaultReps: Joi.string().trim().allow('').max(100), defaultWeight: Joi.string().trim().allow('').max(100), defaultTempo: Joi.string().trim().allow('').max(100), technicalNotes: Joi.string().trim().allow('').max(2000), scheduledExercises: Joi.array().items(scheduledExercise), unscheduledExercises: Joi.array().items(unscheduledExercise), generatedExercises: Joi.array().items(generatedExercise).max(50), sessions: Joi.array().min(1).items(templateSession) };
@@ -41,7 +55,18 @@ const trackingResult = Joi.alternatives().try(
   Joi.object({ durationMinutes: Joi.number().min(0), reps: Joi.number().integer().min(0), side: Joi.string().valid('LEFT', 'RIGHT', 'BOTH'), discomfort: Joi.number().min(0).max(10) }).min(1).unknown(false),
 );
 const exerciseResult = Joi.object({ exerciseId: objectId, exerciseIndex: Joi.number().integer().min(0).required(), result: trackingResult.required(), notes: Joi.string().allow('') }).unknown(false);
-export const createWorkoutSessionSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), workoutPlanId: objectId.required(), workoutPlanVersion: Joi.number().integer().min(1).required(), sessionIndex: Joi.number().integer().min(0).required(), performedAt: Joi.date().iso().required(), attendance: Joi.string().valid('PRESENT', 'ABSENT', 'LATE').required(), exerciseResults: Joi.array().items(exerciseResult).required(), absenceReason: Joi.string().allow(''), feeling: Joi.string().allow(''), notes: Joi.string().allow(''), idempotencyKey: Joi.string().trim().required() }).messages(commonMessages) };
+const sessionBodyMeasurement = Joi.object({
+  weight: Joi.number().positive(),
+  bodyFatPercentage: Joi.number().min(0).max(100),
+  muscleMass: Joi.number().min(0),
+  measurements: Joi.object({ chest: Joi.number().min(0), waist: Joi.number().min(0), hips: Joi.number().min(0), arm: Joi.number().min(0), thigh: Joi.number().min(0), calf: Joi.number().min(0) }).min(1),
+}).min(1).unknown(false);
+const sessionProgressPhotos = Joi.array().min(1).max(4).items(Joi.object({
+  photoUrl: Joi.string().trim().required(),
+  angle: Joi.string().valid('FRONT', 'SIDE', 'BACK', 'OTHER').required(),
+}).unknown(false));
+// oxlint-disable-next-line unicorn/no-thenable -- Joi's conditional schema API requires the `then` key.
+export const createWorkoutSessionSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), workoutPlanId: objectId.required(), workoutPlanVersion: Joi.number().integer().min(1).required(), sessionIndex: Joi.number().integer().min(0).required(), performedAt: Joi.date().iso().required(), attendance: Joi.string().valid('PRESENT', 'ABSENT', 'LATE').required(), exerciseResults: Joi.array().items(exerciseResult).required(), absenceReason: Joi.string().allow(''), feeling: Joi.string().allow(''), notes: Joi.string().allow(''), idempotencyKey: Joi.string().trim().required(), bodyMeasurement: Joi.when('attendance', { is: 'ABSENT', then: Joi.forbidden(), otherwise: sessionBodyMeasurement }), progressPhotos: Joi.when('attendance', { is: 'ABSENT', then: Joi.forbidden(), otherwise: sessionProgressPhotos }) }).messages(commonMessages) };
 export const updateWorkoutSessionSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ performedAt: Joi.date().iso(), attendance: Joi.string().valid('PRESENT', 'ABSENT', 'LATE'), absenceReason: Joi.string().allow(''), exerciseLogs: Joi.array().items(exerciseLog), feeling: Joi.string().allow(''), notes: Joi.string().allow(''), customerId: Joi.forbidden(), templateId: Joi.forbidden(), planSnapshot: Joi.forbidden(), idempotencyKey: Joi.forbidden() }) };
 export const listWorkoutSessionsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId.required(), attendance: Joi.string().valid('PRESENT', 'ABSENT', 'LATE'), from: Joi.date().iso(), to: Joi.date().iso() }).messages(commonMessages) };
 const circumferenceFields = { chest: Joi.number().min(0), waist: Joi.number().min(0), hips: Joi.number().min(0), arm: Joi.number().min(0), thigh: Joi.number().min(0), calf: Joi.number().min(0) };

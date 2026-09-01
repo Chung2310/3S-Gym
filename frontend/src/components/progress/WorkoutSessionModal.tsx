@@ -22,6 +22,7 @@ export default function WorkoutSessionModal({
     <ProgressModal
       open={Boolean(item)}
       title={`Ghi nhận buổi tập · ${item?.customer.fullName || ''}`}
+      description="Ghi kết quả theo giáo án, chỉ số cơ thể và ảnh để theo dõi tiến độ sau mỗi buổi tập."
       loading={loading}
       onClose={onClose}
     >

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Calendar, CheckCircle2, ClipboardList, Dumbbell, MessageSquare, Sparkles } from 'lucide-react';
+import { Calendar, Camera, CheckCircle2, ClipboardList, Dumbbell, MessageSquare, Scale, Sparkles } from 'lucide-react';
 import { api } from '../../services/api';
+import { buildBodyMeasurementInput } from '../../services/bodyMeasurement';
+import { uploadWorkoutProgressPhotos } from '../../services/progressPhotos';
 import {
   errorMessage,
   TRACKING_TYPE_LABELS,
+  type BodyMeasurementDraft,
   type BodyweightPrescription,
   type BodyweightResult,
   type CardioPrescription,
@@ -18,6 +21,7 @@ import {
   type TrackingPrescription,
   type TrackingResult,
   type TrackingType,
+  type WorkoutProgressPhotoDraft,
 } from '../../types';
 import { useToast } from '../ui/ToastProvider';
 import ProgressEmptyState from './ProgressEmptyState';
@@ -26,6 +30,8 @@ import CardioResultEditor from './tracking/CardioResultEditor';
 import IntervalResultEditor from './tracking/IntervalResultEditor';
 import MobilityResultEditor from './tracking/MobilityResultEditor';
 import StrengthResultEditor from './tracking/StrengthResultEditor';
+import WorkoutMeasurementFields from './WorkoutMeasurementFields';
+import WorkoutProgressPhotoFields from './WorkoutProgressPhotoFields';
 
 interface PlannedExercise {
   exerciseId?: string;
@@ -144,9 +150,14 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
   const [feeling, setFeeling] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [measurement, setMeasurement] = useState<BodyMeasurementDraft>({});
+  const [progressPhotos, setProgressPhotos] = useState<WorkoutProgressPhotoDraft[]>([]);
   const [editedResults, setEditedResults] = useState<Record<number, ExerciseResultDraft[]>>({});
 
-  const exercises = activePlan?.sessions?.[sessionIndex]?.exercises || [];
+  const exercises = useMemo(
+    () => activePlan?.sessions?.[sessionIndex]?.exercises || [],
+    [activePlan, sessionIndex],
+  );
   const initialResults = useMemo(() => exercises.map(materialize), [exercises]);
   const results = editedResults[sessionIndex] || initialResults;
   const hasUnclassified = exercises.some(
@@ -190,6 +201,10 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
               result: stripClientIds(results[exerciseIndex].result),
               ...(results[exerciseIndex].notes ? { notes: results[exerciseIndex].notes } : {}),
             }));
+      const bodyMeasurement =
+        attendance === 'ABSENT' ? undefined : buildBodyMeasurementInput(measurement);
+      const uploadedPhotos =
+        attendance === 'ABSENT' ? [] : await uploadWorkoutProgressPhotos(progressPhotos);
 
       const result = await api.post('/api/workout-sessions', {
         customerId,
@@ -202,6 +217,8 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
         feeling,
         notes,
         idempotencyKey: idempotencyKey.current,
+        ...(bodyMeasurement ? { bodyMeasurement } : {}),
+        ...(uploadedPhotos.length > 0 ? { progressPhotos: uploadedPhotos } : {})
       });
       toast.success(result.message);
       onSaved();
@@ -319,7 +336,32 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
         </section>
       )}
 
-      {/* 3. Cảm nhận & Ghi chú — dùng profile-form-section và profile-form-grid từ index.css */}
+      {/* 3. Chỉ số cơ thể & Ảnh tiến độ */}
+      {attendance !== 'ABSENT' && (
+        <>
+          <section className="profile-form-section">
+            <h3>
+              <Scale size={16} />
+              <span>Chỉ số đo lường</span>
+            </h3>
+            <WorkoutMeasurementFields value={measurement} onChange={setMeasurement} />
+          </section>
+
+          <section className="profile-form-section">
+            <h3>
+              <Camera size={16} />
+              <span>Ảnh tiến độ</span>
+            </h3>
+            <WorkoutProgressPhotoFields
+              value={progressPhotos}
+              onChange={setProgressPhotos}
+              disabled={loading}
+            />
+          </section>
+        </>
+      )}
+
+      {/* 4. Cảm nhận & Ghi chú — dùng profile-form-section và profile-form-grid từ index.css */}
       <section className="profile-form-section">
         <h3>
           <MessageSquare size={16} />
@@ -352,7 +394,7 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
         </div>
       </section>
 
-      {/* 4. Action Buttons — dùng profile-form-actions từ index.css */}
+      {/* 5. Action Buttons — dùng profile-form-actions từ index.css */}
       <div className="profile-form-actions mt-4">
         <button
           className="button button-primary"

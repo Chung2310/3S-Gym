@@ -16,10 +16,21 @@ interface ChartValue {
 }
 
 function MetricChart({ label, unit, values }: { label: string; unit: string; values: ChartValue[] }) {
-  if (values.length < 2) {
+  if (values.length === 0) {
     return (
-      <div aria-label={`Biểu đồ ${label}`} className="rounded-lg bg-white p-6 text-center text-xs font-medium text-slate-400">
-        Không đủ dữ liệu
+      <div aria-label={`Biểu đồ ${label}`} className="rounded-lg bg-white p-6 text-center text-sm text-slate-500">
+        Chưa có dữ liệu
+      </div>
+    );
+  }
+
+  if (values.length === 1) {
+    const first = values[0];
+    return (
+      <div aria-label={`Biểu đồ ${label}`} className="rounded-lg bg-white p-5 text-center">
+        <p className="font-oswald text-2xl font-bold text-primary">{first.value.toLocaleString('vi-VN')} {unit}</p>
+        <p className="mt-1 text-xs font-semibold text-slate-500">Mốc ngày {new Date(first.date).toLocaleDateString('vi-VN')}</p>
+        <p className="mt-3 text-xs leading-5 text-slate-500">Ghi thêm một mốc để hiển thị xu hướng thay đổi.</p>
       </div>
     );
   }
