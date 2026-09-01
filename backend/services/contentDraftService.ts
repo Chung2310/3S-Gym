@@ -13,6 +13,7 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { isAdminRole } from './roles.js';
+import { logger } from '../config/logger.js';
 
 function parseJson(text: string): Record<string, unknown> {
   if (!text || typeof text !== 'string') {
@@ -30,7 +31,9 @@ function parseJson(text: string): Record<string, unknown> {
   const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (codeBlockMatch && codeBlockMatch[1]) {
     try {
-      return JSON.parse(codeBlockMatch[1].trim()) as Record<string, unknown>;
+      const inner = codeBlockMatch[1].trim();
+      const sanitized = inner.replace(/,\s*([}\]])/g, '$1');
+      return JSON.parse(sanitized) as Record<string, unknown>;
     } catch {}
   }
 
@@ -40,10 +43,12 @@ function parseJson(text: string): Record<string, unknown> {
   if (firstBrace !== -1 && lastBrace > firstBrace) {
     try {
       const jsonSubstr = cleaned.substring(firstBrace, lastBrace + 1);
-      return JSON.parse(jsonSubstr) as Record<string, unknown>;
+      const sanitized = jsonSubstr.replace(/,\s*([}\]])/g, '$1');
+      return JSON.parse(sanitized) as Record<string, unknown>;
     } catch {}
   }
 
+  logger.error({ rawPreview: cleaned.slice(0, 500) }, '[contentDraftService] Parse JSON thất bại');
   throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả nội dung có cấu trúc hợp lệ.' });
 }
 
@@ -85,9 +90,10 @@ ${request}
 
 MỆNH LỆNH BẮT BUỘC ĐỐI VỚI CÁC DỮ KIỆN TỪ GIAO DIỆN:
 1. SỐ BỮA ĂN (menu.length): BẮT BUỘC sinh đúng số lượng bữa ăn theo yêu cầu trong mục "YÊU CẦU CHI TIẾT TỪ PT" ở trên (Ví dụ: Yêu cầu 3 bữa -> Sinh đúng 3 bữa; Yêu cầu 4 bữa -> Sinh đúng 4 bữa; Yêu cầu 5 bữa -> Sinh đúng 5 bữa; Yêu cầu 2 bữa -> Sinh đúng 2 bữa).
-2. CALO MỤC TIÊU (targetCalories): BẮT BUỘC gán giá trị "targetCalories" bằng đúng con số Calo mục tiêu được nêu trong yêu cầu của PT. Tổng calories của tất cả các bữa ăn trong mảng "menu" PHẢI CỘNG LẠI CHÍNH XÁC bằng "targetCalories"!
-3. DỊ ỨNG & KIÊNG KỴ: TUYỆT ĐỐI LOẠI BỎ 100% CÁC THỰC PHẨM TRONG DANH SÁCH DỊ ỨNG/KIÊNG KỴ ĐÃ NÊU (Ví dụ: nếu kiêng hải sản thì KHÔNG CÓ tôm, cua, cá biển; nếu ăn chay thì 100% thực vật đậu phụ nấm).
-4. PHONG CÁCH & LỊCH TRÌNH: Phân bổ giờ ăn ("timeSlot") và món ăn phù hợp với lịch tập và phong cách ẩm thực được yêu cầu.
+2. PHẠM VI DỮ LIỆU JSON: Bất kể thời gian áp dụng là 7 ngày, 14 ngày hay 30 ngày, hệ thống của chúng tôi sẽ tự động nhân bản và phân cấp cấu trúc thực đơn này vào từng Tuần và Ngày. Do đó trong mảng "menu", bạn CHỈ CẦN SINH BỘ THỰC ĐƠN MẪU CHUẨN CHO 1 NGÀY (gồm đúng số lượng bữa ăn theo yêu cầu, ví dụ đúng 4 bữa ăn), TUYỆT ĐỐI KHÔNG sinh lặp lại 30 ngày trong JSON để đảm bảo phản hồi nhanh chóng và không bị quá tải token.
+3. CALO MỤC TIÊU (targetCalories): BẮT BUỘC gán giá trị "targetCalories" bằng đúng con số Calo mục tiêu được nêu trong yêu cầu của PT. Tổng calories của tất cả các bữa ăn trong mảng "menu" PHẢI CỘNG LẠI CHÍNH XÁC bằng "targetCalories"!
+4. DỊ ỨNG & KIÊNG KỴ: TUYỆT ĐỐI LOẠI BỎ 100% CÁC THỰC PHẨM TRONG DANH SÁCH DỊ ỨNG/KIÊNG KỴ ĐÃ NÊU (Ví dụ: nếu kiêng hải sản thì KHÔNG CÓ tôm, cua, cá biển; nếu ăn chay thì 100% thực vật đậu phụ nấm).
+5. PHONG CÁCH & LỊCH TRÌNH: Phân bổ giờ ăn ("timeSlot") và món ăn phù hợp với lịch tập và phong cách ẩm thực được yêu cầu.
 
 QUY TẮC CẤU TRÚC MÓN ĂN THỰC TẾ:
 - Mỗi bữa chính (Trưa, Tối) CHỈ GỒM ĐÚNG 3 MÓN CHUẨN CƠM VIỆT: 1 Món đạm chính (Ức gà, Bò, Cá, Heo nạc, Tôm, Trứng) + 1 Món tinh bột (Cơm gạo lứt, Khoai lang, Cơm trắng) + 1 Món canh/rau xanh (Canh cải, Canh bí đỏ, Rau muống luộc, Bông cải).

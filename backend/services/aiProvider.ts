@@ -133,6 +133,7 @@ export async function generateNutritionDraft(context: AiBillingContext | string,
     temperature: 0.1,
     maxTokens: 8192,
     reasoningEffort: 'none',
+    jsonMode: true,
   });
 }
 

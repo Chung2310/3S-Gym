@@ -65,9 +65,23 @@ const planExercise = Joi.object({ name: Joi.string().trim().required(), sets: Jo
 const planSession = Joi.object({ name: Joi.string().trim().required(), exercises: Joi.array().items(planExercise).required() }).messages(commonMessages);
 const workoutFields = { customerId: objectId, title: Joi.string().trim(), sessions: Joi.array().items(planSession), startDate: Joi.date().iso(), endDate: Joi.date().iso(), notes: Joi.string().allow('') };
 export const workoutPlanSchemas = { create: { body: Joi.object({ ...workoutFields, customerId: objectId.required(), title: workoutFields.title.required(), sessions: workoutFields.sessions.required() }).messages(commonMessages) }, update: { body: nonEmptyPatch({ ...workoutFields, ...systemFields }) } } satisfies Record<string, RequestValidationSchema>;
+const validateNutritionDates = (value: Record<string, unknown>, helpers: any) => {
+  if (value.startDate && value.endDate) {
+    const start = new Date(value.startDate as string).getTime();
+    const end = new Date(value.endDate as string).getTime();
+    if (end < start) {
+      return helpers.message({ custom: 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.' });
+    }
+    const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    if (diffDays > 31) {
+      return helpers.message({ custom: 'Khoảng thời gian áp dụng thực đơn tối đa là 1 tháng (31 ngày).' });
+    }
+  }
+  return value;
+};
 const macros = Joi.object({ protein: Joi.number().min(0).required(), carbs: Joi.number().min(0).required(), fat: Joi.number().min(0).required() }).messages(commonMessages);
-const nutritionFields = { customerId: objectId, title: Joi.string().trim(), targetCalories: Joi.number().positive(), macros, bmr: Joi.number().min(0).allow(null), tdee: Joi.number().min(0).allow(null), menu: Joi.array(), notes: Joi.string().allow('', null) };
-export const nutritionPlanSchemas = { create: { body: Joi.object({ ...nutritionFields, customerId: objectId.required(), title: nutritionFields.title.required(), targetCalories: nutritionFields.targetCalories.required(), macros: macros.required() }).messages(commonMessages) }, update: { body: nonEmptyPatch({ ...nutritionFields, ...systemFields }) } } satisfies Record<string, RequestValidationSchema>;
+const nutritionFields = { customerId: objectId, title: Joi.string().trim(), targetCalories: Joi.number().positive(), macros, bmr: Joi.number().min(0).allow(null), tdee: Joi.number().min(0).allow(null), startDate: Joi.date().iso().allow(null), endDate: Joi.date().iso().allow(null), durationDays: Joi.number().integer().min(1).max(31).allow(null), menu: Joi.array(), notes: Joi.string().allow('', null) };
+export const nutritionPlanSchemas = { create: { body: Joi.object({ ...nutritionFields, customerId: objectId.required(), title: nutritionFields.title.required(), targetCalories: nutritionFields.targetCalories.required(), macros: macros.required() }).custom(validateNutritionDates).messages(commonMessages) }, update: { body: nonEmptyPatch({ ...nutritionFields, ...systemFields }).custom(validateNutritionDates).messages(commonMessages) } } satisfies Record<string, RequestValidationSchema>;
 const sessionSchema = Joi.object({ sessionNumber: Joi.number().min(1), name: Joi.string().allow('', null), focus: Joi.string().allow('', null), exercises: Joi.array().items(Joi.string()) }).unknown(true);
 const week = Joi.object({ week: Joi.number().integer().min(1).required(), focus: Joi.string().trim().required(), sessionTargets: Joi.number().min(0).allow(null), sessions: Joi.array().items(sessionSchema) }).messages(commonMessages);
 const phase = Joi.object({ order: Joi.number().integer().min(1).required(), name: Joi.string().trim().required(), durationWeeks: Joi.number().integer().min(1).required(), goals: Joi.array().items(Joi.string()), weeks: Joi.array().items(week) }).messages(commonMessages);

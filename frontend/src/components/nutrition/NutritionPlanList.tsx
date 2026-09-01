@@ -38,6 +38,9 @@ export interface NutritionPlanItem {
     carbs: number;
     fat: number;
   };
+  startDate?: string | null;
+  endDate?: string | null;
+  durationDays?: number | null;
   menu: Array<{
     name: string;
     timeSlot?: string;
@@ -268,52 +271,131 @@ export default function NutritionPlanList({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
           {plans.map((plan) => {
             const isPub = plan.status === 'PUBLISHED';
-            const mealsCount = plan.menu ? plan.menu.length : 0;
+            const isHierarchical = Array.isArray(plan.menu) && plan.menu.length > 0 && Boolean((plan.menu[0] as any)?.days);
+            const weeksCount = isHierarchical ? plan.menu.length : 0;
+            const previewMeals: any[] = isHierarchical
+              ? ((plan.menu[0] as any)?.days?.[0]?.meals || [])
+              : (plan.menu || []);
+            const mealsCount = previewMeals.length;
             const createdDate = plan.createdAt ? new Date(plan.createdAt).toLocaleDateString('vi-VN') : '—';
             const isCurrentPublishing = publishingId === plan._id;
+
+            const now = new Date();
+            const hasDates = Boolean(plan.startDate);
+            const startDateObj = plan.startDate ? new Date(plan.startDate) : null;
+            const endDateObj = plan.endDate
+              ? new Date(plan.endDate)
+              : startDateObj
+              ? new Date(startDateObj.getTime() + ((plan.durationDays || 7) - 1) * 86400000)
+              : null;
+            if (endDateObj) endDateObj.setHours(23, 59, 59, 999);
+            const isCurrentlyActive = Boolean(startDateObj && endDateObj && now >= startDateObj && now <= endDateObj);
+            const isUpcoming = Boolean(startDateObj && now < startDateObj);
 
             return (
               <div
                 key={plan._id}
                 style={{
                   background: '#ffffff',
-                  border: isPub ? '1.5px solid #86efac' : '1px solid #e2e8f0',
+                  border: isCurrentlyActive
+                    ? '2px solid #22c55e'
+                    : isPub
+                    ? '1.5px solid #86efac'
+                    : '1px solid #e2e8f0',
                   borderRadius: '16px',
                   padding: '20px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   gap: '14px',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
+                  boxShadow: isCurrentlyActive ? '0 6px 20px rgba(34, 197, 94, 0.15)' : '0 4px 16px rgba(0,0,0,0.04)',
                   transition: 'all 0.2s ease',
                   position: 'relative',
                 }}
               >
                 <div>
                   {/* Top Status & Date Row */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span
-                      style={{
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        padding: '3px 10px',
-                        borderRadius: '20px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: isPub ? '#f0fdf4' : '#fefce8',
-                        color: isPub ? '#166534' : '#854d0e',
-                        border: isPub ? '1px solid #bbf7d0' : '1px solid #fef08a',
-                      }}
-                    >
-                      {isPub ? <CheckCircle2 size={12} /> : <FileText size={12} />}
-                      {isPub ? 'ĐÃ CÔNG BỐ (Học viên xem được)' : 'BẢN NHÁP (DRAFT)'}
-                    </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          padding: '3px 10px',
+                          borderRadius: '20px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: isPub ? '#f0fdf4' : '#fefce8',
+                          color: isPub ? '#166534' : '#854d0e',
+                          border: isPub ? '1px solid #bbf7d0' : '1px solid #fef08a',
+                        }}
+                      >
+                        {isPub ? <CheckCircle2 size={12} /> : <FileText size={12} />}
+                        {isPub ? 'ĐÃ CÔNG BỐ' : 'BẢN NHÁP'}
+                      </span>
+
+                      {isCurrentlyActive && (
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            border: '1px solid #86efac',
+                          }}
+                        >
+                          🟢 Đang ăn kỳ này
+                        </span>
+                      )}
+                      {isUpcoming && (
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            background: '#e0f2fe',
+                            color: '#0369a1',
+                            border: '1px solid #bae6fd',
+                          }}
+                        >
+                          🔵 Sắp tới
+                        </span>
+                      )}
+                    </div>
 
                     <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Calendar size={12} /> {createdDate}
+                      Tạo: {createdDate}
                     </span>
                   </div>
+
+                  {/* Scheduled Date Range Banner */}
+                  {hasDates && startDateObj && endDateObj && (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: isCurrentlyActive ? '#15803d' : '#0369a1',
+                        background: isCurrentlyActive ? '#f0fdf4' : '#f0f9ff',
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        border: `1px solid ${isCurrentlyActive ? '#bbf7d0' : '#bae6fd'}`,
+                        marginBottom: '10px',
+                      }}
+                    >
+                      <Calendar size={13} />
+                      <span>
+                        Lịch ăn: {startDateObj.toLocaleDateString('vi-VN')} - {endDateObj.toLocaleDateString('vi-VN')}
+                        {' '}({plan.durationDays || Math.round((endDateObj.getTime() - startDateObj.getTime()) / 86400000) + 1} ngày)
+                      </span>
+                    </div>
+                  )}
 
                   {/* Plan Title */}
                   <h3 style={{ margin: '0 0 10px', fontSize: '1.05rem', color: '#003b70', fontWeight: 800, lineHeight: 1.3 }}>
@@ -365,10 +447,11 @@ export default function NutritionPlanList({
                   {/* Meals Preview */}
                   <div style={{ fontSize: '0.78rem', color: '#475569', marginBottom: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 700, color: '#003b70', marginBottom: '4px' }}>
-                      <Layers size={13} color="#00a4e4" /> {mealsCount} Bữa Ăn Trong Ngày:
+                      <Layers size={13} color="#00a4e4" />
+                      {isHierarchical ? `${weeksCount} Tuần (${plan.durationDays || 30} Ngày) • ${mealsCount} Bữa/Ngày:` : `${mealsCount} Bữa Ăn Trong Ngày:`}
                     </div>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {plan.menu?.map((m, idx) => (
+                      {previewMeals.map((m: any, idx: number) => (
                         <span
                           key={idx}
                           style={{
