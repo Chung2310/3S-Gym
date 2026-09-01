@@ -61,4 +61,5 @@ frontend/tests/
 !backend/tests/
 backend/tests/*
 !backend/tests/customerWorkoutStudioParity.test.ts
+!backend/tests/aiWorkoutAvailability.test.ts
 .codex*
