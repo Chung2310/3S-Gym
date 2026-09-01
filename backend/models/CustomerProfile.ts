@@ -23,6 +23,10 @@ const customerProfileSchema = new mongoose.Schema<ICustomerProfile>({
 }, { timestamps: true });
 
 customerProfileSchema.index({ assignedPtId: 1, status: 1, createdAt: -1 });
+customerProfileSchema.index(
+  { email: 1 },
+  { name: 'unique_customer_email', unique: true, partialFilterExpression: { email: { $type: 'string' } } }
+);
 
 const CustomerProfile = mongoose.model<ICustomerProfile>('CustomerProfile', customerProfileSchema);
 export type CustomerProfileDocument = mongoose.HydratedDocument<ICustomerProfile>;

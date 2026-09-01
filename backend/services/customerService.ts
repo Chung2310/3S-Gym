@@ -37,11 +37,49 @@ function customerChanges(payload: CustomerPayload): Record<string, unknown> {
     .map((key) => {
       const value = payload[key];
       if (['email', 'dateOfBirth', 'height', 'initialWeight'].includes(key) && value === '') return [key, null];
+      if (key === 'email' && typeof value === 'string' && value.trim()) return [key, value.trim().toLowerCase()];
       return [key, typeof value === 'string' ? value.trim() : value];
     }));
 }
 
 function notFound() { return new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' }); }
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function assertEmailNotTaken(email: string, excludeCustomerId?: string, excludeUserId?: Types.ObjectId | null) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return;
+
+  const emailRegex = new RegExp(`^${escapeRegex(normalizedEmail)}$`, 'i');
+
+  const customerFilter: QueryFilter<ICustomerProfile> = { email: emailRegex };
+  if (excludeCustomerId) {
+    customerFilter._id = { $ne: new Types.ObjectId(excludeCustomerId) };
+  }
+  const existingCustomer = await CustomerProfile.findOne(customerFilter);
+  if (existingCustomer) {
+    throw new AppError({
+      status: 409,
+      code: ERROR_CODES.DUPLICATE,
+      message: 'Email này đã được sử dụng bởi một khách hàng khác trong hệ thống.',
+    });
+  }
+
+  const userFilter: any = { email: emailRegex };
+  if (excludeUserId) {
+    userFilter._id = { $ne: excludeUserId };
+  }
+  const existingUser = await User.findOne(userFilter);
+  if (existingUser) {
+    throw new AppError({
+      status: 409,
+      code: ERROR_CODES.DUPLICATE,
+      message: 'Email này đã được đăng ký cho một tài khoản trong hệ thống.',
+    });
+  }
+}
 
 function scopedFilter(user: AuthenticatedUser, extra: QueryFilter<ICustomerProfile> = {}): QueryFilter<ICustomerProfile> {
   return isAdminRole(user.role) ? extra : { ...extra, assignedPtId: new Types.ObjectId(user.id) };
@@ -87,12 +125,43 @@ async function getCustomer(user: AuthenticatedUser, id: string) {
 async function createCustomer(user: AuthenticatedUser, payload: CustomerPayload) {
   const assignedPtId = isAdminRole(user.role) ? payload.assignedPtId : user.id;
   if (!assignedPtId) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng chọn PT phụ trách.' });
+
+  if (payload.email && typeof payload.email === 'string' && payload.email.trim()) {
+    await assertEmailNotTaken(payload.email);
+  }
+
   return CustomerProfile.create({ ...customerChanges(payload), assignedPtId: new Types.ObjectId(assignedPtId) });
 }
 
 async function updateCustomer(user: AuthenticatedUser, id: string, payload: CustomerPayload) {
-  const customer = await CustomerProfile.findOneAndUpdate(scopedFilter(user, { _id: id }), customerChanges(payload), { returnDocument: 'after', runValidators: true }).populate('userId', 'username email status role createdAt').lean();
+  const existing = await CustomerProfile.findOne(scopedFilter(user, { _id: id }));
+  if (!existing) throw notFound();
+
+  if (payload.email && typeof payload.email === 'string' && payload.email.trim()) {
+    await assertEmailNotTaken(payload.email, id, existing.userId);
+  }
+
+  const customer = await CustomerProfile.findOneAndUpdate(
+    scopedFilter(user, { _id: id }),
+    customerChanges(payload),
+    { returnDocument: 'after', runValidators: true }
+  ).populate('userId', 'username email status role createdAt').lean();
+
   if (!customer) throw notFound();
+
+  if (existing.userId) {
+    const userUpdates: { email?: string | null; fullName?: string } = {};
+    if (payload.email !== undefined) {
+      userUpdates.email = payload.email && typeof payload.email === 'string' && payload.email.trim() ? payload.email.trim().toLowerCase() : undefined;
+    }
+    if (payload.fullName && payload.fullName.trim()) {
+      userUpdates.fullName = payload.fullName.trim();
+    }
+    if (Object.keys(userUpdates).length > 0) {
+      await User.updateOne({ _id: existing.userId }, userUpdates);
+    }
+  }
+
   return customer;
 }
 
