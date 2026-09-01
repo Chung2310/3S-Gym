@@ -5980,6 +5980,61 @@ a {
   gap: 16px;
 }
 
+.studio-availability-warning {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid #f2c66d;
+  border-radius: 12px;
+  background: #fff9e8;
+  color: #6f4b08;
+}
+
+.studio-availability-warning-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+
+.studio-availability-warning-heading strong {
+  font-size: .82rem;
+}
+
+.studio-availability-warning-heading span {
+  font-size: .72rem;
+}
+
+.studio-availability-warning-list {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.studio-availability-warning-list li {
+  max-width: 100%;
+  padding: 6px 9px;
+  border: 1px solid #f3d792;
+  border-radius: 8px;
+  background: #fff;
+  font-size: .7rem;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 639px) {
+  .studio-availability-warning-heading,
+  .studio-availability-warning-list {
+    display: grid;
+  }
+}
+
 .studio-view-tabs {
   display: flex;
   gap: 4px;

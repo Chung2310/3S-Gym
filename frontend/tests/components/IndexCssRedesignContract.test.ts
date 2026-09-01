@@ -25,6 +25,7 @@ const workoutFlowSources = [
 const workoutStudioPage = readFileSync('frontend/src/pages/pt/WorkoutStudioPage.tsx', 'utf8');
 const workoutStudioControlSources = [
   'frontend/src/components/workout-studio/StudioHeader.tsx',
+  'frontend/src/components/workout-studio/AvailabilityWarningBanner.tsx',
   'frontend/src/components/workout-studio/TemplateMetadataForm.tsx',
   'frontend/src/components/workout-studio/StudioDayNavigator.tsx',
   'frontend/src/components/workout-studio/ExercisePalette.tsx',
@@ -77,7 +78,7 @@ describe('index CSS redesign contract', () => {
   it('keeps Studio controls in semantic index CSS classes', () => {
     expect(workoutStudioControlSources).not.toMatch(/style=\{\{/);
     expect(workoutStudioControlSources).not.toMatch(/(?:sm:|md:|lg:|xl:|min-\[|!gap|!grid|rounded-|bg-|text-slate-|border-slate-|shadow-\[|["'`\s](?:flex|grid|gap-\d+|p-\d+|px-\d+|py-\d+)(?=["'`\s]))/);
-    for (const selector of ['.studio-header', '.studio-save-state', '.studio-metadata', '.studio-period-navigation', '.studio-week-list button', '.studio-day-list button', '.studio-palette', '.studio-exercise-option']) expect(css).toContain(selector);
+    for (const selector of ['.studio-header', '.studio-save-state', '.studio-availability-warning', '.studio-metadata', '.studio-period-navigation', '.studio-week-list button', '.studio-day-list button', '.studio-palette', '.studio-exercise-option']) expect(css).toContain(selector);
     expect(css).toMatch(/\.studio-week-list button,\s*\.studio-day-list button\s*\{[^}]*padding:\s*0 16px;[^}]*white-space:\s*nowrap;/s);
   });
 
