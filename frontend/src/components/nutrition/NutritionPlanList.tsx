@@ -238,7 +238,7 @@ export default function NutritionPlanList({
               : 'Chưa có kế hoạch thực đơn nào'}
           </h3>
           <p style={{ color: '#64748b', fontSize: '0.84rem', maxWidth: '460px', margin: '0 auto 20px', lineHeight: 1.5 }}>
-            Bấm vào nút bên dưới để AI tự động phân tích thể trạng và thiết kế mâm cơm Việt thực tế, chuẩn gym cho học viên.
+            Bấm vào nút bên dưới để AI tự động phân tích thể trạng và thiết kế mâm cơm Việt thực tế cho học viên.
           </p>
           <button
             type="button"

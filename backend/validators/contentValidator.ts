@@ -76,7 +76,7 @@ export const listRoadmapsSchema: RequestValidationSchema = { query: Joi.object({
 const roadmapBaseline = Joi.object().pattern(Joi.string(), Joi.number()).messages(commonMessages);
 const roadmapStrategy = Joi.object().unknown(true);
 export const createRoadmapSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), title: Joi.string().trim().required(), baseline: roadmapBaseline, strategy: roadmapStrategy, phases: phases.required() }).messages(commonMessages) };
-export const updateRoadmapSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ title: Joi.string().trim(), baseline: roadmapBaseline, strategy: roadmapStrategy, phases, customerId: Joi.forbidden(), ...systemFields }) };
+export const updateRoadmapSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ title: Joi.string().trim(), baseline: roadmapBaseline, strategy: roadmapStrategy, phases, customerId: objectId, ...systemFields }) };
 const exerciseVideo = Joi.object({
   title: Joi.string().trim().max(120).required(),
   url: Joi.string().trim().uri({ scheme: ['http', 'https'] }).max(2048).required(),

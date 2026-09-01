@@ -217,7 +217,7 @@ YÊU CẦU THIẾT KẾ THỰC ĐƠN:
 - Phong cách ẩm thực: ${styleObj?.label || 'Món Việt Nam dễ nấu'} (${styleObj?.desc || ''}).
 - Lịch trình sinh hoạt & giờ tập: ${workoutSchedule}.
 - Kiêng kỵ & Dị ứng: ${selectedAllergies.length > 0 ? selectedAllergies.join(', ') : 'Không có dị ứng đặc biệt'}.
-- Ngân sách: ${budgetLevel === 'BUDGET' ? 'Tiết kiệm / Sinh viên' : budgetLevel === 'PREMIUM' ? 'Cao cấp (cá hồi, bò Úc, whey isolate)' : 'Tiêu chuẩn Gym'}.
+- Ngân sách: ${budgetLevel === 'BUDGET' ? 'Tiết kiệm / Sinh viên' : budgetLevel === 'PREMIUM' ? 'Cao cấp (cá hồi, bò Úc, whey isolate)' : 'Tiêu chuẩn'}.
 ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       `.trim();
 

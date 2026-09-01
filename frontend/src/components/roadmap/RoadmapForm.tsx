@@ -29,12 +29,13 @@ import {
   type RoadmapCustomerMeta,
   type RoadmapGoalType,
   type RoadmapPhaseProposal,
+  type RoadmapSessionProposal,
   type RoadmapStrategyProposal,
   type RoadmapWeekProposal,
 } from '../../services/roadmapGenerator';
 import CustomerSelect from '../ui/CustomerSelect';
 import { useToast } from '../ui/ToastProvider';
-import type { Roadmap } from '../../types';
+import type { Roadmap } from '../../types/roadmap';
 
 export type { Roadmap };
 
@@ -355,6 +356,84 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
     );
   };
 
+  const updateSession = (
+    phaseIndex: number,
+    weekIndex: number,
+    sessionIndex: number,
+    change: Partial<RoadmapSessionProposal>
+  ) => {
+    setPhases((current) =>
+      current.map((phase, pIdx) => {
+        if (pIdx !== phaseIndex) return phase;
+        return {
+          ...phase,
+          weeks: phase.weeks.map((week, wIdx) => {
+            if (wIdx !== weekIndex) return week;
+            const updatedSessions: RoadmapSessionProposal[] = (week.sessions || []).map((sess, sIdx) => {
+              if (sIdx !== sessionIndex) return sess;
+              return {
+                sessionNumber: sess.sessionNumber || sIdx + 1,
+                name: sess.name || '',
+                focus: sess.focus || '',
+                exercises: sess.exercises || [],
+                ...change,
+              };
+            });
+            return { ...week, sessions: updatedSessions };
+          }),
+        };
+      })
+    );
+  };
+
+  const addSession = (phaseIndex: number, weekIndex: number) => {
+    setPhases((current) =>
+      current.map((phase, pIdx) => {
+        if (pIdx !== phaseIndex) return phase;
+        return {
+          ...phase,
+          weeks: phase.weeks.map((week, wIdx) => {
+            if (wIdx !== weekIndex) return week;
+            const currentSessions = week.sessions || [];
+            const newSessionNum = currentSessions.length + 1;
+            const newSess: RoadmapSessionProposal = {
+              sessionNumber: newSessionNum,
+              name: `Buổi ${newSessionNum}`,
+              focus: '',
+              exercises: [],
+            };
+            return { ...week, sessions: [...currentSessions, newSess] };
+          }),
+        };
+      })
+    );
+  };
+
+  const removeSession = (phaseIndex: number, weekIndex: number, sessionIndex: number) => {
+    setPhases((current) =>
+      current.map((phase, pIdx) => {
+        if (pIdx !== phaseIndex) return phase;
+        return {
+          ...phase,
+          weeks: phase.weeks.map((week, wIdx) => {
+            if (wIdx !== weekIndex) return week;
+            const filtered = (week.sessions || []).filter((_, sIdx) => sIdx !== sessionIndex);
+            const reindexed: RoadmapSessionProposal[] = filtered.map((s, idx) => ({
+              sessionNumber: idx + 1,
+              name: s.name || '',
+              focus: s.focus || '',
+              exercises: s.exercises || [],
+            }));
+            return {
+              ...week,
+              sessions: reindexed,
+            };
+          }),
+        };
+      })
+    );
+  };
+
   // Submit Handler
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -366,16 +445,30 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
     setLoading(true);
 
     try {
+      const sanitizedPhases = phases.map((phase) => ({
+        ...phase,
+        weeks: phase.weeks.map((week) => ({
+          ...week,
+          sessions: (week.sessions || []).map((sess, idx) => ({
+            sessionNumber: sess.sessionNumber || idx + 1,
+            name: sess.name || `Buổi ${idx + 1}`,
+            focus: sess.focus || '',
+            exercises: (sess.exercises || []).map((ex) => ex.trim()).filter(Boolean),
+          })),
+        })),
+      }));
+
       const payload = {
         customerId,
         title,
         baseline: baseline || {},
         strategy: strategy || {},
-        phases,
+        phases: sanitizedPhases,
       };
 
       if (initialData?._id) {
-        const result = await api.patch<Roadmap>(`/api/roadmaps/${initialData._id}`, payload);
+        const { customerId: _customerId, ...updatePayload } = payload;
+        const result = await api.patch<Roadmap>(`/api/roadmaps/${initialData._id}`, updatePayload);
         toast.success(result.message || 'Cập nhật roadmap thành công.');
       } else {
         const result = await api.post<Roadmap>('/api/roadmaps', payload);
@@ -917,32 +1010,133 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                         </div>
 
                         {/* Sessions inside week */}
-                        {showSessions && week.sessions && week.sessions.length > 0 && (
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px', marginTop: '4px' }}>
-                            {week.sessions.map((sess, sIdx) => (
-                              <div
-                                key={sIdx}
+                        {showSessions && (
+                          <div style={{ marginTop: '6px', display: 'grid', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b' }}>
+                                Các buổi tập trong Tuần {week.week} ({week.sessions?.length || 0} buổi):
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => addSession(phaseIndex, weekIndex)}
                                 style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
                                   background: '#ffffff',
-                                  padding: '8px 10px',
+                                  border: '1px solid #bae6fd',
                                   borderRadius: '6px',
-                                  border: '1px solid #e2e8f0',
-                                  fontSize: '0.78rem',
+                                  color: '#0284c7',
+                                  padding: '3px 8px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
                                 }}
                               >
-                                <strong style={{ color: '#003b70', display: 'block', marginBottom: '2px' }}>
-                                  {sess.name}
-                                </strong>
-                                <div style={{ color: '#64748b', fontSize: '0.72rem', marginBottom: '4px' }}>
-                                  {sess.focus}
-                                </div>
-                                <div style={{ color: '#475569', fontSize: '0.7rem', display: 'grid', gap: '2px' }}>
-                                  {sess.exercises?.map((ex, exIdx) => (
-                                    <div key={exIdx}>• {ex}</div>
-                                  ))}
-                                </div>
+                                <Plus size={11} /> Thêm buổi tập
+                              </button>
+                            </div>
+
+                            {week.sessions && week.sessions.length > 0 ? (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '8px' }}>
+                                {week.sessions.map((sess, sIdx) => (
+                                  <div
+                                    key={sIdx}
+                                    style={{
+                                      background: '#ffffff',
+                                      padding: '10px 12px',
+                                      borderRadius: '8px',
+                                      border: '1px solid #cbd5e1',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '6px',
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                                      <input
+                                        aria-label={`Tên buổi ${sIdx + 1}`}
+                                        value={sess.name || ''}
+                                        placeholder={`Buổi ${sIdx + 1}: Tên ca tập...`}
+                                        onChange={(e) => updateSession(phaseIndex, weekIndex, sIdx, { name: e.target.value })}
+                                        style={{
+                                          fontWeight: 750,
+                                          fontSize: '0.8rem',
+                                          color: '#003b70',
+                                          padding: '4px 6px',
+                                          border: '1px solid #cbd5e1',
+                                          borderRadius: '5px',
+                                          flex: 1,
+                                          boxSizing: 'border-box',
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => removeSession(phaseIndex, weekIndex, sIdx)}
+                                        style={{
+                                          background: 'none',
+                                          border: 'none',
+                                          color: '#94a3b8',
+                                          cursor: 'pointer',
+                                          padding: '3px',
+                                          transition: 'color 0.15s ease',
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                                        title="Xóa buổi tập này"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+
+                                    <input
+                                      aria-label={`Trọng tâm buổi ${sIdx + 1}`}
+                                      value={sess.focus || ''}
+                                      placeholder="Trọng tâm / nhóm cơ (VD: Ngực, vai, RPE 7...)"
+                                      onChange={(e) => updateSession(phaseIndex, weekIndex, sIdx, { focus: e.target.value })}
+                                      style={{
+                                        fontSize: '0.73rem',
+                                        color: '#475569',
+                                        padding: '4px 6px',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '5px',
+                                        width: '100%',
+                                        boxSizing: 'border-box',
+                                      }}
+                                    />
+
+                                    <div>
+                                      <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
+                                        Bài tập (mỗi dòng 1 bài):
+                                      </span>
+                                      <textarea
+                                        aria-label={`Bài tập buổi ${sIdx + 1}`}
+                                        rows={4}
+                                        placeholder="Ví dụ:&#10;Bench Press 3x12&#10;Incline Dumbbell Press 3x12&#10;Plank 3x30s"
+                                        value={sess.exercises?.join('\n') || ''}
+                                        onChange={(e) => updateSession(phaseIndex, weekIndex, sIdx, { exercises: e.target.value.split('\n') })}
+                                        style={{
+                                          fontSize: '0.72rem',
+                                          color: '#334155',
+                                          padding: '5px 6px',
+                                          border: '1px solid #e2e8f0',
+                                          borderRadius: '5px',
+                                          width: '100%',
+                                          boxSizing: 'border-box',
+                                          resize: 'vertical',
+                                          lineHeight: 1.4,
+                                          fontFamily: 'inherit',
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
+                            ) : (
+                              <div style={{ textAlign: 'center', padding: '12px', background: '#ffffff', borderRadius: '6px', border: '1px dashed #cbd5e1', fontSize: '0.75rem', color: '#94a3b8' }}>
+                                Chưa có buổi tập nào trong tuần này. Bấm &quot;Thêm buổi tập&quot; để thiết lập.
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

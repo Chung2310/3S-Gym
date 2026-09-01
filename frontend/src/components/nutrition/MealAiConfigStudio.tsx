@@ -14,14 +14,14 @@ import type { CalculatedNutrition } from '../../types';
 
 export const DIET_STYLES = [
   { id: 'vietnamese_easy', label: '🇻🇳 Món Việt dễ nấu / Tiết kiệm', desc: 'Thực phẩm tươi sống chợ Việt, nhanh 15-20p' },
-  { id: 'eat_clean', label: '🥗 Eat Clean Chuẩn Gym', desc: 'Ức gà, cá áp chảo, gạo lứt, khoai lang, rau luộc' },
+  { id: 'eat_clean', label: '🥗 Eat Clean ', desc: 'Ức gà, cá áp chảo, gạo lứt, khoai lang, rau luộc' },
   { id: 'office_eating_out', label: '🏢 Cơm Văn Phòng / Ăn Ngoài', desc: 'Chọn món tiện lợi quán cơm bình dân' },
   { id: 'high_protein_vegan', label: '🌿 Ăn Chay Giàu Protein', desc: 'Đậu phụ, nấm, hạt dinh dưỡng, yến mạch' },
 ];
 
 export const MEAL_COUNT_OPTIONS = [
   { value: 3, label: '3 Bữa', sub: 'Sáng • Trưa • Tối' },
-  { value: 4, label: '4 Bữa (Chuẩn Gym)', sub: 'Sáng • Trưa • Phụ trước tập • Tối' },
+  { value: 4, label: '4 Bữa ', sub: 'Sáng • Trưa • Phụ trước tập • Tối' },
   { value: 5, label: '5 Bữa', sub: '3 Chính + 2 Phụ Tăng Cơ' },
   { value: 2, label: '2 Bữa (IF 16/8)', sub: 'Bỏ sáng, ăn Trưa & Tối' },
 ];
@@ -219,9 +219,6 @@ export default function MealAiConfigStudio({
                       </strong>
                       {active && <Check size={14} color="#00a4e4" />}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: active ? '#0284c7' : '#64748b', marginTop: '2px' }}>
-                      {opt.sub}
-                    </div>
                   </button>
                 );
               })}
@@ -245,7 +242,7 @@ export default function MealAiConfigStudio({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '8px 12px',
+                      padding: '10px 14px',
                       borderRadius: '8px',
                       border: active ? '1.5px solid #16a34a' : '1px solid #e2e8f0',
                       background: active ? '#f0fdf4' : '#ffffff',
@@ -253,13 +250,8 @@ export default function MealAiConfigStudio({
                       textAlign: 'left',
                     }}
                   >
-                    <div>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: active ? '#166534' : '#1e293b' }}>
-                        {s.label}
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                        {s.desc}
-                      </div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: active ? '#166534' : '#1e293b' }}>
+                      {s.label}
                     </div>
                     {active && <Check size={14} color="#16a34a" />}
                   </button>
@@ -368,7 +360,7 @@ export default function MealAiConfigStudio({
                 }}
               >
                 <option value="BUDGET">Tiết kiệm</option>
-                <option value="STANDARD">Tiêu chuẩn Gym</option>
+                <option value="STANDARD">Tiêu chuẩn</option>
                 <option value="PREMIUM">Cao cấp</option>
               </select>
             </div>

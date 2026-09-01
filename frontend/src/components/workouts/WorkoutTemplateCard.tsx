@@ -26,7 +26,6 @@ export default function WorkoutTemplateCard({ template, onEdit, onArchive, onDel
         <div className="workout-template-copy">
           <p className="workout-template-kicker">Giáo án mẫu · v{template.version}</p>
           <h3 className="workout-template-title">{template.title}</h3>
-          <p className="workout-template-goal">{template.goal}</p>
         </div>
         <span className={`workout-template-status ${template.status === 'ACTIVE' ? 'is-active' : 'is-archived'}`}>
           {statusLabel}
