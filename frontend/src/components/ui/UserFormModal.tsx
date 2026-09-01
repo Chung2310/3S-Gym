@@ -4,7 +4,14 @@ import FormField from './FormField';
 import ProfileFormModal from './ProfileFormModal';
 import { useToast } from './ToastProvider';
 import { api } from '../../services/api';
+import {
+  isSixDigitPassword,
+  PASSWORD_ERROR,
+  PASSWORD_HINT,
+  PASSWORD_INPUT_PATTERN,
+} from '../../services/passwordValidation';
 import { errorMessage, type UserRole } from '../../types';
+import { creatableRoles } from '../../services/roles';
 
 export interface UserFormState {
   avatarUrl: string;
@@ -35,6 +42,7 @@ export interface UserFormModalProps {
   open: boolean;
   user?: UserRecord | null;
   defaultRole?: UserRole;
+  actorRole?: UserRole;
   onClose: () => void;
   onSaved: (data: unknown) => void;
 }
@@ -82,6 +90,7 @@ export default function UserFormModal({
   open,
   user,
   defaultRole = 'PT',
+  actorRole = 'ADMIN',
   onClose,
   onSaved,
 }: UserFormModalProps) {
@@ -91,6 +100,8 @@ export default function UserFormModal({
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const editing = Boolean(user?._id || user?.id);
+  const allowedCreateRoles = useMemo(() => creatableRoles(actorRole), [actorRole]);
+  const safeDefaultRole = allowedCreateRoles.includes(defaultRole) ? defaultRole : allowedCreateRoles[0] || 'PT';
 
   const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -113,10 +124,10 @@ export default function UserFormModal({
 
   useEffect(() => {
     if (!open) return;
-    const next = formFromUser(user, defaultRole);
+    const next = formFromUser(user, safeDefaultRole);
     setForm(next);
     setInitial(next);
-  }, [open, user, defaultRole]);
+  }, [open, user, safeDefaultRole]);
 
   const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(initial), [form, initial]);
   const change = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -128,7 +139,6 @@ export default function UserFormModal({
     event.preventDefault();
     const userId = user?._id || user?.id;
     const payload: Record<string, any> = {
-      role: form.role,
       fullName: form.fullName.trim(),
       phone: form.phone.trim(),
       email: form.email?.trim() || null,
@@ -143,16 +153,17 @@ export default function UserFormModal({
       status: form.status || 'ACTIVE',
     };
 
-    if (form.username?.trim()) {
+    if (!editing) {
+      payload.role = form.role;
       payload.username = form.username.trim();
     }
-    const trimmedPassword = form.password?.trim() || '';
-    if (trimmedPassword.length > 0) {
-      if (trimmedPassword.length < 8) {
-        toast.error('Mật khẩu phải có ít nhất 8 ký tự.');
-        return;
-      }
-      payload.password = trimmedPassword;
+    const password = form.password || '';
+    if ((!editing || password.length > 0) && !isSixDigitPassword(password)) {
+      toast.error(PASSWORD_ERROR);
+      return;
+    }
+    if (password.length > 0) {
+      payload.password = password;
     }
 
     try {
@@ -262,9 +273,11 @@ export default function UserFormModal({
             disabled={editing}
             required
           >
-            <option value="PT">Huấn luyện viên (PT)</option>
-            <option value="ADMIN">Quản trị viên (ADMIN)</option>
-            <option value="CUSTOMER">Khách hàng (CUSTOMER)</option>
+            {(editing ? [form.role] : allowedCreateRoles).map((role) => (
+              <option key={role} value={role}>
+                {role === 'SUPER_ADMIN' ? 'Quản trị cấp cao (SUPER_ADMIN)' : role === 'ADMIN' ? 'Quản trị viên (ADMIN)' : role === 'PT' ? 'Huấn luyện viên (PT)' : 'Khách hàng (CUSTOMER)'}
+              </option>
+            ))}
           </FormField>
 
           <FormField
@@ -399,16 +412,19 @@ export default function UserFormModal({
             label={editing ? 'Mật khẩu mới (bỏ trống nếu không đổi)' : 'Mật khẩu ban đầu'}
             name="password"
             type="password"
-            minLength={8}
+            minLength={6}
+            maxLength={6}
+            inputMode="numeric"
+            pattern={PASSWORD_INPUT_PATTERN}
             autoComplete="new-password"
-            placeholder={editing ? 'Để trống nếu không đổi' : 'Tối thiểu 8 ký tự...'}
+            placeholder={editing ? 'Để trống nếu không đổi; nếu đổi, nhập đúng 6 chữ số' : PASSWORD_HINT}
             value={form.password}
             onChange={change}
             required={!editing}
           />
-          <FormField label="Trạng thái" name="status" as="select" value={form.status} onChange={change}>
+          <FormField label="Trạng thái" name="status" as="select" value={form.status} onChange={change} disabled={form.role === 'SUPER_ADMIN'}>
             <option value="ACTIVE">Hoạt động</option>
-            <option value="LOCKED">Đã khóa</option>
+            {form.role !== 'SUPER_ADMIN' && <option value="LOCKED">Đã khóa</option>}
           </FormField>
         </div>
       </section>

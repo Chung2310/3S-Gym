@@ -1,6 +1,7 @@
 import FeatureFlag, { FEATURE_KEYS, type FeatureKey } from '../models/FeatureFlag.js';
 import type { UserRole } from '../models/User.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { hasRequiredRole } from './roles.js';
 
 interface UpdateFeaturePayload {
   enabled: boolean;
@@ -19,7 +20,7 @@ async function updateFeature(key: FeatureKey, payload: UpdateFeaturePayload) {
 async function isEnabled(key: FeatureKey, user: AuthenticatedUser): Promise<boolean> {
   const flag = await FeatureFlag.findOne({ key }).lean();
   if (!flag?.enabled) return false;
-  if (flag.roles.includes(user.role)) return true;
+  if (hasRequiredRole(user.role, flag.roles)) return true;
   return flag.pilotUserIds.some((id) => String(id) === user.id);
 }
 

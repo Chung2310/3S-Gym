@@ -1,8 +1,9 @@
 import mongoose, { Schema } from 'mongoose';
+import type { UserRole } from './User.js';
 
 export interface IAuditLog {
   actorId: mongoose.Types.ObjectId;
-  actorRole: 'ADMIN' | 'PT' | 'CUSTOMER';
+  actorRole: UserRole;
   action: string;
   resourceType: string;
   resourceId: string;
@@ -12,7 +13,7 @@ export interface IAuditLog {
 
 const auditLogSchema = new Schema<IAuditLog>({
   actorId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  actorRole: { type: String, enum: ['ADMIN', 'PT', 'CUSTOMER'], required: true },
+  actorRole: { type: String, enum: ['SUPER_ADMIN', 'ADMIN', 'PT', 'CUSTOMER'], required: true },
   action: { type: String, required: true, index: true },
   resourceType: { type: String, required: true, index: true },
   resourceId: { type: String, required: true, index: true },

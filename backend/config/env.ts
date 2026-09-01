@@ -35,6 +35,9 @@ export interface AppEnv {
   AI_RATE_LIMIT_PER_MINUTE: number;
   OCR_MAX_FILE_BYTES: number;
   APP_URL?: string;
+  SUPER_ADMIN_USERNAME: string;
+  SUPER_ADMIN_PASSWORD: string;
+  SUPER_ADMIN_FULL_NAME?: string;
   VNPAY_TMN_CODE?: string;
   VNPAY_HASH_SECRET?: string;
   VNPAY_PAYMENT_URL?: string;
@@ -54,10 +57,14 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
   const nodeEnvironment: NodeEnvironment = source.NODE_ENV === 'production'
     ? 'production'
     : source.NODE_ENV === 'test' ? 'test' : 'development';
-  const missing = nodeEnvironment === 'production'
-    ? ['MONGODB_URI', 'JWT_SECRET'].filter((key) => !source[key]?.trim())
-    : [];
+  const requiredKeys = nodeEnvironment === 'production'
+    ? ['MONGODB_URI', 'JWT_SECRET', 'SUPER_ADMIN_USERNAME', 'SUPER_ADMIN_PASSWORD']
+    : nodeEnvironment === 'test' ? [] : ['SUPER_ADMIN_USERNAME', 'SUPER_ADMIN_PASSWORD'];
+  const missing = requiredKeys.filter((key) => !source[key]?.trim());
   if (missing.length) throw new Error(`Thiếu biến môi trường bắt buộc: ${missing.join(', ')}`);
+  if (source.SUPER_ADMIN_PASSWORD && !/^\d{6}$/.test(source.SUPER_ADMIN_PASSWORD)) {
+    throw new Error('SUPER_ADMIN_PASSWORD phải gồm đúng 6 chữ số.');
+  }
 
   const jwtSecret = source.JWT_SECRET?.trim()
     || (nodeEnvironment === 'test' ? 'secret_key' : '');
@@ -85,6 +92,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     AI_RATE_LIMIT_PER_MINUTE: APP_POLICY.AI_RATE_LIMIT_PER_MINUTE,
     OCR_MAX_FILE_BYTES: APP_POLICY.OCR_MAX_FILE_BYTES,
     APP_URL: optional('APP_URL'),
+    SUPER_ADMIN_USERNAME: optional('SUPER_ADMIN_USERNAME') || '',
+    SUPER_ADMIN_PASSWORD: optional('SUPER_ADMIN_PASSWORD') || '',
+    SUPER_ADMIN_FULL_NAME: optional('SUPER_ADMIN_FULL_NAME'),
     VNPAY_TMN_CODE: optional('VNPAY_TMN_CODE'),
     VNPAY_HASH_SECRET: optional('VNPAY_HASH_SECRET'),
     VNPAY_PAYMENT_URL: optional('VNPAY_PAYMENT_URL'),

@@ -1,19 +1,20 @@
 import app from './app.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
-import { ensureBootstrapAdmin } from './services/userService.js';
+import { ensureBootstrapSuperAdmin } from './services/userService.js';
 import { initTelemetry, flushTelemetry } from './services/telemetryService.js';
 import { createShutdown } from './services/lifecycleService.js';
 import { logger } from './config/logger.js';
 import { APP_POLICY, getEnv } from './config/env.js';
-const PORT = getEnv().PORT;
+const env = getEnv();
+const PORT = env.PORT;
 
 async function startServer() {
     try {
         await connectDatabase();
-        await ensureBootstrapAdmin({
-            username: process.env.ADMIN_USERNAME,
-            password: process.env.ADMIN_PASSWORD,
-            fullName: process.env.ADMIN_FULL_NAME || 'Quản lý 3S',
+        await ensureBootstrapSuperAdmin({
+            username: env.SUPER_ADMIN_USERNAME,
+            password: env.SUPER_ADMIN_PASSWORD,
+            fullName: env.SUPER_ADMIN_FULL_NAME || 'Quản lý cấp cao 3S',
         });
         await app.frontendReady;
         initTelemetry();

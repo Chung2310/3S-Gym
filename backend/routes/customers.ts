@@ -77,7 +77,7 @@ const packageListValidator = (req: Request): ValidationIssue[] => {
 function accountValidator(req: Request): ValidationIssue[] {
   const errors = idValidator(req);
   if (typeof req.body.username !== 'string' || req.body.username.trim().length < 3) errors.push({ field: 'username', message: 'Tên đăng nhập phải có ít nhất 3 ký tự.' });
-  if (typeof req.body.password !== 'string' || req.body.password.length < 8) errors.push({ field: 'password', message: 'Mật khẩu phải có ít nhất 8 ký tự.' });
+  if (typeof req.body.password !== 'string' || !/^\d{6}$/.test(req.body.password)) errors.push({ field: 'password', message: 'Mật khẩu phải gồm đúng 6 chữ số.' });
   if (req.body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.body.email)) errors.push({ field: 'email', message: 'Email không đúng định dạng.' });
   return errors;
 }

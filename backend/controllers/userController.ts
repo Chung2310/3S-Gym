@@ -12,8 +12,8 @@ const create = asyncHandler(async (req, res) =>
   success(res, {
     status: 201,
     message: 'Tạo tài khoản thành công.',
-    data: publicUser(await userService.createUser(req.body)),
-  }),
+    data: publicUser(await userService.createManagedUser(req.user!, req.body)),
+  })
 );
 
 const list = asyncHandler(async (req, res) => {
@@ -28,12 +28,12 @@ const list = asyncHandler(async (req, res) => {
 const update = asyncHandler(async (req, res) =>
   success(res, {
     message: 'Cập nhật tài khoản thành công.',
-    data: publicUser(await userService.updateUser(String(req.params.id), req.body)),
-  }),
+    data: publicUser(await userService.updateManagedUser(req.user!, String(req.params.id), req.body)),
+  })
 );
 
 const remove = asyncHandler(async (req, res) => {
-  await userService.deleteUser(String(req.params.id));
+  await userService.deleteManagedUser(req.user!, String(req.params.id));
   return success(res, { message: 'Xóa tài khoản thành công.', data: null });
 });
 

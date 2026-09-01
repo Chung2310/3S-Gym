@@ -21,12 +21,5 @@ const router = createRouter('inbody', inbodySchemas);
 });
 
 router.patch('/:id/confirm-ocr', authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), validate(confirmInbodyOcrSchema), confirm);
-/* legacy validator retained temporarily */ void ((req: Request) => {
-  const errors = [];
-  if (!mongoose.isValidObjectId(req.params.id)) errors.push({ field: 'id', message: 'MÃ£ InBody khÃ´ng há»£p lá»‡.' });
-  if (req.body.weight != null && (typeof req.body.weight !== 'number' || req.body.weight <= 0)) errors.push({ field: 'weight', message: 'CÃ¢n náº·ng pháº£i lá»›n hÆ¡n 0.' });
-  if (req.body.bodyFatPercentage != null && (typeof req.body.bodyFatPercentage !== 'number' || req.body.bodyFatPercentage < 0 || req.body.bodyFatPercentage > 100)) errors.push({ field: 'bodyFatPercentage', message: 'Pháº§n trÄƒm má»¡ pháº£i tá»« 0 Ä‘áº¿n 100.' });
-  return errors;
-});
 
 export default router;

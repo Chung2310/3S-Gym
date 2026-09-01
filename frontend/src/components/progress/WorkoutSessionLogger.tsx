@@ -3,6 +3,7 @@ import { Calendar, Camera, CheckCircle2, ClipboardList, Dumbbell, MessageSquare,
 import { api } from '../../services/api';
 import { buildBodyMeasurementInput } from '../../services/bodyMeasurement';
 import { uploadWorkoutProgressPhotos } from '../../services/progressPhotos';
+import { localWorkoutSessionTime, workoutSessionIso } from '../../services/workoutSessionTime';
 import {
   errorMessage,
   TRACKING_TYPE_LABELS,
@@ -145,7 +146,7 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
   const idempotencyKey = useRef(key());
   const submitting = useRef(false);
   const [sessionIndex, setSessionIndex] = useState(0);
-  const [performedAt, setPerformedAt] = useState(() => new Date().toISOString().slice(0, 10));
+  const [recordedAt, setRecordedAt] = useState(localWorkoutSessionTime);
   const [attendance, setAttendance] = useState<'PRESENT' | 'LATE' | 'ABSENT'>('PRESENT');
   const [feeling, setFeeling] = useState('');
   const [notes, setNotes] = useState('');
@@ -167,7 +168,8 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
   useEffect(() => {
     setSessionIndex(0);
     setEditedResults({});
-  }, [activePlan?._id, activePlan?.version]);
+    setRecordedAt(localWorkoutSessionTime());
+  }, [customerId, activePlan?._id, activePlan?.version]);
 
   if (!activePlan) {
     return (
@@ -189,6 +191,11 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (submitting.current || (attendance !== 'ABSENT' && hasUnclassified)) return;
+    const performedAt = workoutSessionIso(recordedAt.recordedDate, recordedAt.recordedTime);
+    if (!performedAt) {
+      toast.error('Ngày hoặc giờ ghi nhận không hợp lệ.');
+      return;
+    }
     submitting.current = true;
     setLoading(true);
     try {
@@ -230,7 +237,6 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
       setLoading(false);
     }
   };
-
   return (
     <form aria-label="Ghi nhận buổi tập" onSubmit={submit}>
       {/* 1. Thông tin ca tập — dùng profile-form-section và profile-form-grid từ index.css */}
@@ -268,13 +274,26 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
           </div>
 
           <div className="field">
-            <label htmlFor="performed-at">Ngày tập</label>
+            <label htmlFor="performed-date">Ngày tập</label>
             <input
-              id="performed-at"
-              aria-label="Ngày tập"
+              id="performed-date"
+              aria-label="Ngày ghi nhận"
               type="date"
-              value={performedAt}
-              onChange={(event) => setPerformedAt(event.target.value)}
+              value={recordedAt.recordedDate}
+              onChange={(event) => setRecordedAt((current) => ({ ...current, recordedDate: event.target.value }))}
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="performed-time">Giờ tập</label>
+            <input
+              id="performed-time"
+              aria-label="Giờ ghi nhận"
+              type="time"
+              step={60}
+              value={recordedAt.recordedTime}
+              onChange={(event) => setRecordedAt((current) => ({ ...current, recordedTime: event.target.value }))}
               required
             />
           </div>

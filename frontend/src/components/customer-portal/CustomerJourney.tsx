@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { CalendarDays, Camera, ClipboardList, Clock3, Dumbbell, MapPin } from 'lucide-react';
 import type { CustomerJourneyDto } from '../../types';
 import AchievementList from '../progress/AchievementList';
@@ -182,17 +182,41 @@ function PlansPanel({ journey }: { journey: CustomerJourneyDto }) {
   );
 }
 
-function JourneyPanel({ activeTab, journey }: { activeTab: JourneyTab; journey: CustomerJourneyDto }) {
+function JourneyPanel({
+  activeTab,
+  journey,
+  reportComposer,
+  dailyReportContent,
+}: {
+  activeTab: JourneyTab;
+  journey: CustomerJourneyDto;
+  reportComposer?: ReactNode;
+  dailyReportContent?: ReactNode;
+}) {
   if (activeTab === 'Tổng quan') return <ProgressOverview analytics={journey.analytics} />;
   if (activeTab === 'Lịch & buổi tập') return <SchedulePanel journey={journey} />;
   if (activeTab === 'Chỉ số cơ thể') return <ProgressCharts measurements={journey.measurements} />;
   if (activeTab === 'Thành tích') return <AchievementList achievements={journey.analytics.achievements} />;
   if (activeTab === 'Ảnh tiến độ') return <PhotosPanel journey={journey} />;
   if (activeTab === 'Giáo án') return <PlansPanel journey={journey} />;
-  return <CustomerProgress reports={journey.reports} />;
+  return (
+    <div className="space-y-4">
+      {reportComposer}
+      {dailyReportContent}
+      <CustomerProgress reports={journey.reports} />
+    </div>
+  );
 }
 
-export default function CustomerJourney({ journey }: { journey: CustomerJourneyDto }) {
+export default function CustomerJourney({
+  journey,
+  reportComposer,
+  dailyReportContent,
+}: {
+  journey: CustomerJourneyDto;
+  reportComposer?: ReactNode;
+  dailyReportContent?: ReactNode;
+}) {
   const [activeTab, setActiveTab] = useState<JourneyTab>('Tổng quan');
   const tabsId = useId();
   const activeIndex = tabs.indexOf(activeTab);
@@ -228,7 +252,12 @@ export default function CustomerJourney({ journey }: { journey: CustomerJourneyD
         role="tabpanel"
         aria-labelledby={`${tabsId}-tab-${activeIndex}`}
       >
-        <JourneyPanel activeTab={activeTab} journey={journey} />
+        <JourneyPanel
+          activeTab={activeTab}
+          journey={journey}
+          reportComposer={reportComposer}
+          dailyReportContent={dailyReportContent}
+        />
       </div>
     </section>
   );

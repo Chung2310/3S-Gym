@@ -1,5 +1,6 @@
 import { Calendar, Dumbbell, MessageSquare, StickyNote } from 'lucide-react';
 import type { WorkoutSessionDto } from '../../types';
+import { formatWorkoutSessionTime } from '../../services/workoutSessionTime';
 import { exerciseRpes, exerciseVolume } from '../../utils/sessionTracking';
 import TrackingResultSummary from './tracking/TrackingResultSummary';
 
@@ -20,7 +21,7 @@ export default function WorkoutSessionDetail({ session }: { session: WorkoutSess
           </h3>
           <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mt-1">
             <Calendar size={13} className="text-slate-400" />
-            <span>{new Date(session.performedAt).toLocaleDateString('vi-VN')}</span>
+            <span>{formatWorkoutSessionTime(session.performedAt)}</span>
           </div>
         </div>
 

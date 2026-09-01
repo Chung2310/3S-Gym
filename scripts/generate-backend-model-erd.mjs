@@ -21,7 +21,7 @@ const models = [
     F('avatarUrl', 'String'), F('dateOfBirth', 'Date?'), F('gender', 'Enum', 'MALE | FEMALE | OTHER'),
     F('phone', 'String', 'unique sparse'), F('address', 'String'), F('specialization', 'String'),
     F('yearsOfExperience', 'Number', '0..80'), F('certificates', 'String[]'), F('bio', 'String', 'max 1000'),
-    F('password', 'String', 'required'), F('role', 'Enum', 'ADMIN | PT | CUSTOMER'), F('status', 'Enum', 'ACTIVE | LOCKED'),
+    F('password', 'String', 'required'), F('role', 'Enum', 'SUPER_ADMIN | ADMIN | PT | CUSTOMER'), F('status', 'Enum', 'ACTIVE | LOCKED'),
   ]),
   M('CustomerProfile', 'CORE', [
     F('userId', 'ObjectId?', 'ref User · unique sparse'), F('assignedPtId', 'ObjectId', 'ref User · required index'),
@@ -35,7 +35,7 @@ const models = [
     F('pilotUserIds', 'ObjectId[]', 'ref User'),
   ]),
   M('AuditLog', 'SYSTEM', [
-    F('actorId', 'ObjectId', 'ref User · required index'), F('actorRole', 'Enum', 'ADMIN | PT | CUSTOMER'),
+    F('actorId', 'ObjectId', 'ref User · required index'), F('actorRole', 'Enum', 'SUPER_ADMIN | ADMIN | PT | CUSTOMER'),
     F('action', 'String', 'required index'), F('resourceType', 'String', 'required index'),
     F('resourceId', 'String', 'required index · soft ref'), F('customerId', 'ObjectId?', 'ref CustomerProfile · index'),
     F('metadata', 'Mixed'),

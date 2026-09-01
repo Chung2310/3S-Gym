@@ -3,7 +3,7 @@ import type { Session, User, UserRole } from '../types';
 function isUser(value: unknown): value is User {
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as { username?: unknown; role?: unknown };
-  return typeof candidate.username === 'string' && ['ADMIN', 'PT', 'CUSTOMER'].includes(candidate.role as UserRole);
+  return typeof candidate.username === 'string' && ['SUPER_ADMIN', 'ADMIN', 'PT', 'CUSTOMER'].includes(candidate.role as UserRole);
 }
 
 function getCookie(name: string): string | null {

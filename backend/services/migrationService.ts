@@ -16,6 +16,7 @@ import User from '../models/User.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import { downExerciseTrackingTypes, upExerciseTrackingTypes } from '../migrations/002-exercise-tracking-types.js';
+import { downSuperAdminRole, upSuperAdminRole } from '../migrations/003-super-admin-role.js';
 import { AI_TASK_TYPES, type AiTaskType } from './creditTypes.js';
 import { ensureWallet } from './creditWalletService.js';
 
@@ -143,6 +144,12 @@ const migrations: MigrationDefinition[] = [
     name: 'Add explicit tracking types to legacy exercises and workout plans',
     up: upExerciseTrackingTypes as MigrationDefinition['up'],
     down: downExerciseTrackingTypes,
+  },
+  {
+    version: '003-super-admin-role',
+    name: 'Enforce a single SUPER_ADMIN account',
+    up: upSuperAdminRole as MigrationDefinition['up'],
+    down: downSuperAdminRole,
   },
 ];
 

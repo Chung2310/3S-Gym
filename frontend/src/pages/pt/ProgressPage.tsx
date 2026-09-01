@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CircleAlert, TrendingUp } from 'lucide-react';
 import ProgressDashboard from '../../components/progress/ProgressDashboard';
 import ProgressDetailModal from '../../components/progress/ProgressDetailModal';
@@ -7,6 +7,7 @@ import ProgressSkeleton from '../../components/progress/ProgressSkeleton';
 import WorkoutSessionModal from '../../components/progress/WorkoutSessionModal';
 import { useToast } from '../../components/ui/ToastProvider';
 import { api } from '../../services/api';
+import { buildDailyProgressGroups } from '../../services/dailyProgressReports';
 import { errorMessage, type CustomerJourneyDto, type CustomerProgressOverview } from '../../types';
 
 export default function ProgressPage() {
@@ -18,6 +19,10 @@ export default function ProgressPage() {
   const [detailItem, setDetailItem] = useState<CustomerProgressOverview | null>(null);
   const [workoutItem, setWorkoutItem] = useState<CustomerProgressOverview | null>(null);
   const [journey, setJourney] = useState<CustomerJourneyDto | null>(null);
+  const dailyReportGroups = useMemo(
+    () => journey ? buildDailyProgressGroups(journey) : [],
+    [journey],
+  );
 
   const loadOverview = useCallback(async () => {
     setOverviewError(null);
@@ -57,6 +62,16 @@ export default function ProgressPage() {
       toast.error(errorMessage(caught));
     } finally {
       setJourneyLoading(false);
+    }
+  };
+
+  const refreshDetail = async () => {
+    if (!detailItem) return;
+    try {
+      const result = await api.get<CustomerJourneyDto>(`/api/customers/${detailItem.customer._id}/journey`);
+      setJourney(result.data);
+    } catch (caught) {
+      toast.error(errorMessage(caught));
     }
   };
 
@@ -105,8 +120,10 @@ export default function ProgressPage() {
       <ProgressDetailModal
         item={detailItem}
         journey={detailItem ? journey : null}
+        dailyReportGroups={detailItem ? dailyReportGroups : []}
         loading={journeyLoading}
         onClose={close}
+        onRefresh={() => void refreshDetail()}
       />
       <WorkoutSessionModal
         item={workoutItem}
