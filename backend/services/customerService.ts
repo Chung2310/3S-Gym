@@ -22,7 +22,7 @@ export interface CustomerPayload {
   gender?: ICustomerProfile['gender']; height?: number | ''; initialWeight?: number | '';
   medicalNotes?: string; initialGoal?: string; internalNotes?: string; status?: ICustomerProfile['status'];
 }
-interface CustomerQuery { page?: unknown; limit?: unknown; ptId?: unknown; status?: unknown; keyword?: unknown; sort?: unknown; order?: unknown }
+interface CustomerQuery { page?: unknown; limit?: unknown; ptId?: unknown; status?: unknown; keyword?: unknown; search?: unknown; sort?: unknown; order?: unknown }
 interface PackagePayload { name?: string; totalSessions?: number; startDate?: string | Date; endDate?: string | Date; status?: 'ACTIVE' | 'EXPIRED' | 'COMPLETED' | 'CANCELLED' }
 interface PackageQuery { page?: unknown; limit?: unknown; status?: unknown }
 
@@ -51,12 +51,18 @@ async function listCustomers(user: AuthenticatedUser, query: CustomerQuery) {
   const page = Number(query.page || 1);
   const limit = Number(query.limit || 20);
   const filter = scopedFilter(user);
-  if (isAdminRole(user.role) && typeof query.ptId === 'string') filter.assignedPtId = new Types.ObjectId(query.ptId);
-  if (query.status === 'ACTIVE' || query.status === 'INACTIVE' || query.status === 'LEAD') filter.status = query.status;
-  if (typeof query.keyword === 'string' && query.keyword) {
-    const escaped = query.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (isAdminRole(user.role) && typeof query.ptId === 'string' && query.ptId.trim()) {
+    filter.assignedPtId = new Types.ObjectId(query.ptId.trim());
+  }
+  if (query.status === 'ACTIVE' || query.status === 'INACTIVE' || query.status === 'LEAD') {
+    filter.status = query.status;
+  }
+  const rawKeyword = typeof query.keyword === 'string' ? query.keyword.trim() : typeof query.search === 'string' ? query.search.trim() : '';
+  if (rawKeyword) {
+    const escaped = rawKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { fullName: { $regex: escaped, $options: 'i' } }, { phone: { $regex: escaped, $options: 'i' } },
+      { fullName: { $regex: escaped, $options: 'i' } },
+      { phone: { $regex: escaped, $options: 'i' } },
       { email: { $regex: escaped, $options: 'i' } },
     ];
   }

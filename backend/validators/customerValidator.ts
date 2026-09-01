@@ -9,7 +9,17 @@ const customerFields = {
   initialGoal: Joi.string().max(1000).allow(''), internalNotes: Joi.string().max(2000).allow(''),
   status: Joi.string().valid('ACTIVE', 'INACTIVE', 'LEAD'), assignedPtId: objectId,
 };
-export const listCustomersSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, status: Joi.string().valid('ACTIVE', 'INACTIVE', 'LEAD'), ptId: objectId, keyword: Joi.string().allow('') }).messages(commonMessages) };
+export const listCustomersSchema: RequestValidationSchema = {
+  query: Joi.object({
+    ...paginationQuery,
+    status: Joi.string().valid('ACTIVE', 'INACTIVE', 'LEAD').allow('', null),
+    ptId: objectId.allow('', null),
+    keyword: Joi.string().allow('', null),
+    search: Joi.string().allow('', null),
+    sort: Joi.string().allow('', null),
+    order: Joi.string().valid('asc', 'desc').allow('', null),
+  }).messages(commonMessages),
+};
 export const customerIdSchema: RequestValidationSchema = { params: idParams() };
 export const createCustomerSchema: RequestValidationSchema = { body: Joi.object({ ...customerFields, fullName: customerFields.fullName.required(), phone: customerFields.phone.required() }).messages(commonMessages) };
 export const updateCustomerSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...customerFields, assignedPtId: Joi.forbidden(), userId: Joi.forbidden() }) };
