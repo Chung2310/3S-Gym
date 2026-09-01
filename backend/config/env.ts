@@ -12,6 +12,7 @@ export const APP_POLICY = Object.freeze({
   OCR_MAX_FILE_BYTES: 8_388_608,
   SHUTDOWN_TIMEOUT_MS: 10_000,
   AI_MODEL: 'deepseek/deepseek-v4-flash',
+  OCR_MODEL: 'qwen/qwen3-vl-32b-instruct',
   VECTOR_SEARCH_INDEX: 'knowledge-vector',
   LOG_MAX_DEPTH: 4,
   LOG_MAX_COLLECTION_ITEMS: 25,
