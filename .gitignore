@@ -64,6 +64,7 @@ backend/tests/*
 !backend/tests/aiWorkoutAvailability.test.ts
 !backend/tests/aiWorkoutService.test.ts
 !backend/tests/aiWorkoutApi.test.ts
+!backend/tests/progressReportInBody.test.ts
 !frontend/tests/
 frontend/tests/*
 !frontend/tests/services/
