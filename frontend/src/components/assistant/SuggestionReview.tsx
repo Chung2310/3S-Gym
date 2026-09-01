@@ -218,9 +218,8 @@ export default function SuggestionReview({
         <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 600 }}>Tài liệu tham khảo:</span>
           {item.citations.map((citation) => (
-            <a
+            <span
               key={citation.documentId}
-              href={`/pt/knowledge-search?q=${citation.documentId}`}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -230,14 +229,13 @@ export default function SuggestionReview({
                 background: '#f1f5f9',
                 border: '1px solid #e2e8f0',
                 fontSize: '0.76rem',
-                color: '#0284c7',
-                textDecoration: 'none',
+                color: '#475569',
                 fontWeight: 500,
               }}
             >
               <FileText size={12} />
               {citation.title}
-            </a>
+            </span>
           ))}
         </div>
       )}

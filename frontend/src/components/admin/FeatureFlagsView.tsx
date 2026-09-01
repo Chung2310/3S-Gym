@@ -27,10 +27,6 @@ const defaultFeatureDefinitions: Record<string, { name: string; description: str
     name: 'Chăm sóc & Cảnh báo (Care)',
     description: 'Quản lý tác vụ chăm sóc khách hàng, nhắc nhở và hàng đợi Today.',
   },
-  KNOWLEDGE_BASE: {
-    name: 'Kho Tri thức & Tra cứu',
-    description: 'Tìm kiếm tài liệu bài tập, dinh dưỡng và trợ lý tra cứu thông minh.',
-  },
   PT_ASSISTANT: {
     name: 'Trợ lý PT Thông minh',
     description: 'Hỗ trợ gợi ý giáo án, giải đáp thắc mắc chuyên môn trong quá trình huấn luyện.',

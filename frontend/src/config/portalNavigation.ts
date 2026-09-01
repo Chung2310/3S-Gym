@@ -9,15 +9,22 @@ import {
   Map,
   Ruler,
   Salad,
-  Search,
   ShieldCheck,
   Users,
   WalletCards,
 } from 'lucide-react';
 import type { FeatureKey, FeatureState, User, UserRole } from '../types';
 
-export type NavigationSection = 'Tổng quan' | 'Vận hành' | 'Tri thức & trợ lý' | 'Tài khoản';
-export interface NavigationItem { path: string; label: string; section: NavigationSection; icon: LucideIcon; roles: UserRole[]; feature?: FeatureKey; matchChildren?: boolean }
+export type NavigationSection = 'Tổng quan' | 'Vận hành' | 'Trợ lý AI' | 'Tài khoản';
+export interface NavigationItem {
+  path: string;
+  label: string;
+  section: NavigationSection;
+  icon: LucideIcon;
+  roles: UserRole[];
+  feature?: FeatureKey;
+  matchChildren?: boolean;
+}
 
 export const portalNavigation: NavigationItem[] = [
   { path: '/wallet', label: 'Ví credit', section: 'Tài khoản', icon: WalletCards, roles: ['ADMIN', 'PT', 'CUSTOMER'], matchChildren: true },
@@ -26,7 +33,6 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/admin/customers', label: 'Tất cả khách hàng', section: 'Vận hành', icon: Users, roles: ['ADMIN'], matchChildren: true },
   { path: '/admin/transfers', label: 'Điều chuyển khách', section: 'Vận hành', icon: ArrowRightLeft, roles: ['ADMIN'], matchChildren: true },
   { path: '/admin/users', label: 'Quản lý tài khoản', section: 'Vận hành', icon: ShieldCheck, roles: ['ADMIN'], matchChildren: true },
-  { path: '/admin/knowledge', label: 'Kho tri thức', section: 'Tri thức & trợ lý', icon: BookOpen, roles: ['ADMIN'], feature: 'KNOWLEDGE_BASE', matchChildren: true },
 
   { path: '/pt/dashboard', label: 'Dashboard PT', section: 'Tổng quan', icon: LayoutDashboard, roles: ['PT'], feature: 'DASHBOARD' },
   { path: '/pt/customers', label: 'Khách hàng', section: 'Vận hành', icon: Users, roles: ['PT'], matchChildren: true },
@@ -34,8 +40,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/pt/roadmaps', label: 'Roadmap', section: 'Vận hành', icon: Map, roles: ['PT'], feature: 'ROADMAP', matchChildren: true },
   { path: '/pt/my-workout-plans', label: 'Giáo án của tôi', section: 'Vận hành', icon: BookOpen, roles: ['PT'], feature: 'EXERCISE_LIBRARY', matchChildren: true },
   { path: '/pt/progress', label: 'Tiến độ', section: 'Vận hành', icon: ChartNoAxesCombined, roles: ['PT'], feature: 'PROGRESS', matchChildren: true },
-  { path: '/pt/assistant', label: 'Trợ lý PT 3S', section: 'Tri thức & trợ lý', icon: Bot, roles: ['PT'], matchChildren: true },
-  { path: '/pt/knowledge-search', label: 'Tra cứu tri thức', section: 'Tri thức & trợ lý', icon: Search, roles: ['PT'], feature: 'KNOWLEDGE_BASE', matchChildren: true },
+  { path: '/pt/assistant', label: 'Trợ lý PT 3S', section: 'Trợ lý AI', icon: Bot, roles: ['PT'], matchChildren: true },
 
   { path: '/me', label: 'Hành trình của tôi', section: 'Tổng quan', icon: LayoutDashboard, roles: ['CUSTOMER'] },
   { path: '/me/workouts', label: 'Giáo án tập luyện', section: 'Vận hành', icon: BookOpen, roles: ['CUSTOMER'] },
@@ -44,7 +49,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/me/inbody', label: 'Chỉ số & Mục tiêu', section: 'Vận hành', icon: Ruler, roles: ['CUSTOMER'] },
   { path: '/me/sessions', label: 'Lịch & Buổi tập', section: 'Vận hành', icon: CalendarDays, roles: ['CUSTOMER'] },
   { path: '/me/progress', label: 'Tiến độ & Báo cáo', section: 'Vận hành', icon: ChartNoAxesCombined, roles: ['CUSTOMER'] },
-  { path: '/me/assistant', label: 'Trợ lý AI 3S', section: 'Tri thức & trợ lý', icon: Bot, roles: ['CUSTOMER'], matchChildren: true },
+  { path: '/me/assistant', label: 'Trợ lý AI 3S', section: 'Trợ lý AI', icon: Bot, roles: ['CUSTOMER'], matchChildren: true },
 ];
 
 export function visibleNavigation(user: User, features: FeatureState = {}): NavigationItem[] {

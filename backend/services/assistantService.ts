@@ -3,7 +3,6 @@ import CustomerProfile from '../models/CustomerProfile.js';
 import InBodyRecord from '../models/InBodyRecord.js';
 import AssistantSuggestion from '../models/AssistantSuggestion.js';
 import AssistantConversation from '../models/AssistantConversation.js';
-import { searchPublished } from './knowledgeService.js';
 import { generateText } from './aiProvider.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
@@ -44,8 +43,6 @@ export async function createSuggestion(user: AuthenticatedUser, payload: { custo
   if (customer?._id) {
     latestInBody = await InBodyRecord.findOne({ customerId: customer._id }).sort({ measurementDate: -1, createdAt: -1 }).lean();
   }
-
-  const sources = await searchPublished(user, payload.scenario, 5, requestKey);
 
   let profileContext = '';
   if (customer) {
@@ -131,7 +128,7 @@ HỆ THỐNG NGUYÊN TẮC PHẢN HỒI (CỰC KỲ QUAN TRỌNG):
     requestType: payload.requestType,
     scenario: payload.scenario,
     content,
-    citations: sources.map((s) => ({ documentId: s.documentId, title: s.title })),
+    citations: [],
     customerContextFields: customer ? ['fullName', 'initialGoal'] : [],
     safetyWarnings: ['Nội dung do AI đề xuất, PT phải kiểm tra trước khi sử dụng.'],
     reviewStatus: 'PT_REVIEW_REQUIRED',

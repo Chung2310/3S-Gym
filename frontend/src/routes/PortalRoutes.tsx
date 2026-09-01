@@ -15,8 +15,6 @@ import ProgressPage from '../pages/pt/ProgressPage';
 import NutritionPage from '../pages/pt/NutritionPage';
 import CarePage from '../pages/pt/CarePage';
 import PtAssistantPage from '../pages/pt/PtAssistantPage';
-import KnowledgeSearchPage from '../pages/pt/KnowledgeSearchPage';
-import AdminKnowledgePage from '../pages/admin/AdminKnowledgePage';
 import AdminCustomersPage from '../pages/admin/AdminCustomersPage';
 import AdminTransfersPage from '../pages/admin/AdminTransfersPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
@@ -60,14 +58,6 @@ function PortalContent({ user }: { user: User }) {
           }
         />
         <Route
-          path="admin/knowledge"
-          element={
-            <FeatureRoute user={user} roles={['ADMIN']} feature="KNOWLEDGE_BASE">
-              <AdminKnowledgePage />
-            </FeatureRoute>
-          }
-        />
-        <Route
           path="admin/customers"
           element={
             <FeatureRoute user={user} roles={['ADMIN']}>
@@ -88,14 +78,6 @@ function PortalContent({ user }: { user: User }) {
           element={
             <FeatureRoute user={user} roles={['ADMIN']}>
               <AdminUsersPage />
-            </FeatureRoute>
-          }
-        />
-        <Route
-          path="pt/knowledge-search"
-          element={
-            <FeatureRoute user={user} roles={['PT']} feature="KNOWLEDGE_BASE">
-              <KnowledgeSearchPage />
             </FeatureRoute>
           }
         />
