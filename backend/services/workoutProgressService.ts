@@ -1,7 +1,7 @@
 import { Types, type ClientSession } from 'mongoose';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
-import WorkoutSession from '../models/WorkoutSession.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
+import WorkoutSession from '../models/WorkoutSession.js';
 import BodyMeasurement from '../models/BodyMeasurement.js';
 import ProgressPhoto, { type PhotoAngle } from '../models/ProgressPhoto.js';
 import CustomerProfile from '../models/CustomerProfile.js';

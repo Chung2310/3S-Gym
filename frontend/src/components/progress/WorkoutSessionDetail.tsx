@@ -1,3 +1,4 @@
+import { Calendar, Dumbbell, MessageSquare, StickyNote } from 'lucide-react';
 import type { WorkoutSessionDto } from '../../types';
 import { formatWorkoutSessionTime } from '../../services/workoutSessionTime';
 import { exerciseRpes, exerciseVolume } from '../../utils/sessionTracking';
@@ -11,23 +12,33 @@ export default function WorkoutSessionDetail({ session }: { session: WorkoutSess
     : null;
 
   return (
-    <article className="space-y-5 rounded-2xl border border-slate-200 bg-white p-4 font-montserrat sm:p-6">
-      <header>
-        <h3 className="font-oswald text-xl font-bold uppercase text-primary">
-          {session.planSnapshot.title || 'Buổi tập'} · {session.planSnapshot.session?.name || 'Không tên'}
-        </h3>
-        <p className="mt-1 text-sm text-slate-500">{formatWorkoutSessionTime(session.performedAt)}</p>
+    <article className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
+      {/* Session Header */}
+      <header className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+        <div>
+          <h3 className="text-base font-bold text-[#003b70] m-0">
+            {session.planSnapshot.title || 'Buổi tập'} · {session.planSnapshot.session?.name || 'Không tên'}
+          </h3>
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mt-1">
+            <Calendar size={13} className="text-slate-400" />
+            <span>{formatWorkoutSessionTime(session.performedAt)}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-800 border border-sky-200/60">
+            <Dumbbell size={13} className="text-sky-600" />
+            <span>{volume.toLocaleString('vi-VN')} kg</span>
+          </span>
+          {averageRpe !== null && (
+            <span className="inline-flex items-center rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 border border-amber-200/60">
+              RPE {averageRpe}
+            </span>
+          )}
+        </div>
       </header>
 
-      <div className="flex flex-wrap gap-2">
-        {volume > 0 && <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-primary ring-1 ring-inset ring-sky-100">{volume.toLocaleString('vi-VN')} kg</span>}
-        {averageRpe !== null && (
-          <span className="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800 ring-1 ring-inset ring-amber-100">
-            RPE {averageRpe}
-          </span>
-        )}
-      </div>
-
+      {/* Exercises List */}
       <div className="space-y-3">
         {session.exerciseLogs.map((exercise) => (
           <section className="rounded-xl border border-slate-200 bg-slate-50/70 p-4" key={exercise.name}>
@@ -38,21 +49,28 @@ export default function WorkoutSessionDetail({ session }: { session: WorkoutSess
         ))}
       </div>
 
+      {/* Feedback & Notes footer */}
       {(session.feeling || session.notes) && (
-        <dl className="grid gap-3 border-t border-slate-200 pt-4 text-sm sm:grid-cols-2">
+        <div className="grid gap-3 border-t border-slate-100 pt-3 text-xs sm:grid-cols-2">
           {session.feeling && (
-            <div>
-              <dt className="font-semibold text-slate-500">Cảm nhận</dt>
-              <dd className="mt-1 text-slate-900">{session.feeling}</dd>
+            <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+              <div className="flex items-center gap-1.5 font-bold text-slate-600 mb-1">
+                <MessageSquare size={13} className="text-slate-400" />
+                <span>Cảm nhận</span>
+              </div>
+              <p className="text-slate-800 m-0">{session.feeling}</p>
             </div>
           )}
           {session.notes && (
-            <div>
-              <dt className="font-semibold text-slate-500">Ghi chú</dt>
-              <dd className="mt-1 text-slate-900">{session.notes}</dd>
+            <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+              <div className="flex items-center gap-1.5 font-bold text-slate-600 mb-1">
+                <StickyNote size={13} className="text-slate-400" />
+                <span>Ghi chú</span>
+              </div>
+              <p className="text-slate-800 m-0">{session.notes}</p>
             </div>
           )}
-        </dl>
+        </div>
       )}
     </article>
   );

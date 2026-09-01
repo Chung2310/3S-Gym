@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, TrendingUp } from 'lucide-react';
 import ProgressDashboard from '../../components/progress/ProgressDashboard';
 import ProgressDetailModal from '../../components/progress/ProgressDetailModal';
 import ProgressEmptyState from '../../components/progress/ProgressEmptyState';
@@ -9,8 +9,6 @@ import { useToast } from '../../components/ui/ToastProvider';
 import { api } from '../../services/api';
 import { buildDailyProgressGroups } from '../../services/dailyProgressReports';
 import { errorMessage, type CustomerJourneyDto, type CustomerProgressOverview } from '../../types';
-
-const retryButtonClass = 'inline-flex min-h-11 items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 motion-reduce:transition-none';
 
 export default function ProgressPage() {
   const toast = useToast();
@@ -83,12 +81,16 @@ export default function ProgressPage() {
   };
 
   return (
-    <section className="space-y-6 pb-[calc(2rem+env(safe-area-inset-bottom))] font-montserrat">
-      <header className="border-b border-slate-200 pb-5">
-        <h1 className="font-oswald text-3xl font-bold uppercase tracking-tight text-primary sm:text-4xl">
-          Tiến độ khách hàng
-        </h1>
-      </header>
+    <div className="pt-view-container">
+      {/* Page Header — dùng đúng chuẩn pt-view-header */}
+      <div className="pt-view-header">
+        <h2 className="text-xl font-bold text-[#003b70] m-0 tracking-tight flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
+            <TrendingUp size={20} className="shrink-0" />
+          </div>
+          <span>Tiến Độ Khách Hàng</span>
+        </h2>
+      </div>
 
       {overviewLoading && items.length === 0 && <ProgressSkeleton />}
       {overviewError && items.length === 0 && !overviewLoading && (
@@ -96,7 +98,15 @@ export default function ProgressPage() {
           icon={CircleAlert}
           title="Không thể tải tổng quan tiến độ"
           description={overviewError}
-          action={<button type="button" className={retryButtonClass} onClick={() => void loadOverview()}>Thử lại</button>}
+          action={
+            <button
+              type="button"
+              className="shrink-0 whitespace-nowrap inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-[#003b70] hover:bg-[#00264d] text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              onClick={() => void loadOverview()}
+            >
+              Thử lại
+            </button>
+          }
         />
       )}
       {(!overviewLoading || items.length > 0) && !overviewError && (
@@ -122,6 +132,6 @@ export default function ProgressPage() {
         onClose={close}
         onSaved={saved}
       />
-    </section>
+    </div>
   );
 }

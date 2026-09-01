@@ -6,7 +6,7 @@ import TrackingAnalytics from './TrackingAnalytics';
 
 export default function ProgressOverview({ analytics }: { analytics: JourneyAnalytics }) {
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <ProgressSnapshot analytics={analytics} />
       <TrackingAnalytics analytics={analytics.tracking} />
       {analytics.dataQuality.reasons.length > 0 && (
