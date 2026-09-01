@@ -13,8 +13,8 @@ import { createWorkoutTemplateSchema } from '../validators/workoutValidator.js';
 
 let mongo: MongoMemoryServer;
 const availabilitySlots = [
-  { dayNumber: 1, startMinute: 1080, endMinute: 1200 },
-  { dayNumber: 3, startMinute: 1080, endMinute: 1200 },
+  { dayNumber: 1, startMinute: 1080, endMinute: 1140 },
+  { dayNumber: 3, startMinute: 1080, endMinute: 1140 },
 ];
 const latestPrompt = () => (vi.mocked(generateText).mock.calls.at(-1) as unknown[] | undefined)?.at(-1);
 
@@ -32,10 +32,10 @@ it('returns a validated proposal for a customer assigned to the PT', async () =>
     customer.id,
     availabilitySlots,
     'workout-proposal-test',
-  )).resolves.toMatchObject({ durationWeeks: 8, sessionsPerWeek: 2, minutesPerSession: 120 });
+  )).resolves.toMatchObject({ durationWeeks: 8, sessionsPerWeek: 2, minutesPerSession: 60 });
   expect(latestPrompt()).toContain(JSON.stringify(availabilitySlots));
   expect(latestPrompt()).toContain('2 ngày rảnh, 2 khung giờ');
-  expect(latestPrompt()).toContain('120 phút');
+  expect(latestPrompt()).toContain('60 phút');
 });
 
 it('accepts schedules in different weeks at the same time', () => {
@@ -46,19 +46,21 @@ it('accepts schedules in different weeks at the same time', () => {
 it('creates a week-based draft without persisting it', async () => {
   const pt = await User.findOne({ username: 'ai-workout-pt' }).orFail();
   const customer = await CustomerProfile.findOne({ phone: '0907000099' }).orFail();
-  vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({ title: 'Giảm mỡ 8 tuần', goal: 'FAT_LOSS', level: 'BEGINNER', durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, scheduledExercises: [{ weekNumber: 1, dayNumber: 2, startMinute: 480, durationMinutes: 60, generatedExerciseName: 'Squat không dụng cụ' }, { weekNumber: 1, dayNumber: 4, startMinute: 600, durationMinutes: 60, generatedExerciseName: 'Squat không dụng cụ' }], generatedExercises: [{ name: 'Squat không dụng cụ', muscleGroup: 'LEGS', level: 'BEGINNER', defaultTrackingType: 'BODYWEIGHT', equipment: [], description: '', technique: '', commonMistakes: [], contraindications: [], variants: [] }] }));
+  vi.mocked(generateText).mockResolvedValueOnce(JSON.stringify({ title: 'Giảm mỡ 8 tuần', goal: 'FAT_LOSS', level: 'BEGINNER', durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, scheduledExercises: [{ weekNumber: 1, dayNumber: 2, startMinute: 480, durationMinutes: 60, generatedExerciseName: 'Squat không dụng cụ' }, { weekNumber: 1, dayNumber: 2, startMinute: 480, durationMinutes: 60, generatedExerciseName: 'Row không dụng cụ' }, { weekNumber: 1, dayNumber: 4, startMinute: 600, durationMinutes: 60, generatedExerciseName: 'Squat không dụng cụ' }], generatedExercises: [{ name: 'Squat không dụng cụ', muscleGroup: 'LEGS', level: 'BEGINNER', defaultTrackingType: 'BODYWEIGHT', equipment: [], description: '', technique: '', commonMistakes: [], contraindications: [], variants: [] }, { name: 'Row không dụng cụ', muscleGroup: 'BACK', level: 'BEGINNER', defaultTrackingType: 'BODYWEIGHT', equipment: [], description: '', technique: '', commonMistakes: [], contraindications: [], variants: [] }] }));
   const result = await generateWorkoutDraft({ id: pt.id, role: 'PT' }, { customerId: customer.id, proposal: { durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Progressive overload', trainingSplit: 'Full body', priorityMuscleGroups: ['LEGS'], restrictions: [] }, availabilitySlots, additionalRequest: '' }, 'workout-draft-test');
   expect(result).toMatchObject({
     title: 'Giảm mỡ 8 tuần',
     availabilitySlots,
     scheduleWarnings: [],
     scheduledExercises: [
-      expect.objectContaining({ weekNumber: 1, dayNumber: 1, startMinute: 1080 }),
+      expect.objectContaining({ name: 'Squat không dụng cụ', weekNumber: 1, dayNumber: 1, startMinute: 1080, durationMinutes: 30 }),
+      expect.objectContaining({ name: 'Row không dụng cụ', weekNumber: 1, dayNumber: 1, startMinute: 1110, durationMinutes: 30 }),
       expect.objectContaining({ weekNumber: 1, dayNumber: 3, startMinute: 1080 }),
     ],
   });
   expect(latestPrompt()).toContain(JSON.stringify(availabilitySlots));
   expect(latestPrompt()).toContain('2 ngày rảnh, 2 khung giờ');
-  expect(latestPrompt()).toContain('120 phút');
-  expect(latestPrompt()).toContain('2 buổi/tuần, 120 phút/buổi');
+  expect(latestPrompt()).toContain('60 phút');
+  expect(latestPrompt()).toContain('2 buổi/tuần, 60 phút/buổi');
+  expect(latestPrompt()).toContain('durationMinutes là thời lượng riêng của từng bài');
 });

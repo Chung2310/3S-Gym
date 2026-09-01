@@ -50,6 +50,46 @@ export function availabilityProposalDefaults(slots: WorkoutAvailabilitySlot[]): 
   };
 }
 
+export function normalizeWorkoutSessionTimings<T extends SchedulableExercise>(
+  items: T[],
+  minutesPerSession: number,
+): T[] {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = `${item.weekNumber}:${item.dayNumber}`;
+    groups.set(key, [...(groups.get(key) || []), item]);
+  }
+
+  return [...groups.values()].flatMap((groupItems) => {
+    const sorted = [...groupItems].sort((left, right) => left.startMinute - right.startMinute);
+    const sessionStart = sorted[0].startMinute;
+    const sessionEnd = Math.max(...sorted.map((item) => item.startMinute + item.durationMinutes));
+    const hasOverlap = sorted.some((item, index) => (
+      index > 0 && item.startMinute < sorted[index - 1].startMinute + sorted[index - 1].durationMinutes
+    ));
+
+    if (!hasOverlap && sessionEnd - sessionStart <= minutesPerSession) return sorted;
+
+    const totalBlocks = Math.max(sorted.length, Math.floor(minutesPerSession / 15));
+    const totalMinutes = totalBlocks * 15;
+    if (totalMinutes > 1440) {
+      throw externalScheduleError('AI trả về quá nhiều bài tập trong cùng một buổi.');
+    }
+
+    let cursor = Math.min(sessionStart, 1440 - totalMinutes);
+    const baseBlocks = Math.floor(totalBlocks / sorted.length);
+    let remainingBlocks = totalBlocks % sorted.length;
+
+    return sorted.map((item) => {
+      const durationMinutes = (baseBlocks + (remainingBlocks > 0 ? 1 : 0)) * 15;
+      if (remainingBlocks > 0) remainingBlocks -= 1;
+      const normalized = { ...item, startMinute: cursor, durationMinutes };
+      cursor += durationMinutes;
+      return normalized;
+    });
+  });
+}
+
 function groupSessions<T extends SchedulableExercise>(items: T[]): WorkoutSession<T>[] {
   const groups = new Map<string, T[]>();
   for (const item of items) {
