@@ -21,9 +21,7 @@ export default function MyWorkoutPlans() {
     <section className="module-page workout-page" aria-label="Quản lý giáo án">
       <header className="module-header workout-header">
         <div>
-          <p className="workout-eyebrow">Programming workspace</p>
           <h1 className="module-heading">Giáo án của tôi</h1>
-          <p className="module-description">Xây dựng, quản lý và triển khai giáo án cho từng mục tiêu tập luyện.</p>
         </div>
         {activeTab === 'plans' && <div className="module-actions">
           <button type="button" className="button button-secondary" onClick={() => setAiOpen(true)}>Tạo bằng AI</button>

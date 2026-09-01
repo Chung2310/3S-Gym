@@ -176,7 +176,7 @@ export default function PtManagementView() {
             <div className="p-2 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
               <Users size={20} className="shrink-0" />
             </div>
-            <span>Quản lý Huấn luyện viên (PT)</span>
+            <span>Quản lý Huấn luyện viên</span>
           </h2>
         </div>
         <button

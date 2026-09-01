@@ -97,8 +97,7 @@ describe('index CSS redesign contract', () => {
     expect(exerciseSources).toContain('exercise-card-tracking');
     expect(exerciseSources).toContain('is-unclassified');
     expect(studioInspectorSources).toContain('studio-inspector-tracking');
-    expect(studioInspectorSources).toContain('studio-inspector-tracking-note');
-    for (const selector of ['.exercise-card-tracking', '.exercise-badge.is-unclassified', '.studio-inspector-tracking', '.studio-inspector-tracking-note']) expect(css).toContain(selector);
+    for (const selector of ['.exercise-card-tracking', '.exercise-badge.is-unclassified', '.studio-inspector-tracking']) expect(css).toContain(selector);
   });
 
   it('routes coarse-pointer timeline interaction through nonoverlapping 44px actions', () => {

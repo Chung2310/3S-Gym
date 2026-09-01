@@ -184,7 +184,7 @@ export default function UserFormModal({
     form.role === 'CUSTOMER'
       ? 'Hội viên'
       : form.role === 'PT'
-        ? 'Huấn luyện viên (PT)'
+        ? 'Huấn luyện viên'
         : 'Quản trị viên (Admin)';
 
   const modalTitle = editing ? `Sửa tài khoản ${roleName}` : `Tạo tài khoản ${roleName}`;
@@ -275,7 +275,7 @@ export default function UserFormModal({
           >
             {(editing ? [form.role] : allowedCreateRoles).map((role) => (
               <option key={role} value={role}>
-                {role === 'SUPER_ADMIN' ? 'Quản trị cấp cao (SUPER_ADMIN)' : role === 'ADMIN' ? 'Quản trị viên (ADMIN)' : role === 'PT' ? 'Huấn luyện viên (PT)' : 'Khách hàng (CUSTOMER)'}
+                {role === 'SUPER_ADMIN' ? 'Quản trị cấp cao (SUPER_ADMIN)' : role === 'ADMIN' ? 'Quản trị viên (ADMIN)' : role === 'PT' ? 'Huấn luyện viên' : 'Khách hàng (CUSTOMER)'}
               </option>
             ))}
           </FormField>

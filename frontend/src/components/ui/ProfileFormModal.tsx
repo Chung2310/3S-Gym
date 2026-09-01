@@ -8,6 +8,7 @@ export interface ProfileFormModalProps {
   dirty?: boolean;
   loading?: boolean;
   submitLabel?: string;
+  submitDisabled?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   onClose: () => void;
@@ -22,6 +23,7 @@ export default function ProfileFormModal({
   dirty = false,
   loading = false,
   submitLabel = 'Lưu',
+  submitDisabled = false,
   size = 'md',
   className = '',
   onClose,
@@ -103,7 +105,7 @@ export default function ProfileFormModal({
                 Hủy
               </button>
               {submitLabel ? (
-                <button type="submit" className="button button-primary" disabled={loading}>
+                <button type="submit" className="button button-primary" disabled={loading || submitDisabled}>
                   {loading ? 'Đang lưu...' : submitLabel}
                 </button>
               ) : null}

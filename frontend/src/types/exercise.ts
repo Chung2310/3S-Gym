@@ -1,4 +1,4 @@
-import type { TrackingType } from './exerciseTracking';
+import type { ClassifiedTrackingType, TrackingType } from './exerciseTracking';
 
 export interface Exercise {
   [key: string]: unknown;
@@ -12,4 +12,29 @@ export interface Exercise {
   videos?: Array<{ title: string; url: string; source: 'UPLOAD' | 'LINK' }>;
   scope: 'GLOBAL' | 'PRIVATE';
   canManage: boolean;
+}
+
+export type AiExerciseGenerationMode = 'SINGLE' | 'BATCH';
+
+export interface AiExerciseDraft {
+  name: string;
+  muscleGroup: string;
+  level: Exercise['level'];
+  defaultTrackingType: ClassifiedTrackingType;
+  equipment: string[];
+  description: string;
+  technique: string;
+  commonMistakes: string[];
+  contraindications: string[];
+  variants: string[];
+}
+
+export interface AiExerciseGenerationRequest {
+  mode: AiExerciseGenerationMode;
+  muscleGroup: string;
+  level: Exercise['level'];
+  defaultTrackingType: ClassifiedTrackingType;
+  equipment: string[];
+  quantity: number;
+  additionalRequest: string;
 }

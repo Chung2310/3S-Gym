@@ -86,4 +86,19 @@ const classifiedTrackingType = Joi.string().valid('STRENGTH', 'BODYWEIGHT', 'CAR
 const exerciseFields = { name: Joi.string().trim(), muscleGroup: Joi.string().trim(), level: Joi.string().valid('BEGINNER', 'INTERMEDIATE', 'ADVANCED'), defaultTrackingType: classifiedTrackingType, equipment: Joi.array().items(Joi.string()), scope: Joi.string().valid('GLOBAL', 'PRIVATE'), description: Joi.string().allow(''), videoUrl: Joi.string().uri().allow('', null), videos: Joi.array().items(exerciseVideo).max(20), technique: Joi.string().allow(''), commonMistakes: Joi.array().items(Joi.string()), contraindications: Joi.array().items(Joi.string()), variants: Joi.array().items(Joi.string()) };
 export const listExercisesSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, level: exerciseFields.level, defaultTrackingType: Joi.string().valid('UNCLASSIFIED', 'STRENGTH', 'BODYWEIGHT', 'CARDIO', 'INTERVAL', 'MOBILITY'), muscleGroup: Joi.string().allow(''), keyword: Joi.string().allow(''), search: Joi.string().allow('') }).messages(commonMessages) };
 export const createExerciseSchema: RequestValidationSchema = { body: Joi.object({ ...exerciseFields, name: exerciseFields.name.required(), muscleGroup: exerciseFields.muscleGroup.required(), level: exerciseFields.level.required(), defaultTrackingType: classifiedTrackingType.required() }).messages(commonMessages) };
+const reviewedAiExercise = Joi.object({
+  name: exerciseFields.name.required(),
+  muscleGroup: exerciseFields.muscleGroup.required(),
+  level: exerciseFields.level.required(),
+  defaultTrackingType: classifiedTrackingType.required(),
+  equipment: exerciseFields.equipment.default([]),
+  description: exerciseFields.description.default(''),
+  technique: exerciseFields.technique.default(''),
+  commonMistakes: exerciseFields.commonMistakes.default([]),
+  contraindications: exerciseFields.contraindications.default([]),
+  variants: exerciseFields.variants.default([]),
+}).unknown(false).messages(commonMessages);
+export const bulkCreateExercisesSchema: RequestValidationSchema = {
+  body: Joi.object({ exercises: Joi.array().items(reviewedAiExercise).min(1).max(10).required() }).messages(commonMessages),
+};
 export const updateExerciseSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...exerciseFields, scope: Joi.forbidden(), ownerPtId: Joi.forbidden() }) };

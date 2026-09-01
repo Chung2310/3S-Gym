@@ -30,10 +30,10 @@ export default function ProgressDashboard({
     const keyword = search.trim().toLocaleLowerCase('vi-VN');
     return keyword
       ? items.filter(
-          (item) =>
-            item.customer.fullName.toLocaleLowerCase('vi-VN').includes(keyword) ||
-            item.customer.phone.includes(keyword),
-        )
+        (item) =>
+          item.customer.fullName.toLocaleLowerCase('vi-VN').includes(keyword) ||
+          item.customer.phone.includes(keyword),
+      )
       : items;
   }, [items, search]);
 
@@ -54,7 +54,6 @@ export default function ProgressDashboard({
           <div>
             <div className="pt-metric-label">Khách được quản lý</div>
             <div className="pt-metric-val text-[#003b70]">{items.length} khách hàng</div>
-            <div className="pt-metric-sub text-sky-600">Học viên đang được phân công</div>
           </div>
           <div className="pt-metric-icon bg-sky-50 text-sky-600">
             <Users size={20} />
@@ -65,7 +64,6 @@ export default function ProgressDashboard({
           <div>
             <div className="pt-metric-label">Khách có hoạt động</div>
             <div className="pt-metric-val text-emerald-600">{activeCustomers}</div>
-            <div className="pt-metric-sub text-emerald-600">Đã có dữ liệu buổi tập</div>
           </div>
           <div className="pt-metric-icon bg-emerald-50 text-emerald-600">
             <Activity size={20} />
@@ -76,7 +74,6 @@ export default function ProgressDashboard({
           <div>
             <div className="pt-metric-label">Tổng buổi đã ghi nhận</div>
             <div className="pt-metric-val text-amber-600">{totalSessions}</div>
-            <div className="pt-metric-sub text-amber-600">Trên toàn bộ học viên</div>
           </div>
           <div className="pt-metric-icon bg-amber-50 text-amber-600">
             <CalendarDays size={20} />
@@ -89,7 +86,6 @@ export default function ProgressDashboard({
             <div className="pt-metric-val text-[#003b70]">
               {averageAttendance === null ? '—' : `${number(averageAttendance)}%`}
             </div>
-            <div className="pt-metric-sub text-slate-500">Tỷ lệ tham gia các buổi tập</div>
           </div>
           <div className="pt-metric-icon bg-indigo-50 text-indigo-600">
             <TrendingDown size={20} />
@@ -151,11 +147,10 @@ export default function ProgressDashboard({
                         </div>
                       </div>
                     </div>
-                    <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
-                      item.customer.status === 'ACTIVE'
+                    <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${item.customer.status === 'ACTIVE'
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
                         : 'bg-slate-100 text-slate-600 border-slate-200'
-                    }`}>
+                      }`}>
                       {item.customer.status === 'ACTIVE' ? 'Đang tập' : item.customer.status}
                     </span>
                   </div>

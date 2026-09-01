@@ -1,15 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { 
-  RefreshCw, 
-  Users, 
-  UserCheck, 
-  AlertTriangle, 
-  Package, 
-  CheckCircle2, 
-  Filter, 
-  UserPlus, 
-  ShieldAlert, 
+import {
+  RefreshCw,
+  Users,
+  UserCheck,
+  AlertTriangle,
+  Package,
+  CheckCircle2,
+  Filter,
+  UserPlus,
+  ShieldAlert,
   Award,
   ChevronRight,
   SlidersHorizontal
@@ -73,7 +73,7 @@ export default function AdminDashboardPage() {
           setPtOptions(res.data.map((u) => ({ id: u._id, fullName: u.fullName || u.username, username: u.username })));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => { active = false; };
   }, []);
 
@@ -167,7 +167,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '4px 0 20px' }}>
-      
+
       {/* 1. Header & Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
         <div>
@@ -180,7 +180,6 @@ export default function AdminDashboardPage() {
             </span>
           </div>
           <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '4px 0 0' }}>
-            Trung tâm điều hành và phân tích số liệu vận hành toàn diện
           </p>
         </div>
 
@@ -215,7 +214,7 @@ export default function AdminDashboardPage() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Huấn luyện viên (PT)</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Huấn luyện viên</label>
             <select
               value={selectedPtId}
               onChange={(e) => setSelectedPtId(e.target.value)}
@@ -317,7 +316,7 @@ export default function AdminDashboardPage() {
                   }}
                 >
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: card.accentColor }} />
-                  
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                     <div>
                       <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -344,7 +343,7 @@ export default function AdminDashboardPage() {
 
           {/* 4. Analytics & Progress Row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
-            
+
             {/* Customer Status Breakdown */}
             <div style={{ background: '#ffffff', borderRadius: '14px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -439,7 +438,7 @@ export default function AdminDashboardPage() {
 
           {/* 5. PT Workload & Care Alerts */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
-            
+
             {/* PT Workload Ranking */}
             <div style={{ background: '#ffffff', borderRadius: '14px', padding: '20px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>

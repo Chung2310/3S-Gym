@@ -3,7 +3,7 @@ import { authenticate, authorize } from '../middlewares/auth.js';
 import { requireFeature } from '../middlewares/requireFeature.js';
 import { validate } from '../middlewares/validate.js';
 import * as controller from '../controllers/exerciseController.js';
-import { contentIdSchema, createExerciseSchema, listExercisesSchema, updateExerciseSchema } from '../validators/contentValidator.js';
+import { bulkCreateExercisesSchema, contentIdSchema, createExerciseSchema, listExercisesSchema, updateExerciseSchema } from '../validators/contentValidator.js';
 const router = express.Router();
 const base = [authenticate, authorize('ADMIN', 'PT'), requireFeature('EXERCISE_LIBRARY')] as const;
 /* legacy manual validators
@@ -23,6 +23,7 @@ const queryValidator = (req: Request): ValidationIssue[] => {
 };
 */
 router.get('/', ...base, validate(listExercisesSchema), controller.list);
+router.post('/bulk', ...base, validate(bulkCreateExercisesSchema), controller.createBulk);
 router.get('/:id', ...base, validate(contentIdSchema), controller.get);
 router.post('/', ...base, validate(createExerciseSchema), controller.create);
 router.patch('/:id', ...base, validate(updateExerciseSchema), controller.update);

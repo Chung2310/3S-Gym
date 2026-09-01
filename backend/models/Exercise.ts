@@ -22,7 +22,7 @@ const schema = new Schema<IExercise>({
   equipment: { type: [String], default: [] }, description: { type: String, default: '' }, videoUrl: { type: String, default: '' }, videos: { type: [exerciseVideoSchema], default: [] }, technique: { type: String, default: '' },
   commonMistakes: { type: [String], default: [] }, contraindications: { type: [String], default: [] }, variants: { type: [String], default: [] },
   defaultTrackingType: { type: String, enum: TRACKING_TYPES, default: 'UNCLASSIFIED', index: true },
-  scope: { type: String, enum: ['GLOBAL', 'PRIVATE'], default: 'PRIVATE', index: true }, ownerPtId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+  scope: { type: String, enum: ['GLOBAL', 'PRIVATE'], default: 'GLOBAL', index: true }, ownerPtId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 }, { timestamps: true });
 schema.index({ scope: 1, ownerPtId: 1, muscleGroup: 1, level: 1, defaultTrackingType: 1 });
 export default mongoose.model<IExercise>('Exercise', schema);

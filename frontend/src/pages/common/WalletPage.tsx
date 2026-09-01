@@ -250,10 +250,6 @@ export default function WalletPage() {
                 </span>
               </div>
 
-              <p className="wallet-payos-desc">
-                Hệ thống tự động tạo mã VietQR động chứa chính xác số tiền và nội dung chuyển khoản. Bạn chỉ cần mở app Ngân hàng hoặc Ví điện tử bất kỳ để quét mã. Credit được cộng vào ví ngay sau 3 giây.
-              </p>
-
               <div className="wallet-payos-banks">
                 <span>Hỗ trợ mọi ngân hàng:</span>
                 <span className="wallet-payos-bank-tag">Vietcombank</span>

@@ -12,7 +12,6 @@ import StudioDayNavigator from '../../components/workout-studio/StudioDayNavigat
 import ExercisePalette from '../../components/workout-studio/ExercisePalette';
 import DayTimeline from '../../components/workout-studio/DayTimeline';
 import StudioSidebar from '../../components/workout-studio/StudioSidebar';
-import AvailabilityWarningBanner from '../../components/workout-studio/AvailabilityWarningBanner';
 import type { WorkoutAvailabilitySlot } from '../../types/workoutAvailability';
 import type { AiWorkoutStudioDraft, ScheduledExercise, StudioTemplate, TemplateMetadata } from '../../types/workoutStudio';
 import { normalizePlanExercise, planExerciseFromLibrary } from '../../utils/exerciseTracking';
@@ -156,7 +155,6 @@ export default function WorkoutStudioPage() {
 
   return <section aria-label="Workout Studio" className={`module-page workout-studio ${inspectorOpen ? 'inspector-open' : ''}`}>
     <StudioHeader contextLabel={customerMode ? `Giáo án của ${customerName}` : undefined} readOnly={readOnly} title={title} goal={goal} level={level} durationDays={durationDays} dirty={dirty} saving={saving} onBack={() => { const destination = customerMode ? '/pt/customers' : '/pt/my-workout-plans'; if (dirty) setPendingConfirmation({ kind: 'back', destination }); else navigate(destination); }} onTitleChange={(value) => { setTitle(value); setDirty(true); }} onGoalChange={(value) => { setGoal(value); setDirty(true); }} onLevelChange={(value) => { setLevel(value); setDirty(true); }} onDurationDaysChange={changeDurationDays} onSave={() => void save()} />
-    <AvailabilityWarningBanner warnings={availabilityWarnings} />
     <nav className="studio-period-navigation" aria-label="Thời gian giáo án">
       <div className="studio-week-list">{weekButtons.map((week) => <button key={week} type="button" aria-current={week === activeWeek} onClick={() => { setActiveWeek(week); setActiveDay((day) => Math.min(day, planDaysForWeek(durationDays, week).length)); }}>Tuần {week}</button>)}</div>
       <StudioDayNavigator days={dayButtons} activeDay={activeDay} totalMinutes={totalMinutes} onChange={setActiveDay} />
