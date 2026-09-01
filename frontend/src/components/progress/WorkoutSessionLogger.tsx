@@ -66,7 +66,8 @@ const setResult = (): CompletedSetResult => ({ id: key(), completed: true });
 
 function materialize(exercise: PlannedExercise): ExerciseResultDraft {
   if (exercise.trackingType === 'STRENGTH' || exercise.trackingType === 'BODYWEIGHT') {
-    const count = Math.max(1, Number((exercise.prescription as StrengthPrescription).sets || 1));
+    const setsVal = (exercise.prescription as StrengthPrescription | undefined)?.sets;
+    const count = Math.max(1, Number(setsVal || 1));
     return { result: { sets: Array.from({ length: count }, setResult) } };
   }
   return { result: {} };
