@@ -58,4 +58,7 @@ backend/tests/
 frontend/tests/
 **/*.test.ts
 **/*.test.tsx
+!backend/tests/
+backend/tests/*
+!backend/tests/customerWorkoutStudioParity.test.ts
 .codex*
