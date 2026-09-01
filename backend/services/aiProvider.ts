@@ -132,7 +132,7 @@ export async function generateNutritionDraft(context: AiBillingContext | string,
   return billOrLegacy(context, prompt, {
     temperature: 0.1,
     maxTokens: 8192,
-    reasoningEffort: 'none',
+    jsonMode: true,
   });
 }
 
@@ -145,7 +145,7 @@ export async function generateNutritionAnalysis(context: AiBillingContext | stri
   return billOrLegacy(context, prompt, {
     temperature: 0.1,
     maxTokens: 4096,
-    reasoningEffort: 'none',
+    jsonMode: true,
   });
 }
 
@@ -158,7 +158,7 @@ export async function generateWorkoutDraft(context: AiBillingContext | string, p
   return billOrLegacy(context, prompt, {
     temperature: 0.1,
     maxTokens: 16384,
-    reasoningEffort: 'none',
+    jsonMode: true,
   });
 }
 
@@ -171,7 +171,7 @@ export async function generateRoadmapDraft(context: AiBillingContext | string, p
   return billOrLegacy(context, prompt, {
     temperature: 0.1,
     maxTokens: 8192,
-    reasoningEffort: 'none',
+    jsonMode: true,
   });
 }
 
