@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Calendar, Camera, CheckCircle2, ClipboardList, Dumbbell, MessageSquare, Scale, Sparkles } from 'lucide-react';
+import { Camera, CheckCircle2, ClipboardList, Dumbbell, MessageSquare, Scale, Sparkles } from 'lucide-react';
 import { api } from '../../services/api';
 import { buildBodyMeasurementInput } from '../../services/bodyMeasurement';
 import { uploadWorkoutProgressPhotos } from '../../services/progressPhotos';
@@ -190,12 +190,33 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (submitting.current || (attendance !== 'ABSENT' && hasUnclassified)) return;
+    if (submitting.current) return;
+    if (!customerId) {
+      toast.error('Vui lòng chọn học viên / khách hàng.');
+      return;
+    }
+    if (!activePlan) {
+      toast.error('Chưa có giáo án đang áp dụng cho khách hàng.');
+      return;
+    }
+    if (!recordedAt.recordedDate?.trim()) {
+      toast.error('Vui lòng nhập ngày tập.');
+      return;
+    }
+    if (!recordedAt.recordedTime?.trim()) {
+      toast.error('Vui lòng nhập giờ tập.');
+      return;
+    }
     const performedAt = workoutSessionIso(recordedAt.recordedDate, recordedAt.recordedTime);
     if (!performedAt) {
       toast.error('Ngày hoặc giờ ghi nhận không hợp lệ.');
       return;
     }
+    if (attendance !== 'ABSENT' && hasUnclassified) {
+      toast.error('Có bài tập chưa phân loại cách ghi nhận. Hãy cập nhật giáo án trước khi ghi buổi tập.');
+      return;
+    }
+
     submitting.current = true;
     setLoading(true);
     try {
@@ -237,8 +258,9 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
       setLoading(false);
     }
   };
+
   return (
-    <form aria-label="Ghi nhận buổi tập" onSubmit={submit}>
+    <form aria-label="Ghi nhận buổi tập" noValidate onSubmit={submit}>
       {/* 1. Thông tin ca tập — dùng profile-form-section và profile-form-grid từ index.css */}
       <section className="profile-form-section pt-0">
         <h3>
@@ -417,7 +439,7 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
       <div className="profile-form-actions mt-4">
         <button
           className="button button-primary"
-          disabled={loading || (attendance !== 'ABSENT' && hasUnclassified)}
+          disabled={loading}
           type="submit"
         >
           <CheckCircle2 size={16} className="inline mr-1" />
