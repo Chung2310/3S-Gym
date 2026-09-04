@@ -34,13 +34,16 @@ export async function ensureDefaultMuscleGroups(): Promise<void> {
   // 2. Add existing exercise muscle groups if missing
   try {
     const exerciseGroups = await Exercise.distinct('muscleGroup');
-    exerciseGroups.forEach((name) => {
-      if (typeof name === 'string' && name.trim()) {
-        const key = name.trim().toLocaleLowerCase('vi');
-        if (!existingNamesLower.has(key)) {
-          toInsert.push({ name: name.trim(), isDefault: false, order: 100 });
-          existingNamesLower.add(key);
-        }
+    exerciseGroups.forEach((val) => {
+      if (typeof val === 'string' && val.trim()) {
+        val.split(',').forEach((name) => {
+          const trimmed = name.trim();
+          const key = trimmed.toLocaleLowerCase('vi');
+          if (key && !existingNamesLower.has(key)) {
+            toInsert.push({ name: trimmed, isDefault: false, order: 100 });
+            existingNamesLower.add(key);
+          }
+        });
       }
     });
   } catch {
@@ -57,17 +60,21 @@ export async function ensureDefaultMuscleGroups(): Promise<void> {
 export async function listMuscleGroups() {
   await ensureDefaultMuscleGroups();
 
-  const [groups, exerciseCounts] = await Promise.all([
+  const [groups, allExercises] = await Promise.all([
     MuscleGroup.find().sort({ order: 1, name: 1 }).lean(),
-    Exercise.aggregate<{ _id: string; count: number }>([
-      { $group: { _id: '$muscleGroup', count: { $sum: 1 } } },
-    ]),
+    Exercise.find().select('muscleGroup muscleGroups').lean(),
   ]);
 
   const countMap = new Map<string, number>();
-  for (const item of exerciseCounts) {
-    if (item._id) {
-      countMap.set(item._id.trim().toLocaleLowerCase('vi'), item.count);
+  for (const ex of allExercises) {
+    const names = new Set<string>();
+    if (Array.isArray(ex.muscleGroups) && ex.muscleGroups.length > 0) {
+      ex.muscleGroups.forEach((g) => { if (g && typeof g === 'string') names.add(g.trim().toLocaleLowerCase('vi')); });
+    } else if (typeof ex.muscleGroup === 'string') {
+      ex.muscleGroup.split(',').forEach((g) => { if (g && g.trim()) names.add(g.trim().toLocaleLowerCase('vi')); });
+    }
+    for (const key of names) {
+      if (key) countMap.set(key, (countMap.get(key) || 0) + 1);
     }
   }
 
@@ -78,6 +85,7 @@ export async function listMuscleGroups() {
     exerciseCount: countMap.get(g.name.trim().toLocaleLowerCase('vi')) || 0,
   }));
 }
+
 
 export async function createMuscleGroup(rawName: string) {
   const name = rawName.trim().replace(/\s+/g, ' ');

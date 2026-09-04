@@ -23,8 +23,17 @@ function normalizeExerciseVideos(user: AuthenticatedUser, value: unknown): Exerc
 }
 
 function creationPayload(user: AuthenticatedUser, payload: Partial<IExercise>) {
-  return { ...payload, scope: 'GLOBAL' as const, ownerPtId: user.role === 'PT' ? user.id : undefined };
+  const norm = { ...payload };
+  if (Array.isArray(norm.muscleGroups) && norm.muscleGroups.length > 0) {
+    norm.muscleGroups = norm.muscleGroups.map((s) => String(s).trim()).filter(Boolean);
+    norm.muscleGroup = norm.muscleGroups.join(', ');
+  } else if (typeof norm.muscleGroup === 'string' && norm.muscleGroup.trim()) {
+    norm.muscleGroups = norm.muscleGroup.split(',').map((s) => s.trim()).filter(Boolean);
+    norm.muscleGroup = norm.muscleGroups.join(', ');
+  }
+  return { ...norm, scope: 'GLOBAL' as const, ownerPtId: user.role === 'PT' ? user.id : undefined };
 }
+
 
 function normalizedName(name: string) {
   return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase('vi');
@@ -112,7 +121,15 @@ async function update(user: AuthenticatedUser, id: string, payload: Partial<IExe
     throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền quản lý bài tập này.' });
   }
   const protectedFields = new Set(['_id', 'ownerPtId', 'scope', 'createdAt', 'updatedAt']);
-  for (const [field, value] of Object.entries(payload)) if (!protectedFields.has(field)) exercise.set(field, value);
+  const norm = { ...payload };
+  if (Array.isArray(norm.muscleGroups) && norm.muscleGroups.length > 0) {
+    norm.muscleGroups = norm.muscleGroups.map((s) => String(s).trim()).filter(Boolean);
+    norm.muscleGroup = norm.muscleGroups.join(', ');
+  } else if (typeof norm.muscleGroup === 'string' && norm.muscleGroup.trim()) {
+    norm.muscleGroups = norm.muscleGroup.split(',').map((s) => s.trim()).filter(Boolean);
+    norm.muscleGroup = norm.muscleGroups.join(', ');
+  }
+  for (const [field, value] of Object.entries(norm)) if (!protectedFields.has(field)) exercise.set(field, value);
   const saved = await exercise.save();
   await recordAudit({ actor: user, action: 'EXERCISE_UPDATED', resourceType: 'exercise', resourceId: exercise.id });
   return normalizeExerciseVideos(user, saved);

@@ -5086,6 +5086,79 @@ a {
 
 .exercise-form-muscle-field {
   position: relative;
+  grid-column: 1 / -1;
+}
+
+.exercise-form-muscle-count {
+  font-size: .74rem;
+  color: var(--secondary-color);
+  font-weight: 700;
+}
+
+.exercise-muscle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.exercise-muscle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 1px solid #c9dbe7;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #37536a;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all .15s ease;
+}
+
+.exercise-muscle-chip:hover {
+  border-color: var(--secondary-color);
+  background: #f0f8fd;
+  color: var(--primary-color);
+}
+
+.exercise-muscle-chip.is-selected {
+  border-color: var(--secondary-color);
+  background: var(--secondary-color);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 164, 228, .25);
+}
+
+.exercise-muscle-chip.is-selected:hover {
+  background: #0093cc;
+  border-color: #0093cc;
+}
+
+.exercise-muscle-chip-icon {
+  font-size: .75rem;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.exercise-muscle-summary {
+  margin: 4px 0 0;
+  font-size: .74rem;
+  color: #4a6880;
+  line-height: 1.4;
+}
+
+.exercise-muscle-summary strong {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+.exercise-muscle-hint {
+  margin: 4px 0 0;
+  font-size: .72rem;
+  color: #8da2b3;
+  font-style: italic;
 }
 
 .exercise-form-muscle-header {
@@ -7311,35 +7384,53 @@ a {
   text-align: left;
   cursor: grab;
   box-shadow: 0 5px 16px rgba(0, 59, 112, .08);
+  box-sizing: border-box;
 }
 
 .studio-scheduled-content {
   position: absolute;
   inset: 0;
-  display: grid;
-  align-content: start;
-  gap: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 2px;
   overflow: hidden;
-  padding: 7px 10px;
+  padding: 4px 8px;
   border-radius: inherit;
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 .studio-scheduled-content strong {
+  display: block;
+  min-width: 0;
   overflow: hidden;
-  font-size: .76rem;
+  font-size: .78rem;
+  font-weight: 700;
   line-height: 1.25;
+  color: #16324a;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .studio-scheduled-content>span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
   font-size: .66rem;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #607689;
+  flex-shrink: 1;
 }
 
 .studio-scheduled-item.is-compact .studio-scheduled-content {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -7347,14 +7438,34 @@ a {
 }
 
 .studio-scheduled-item.is-compact .studio-scheduled-content strong {
+  flex: 1 1 auto;
   min-width: 0;
-  line-height: 1rem;
+  line-height: 1.25;
+  font-size: .78rem;
+  font-weight: 700;
 }
 
 .studio-scheduled-item.is-compact .studio-scheduled-content>span {
   flex: 0 0 auto;
   line-height: 1;
   white-space: nowrap;
+  font-size: .66rem;
+  color: #607689;
+}
+
+@media (max-height: 800px), (max-width: 1280px) {
+  .studio-scheduled-content {
+    padding: 3px 6px;
+    gap: 1px;
+  }
+  .studio-scheduled-content strong {
+    font-size: .75rem;
+    line-height: 1.2;
+  }
+  .studio-scheduled-content>span {
+    font-size: .63rem;
+    line-height: 1.15;
+  }
 }
 
 .studio-scheduled-item.is-selected {
