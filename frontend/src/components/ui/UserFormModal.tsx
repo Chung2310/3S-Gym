@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Upload, Trash2, User as UserIcon, Phone, Award, ShieldCheck } from 'lucide-react';
+import { Upload, Trash2, User as UserIcon, Phone, Award, GraduationCap, ShieldCheck } from 'lucide-react';
 import FormField from './FormField';
 import ProfileFormModal from './ProfileFormModal';
 import { useToast } from './ToastProvider';
@@ -369,17 +369,6 @@ export default function UserFormModal({
             />
             <div className="grid-full-width">
               <FormField
-                label="Chứng chỉ"
-                name="certificates"
-                as="textarea"
-                rows={3}
-                placeholder="Mỗi chứng chỉ một dòng (VD: NASM-CPT, CSCS)..."
-                value={form.certificates}
-                onChange={change}
-              />
-            </div>
-            <div className="grid-full-width">
-              <FormField
                 label="Giới thiệu"
                 name="bio"
                 as="textarea"
@@ -393,6 +382,25 @@ export default function UserFormModal({
           </div>
         </section>
       )}
+
+      <section className="profile-form-section">
+        <h3>
+          <GraduationCap size={16} /> Văn bằng & Chứng chỉ
+        </h3>
+        <div className="profile-form-grid">
+          <div className="grid-full-width">
+            <FormField
+              label="Văn bằng & Chứng chỉ"
+              name="certificates"
+              as="textarea"
+              rows={3}
+              placeholder="Mỗi văn bằng hoặc chứng chỉ một dòng (VD: Cử nhân Thể dục Thể thao, NASM-CPT)..."
+              value={form.certificates}
+              onChange={change}
+            />
+          </div>
+        </div>
+      </section>
 
       <section className="profile-form-section">
         <h3>

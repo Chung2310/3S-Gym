@@ -5,6 +5,7 @@ interface ExerciseFilterProps {
   muscleGroup?: string;
   level: string;
   trackingType: string;
+  muscleGroups?: string[];
   onKeywordChange: (value: string) => void;
   onMuscleGroupChange?: (value: string) => void;
   onLevelChange: (value: string) => void;
@@ -15,9 +16,12 @@ interface ExerciseFilterProps {
 
 export default function ExerciseFilter({
   keyword,
+  muscleGroup,
   level,
   trackingType,
+  muscleGroups = [],
   onKeywordChange,
+  onMuscleGroupChange,
   onLevelChange,
   onTrackingTypeChange,
   onFilter,
@@ -54,6 +58,18 @@ export default function ExerciseFilter({
 
       <select
         className="exercise-filter-select"
+        aria-label="Nhóm cơ"
+        value={muscleGroup || ''}
+        onChange={(e) => onMuscleGroupChange?.(e.target.value)}
+      >
+        <option value="">Tất cả nhóm cơ</option>
+        {muscleGroups.map((group) => (
+          <option key={group} value={group}>{group}</option>
+        ))}
+      </select>
+
+      <select
+        className="exercise-filter-select"
         aria-label="Cấp độ"
         value={level}
         onChange={(e) => onLevelChange(e.target.value)}
@@ -83,7 +99,7 @@ export default function ExerciseFilter({
         <RefreshCw size={15} /> Lọc bài tập
       </button>
 
-      {(keyword || level || trackingType) && (
+      {(keyword || muscleGroup || level || trackingType) && (
         <button type="button" className="exercise-filter-reset" onClick={onClear}>
           <RotateCcw size={13} /> Xóa lọc
         </button>

@@ -5084,6 +5084,264 @@ a {
   color: #8193a0;
 }
 
+.exercise-form-muscle-field {
+  position: relative;
+  grid-column: 1 / -1;
+}
+
+.exercise-form-muscle-count {
+  font-size: .74rem;
+  color: var(--secondary-color);
+  font-weight: 700;
+}
+
+.exercise-muscle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.exercise-muscle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 1px solid #c9dbe7;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #37536a;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all .15s ease;
+}
+
+.exercise-muscle-chip:hover {
+  border-color: var(--secondary-color);
+  background: #f0f8fd;
+  color: var(--primary-color);
+}
+
+.exercise-muscle-chip.is-selected {
+  border-color: var(--secondary-color);
+  background: var(--secondary-color);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 164, 228, .25);
+}
+
+.exercise-muscle-chip.is-selected:hover {
+  background: #0093cc;
+  border-color: #0093cc;
+}
+
+.exercise-muscle-chip-icon {
+  font-size: .75rem;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.exercise-muscle-summary {
+  margin: 4px 0 0;
+  font-size: .74rem;
+  color: #4a6880;
+  line-height: 1.4;
+}
+
+.exercise-muscle-summary strong {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+.exercise-muscle-hint {
+  margin: 4px 0 0;
+  font-size: .72rem;
+  color: #8da2b3;
+  font-style: italic;
+}
+
+.exercise-form-muscle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.exercise-form-muscle-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--secondary-color);
+  font-size: .74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color .2s ease;
+}
+
+.exercise-form-muscle-toggle:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.exercise-form-custom-muscle {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.exercise-form-custom-muscle input {
+  flex: 1;
+}
+
+.exercise-form-muscle-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.muscle-group-modal {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.muscle-group-container {
+  display: grid;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.muscle-group-add-form {
+  display: flex;
+  gap: 8px;
+}
+
+.muscle-group-add-form input {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid #cbdbe5;
+  border-radius: 10px;
+  background: #f8fbfc;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: .82rem;
+  color: #16324a;
+}
+
+.muscle-group-add-form input:focus {
+  border-color: var(--secondary-color);
+  outline: none;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 164, 228, .14);
+}
+
+.muscle-group-add-btn {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.muscle-group-header-info {
+  color: #587184;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.muscle-group-list {
+  display: grid;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.muscle-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #e0ebf2;
+  border-radius: 10px;
+  background: #f8fbfc;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.muscle-group-item:hover {
+  border-color: #cbdbe5;
+  background: #fff;
+}
+
+.muscle-group-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.muscle-group-icon {
+  color: #00a4e4;
+  flex-shrink: 0;
+}
+
+.muscle-group-item-name {
+  font-size: .88rem;
+  font-weight: 700;
+  color: #16324a;
+}
+
+.muscle-group-tag {
+  font-size: .68rem;
+  font-weight: 700;
+  color: #003b70;
+  background: #e1f0fa;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.muscle-group-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.muscle-group-badge {
+  font-size: .72rem;
+  font-weight: 700;
+  color: #587184;
+  background: #eef4f7;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.muscle-group-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #8c9fae;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.muscle-group-delete-btn:hover:not(:disabled) {
+  color: #d92d20;
+  background: #fee4e2;
+  border-color: #fecdca;
+}
+
+.muscle-group-delete-btn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
 .exercise-video-heading {
   align-items: center;
 }
@@ -7126,35 +7384,53 @@ a {
   text-align: left;
   cursor: grab;
   box-shadow: 0 5px 16px rgba(0, 59, 112, .08);
+  box-sizing: border-box;
 }
 
 .studio-scheduled-content {
   position: absolute;
   inset: 0;
-  display: grid;
-  align-content: start;
-  gap: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 2px;
   overflow: hidden;
-  padding: 7px 10px;
+  padding: 4px 8px;
   border-radius: inherit;
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 .studio-scheduled-content strong {
+  display: block;
+  min-width: 0;
   overflow: hidden;
-  font-size: .76rem;
+  font-size: .78rem;
+  font-weight: 700;
   line-height: 1.25;
+  color: #16324a;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .studio-scheduled-content>span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
   font-size: .66rem;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #607689;
+  flex-shrink: 1;
 }
 
 .studio-scheduled-item.is-compact .studio-scheduled-content {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -7162,14 +7438,34 @@ a {
 }
 
 .studio-scheduled-item.is-compact .studio-scheduled-content strong {
+  flex: 1 1 auto;
   min-width: 0;
-  line-height: 1rem;
+  line-height: 1.25;
+  font-size: .78rem;
+  font-weight: 700;
 }
 
 .studio-scheduled-item.is-compact .studio-scheduled-content>span {
   flex: 0 0 auto;
   line-height: 1;
   white-space: nowrap;
+  font-size: .66rem;
+  color: #607689;
+}
+
+@media (max-height: 800px), (max-width: 1280px) {
+  .studio-scheduled-content {
+    padding: 3px 6px;
+    gap: 1px;
+  }
+  .studio-scheduled-content strong {
+    font-size: .75rem;
+    line-height: 1.2;
+  }
+  .studio-scheduled-content>span {
+    font-size: .63rem;
+    line-height: 1.15;
+  }
 }
 
 .studio-scheduled-item.is-selected {
