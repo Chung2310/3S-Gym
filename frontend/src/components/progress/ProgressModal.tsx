@@ -41,19 +41,19 @@ export default function ProgressModal({
 
   return (
     <div
-      className="modal-backdrop"
+      className="modal-backdrop profile-modal-backdrop"
       role="presentation"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <section
-        className="profile-form-modal modal-xl"
+        className="profile-form-modal modal-xl max-h-[94dvh] sm:max-h-[88vh] flex flex-col shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header dùng class chuẩn profile-form-header từ index.css */}
-        <header className="profile-form-header">
+        <header className="profile-form-header shrink-0">
           <div>
             <h2 id={titleId}>{title}</h2>
             {description && <p>{description}</p>}
@@ -69,8 +69,8 @@ export default function ProgressModal({
           </button>
         </header>
 
-        {/* Body dùng class chuẩn profile-form-body từ index.css */}
-        <div className="profile-form-body">
+        {/* Body dùng class chuẩn profile-form-body từ index.css kết hợp flex-1 min-h-0 */}
+        <div className="profile-form-body flex-1 min-h-0 overflow-y-auto overscroll-contain">
           {loading ? (
             <div className="flex flex-col items-center justify-center min-h-64 p-8 text-center text-slate-500" role="status">
               <div className="h-8 w-8 animate-spin rounded-full border-3 border-sky-600 border-t-transparent mb-3" />
