@@ -33,8 +33,11 @@ function lines(value: string): string[] {
 }
 
 function isValidDraft(draft: AiExerciseDraft): boolean {
+  const hasMuscle = Boolean(
+    (draft.muscleGroups && draft.muscleGroups.length > 0) || draft.muscleGroup?.trim(),
+  );
   return Boolean(
-    draft.name.trim() && draft.muscleGroup.trim() && draft.level && draft.defaultTrackingType
+    draft.name.trim() && hasMuscle && draft.level && draft.defaultTrackingType
     && draft.description.trim() && draft.technique.trim(),
   );
 }
@@ -99,7 +102,18 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
     });
   };
 
-  const selectedDrafts = drafts.filter((draft, index) => selected.has(index) && isValidDraft(draft));
+  const selectedDrafts = drafts
+    .filter((draft, index) => selected.has(index) && isValidDraft(draft))
+    .map((draft) => {
+      const groups = draft.muscleGroups && draft.muscleGroups.length > 0
+        ? draft.muscleGroups
+        : draft.muscleGroup.split(',').map((s) => s.trim()).filter(Boolean);
+      return {
+        ...draft,
+        muscleGroups: groups,
+        muscleGroup: groups.join(', '),
+      };
+    });
   const selectedInvalid = drafts.some((draft, index) => selected.has(index) && !isValidDraft(draft));
 
   const save = async () => {
@@ -172,7 +186,25 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
                 <header className="mb-4 flex items-center justify-between gap-3"><label className="flex cursor-pointer items-center gap-2 font-bold text-primary"><input aria-label={`Chọn bài tập ${index + 1}`} type="checkbox" checked={selected.has(index)} onChange={() => toggle(index)} /> Bài tập {index + 1}</label>{selected.has(index) && <Check className="text-emerald-600" size={18} aria-hidden="true" />}</header>
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="module-field"><span>Tên bài tập</span><input aria-label={`Tên bài tập ${index + 1}`} placeholder="Nhập tên bài tập" value={draft.name} onChange={(event) => updateDraft(index, 'name', event.target.value)} /></label>
-                  <label className="module-field"><span>Nhóm cơ</span><input aria-label={`Nhóm cơ ${index + 1}`} placeholder="Nhập nhóm cơ" value={draft.muscleGroup} onChange={(event) => updateDraft(index, 'muscleGroup', event.target.value)} /></label>
+                  <label className="module-field">
+                    <span>Nhóm cơ</span>
+                    <input
+                      aria-label={`Nhóm cơ ${index + 1}`}
+                      placeholder="Ví dụ: Ngực, Vai, Tay sau"
+                      value={draft.muscleGroup}
+                      onChange={(event) => {
+                        const val = event.target.value;
+                        const groups = val.split(',').map((s) => s.trim()).filter(Boolean);
+                        setDrafts((current) =>
+                          current.map((item, position) =>
+                            position === index
+                              ? { ...item, muscleGroup: val, muscleGroups: groups }
+                              : item,
+                          ),
+                        );
+                      }}
+                    />
+                  </label>
                   <label className="module-field"><span>Cấp độ</span><select aria-label={`Cấp độ ${index + 1}`} value={draft.level} onChange={(event) => updateDraft(index, 'level', event.target.value as Exercise['level'])}><option value="BEGINNER">Cơ bản</option><option value="INTERMEDIATE">Trung cấp</option><option value="ADVANCED">Nâng cao</option></select></label>
                   <label className="module-field"><span>Cách ghi nhận</span><select aria-label={`Cách ghi nhận ${index + 1}`} value={draft.defaultTrackingType} onChange={(event) => updateDraft(index, 'defaultTrackingType', event.target.value as ClassifiedTrackingType)}>{trackingOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
                   <label className="module-field md:col-span-2"><span>Thiết bị, mỗi dòng một mục</span><textarea aria-label={`Thiết bị ${index + 1}`} placeholder="Ví dụ: Tạ đơn" value={draft.equipment.join('\n')} onChange={(event) => updateDraft(index, 'equipment', lines(event.target.value))} /></label>
