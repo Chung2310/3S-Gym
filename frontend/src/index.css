@@ -5281,6 +5281,8 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
 .muscle-group-icon {
@@ -5292,6 +5294,10 @@ a {
   font-size: .88rem;
   font-weight: 700;
   color: #16324a;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .muscle-group-tag {
@@ -5301,12 +5307,14 @@ a {
   background: #e1f0fa;
   padding: 2px 7px;
   border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .muscle-group-item-meta {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .muscle-group-badge {
@@ -5342,6 +5350,113 @@ a {
 .muscle-group-delete-btn:disabled {
   opacity: .35;
   cursor: not-allowed;
+}
+
+@media (max-width: 639px) {
+  .muscle-group-modal {
+    width: 100vw !important;
+    max-width: 100vw;
+    max-height: 92dvh;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+  }
+
+  .muscle-group-container {
+    gap: 12px;
+    padding: 0 0 16px;
+  }
+
+  .muscle-group-add-form {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .muscle-group-add-form input {
+    width: 100%;
+    min-height: 42px;
+    font-size: .88rem;
+  }
+
+  .muscle-group-add-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+  }
+
+  .muscle-group-list {
+    max-height: clamp(200px, 46dvh, 340px);
+    -webkit-overflow-scrolling: touch;
+    padding-right: 2px;
+  }
+
+  .muscle-group-item {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
+  .muscle-group-item-main {
+    gap: 8px;
+  }
+
+  .muscle-group-item-name {
+    font-size: .82rem;
+  }
+
+  .muscle-group-tag {
+    font-size: .62rem;
+    padding: 1px 5px;
+  }
+
+  .muscle-group-badge {
+    font-size: .68rem;
+    padding: 2px 6px;
+  }
+
+  .muscle-group-delete-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .exercise-form-custom-muscle {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .exercise-form-custom-muscle input {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .exercise-form-muscle-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .exercise-muscle-chips {
+    gap: 6px;
+  }
+
+  .exercise-muscle-chip {
+    padding: 5px 9px;
+    font-size: .75rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .muscle-group-item {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .muscle-group-item-main {
+    width: 100%;
+  }
+
+  .muscle-group-item-meta {
+    width: 100%;
+    justify-content: space-between;
+    padding-left: 24px;
+  }
 }
 
 .exercise-video-heading {
