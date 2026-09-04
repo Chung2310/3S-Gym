@@ -40,7 +40,6 @@ export default function CustomerWorkoutPlans() {
         <div>
           <p className="workout-eyebrow">Client programming</p>
           <h1 className="module-heading">Giáo án khách hàng</h1>
-          <p className="module-description">Cá nhân hóa và công bố kế hoạch tập cho từng khách hàng.</p>
         </div>
       </header>
 

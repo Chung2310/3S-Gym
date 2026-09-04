@@ -99,6 +99,9 @@ export interface CustomerNutritionPlanDto {
   tdee?: number | null;
   targetCalories: number;
   macros: MacroNutrients;
+  startDate?: string | null;
+  endDate?: string | null;
+  durationDays?: number | null;
   menu?: NutritionPlanMenuItem[] | unknown[];
   notes?: string;
   status: 'DRAFT' | 'PUBLISHED';

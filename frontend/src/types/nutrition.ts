@@ -115,6 +115,9 @@ export interface NutritionDraftPlan {
   reviewStatus: string;
   posterDishes?: MealDishItem[];
   advice?: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  durationDays?: number | null;
 }
 
 export interface NutritionLogItem {

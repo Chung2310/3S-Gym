@@ -84,8 +84,9 @@ async function listContent(resource: ContentResource, user: AuthenticatedUser, q
       ? new (await import('mongoose')).Types.ObjectId(query.customerId)
       : { $in: ids };
   }
+  const sortOption: Record<string, -1 | 1> = resource === 'nutritionPlans' ? { startDate: -1, createdAt: -1 } : { createdAt: -1 };
   const [items, total] = await Promise.all([
-    Model.find(filter).populate('customerId', 'fullName phone').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Model.find(filter).populate('customerId', 'fullName phone').sort(sortOption).skip((page - 1) * limit).limit(limit).lean(),
     Model.countDocuments(filter),
   ]);
   return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };

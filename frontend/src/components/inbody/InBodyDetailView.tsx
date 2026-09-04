@@ -442,7 +442,18 @@ export default function InBodyDetailView({
             </div>
           )}
 
-          {/* 8. Tỷ lệ eo / mông (WHR) */}
+          {/* 8. Khoáng chất xương (Bone Mineral) */}
+          {record.boneMineral != null && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Khoáng chất xương (BMC)</span>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#059669', margin: '4px 0' }}>
+                <span>{record.boneMineral}</span> <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>kg</span>
+              </div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Mật độ khoáng xương</span>
+            </div>
+          )}
+
+          {/* 9. Tỷ lệ eo / mông (WHR) */}
           {record.waistHipRatio != null && (
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
               <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Tỷ lệ eo / mông (WHR)</span>

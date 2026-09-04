@@ -183,7 +183,7 @@ export default function NutritionPage() {
           onClick={() => setActiveTab('activity_library')}
         >
           <Activity size={15} style={{ display: 'inline', marginRight: '6px' }} />
-          3. Tiêu Hao Vận Động (MET)
+          3. Tiêu Hao Vận Động
         </button>
 
         <button

@@ -13,6 +13,18 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { isAdminRole } from './roles.js';
+import { logger } from '../config/logger.js';
+
+function sanitizeJsonString(str: string): string {
+  return str
+    // Xóa comments /* ... */ và // ...
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/[^\n\r]*/g, '')
+    // Xóa ellipsis ...
+    .replace(/,?\s*\.{3,}/g, '')
+    // Xóa dấu phẩy thừa trước } hoặc ]
+    .replace(/,\s*([}\]])/g, '$1');
+}
 
 function parseJson(text: string): Record<string, unknown> {
   if (!text || typeof text !== 'string') {
@@ -26,24 +38,72 @@ function parseJson(text: string): Record<string, unknown> {
     return JSON.parse(cleaned) as Record<string, unknown>;
   } catch {}
 
-  // 2. Thử bóc tách từ markdown code block ```json ... ```
+  // 2. Thử sau khi sanitize comments & trailing commas
+  try {
+    return JSON.parse(sanitizeJsonString(cleaned)) as Record<string, unknown>;
+  } catch {}
+
+  // 3. Thử bóc tách từ markdown code block ```json ... ```
   const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (codeBlockMatch && codeBlockMatch[1]) {
     try {
-      return JSON.parse(codeBlockMatch[1].trim()) as Record<string, unknown>;
+      return JSON.parse(sanitizeJsonString(codeBlockMatch[1].trim())) as Record<string, unknown>;
     } catch {}
   }
 
-  // 3. Thử tìm khối ngoặc nhọn ngoài cùng { ... }
+  // 4. Thử tìm khối ngoặc nhọn ngoài cùng { ... }
   const firstBrace = cleaned.indexOf('{');
   const lastBrace = cleaned.lastIndexOf('}');
   if (firstBrace !== -1 && lastBrace > firstBrace) {
     try {
       const jsonSubstr = cleaned.substring(firstBrace, lastBrace + 1);
-      return JSON.parse(jsonSubstr) as Record<string, unknown>;
+      return JSON.parse(sanitizeJsonString(jsonSubstr)) as Record<string, unknown>;
     } catch {}
   }
 
+  // 5. Nếu JSON bị cụt (truncated do token limit): tự đóng ngoặc nhọn/vuông
+  if (firstBrace !== -1) {
+    let candidate = sanitizeJsonString(cleaned.substring(firstBrace));
+    let openBraces = 0;
+    let openBrackets = 0;
+    let inString = false;
+    let escapeNext = false;
+    for (let i = 0; i < candidate.length; i++) {
+      const char = candidate[i];
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+      if (char === '\\') {
+        escapeNext = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (!inString) {
+        if (char === '{') openBraces++;
+        else if (char === '}') openBraces = Math.max(0, openBraces - 1);
+        else if (char === '[') openBrackets++;
+        else if (char === ']') openBrackets = Math.max(0, openBrackets - 1);
+      }
+    }
+    if (inString) candidate += '"';
+    while (openBrackets > 0) {
+      candidate += ']';
+      openBrackets--;
+    }
+    while (openBraces > 0) {
+      candidate += '}';
+      openBraces--;
+    }
+    try {
+      return JSON.parse(sanitizeJsonString(candidate)) as Record<string, unknown>;
+    } catch {}
+  }
+
+  logger.error({ rawPreview: cleaned.slice(0, 500) }, '[contentDraftService] Parse JSON thất bại');
   throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả nội dung có cấu trúc hợp lệ.' });
 }
 
@@ -64,30 +124,31 @@ export async function createNutritionDraft(user: AuthenticatedUser, customerId: 
 
   const customerWeight = latestInBody?.weight || customer.initialWeight || 65;
   const customerHeight = customer.height || 170;
-  const customerGender = customer.gender || 'MALE';
+  const customerGender = customer.gender === 'MALE' ? 'Nam' : customer.gender === 'FEMALE' ? 'Nữ' : 'Khác';
   const customerGoal = latestGoal?.type || customer.initialGoal || 'Tập luyện khỏe đẹp & Tăng cơ giảm mỡ';
-  const customerBf = latestInBody?.bodyFatPercentage || null;
-  const customerBmr = latestInBody?.bmr || null;
+  const customerBf = latestInBody?.bodyFatPercentage ? `${latestInBody.bodyFatPercentage}%` : 'Chưa có';
+  const customerBmr = latestInBody?.bmr ? `${latestInBody.bmr} kcal` : 'Chưa có';
 
   const prompt = `Bạn là Chuyên gia dinh dưỡng thể hình & Đầu bếp dinh dưỡng thể thao hàng đầu tại Việt Nam (3S Wellness Fitness & Yoga).
-Nhiệm vụ của bạn là thiết kế THỰC ĐƠN MÓN ĂN THỰC TẾ 100% CƠM VIỆT, DỄ MUA TẠI CHỢ/SIÊU THỊ, DỄ NẤU VÀ ĐÁP ỨNG CHÍNH XÁC CÁC YÊU CẦU CỦA PT:
+Nhiệm vụ của bạn là thiết kế THỰC ĐƠN MÓN ĂN THỰC TẾ 100% CƠM VIỆT CHO 7 NGÀY KHÁC NHAU TRONG TUẦN cho học viên ${customer.fullName}.
 
-HỌC VIÊN:
-- Họ tên: ${customer.fullName}
-- Giới tính: ${customerGender === 'MALE' ? 'Nam' : 'Nữ'}
+THÔNG TIN HỌC VIÊN:
+- Họ và tên: ${customer.fullName}
+- Giới tính: ${customerGender}
 - Chiều cao: ${customerHeight} cm, Cân nặng hiện tại: ${customerWeight} kg
-- Body fat InBody: ${customerBf ? customerBf + '%' : 'Chưa có'} | BMR đo thực tế: ${customerBmr ? customerBmr + ' kcal' : 'Chưa có'}
+- Body fat: ${customerBf} | BMR đo thực tế: ${customerBmr}
 - Mục tiêu thể hình: ${customerGoal}
 - Tiền sử sức khỏe & Bệnh lý: ${customer.medicalNotes || 'Bình thường'}
 
-YÊU CẦU CHI TIẾT TỪ PT VÀ NHU CẦU HỌC VIÊN (BẮT BUỘC TUÂN THỦ 100%):
+YÊU CẦU CHI TIẾT TỪ PT VÀ NHU CẦU HỌC VIÊN (BẮT BUỘC TUÂN THỦ):
 ${request}
 
 MỆNH LỆNH BẮT BUỘC ĐỐI VỚI CÁC DỮ KIỆN TỪ GIAO DIỆN:
-1. SỐ BỮA ĂN (menu.length): BẮT BUỘC sinh đúng số lượng bữa ăn theo yêu cầu trong mục "YÊU CẦU CHI TIẾT TỪ PT" ở trên (Ví dụ: Yêu cầu 3 bữa -> Sinh đúng 3 bữa; Yêu cầu 4 bữa -> Sinh đúng 4 bữa; Yêu cầu 5 bữa -> Sinh đúng 5 bữa; Yêu cầu 2 bữa -> Sinh đúng 2 bữa).
-2. CALO MỤC TIÊU (targetCalories): BẮT BUỘC gán giá trị "targetCalories" bằng đúng con số Calo mục tiêu được nêu trong yêu cầu của PT. Tổng calories của tất cả các bữa ăn trong mảng "menu" PHẢI CỘNG LẠI CHÍNH XÁC bằng "targetCalories"!
-3. DỊ ỨNG & KIÊNG KỴ: TUYỆT ĐỐI LOẠI BỎ 100% CÁC THỰC PHẨM TRONG DANH SÁCH DỊ ỨNG/KIÊNG KỴ ĐÃ NÊU (Ví dụ: nếu kiêng hải sản thì KHÔNG CÓ tôm, cua, cá biển; nếu ăn chay thì 100% thực vật đậu phụ nấm).
-4. PHONG CÁCH & LỊCH TRÌNH: Phân bổ giờ ăn ("timeSlot") và món ăn phù hợp với lịch tập và phong cách ẩm thực được yêu cầu.
+1. SỐ BỮA ĂN: BẮT BUỘC sinh đúng số lượng bữa ăn/ngày theo yêu cầu trong mục "YÊU CẦU CHI TIẾT TỪ PT" ở trên.
+2. PHẠM VI DỮ LIỆU JSON: BẮT BUỘC SINH 7 BỘ THỰC ĐƠN KHÁC NHAU CHO 7 NGÀY TRONG TUẦN (Thứ Hai, Thứ Ba, Thứ Tư, Thứ Năm, Thứ Sáu, Thứ Bảy, Chủ Nhật). Mỗi ngày PHẢI CÓ NGUỒN ĐẠM CHÍNH KHÁC NHAU (VD: Thứ Hai = Ức gà, Thứ Ba = Cá hồi, Thứ Tư = Tôm, Thứ Năm = Bò, Thứ Sáu = Heo nạc, Thứ Bảy = Cá lóc, Chủ Nhật = Trứng/Mực). CÁC MÓN ĂN GIỮA CÁC NGÀY KHÔNG ĐƯỢC TRÙNG LẶP. Hệ thống sẽ tự lặp lại chu kỳ 7 ngày này cho các tuần tiếp theo.
+3. CALO MỤC TIÊU (targetCalories): BẮT BUỘC gán giá trị "targetCalories" bằng đúng con số Calo mục tiêu được nêu trong yêu cầu của PT. Tổng calories của tất cả các bữa ăn trong MỖI NGÀY PHẢI CỘNG LẠI XẤP XỈ HOẶC BẰNG CHÍNH XÁC "targetCalories"!
+4. DỊ ỨNG & KIÊNG KỴ: TUYỆT ĐỐI LOẠI BỎ 100% CÁC THỰC PHẨM TRONG DANH SÁCH DỊ ỨNG/KIÊNG KỴ ĐÃ NÊU (Ví dụ: nếu kiêng hải sản thì KHÔNG CÓ tôm, cua, cá biển; nếu ăn chay thì 100% thực vật đậu phụ nấm).
+5. PHONG CÁCH & LỊCH TRÌNH: Phân bổ giờ ăn ("timeSlot") và món ăn phù hợp với lịch tập và phong cách ẩm thực được yêu cầu.
 
 QUY TẮC CẤU TRÚC MÓN ĂN THỰC TẾ:
 - Mỗi bữa chính (Trưa, Tối) CHỈ GỒM ĐÚNG 3 MÓN CHUẨN CƠM VIỆT: 1 Món đạm chính (Ức gà, Bò, Cá, Heo nạc, Tôm, Trứng) + 1 Món tinh bột (Cơm gạo lứt, Khoai lang, Cơm trắng) + 1 Món canh/rau xanh (Canh cải, Canh bí đỏ, Rau muống luộc, Bông cải).
@@ -97,30 +158,41 @@ QUY TẮC CẤU TRÚC MÓN ĂN THỰC TẾ:
 - ❌ CẤM BỊA MÓN LẠ ĐỜI, CHẮP VÁ GƯỢNG ÉP.
 - Tính toán Macro chuẩn xác (Rau xanh Fat = 0, Carbs thấp; Thịt nạc Carbs = 0; Tinh bột giàu Carbs, Fat = 0).
 
-Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown giải thích ngoài JSON theo cấu trúc:
+Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown giải thích ngoài JSON theo đúng mẫu schema sau:
 {
   "title": "Thực Đơn Dinh Dưỡng - ${customer.fullName}",
   "bmr": 1550,
   "tdee": 2250,
   "targetCalories": 1850,
   "macros": { "protein": 140, "carbs": 180, "fat": 50 },
-  "menu": [
+  "dailyPlans": [
     {
-      "name": "Tên bữa ăn (Ví dụ: Bữa Sáng, Bữa Trưa...)",
-      "timeSlot": "07:00 - 07:45",
-      "calories": 450,
-      "items": [
-        { "name": "Tên món ăn Việt Nam", "amount": "Định lượng (VD: 150g thịt ức gà)", "calories": 250, "protein": 35, "carbs": 0, "fat": 5, "prepTip": "Cách nấu nhanh ít dầu mỡ" }
+      "dayOfWeek": "Thứ Hai",
+      "meals": [
+        {
+          "name": "Bữa Sáng",
+          "timeSlot": "07:00 - 07:45",
+          "calories": 450,
+          "items": [
+            { "name": "Bánh mì đen kẹp trứng ốp la", "amount": "2 lát + 2 trứng", "calories": 300, "protein": 18, "carbs": 25, "fat": 12, "prepTip": "Chiên áp chảo không dầu mỡ" },
+            { "name": "Sữa chua Hy Lạp hạt chia", "amount": "100g", "calories": 150, "protein": 10, "carbs": 12, "fat": 4, "prepTip": "Ăn kèm trực tiếp" }
+          ]
+        }
       ]
     }
   ],
   "notes": "Lời khuyên dinh dưỡng, chế biến và thời điểm uống nước..."
-}`;
+}
+
+LƯU Ý QUAN TRỌNG: Mảng "dailyPlans" PHẢI chứa đủ 7 phần tử cho 7 ngày: "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật". Mỗi ngày đều có danh sách bữa ăn (meals) đầy đủ số lượng bữa theo yêu cầu.`;
 
   const raw = await generateNutritionDraft({ userId: user.id, taskType: 'TEXT_NUTRITION', requestKey: `${requestKey}:text-nutrition` }, prompt);
   const generated = parseJson(raw);
+  const rawDailyPlans = Array.isArray(generated.dailyPlans) ? (generated.dailyPlans as any[]) : [];
   const plan = {
     ...generated,
+    menu: (rawDailyPlans[0]?.meals as any[]) || (Array.isArray(generated.menu) ? generated.menu : []),
+    dailyPlans: rawDailyPlans.length > 0 ? rawDailyPlans : undefined,
     customerId: customer._id,
     ptId: user.id,
     createdByAi: true,
