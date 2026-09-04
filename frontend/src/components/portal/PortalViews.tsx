@@ -158,29 +158,6 @@ export function PtView() {
         >
           Chưa cấp
         </span>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setAccountCustomer(item);
-          }}
-          style={{
-            padding: '3px 8px',
-            fontSize: '0.74rem',
-            fontWeight: 600,
-            borderRadius: '5px',
-            background: '#00a4e4',
-            color: '#ffffff',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '3px',
-          }}
-          title="Cấp tài khoản đăng nhập"
-        >
-          <UserPlus size={11} /> Cấp ngay
-        </button>
       </div>
     );
   };
@@ -301,17 +278,6 @@ export function PtView() {
                   >
                     <Pencil size={16} />
                   </button>
-                  {(!item.userId || (typeof item.userId === 'object' && !(item.userId as { username?: string })?.username)) && (
-                    <button
-                      type="button"
-                      className="action-icon-btn"
-                      title="Cấp tài khoản đăng nhập"
-                      aria-label="Cấp tài khoản"
-                      onClick={() => setAccountCustomer(item)}
-                    >
-                      <UserPlus size={16} />
-                    </button>
-                  )}
                 </>
               ) : (
                 <button
