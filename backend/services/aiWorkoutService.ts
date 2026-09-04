@@ -12,6 +12,7 @@ import {
   scheduleWorkoutSessions,
 } from './workoutAvailabilityScheduler.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import type { ClassifiedTrackingType, TrackingPrescription } from '../types/exerciseTracking.js';
 import type { WorkoutAvailabilitySlot } from '../types/workoutAvailability.js';
 
 export interface WorkoutProposal {
@@ -39,6 +40,7 @@ interface AiScheduledExercise {
   dayNumber: number;
   startMinute: number;
   durationMinutes: number;
+  prescription?: Record<string, unknown>;
 }
 
 interface AiGeneratedExercise {
@@ -62,6 +64,68 @@ function normalizeLevel(level: unknown): 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED
   if (str.includes('BEGIN') || str.includes('MỚI') || str.includes('CƠ BẢN')) return 'BEGINNER';
   if (str.includes('ADVANC') || str.includes('NÂNG CAO')) return 'ADVANCED';
   return 'INTERMEDIATE';
+}
+
+function boundedNumber(
+  source: Record<string, unknown>,
+  key: string,
+  fallback: number,
+  min: number,
+  max: number,
+  integer = false,
+) {
+  const raw = source[key];
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return fallback;
+  const bounded = Math.min(max, Math.max(min, parsed));
+  return integer ? Math.round(bounded) : bounded;
+}
+
+function prescriptionFor(trackingType: ClassifiedTrackingType, value: unknown): TrackingPrescription {
+  const source = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const reps = typeof source.reps === 'string' && source.reps.trim()
+    ? source.reps.trim().slice(0, 100)
+    : undefined;
+
+  switch (trackingType) {
+    case 'STRENGTH': return {
+      sets: boundedNumber(source, 'sets', 3, 1, 20, true),
+      reps: reps || '8-12',
+      targetWeight: boundedNumber(source, 'targetWeight', 0, 0, 1_000),
+      targetRpe: boundedNumber(source, 'targetRpe', 7, 0, 10),
+      targetRir: boundedNumber(source, 'targetRir', 3, 0, 10),
+      restSeconds: boundedNumber(source, 'restSeconds', 90, 0, 600, true),
+    };
+    case 'BODYWEIGHT': return {
+      sets: boundedNumber(source, 'sets', 3, 1, 20, true),
+      reps: reps || '10-15',
+      addedWeight: boundedNumber(source, 'addedWeight', 0, 0, 1_000),
+      targetRpe: boundedNumber(source, 'targetRpe', 7, 0, 10),
+      targetRir: boundedNumber(source, 'targetRir', 3, 0, 10),
+      restSeconds: boundedNumber(source, 'restSeconds', 60, 0, 600, true),
+    };
+    case 'CARDIO': return {
+      durationMinutes: boundedNumber(source, 'durationMinutes', 20, 1, 240, true),
+      targetRpe: boundedNumber(source, 'targetRpe', 6, 0, 10),
+    };
+    case 'INTERVAL': return {
+      rounds: boundedNumber(source, 'rounds', 6, 1, 100, true),
+      workSeconds: boundedNumber(source, 'workSeconds', 30, 1, 3_600, true),
+      restSeconds: boundedNumber(source, 'restSeconds', 30, 0, 3_600, true),
+      targetRpe: boundedNumber(source, 'targetRpe', 8, 0, 10),
+    };
+    case 'MOBILITY': return {
+      durationMinutes: boundedNumber(source, 'durationMinutes', 5, 1, 240, true),
+      reps: boundedNumber(source, 'reps', 10, 1, 1_000, true),
+      side: ['LEFT', 'RIGHT', 'BOTH'].includes(String(source.side))
+        ? source.side as 'LEFT' | 'RIGHT' | 'BOTH'
+        : 'BOTH',
+      targetDiscomfort: boundedNumber(source, 'targetDiscomfort', 2, 0, 10),
+    };
+  }
 }
 
 const exerciseLibraryFor = (_user: AuthenticatedUser) => Exercise.find({
@@ -212,9 +276,10 @@ export async function generateWorkoutDraft(user: AuthenticatedUser, input: Worko
   if (proposal.durationWeeks < 1 || proposal.durationWeeks > 12) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Chu kỳ AI phải từ 1 đến 12 tuần.' });
   const library = await exerciseLibraryFor(user);
   const providerRequestKey = `${requestKey}:text-workout-draft`;
+  const prescriptionInstruction = 'Mỗi scheduledExercises phải có prescription phù hợp với trackingType của bài trong thư viện: STRENGTH gồm sets, reps, targetWeight, targetRpe, targetRir, restSeconds; BODYWEIGHT gồm sets, reps, addedWeight, targetRpe, targetRir, restSeconds; CARDIO gồm durationMinutes, targetRpe; INTERVAL gồm rounds, workSeconds, restSeconds, targetRpe; MOBILITY gồm durationMinutes, reps, side, targetDiscomfort. Dùng mức an toàn cho người mới; targetWeight hoặc addedWeight phải là 0 nếu không có dữ liệu sức mạnh đáng tin cậy.';
   const raw = await generateWorkoutJson(
     { userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: providerRequestKey },
-    `Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises, generatedExercises. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(input.availabilitySlots)}. Mỗi ngày chỉ có tối đa một buổi tập; ưu tiên xếp nguyên buổi vào một khung giờ rảnh đủ dài. Nếu lịch rảnh không đủ, vẫn tạo đầy đủ số buổi và hệ thống sẽ sắp lại, cảnh báo PT. Ưu tiên tối đa bài phù hợp trong thư viện. Bài có sẵn: scheduledExercises dùng exerciseId. Chỉ khi không có bài phù hợp mới tạo bài mới: thêm đầy đủ vào generatedExercises và scheduledExercises tham chiếu bằng generatedExerciseName trùng chính xác tên bài mới. Mỗi scheduledExercises chỉ gồm exerciseId hoặc generatedExerciseName (chỉ một trong hai), weekNumber (chỉ sinh tuần mẫu weekNumber: 1, hệ thống sẽ tự nhân bản cho toàn bộ ${proposal.durationWeeks} tuần), dayNumber, startMinute, durationMinutes; không trả về trackingType, prescription hay thông số mục tiêu trong lịch. durationMinutes là thời lượng riêng của từng bài, không phải thời lượng cả buổi. Các bài cùng tuần và ngày phải nối tiếp nhau, không trùng giờ; tổng thời lượng của chúng không vượt quá ${proposal.minutesPerSession} phút. Mỗi generatedExercises gồm name, muscleGroup, level, defaultTrackingType, equipment, description, technique, commonMistakes, contraindications, variants; defaultTrackingType chỉ là STRENGTH, BODYWEIGHT, CARDIO, INTERVAL hoặc MOBILITY. Ngày không có bài là ngày nghỉ hợp lệ. Thời gian dùng bước 15 phút và không trùng nhau. Cấu hình: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}. Thư viện: ${JSON.stringify(exerciseCatalog(library))}.`
+    `Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises, generatedExercises. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(input.availabilitySlots)}. Mỗi ngày chỉ có tối đa một buổi tập; ưu tiên xếp nguyên buổi vào một khung giờ rảnh đủ dài. Nếu lịch rảnh không đủ, vẫn tạo đầy đủ số buổi và hệ thống sẽ sắp lại, cảnh báo PT. Ưu tiên tối đa bài phù hợp trong thư viện. Bài có sẵn: scheduledExercises dùng exerciseId. Chỉ khi không có bài phù hợp mới tạo bài mới: thêm đầy đủ vào generatedExercises và scheduledExercises tham chiếu bằng generatedExerciseName trùng chính xác tên bài mới. Mỗi scheduledExercises gồm exerciseId hoặc generatedExerciseName (chỉ một trong hai), weekNumber (chỉ sinh tuần mẫu weekNumber: 1, hệ thống sẽ tự nhân bản cho toàn bộ ${proposal.durationWeeks} tuần), dayNumber, startMinute, durationMinutes và prescription. ${prescriptionInstruction} durationMinutes là thời lượng riêng của từng bài, không phải thời lượng cả buổi. Các bài cùng tuần và ngày phải nối tiếp nhau, không trùng giờ; tổng thời lượng của chúng không vượt quá ${proposal.minutesPerSession} phút. Mỗi generatedExercises gồm name, muscleGroup, level, defaultTrackingType, equipment, description, technique, commonMistakes, contraindications, variants; defaultTrackingType chỉ là STRENGTH, BODYWEIGHT, CARDIO, INTERVAL hoặc MOBILITY. Ngày không có bài là ngày nghỉ hợp lệ. Thời gian dùng bước 15 phút và không trùng nhau. Cấu hình: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}. Thư viện: ${JSON.stringify(exerciseCatalog(library))}.`
   );
 
   const draft = parseWorkoutJson(raw, providerRequestKey);
@@ -255,7 +320,10 @@ export async function generateWorkoutDraft(user: AuthenticatedUser, input: Worko
     const existingExercise = item.exerciseId ? libraryById.get(String(item.exerciseId)) : libraryByName.get(normalizeExerciseName(item.generatedExerciseName || (item as any).name));
     const generatedExercise = item.generatedExerciseName ? generatedByName.get(normalizeExerciseName(item.generatedExerciseName)) : undefined;
     const exerciseName = existingExercise?.name || generatedExercise?.name || item.generatedExerciseName || (item as any).name || 'Bài tập thể lực';
-    const trackingType = existingExercise?.defaultTrackingType || generatedExercise?.defaultTrackingType || 'STRENGTH';
+    const rawTrackingType = existingExercise?.defaultTrackingType || generatedExercise?.defaultTrackingType;
+    const trackingType = classifiedTrackingTypes.includes(rawTrackingType as ClassifiedTrackingType)
+      ? rawTrackingType as ClassifiedTrackingType
+      : 'STRENGTH';
     const weekNumber = Math.min(proposal.durationWeeks, Math.max(1, Math.round(Number(item.weekNumber) || 1)));
     const dayNumber = Math.min(7, Math.max(1, Math.round(Number(item.dayNumber) || 1)));
     const startMinute = Math.min(1380, Math.max(0, Math.round((Number(item.startMinute) || 0) / 15) * 15));
@@ -264,7 +332,7 @@ export async function generateWorkoutDraft(user: AuthenticatedUser, input: Worko
       ...(existingExercise ? { exerciseId: String(existingExercise._id) } : {}),
       name: exerciseName,
       trackingType,
-      prescription: {},
+      prescription: prescriptionFor(trackingType, item.prescription),
       weekNumber,
       dayNumber,
       startMinute,
