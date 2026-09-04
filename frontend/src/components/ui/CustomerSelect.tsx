@@ -25,7 +25,7 @@ export default function CustomerSelect({
   value = '',
   onChange,
   required = false,
-  placeholder = 'Tìm theo tên học viên, số điện thoại...',
+  placeholder = 'Chọn hoặc tìm học viên...',
   error,
   disabled = false,
   readOnly = false,
@@ -160,7 +160,14 @@ export default function CustomerSelect({
   const effectiveAriaLabel = ariaLabel || label || 'Học viên / Khách hàng';
 
   return (
-    <div className={`field customer-select-container ${className}`} ref={wrapperRef} style={{ position: 'relative' }}>
+    <div
+      className={`field customer-select-container ${className}`}
+      ref={wrapperRef}
+      style={{
+        position: 'relative',
+        zIndex: open ? 50 : undefined,
+      }}
+    >
       {label && (
         <label htmlFor={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
           <span>
@@ -342,13 +349,16 @@ export default function CustomerSelect({
             top: 'calc(100% + 4px)',
             left: 0,
             right: 0,
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
             zIndex: 9999,
             background: '#ffffff',
             border: '1px solid #cbd5e1',
             borderRadius: '12px',
             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
             overflow: 'hidden',
-            maxHeight: '320px',
+            maxHeight: 'min(320px, 60vh)',
             display: 'flex',
             flexDirection: 'column',
           }}
@@ -362,7 +372,7 @@ export default function CustomerSelect({
               className="customer-search-input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm theo tên học viên, số điện thoại..."
+              placeholder="Nhập tên, số điện thoại để lọc danh sách..."
               style={{
                 border: 'none',
                 background: 'transparent',

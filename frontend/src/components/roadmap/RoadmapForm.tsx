@@ -33,6 +33,7 @@ import {
   type RoadmapWeekProposal,
 } from '../../services/roadmapGenerator';
 import CustomerSelect from '../ui/CustomerSelect';
+import CustomSelect from '../ui/CustomSelect';
 import { useToast } from '../ui/ToastProvider';
 import type { Roadmap } from '../../types/roadmap';
 
@@ -480,7 +481,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
   };
 
   return (
-    <form className="panel p-3.5 sm:p-6 flex flex-col gap-4 sm:gap-5 max-w-full overflow-hidden" onSubmit={submit}>
+    <form className="panel p-3.5 sm:p-6 flex flex-col gap-4 sm:gap-5 max-w-full" onSubmit={submit}>
       {/* Header Banner */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
         <div>
@@ -494,7 +495,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
       </div>
 
       {/* 1. Customer Selector & Quick Baseline Card */}
-      <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 max-w-full overflow-hidden">
+      <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 max-w-full">
         <div className="form-grid" style={{ marginBottom: '12px' }}>
           <CustomerSelect
             label="Học viên / Khách hàng"
@@ -502,7 +503,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             value={customerId}
             onChange={setCustomerId}
             required
-            placeholder="Tìm theo tên học viên, số điện thoại..."
+            placeholder="Chọn hoặc tìm học viên..."
           />
           <label className="field">
             <span style={{ fontWeight: 700 }}>Tên Lộ trình (Roadmap Title)</span>
@@ -518,7 +519,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
 
         {/* Snapshot info of the selected customer & InBody */}
         {customerId && (
-          <div className="mt-3 p-3 sm:p-4 bg-white rounded-lg border border-slate-200 text-sm max-w-full overflow-hidden">
+          <div className="mt-3 p-3 sm:p-4 bg-white rounded-lg border border-slate-200 text-sm max-w-full">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
               <span style={{ fontWeight: 700, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Scale size={16} color="var(--secondary-color)" /> Hồ sơ Thể trạng & Dữ liệu InBody gần nhất:
@@ -561,26 +562,32 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
       </div>
 
       {/* 2. Goal & Roadmap Parameter Controls */}
-      <div className="p-3.5 sm:p-5 rounded-xl border border-sky-200 bg-gradient-to-b from-sky-50 to-white max-w-full overflow-hidden">
+      <div className="p-3.5 sm:p-5 rounded-xl border border-sky-200 bg-gradient-to-b from-sky-50 to-white max-w-full">
         <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 14px' }}>
           <Target size={18} /> Thiết lập Thông số Mục tiêu (Goal Engine)
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
-          <label className="field">
-            <span style={{ fontWeight: 700 }}>Mục tiêu chính</span>
-            <select value={goalType} onChange={(e) => setGoalType(e.target.value as RoadmapGoalType)} style={{ fontWeight: 600 }}>
-              <option value="FAT_LOSS">🔥 Giảm mỡ & Giữ cơ (Fat Loss)</option>
-              <option value="WEIGHT_LOSS">📉 Giảm cân toàn thân (Weight Loss)</option>
-              <option value="MUSCLE_GAIN">💪 Tăng cơ nạc (Muscle Gain / Bulking)</option>
-              <option value="RECOMPOSITION">⚡ Tái cấu trúc vóc dáng (Recomposition)</option>
-              <option value="FITNESS">🏃 Cải thiện Thể lực & Sức bền (Fitness)</option>
-              <option value="STRENGTH">🏋️ Tăng Sức mạnh nền tảng (Strength)</option>
-            </select>
-          </label>
+          <div>
+            <CustomSelect<RoadmapGoalType>
+              label="Mục tiêu chính"
+              value={goalType}
+              onChange={(val) => setGoalType(val)}
+              options={[
+                { value: 'FAT_LOSS', label: '🔥 Giảm mỡ & Giữ cơ (Fat Loss)' },
+                { value: 'WEIGHT_LOSS', label: '📉 Giảm cân toàn thân (Weight Loss)' },
+                { value: 'MUSCLE_GAIN', label: '💪 Tăng cơ nạc (Muscle Gain / Bulking)' },
+                { value: 'RECOMPOSITION', label: '⚡ Tái cấu trúc vóc dáng (Recomposition)' },
+                { value: 'FITNESS', label: '🏃 Cải thiện Thể lực & Sức bền (Fitness)' },
+                { value: 'STRENGTH', label: '🏋️ Tăng Sức mạnh nền tảng (Strength)' },
+              ]}
+            />
+          </div>
 
-          <label className="field">
-            <span style={{ fontWeight: 700 }}>Chỉ số mục tiêu (Con số)</span>
+          <div className="flex flex-col">
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              Chỉ số mục tiêu (Con số)
+            </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="number"
@@ -590,36 +597,58 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                 value={targetValue}
                 onChange={(e) => setTargetValue(Number(e.target.value))}
                 required
-                style={{ flex: 1 }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  minHeight: '42px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 12px',
+                  background: '#ffffff',
+                }}
               />
-              <select value={targetUnit} onChange={(e) => setTargetUnit(e.target.value)} style={{ width: '80px' }}>
-                <option value="kg">kg</option>
-                <option value="% mỡ">% mỡ</option>
-                <option value="cm eo">cm eo</option>
-              </select>
+              <div style={{ width: '95px', flexShrink: 0 }}>
+                <CustomSelect
+                  value={targetUnit}
+                  onChange={(val) => setTargetUnit(val)}
+                  options={[
+                    { value: 'kg', label: 'kg' },
+                    { value: '% mỡ', label: '% mỡ' },
+                    { value: 'cm eo', label: 'cm eo' },
+                  ]}
+                />
+              </div>
             </div>
-          </label>
+          </div>
 
-          <label className="field">
-            <span style={{ fontWeight: 700 }}>Thời gian dự kiến (Tuần)</span>
-            <select value={durationWeeks} onChange={(e) => setDurationWeeks(Number(e.target.value))}>
-              <option value="4">4 tuần (1 tháng - Cấp tốc)</option>
-              <option value="8">8 tuần (2 tháng - Cơ bản)</option>
-              <option value="12">12 tuần (3 tháng - Chuẩn khuyến nghị)</option>
-              <option value="16">16 tuần (4 tháng - Chuyên sâu)</option>
-              <option value="24">24 tuần (6 tháng - Chuyển hóa toàn diện)</option>
-            </select>
-          </label>
+          <div>
+            <CustomSelect<number>
+              label="Thời gian dự kiến (Tuần)"
+              value={durationWeeks}
+              onChange={(val) => setDurationWeeks(val)}
+              options={[
+                { value: 4, label: '4 tuần (1 tháng - Cấp tốc)' },
+                { value: 8, label: '8 tuần (2 tháng - Cơ bản)' },
+                { value: 12, label: '12 tuần (3 tháng - Chuẩn khuyến nghị)' },
+                { value: 16, label: '16 tuần (4 tháng - Chuyên sâu)' },
+                { value: 24, label: '24 tuần (6 tháng - Chuyển hóa toàn diện)' },
+              ]}
+            />
+          </div>
 
-          <label className="field">
-            <span style={{ fontWeight: 700 }}>Tần suất tập luyện</span>
-            <select value={sessionsPerWeek} onChange={(e) => setSessionsPerWeek(Number(e.target.value))}>
-              <option value="3">3 buổi / tuần (Full Body Split)</option>
-              <option value="4">4 buổi / tuần (Upper / Lower)</option>
-              <option value="5">5 buổi / tuần (Push / Pull / Legs)</option>
-              <option value="6">6 buổi / tuần (Vận động viên)</option>
-            </select>
-          </label>
+          <div>
+            <CustomSelect<number>
+              label="Tần suất tập luyện"
+              value={sessionsPerWeek}
+              onChange={(val) => setSessionsPerWeek(val)}
+              options={[
+                { value: 3, label: '3 buổi / tuần (Full Body Split)' },
+                { value: 4, label: '4 buổi / tuần (Upper / Lower)' },
+                { value: 5, label: '5 buổi / tuần (Push / Pull / Legs)' },
+                { value: 6, label: '6 buổi / tuần (Vận động viên)' },
+              ]}
+            />
+          </div>
         </div>
 
         <label className="field" style={{ marginTop: '12px' }}>
@@ -1416,18 +1445,21 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                         <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0">
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs text-slate-500 whitespace-nowrap">Tần suất:</span>
-                            <select
-                              aria-label={`Tần suất tuần ${week.week}`}
-                              value={week.sessionTargets || sessionsPerWeek}
-                              onChange={(e) => updateWeekSessionTargets(phaseIndex, weekIndex, Number(e.target.value))}
-                              className="px-2 py-1 text-xs border border-slate-300 rounded-md bg-white text-slate-700"
-                            >
-                              <option value="2">2 buổi/tuần</option>
-                              <option value="3">3 buổi/tuần</option>
-                              <option value="4">4 buổi/tuần</option>
-                              <option value="5">5 buổi/tuần</option>
-                              <option value="6">6 buổi/tuần</option>
-                            </select>
+                            <div style={{ width: '130px' }}>
+                              <CustomSelect<number>
+                                size="sm"
+                                ariaLabel={`Tần suất tuần ${week.week}`}
+                                value={week.sessionTargets || sessionsPerWeek}
+                                onChange={(val) => updateWeekSessionTargets(phaseIndex, weekIndex, val)}
+                                options={[
+                                  { value: 2, label: '2 buổi/tuần' },
+                                  { value: 3, label: '3 buổi/tuần' },
+                                  { value: 4, label: '4 buổi/tuần' },
+                                  { value: 5, label: '5 buổi/tuần' },
+                                  { value: 6, label: '6 buổi/tuần' },
+                                ]}
+                              />
+                            </div>
                           </div>
 
                           <button

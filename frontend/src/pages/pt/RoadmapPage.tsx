@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import CustomerSelect from '../../components/ui/CustomerSelect';
+import CustomSelect from '../../components/ui/CustomSelect';
 import Pagination from '../../components/ui/Pagination';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -206,7 +207,7 @@ export default function RoadmapPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '12px', alignItems: 'end' }}>
           {/* Customer Filter */}
           <div>
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
@@ -225,29 +226,17 @@ export default function RoadmapPage() {
 
           {/* Status Filter */}
           <div>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-              Trạng thái
-            </span>
-            <select
-              aria-label="Lọc theo trạng thái"
-              className="filter-select"
+            <CustomSelect
+              label="Trạng thái"
+              ariaLabel="Lọc theo trạng thái"
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              style={{
-                width: '100%',
-                minHeight: '42px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                padding: '0 12px',
-                fontSize: '0.85rem',
-                color: '#334155',
-              }}
-            >
-              <option value="">Tất cả trạng thái</option>
-              <option value="DRAFT">Bản nháp (DRAFT)</option>
-              <option value="PUBLISHED">Đã công bố (PUBLISHED)</option>
-            </select>
+              onChange={(val) => setFilterStatus(val)}
+              options={[
+                { value: '', label: 'Tất cả trạng thái' },
+                { value: 'DRAFT', label: 'Bản nháp (DRAFT)' },
+                { value: 'PUBLISHED', label: 'Đã công bố (PUBLISHED)' },
+              ]}
+            />
           </div>
 
           {/* Keyword Search */}
