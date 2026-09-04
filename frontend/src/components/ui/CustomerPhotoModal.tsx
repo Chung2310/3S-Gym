@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import { ArrowRight, Calendar, Camera, Check, Image as ImageIcon, Plus, Sliders, Trash2, Upload, Weight, X, ZoomIn } from 'lucide-react';
+import { ArrowRight, Calendar, Camera, Image as ImageIcon, Plus, Sliders, Trash2, Upload, X } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
-import FormField from './FormField';
-import Pagination from './Pagination';
 import { useToast } from './ToastProvider';
 import { api } from '../../services/api';
 import type { PaginationMeta } from '../../types';
@@ -46,12 +44,12 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<'gallery' | 'compare'>('gallery');
   const [items, setItems] = useState<ProgressPhotoItem[]>([]);
-  const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0 });
+  const [_meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0 });
   const [stageFilter, setStageFilter] = useState('');
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [deleting, setDeleting] = useState<ProgressPhotoItem | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
 
   // Batch Multi-Photo Upload State
   const [uploadQueue, setUploadQueue] = useState<
@@ -294,11 +292,6 @@ export default function CustomerPhotoModal({ open, customer, onClose }: Customer
       toast.error(errorMessage(error));
     }
   };
-
-  const filteredCompareItems = useMemo(() => {
-    if (compareAngle === 'ALL') return items;
-    return items.filter((p) => p.angle === compareAngle);
-  }, [items, compareAngle]);
 
   // Dedicated options for Before and After dropdowns
   const beforeOptions = useMemo(() => {

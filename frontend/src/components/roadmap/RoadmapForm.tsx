@@ -33,6 +33,7 @@ import {
   type RoadmapWeekProposal,
 } from '../../services/roadmapGenerator';
 import CustomerSelect from '../ui/CustomerSelect';
+import CustomSelect from '../ui/CustomSelect';
 import { useToast } from '../ui/ToastProvider';
 import type { Roadmap } from '../../types/roadmap';
 
@@ -480,7 +481,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
   };
 
   return (
-    <form className="panel" onSubmit={submit} style={{ display: 'grid', gap: '20px', padding: '24px' }}>
+    <form className="panel p-3.5 sm:p-6 flex flex-col gap-4 sm:gap-5 max-w-full" onSubmit={submit}>
       {/* Header Banner */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
         <div>
@@ -494,7 +495,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
       </div>
 
       {/* 1. Customer Selector & Quick Baseline Card */}
-      <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+      <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 max-w-full">
         <div className="form-grid" style={{ marginBottom: '12px' }}>
           <CustomerSelect
             label="Học viên / Khách hàng"
@@ -502,7 +503,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             value={customerId}
             onChange={setCustomerId}
             required
-            placeholder="Tìm theo tên học viên, số điện thoại..."
+            placeholder="Chọn hoặc tìm học viên..."
           />
           <label className="field">
             <span style={{ fontWeight: 700 }}>Tên Lộ trình (Roadmap Title)</span>
@@ -518,7 +519,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
 
         {/* Snapshot info of the selected customer & InBody */}
         {customerId && (
-          <div style={{ marginTop: '12px', padding: '12px 16px', background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
+          <div className="mt-3 p-3 sm:p-4 bg-white rounded-lg border border-slate-200 text-sm max-w-full">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
               <span style={{ fontWeight: 700, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Scale size={16} color="var(--secondary-color)" /> Hồ sơ Thể trạng & Dữ liệu InBody gần nhất:
@@ -526,7 +527,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
               {loadingContext && <span style={{ color: 'var(--secondary-color)' }}>Đang tải dữ liệu...</span>}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
               <div style={{ background: '#f1f5f9', padding: '8px 12px', borderRadius: '6px' }}>
                 <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Cân nặng</div>
                 <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{latestInbody?.weight || customerMeta?.initialWeight || 'Chưa đo'} kg</strong>
@@ -561,26 +562,32 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
       </div>
 
       {/* 2. Goal & Roadmap Parameter Controls */}
-      <div style={{ background: 'linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%)', padding: '20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
+      <div className="p-3.5 sm:p-5 rounded-xl border border-sky-200 bg-gradient-to-b from-sky-50 to-white max-w-full">
         <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 14px' }}>
           <Target size={18} /> Thiết lập Thông số Mục tiêu (Goal Engine)
         </h3>
 
-        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
-          <label className="field">
-            <span style={{ fontWeight: 700 }}>Mục tiêu chính</span>
-            <select value={goalType} onChange={(e) => setGoalType(e.target.value as RoadmapGoalType)} style={{ fontWeight: 600 }}>
-              <option value="FAT_LOSS">🔥 Giảm mỡ & Giữ cơ (Fat Loss)</option>
-              <option value="WEIGHT_LOSS">📉 Giảm cân toàn thân (Weight Loss)</option>
-              <option value="MUSCLE_GAIN">💪 Tăng cơ nạc (Muscle Gain / Bulking)</option>
-              <option value="RECOMPOSITION">⚡ Tái cấu trúc vóc dáng (Recomposition)</option>
-              <option value="FITNESS">🏃 Cải thiện Thể lực & Sức bền (Fitness)</option>
-              <option value="STRENGTH">🏋️ Tăng Sức mạnh nền tảng (Strength)</option>
-            </select>
-          </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+          <div>
+            <CustomSelect<RoadmapGoalType>
+              label="Mục tiêu chính"
+              value={goalType}
+              onChange={(val) => setGoalType(val)}
+              options={[
+                { value: 'FAT_LOSS', label: '🔥 Giảm mỡ & Giữ cơ (Fat Loss)' },
+                { value: 'WEIGHT_LOSS', label: '📉 Giảm cân toàn thân (Weight Loss)' },
+                { value: 'MUSCLE_GAIN', label: '💪 Tăng cơ nạc (Muscle Gain / Bulking)' },
+                { value: 'RECOMPOSITION', label: '⚡ Tái cấu trúc vóc dáng (Recomposition)' },
+                { value: 'FITNESS', label: '🏃 Cải thiện Thể lực & Sức bền (Fitness)' },
+                { value: 'STRENGTH', label: '🏋️ Tăng Sức mạnh nền tảng (Strength)' },
+              ]}
+            />
+          </div>
 
-          <label className="field">
-            <span style={{ fontWeight: 700 }}>Chỉ số mục tiêu (Con số)</span>
+          <div className="flex flex-col">
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              Chỉ số mục tiêu (Con số)
+            </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="number"
@@ -590,36 +597,58 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                 value={targetValue}
                 onChange={(e) => setTargetValue(Number(e.target.value))}
                 required
-                style={{ flex: 1 }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  minHeight: '42px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 12px',
+                  background: '#ffffff',
+                }}
               />
-              <select value={targetUnit} onChange={(e) => setTargetUnit(e.target.value)} style={{ width: '80px' }}>
-                <option value="kg">kg</option>
-                <option value="% mỡ">% mỡ</option>
-                <option value="cm eo">cm eo</option>
-              </select>
+              <div style={{ width: '95px', flexShrink: 0 }}>
+                <CustomSelect
+                  value={targetUnit}
+                  onChange={(val) => setTargetUnit(val)}
+                  options={[
+                    { value: 'kg', label: 'kg' },
+                    { value: '% mỡ', label: '% mỡ' },
+                    { value: 'cm eo', label: 'cm eo' },
+                  ]}
+                />
+              </div>
             </div>
-          </label>
+          </div>
 
-          <label className="field">
-            <span style={{ fontWeight: 700 }}>Thời gian dự kiến (Tuần)</span>
-            <select value={durationWeeks} onChange={(e) => setDurationWeeks(Number(e.target.value))}>
-              <option value="4">4 tuần (1 tháng - Cấp tốc)</option>
-              <option value="8">8 tuần (2 tháng - Cơ bản)</option>
-              <option value="12">12 tuần (3 tháng - Chuẩn khuyến nghị)</option>
-              <option value="16">16 tuần (4 tháng - Chuyên sâu)</option>
-              <option value="24">24 tuần (6 tháng - Chuyển hóa toàn diện)</option>
-            </select>
-          </label>
+          <div>
+            <CustomSelect<number>
+              label="Thời gian dự kiến (Tuần)"
+              value={durationWeeks}
+              onChange={(val) => setDurationWeeks(val)}
+              options={[
+                { value: 4, label: '4 tuần (1 tháng - Cấp tốc)' },
+                { value: 8, label: '8 tuần (2 tháng - Cơ bản)' },
+                { value: 12, label: '12 tuần (3 tháng - Chuẩn khuyến nghị)' },
+                { value: 16, label: '16 tuần (4 tháng - Chuyên sâu)' },
+                { value: 24, label: '24 tuần (6 tháng - Chuyển hóa toàn diện)' },
+              ]}
+            />
+          </div>
 
-          <label className="field">
-            <span style={{ fontWeight: 700 }}>Tần suất tập luyện</span>
-            <select value={sessionsPerWeek} onChange={(e) => setSessionsPerWeek(Number(e.target.value))}>
-              <option value="3">3 buổi / tuần (Full Body Split)</option>
-              <option value="4">4 buổi / tuần (Upper / Lower)</option>
-              <option value="5">5 buổi / tuần (Push / Pull / Legs)</option>
-              <option value="6">6 buổi / tuần (Vận động viên)</option>
-            </select>
-          </label>
+          <div>
+            <CustomSelect<number>
+              label="Tần suất tập luyện"
+              value={sessionsPerWeek}
+              onChange={(val) => setSessionsPerWeek(val)}
+              options={[
+                { value: 3, label: '3 buổi / tuần (Full Body Split)' },
+                { value: 4, label: '4 buổi / tuần (Upper / Lower)' },
+                { value: 5, label: '5 buổi / tuần (Push / Pull / Legs)' },
+                { value: 6, label: '6 buổi / tuần (Vận động viên)' },
+              ]}
+            />
+          </div>
         </div>
 
         <label className="field" style={{ marginTop: '12px' }}>
@@ -631,10 +660,10 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
           />
         </label>
 
-        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center' }}>
+        <div className="mt-4 flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-2.5">
           <button
             type="button"
-            className="button button-primary"
+            className="button button-primary w-full sm:w-auto justify-center"
             onClick={handleGenerateSmartProposal}
             disabled={loadingAi}
             style={{
@@ -750,63 +779,24 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
 
       {/* 3. Comprehensive Strategy Overview (Editable) */}
       {strategy && (
-        <div
-          style={{
-            background: '#ffffff',
-            borderRadius: '16px',
-            border: '1px solid #e2e8f0',
-            padding: '24px',
-            boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)',
-            display: 'grid',
-            gap: '20px',
-          }}
-        >
+        <div className="bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-6 shadow-xs flex flex-col gap-4 sm:gap-5 max-w-full overflow-hidden">
           {/* Header với Tiêu đề & Cấu hình Thời lượng/Tần suất đẹp mắt */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderBottom: '1px solid #f1f5f9',
-              paddingBottom: '16px',
-              flexWrap: 'wrap',
-              gap: '12px',
-            }}
-          >
-            <div>
-              <h3
-                style={{
-                  fontSize: '1.15rem',
-                  fontWeight: 800,
-                  color: 'var(--primary-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  margin: 0,
-                }}
-              >
-                <Zap size={20} color="#eab308" /> Chiến lược Huấn luyện & Dinh dưỡng (Có thể tùy chỉnh)
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 gap-3">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-extrabold text-primary flex items-center gap-2 m-0">
+                <Zap className="w-5 h-5 text-amber-500 shrink-0" />
+                <span>Chiến lược Huấn luyện & Dinh dưỡng (Có thể tùy chỉnh)</span>
               </h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+              <p className="m-0 mt-1 text-xs text-slate-500 leading-relaxed break-words">
                 Định hướng phương pháp huấn luyện, phân chia lịch tập, cardio, macro dinh dưỡng và các mốc kiểm tra.
               </p>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                background: '#f8fafc',
-                padding: '6px 14px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                fontSize: '0.85rem',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={15} color="#0284c7" />
-                <span style={{ color: '#475569', fontWeight: 600 }}>Thời lượng:</span>
+            {/* Duration & Sessions bar: responsive flex wrap */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-slate-50 p-2.5 sm:px-3.5 sm:py-1.5 rounded-xl border border-slate-200 text-xs sm:text-sm self-start sm:self-auto shrink-0 max-w-full">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                <span className="text-slate-600 font-semibold text-xs whitespace-nowrap">Thời lượng:</span>
                 <input
                   aria-label="Số tuần ước tính"
                   type="number"
@@ -814,24 +804,16 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                   max="52"
                   value={strategy.estimatedWeeks || durationWeeks}
                   onChange={(e) => updateStrategy({ estimatedWeeks: Number(e.target.value) })}
-                  style={{
-                    width: '56px',
-                    padding: '4px 6px',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    textAlign: 'center',
-                    background: '#ffffff',
-                    color: '#0f172a',
-                  }}
+                  className="w-12 px-1.5 py-1 text-xs font-bold border border-slate-300 rounded-md text-center bg-white text-slate-900"
                 />
-                <span style={{ color: '#64748b', fontWeight: 600 }}>Tuần</span>
+                <span className="text-slate-500 font-semibold text-xs whitespace-nowrap">Tuần</span>
               </div>
-              <span style={{ color: '#cbd5e1' }}>|</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Dumbbell size={15} color="#0284c7" />
-                <span style={{ color: '#475569', fontWeight: 600 }}>Tần suất:</span>
+
+              <span className="hidden sm:inline text-slate-300">|</span>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Dumbbell className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                <span className="text-slate-600 font-semibold text-xs whitespace-nowrap">Tần suất:</span>
                 <input
                   aria-label="Số buổi mỗi tuần"
                   type="number"
@@ -839,37 +821,17 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                   max="7"
                   value={strategy.sessionsPerWeek || sessionsPerWeek}
                   onChange={(e) => updateStrategy({ sessionsPerWeek: Number(e.target.value) })}
-                  style={{
-                    width: '50px',
-                    padding: '4px 6px',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    textAlign: 'center',
-                    background: '#ffffff',
-                    color: '#0f172a',
-                  }}
+                  className="w-10 px-1.5 py-1 text-xs font-bold border border-slate-300 rounded-md text-center bg-white text-slate-900"
                 />
-                <span style={{ color: '#64748b', fontWeight: 600 }}>Buổi / Tuần</span>
+                <span className="text-slate-500 font-semibold text-xs whitespace-nowrap">Buổi / Tuần</span>
               </div>
             </div>
           </div>
 
           {/* BỐ CỤC 2 CỘT RỘNG RÃI VÀ THOÁNG MẮT (Training + Cardio vs Nutrition) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
             {/* CỘT 1: HUẤN LUYỆN & CARDIO (TRAINING & CARDIO) */}
-            <div
-              style={{
-                background: '#f8fafc',
-                padding: '18px 20px',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-              }}
-            >
+            <div className="bg-slate-50 p-3.5 sm:p-5 rounded-xl border border-slate-200 flex flex-col gap-3.5 sm:gap-4 max-w-full overflow-hidden">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: 'var(--primary-color)', fontSize: '0.95rem' }}>
                 <div
                   style={{
@@ -966,17 +928,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             </div>
 
             {/* CỘT 2: DINH DƯỠNG & MACROS (NUTRITION & MACROS) */}
-            <div
-              style={{
-                background: '#f8fafc',
-                padding: '18px 20px',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-              }}
-            >
+            <div className="bg-slate-50 p-3.5 sm:p-5 rounded-xl border border-slate-200 flex flex-col gap-3.5 sm:gap-4 max-w-full overflow-hidden">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: 'var(--primary-color)', fontSize: '0.95rem' }}>
                 <div
                   style={{
@@ -995,7 +947,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
               </div>
 
               {/* Calo & Deficit/Surplus Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'grid', gap: '4px' }}>
                   <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Flame size={14} color="#f97316" /> Calo mục tiêu (kcal/ngày)
@@ -1048,7 +1000,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
               </div>
 
               {/* 3 Macros: Đạm, Carb, Fat */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div style={{ background: '#fef2f2', padding: '10px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
                   <span style={{ fontSize: '0.74rem', color: '#991b1b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>🥩 Đạm (Protein)</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1126,30 +1078,22 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
               </div>
 
               {/* Nước uống */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f0f9ff', padding: '8px 14px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
-                <span style={{ fontSize: '0.82rem', color: '#0369a1', fontWeight: 700, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Droplets size={15} color="#0284c7" /> Lượng nước tối thiểu:
+              <div className="bg-sky-50 px-3 py-2.5 sm:px-3.5 sm:py-2.5 rounded-xl border border-sky-200 flex flex-wrap items-center justify-between gap-2 max-w-full">
+                <span className="text-xs sm:text-[0.82rem] text-sky-800 font-bold inline-flex items-center gap-1.5 shrink-0">
+                  <Droplets size={15} className="text-sky-600 shrink-0" />
+                  <span>Lượng nước tối thiểu:</span>
                 </span>
-                <input
-                  aria-label="Lượng nước"
-                  type="number"
-                  step="0.1"
-                  value={strategy.nutrition?.waterLiters || 2.5}
-                  onChange={(e) => updateNutrition({ waterLiters: Number(e.target.value) })}
-                  style={{
-                    width: '70px',
-                    padding: '4px 8px',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    border: '1px solid #7dd3fc',
-                    borderRadius: '6px',
-                    textAlign: 'center',
-                    background: '#ffffff',
-                    color: '#0369a1',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <span style={{ fontSize: '0.8rem', color: '#0369a1', fontWeight: 600 }}>Lít / ngày</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <input
+                    aria-label="Lượng nước"
+                    type="number"
+                    step="0.1"
+                    value={strategy.nutrition?.waterLiters || 2.5}
+                    onChange={(e) => updateNutrition({ waterLiters: Number(e.target.value) })}
+                    className="w-16 px-2 py-1 text-sm font-bold border border-sky-300 rounded-md text-center bg-white text-sky-800 focus:outline-none focus:ring-1 focus:ring-sky-500 shadow-2xs"
+                  />
+                  <span className="text-xs font-semibold text-sky-800 whitespace-nowrap">Lít / ngày</span>
+                </div>
               </div>
 
               {/* Lời khuyên dinh dưỡng */}
@@ -1181,36 +1125,17 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
           </div>
 
           {/* HÀNG 2: CÁC MỐC ĐÁNH GIÁ & CHECKPOINTS (FULL WIDTH RỘNG RÃI) */}
-          <div
-            style={{
-              background: '#f8fafc',
-              padding: '20px',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              display: 'grid',
-              gap: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: 'rgba(139, 92, 246, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <CheckCircle2 size={18} color="#8b5cf6" />
+          <div className="bg-slate-50 p-3.5 sm:p-5 rounded-xl border border-slate-200 flex flex-col gap-4 max-w-full overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 max-w-full">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-purple-600" />
                 </div>
                 <div>
-                  <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                  <h4 className="m-0 text-sm sm:text-base font-extrabold text-slate-900">
                     Các mốc Đánh giá & Đo lường Thể chất (Checkpoints)
                   </h4>
-                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  <span className="text-xs text-slate-500">
                     Các cột mốc kiểm tra InBody, chụp ảnh vóc dáng và đánh giá mức độ thích nghi định kỳ
                   </span>
                 </div>
@@ -1219,111 +1144,64 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
               <button
                 type="button"
                 onClick={addCheckpoint}
-                style={{
-                  background: '#f5f3ff',
-                  border: '1px solid #ddd6fe',
-                  color: '#7c3aed',
-                  borderRadius: '8px',
-                  padding: '6px 14px',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'background 0.2s',
-                }}
+                className="self-start sm:self-auto inline-flex items-center gap-1.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer shrink-0"
               >
-                <Plus size={14} /> Thêm mốc kiểm tra
+                <Plus className="w-3.5 h-3.5" /> Thêm mốc kiểm tra
               </button>
             </div>
 
-            {/* Grid các Checkpoint Card độc lập - Rộng rãi, KHÔNG scroll ngang chồng chéo! */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+            {/* Grid các Checkpoint Card độc lập - Rộng rãi, KHÔNG tràn border trên mobile */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 min-w-0 max-w-full">
               {(strategy.checkpoints || []).map((cp, idx) => (
                 <div
                   key={idx}
-                  style={{
-                    background: '#ffffff',
-                    padding: '14px 16px',
-                    borderRadius: '10px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-                    display: 'grid',
-                    gap: '10px',
-                    transition: 'box-shadow 0.2s',
-                  }}
+                  className="bg-white p-3 sm:p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col gap-2.5 min-w-0 max-w-full overflow-hidden"
                 >
-                  {/* Row 1: Badge Tuần + Input Tiêu đề + Nút Xóa */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: '#f5f3ff',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        border: '1px solid #ddd6fe',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed' }}>Tuần</span>
-                      <input
-                        aria-label={`Tuần mốc ${idx + 1}`}
-                        type="number"
-                        min="1"
-                        max="52"
-                        value={cp.week}
-                        onChange={(e) => updateCheckpoint(idx, { week: Number(e.target.value) })}
-                        style={{
-                          width: '40px',
-                          padding: '2px 4px',
-                          fontSize: '0.8rem',
-                          fontWeight: 800,
-                          border: '1px solid #c4b5fd',
-                          borderRadius: '4px',
-                          textAlign: 'center',
-                          background: '#ffffff',
-                          color: '#7c3aed',
-                        }}
-                      />
+                  {/* Row 1 on Desktop (1-line) vs Mobile (Split Badge/Delete on top, Title below) */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 w-full">
+                    {/* Top Row on mobile: Badge Tuần + Delete button */}
+                    <div className="flex items-center justify-between sm:justify-start gap-2 shrink-0">
+                      <div className="inline-flex items-center gap-1.5 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200 shrink-0">
+                        <span className="text-xs font-bold text-purple-700">Tuần</span>
+                        <input
+                          aria-label={`Tuần mốc ${idx + 1}`}
+                          type="number"
+                          min="1"
+                          max="52"
+                          value={cp.week}
+                          onChange={(e) => updateCheckpoint(idx, { week: Number(e.target.value) })}
+                          className="w-10 px-1 py-0.5 text-xs font-extrabold text-purple-700 border border-purple-300 rounded text-center bg-white"
+                        />
+                      </div>
+
+                      {/* Mobile delete button */}
+                      <button
+                        type="button"
+                        onClick={() => removeCheckpoint(idx)}
+                        className="sm:hidden text-slate-400 hover:text-rose-500 p-1 rounded cursor-pointer transition-colors"
+                        title="Xóa mốc này"
+                      >
+                        <Trash2 className="w-4 h-4 text-rose-500" />
+                      </button>
                     </div>
 
+                    {/* Title input: full width on mobile, flex-1 min-w-0 on desktop */}
                     <input
                       aria-label={`Tiêu đề mốc ${idx + 1}`}
                       value={cp.title}
                       onChange={(e) => updateCheckpoint(idx, { title: e.target.value })}
                       placeholder="Ví dụ: Mốc 1: Đánh giá thích nghi..."
-                      style={{
-                        flex: 1,
-                        padding: '6px 10px',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '6px',
-                        background: '#ffffff',
-                        color: '#0f172a',
-                      }}
+                      className="flex-1 min-w-0 w-full px-2.5 py-1.5 text-xs sm:text-sm font-bold border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:border-purple-500 focus:outline-hidden"
                     />
 
+                    {/* Desktop delete button */}
                     <button
                       type="button"
                       onClick={() => removeCheckpoint(idx)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        padding: '6px',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
+                      className="hidden sm:flex text-slate-400 hover:text-rose-500 p-1 rounded cursor-pointer transition-colors shrink-0"
                       title="Xóa mốc này"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 className="w-4 h-4 text-rose-500" />
                     </button>
                   </div>
 
@@ -1334,36 +1212,13 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                     value={cp.description}
                     onChange={(e) => updateCheckpoint(idx, { description: e.target.value })}
                     placeholder="Mô tả chi tiết nội dung kiểm tra, đo lường InBody, điều chỉnh kế hoạch..."
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      fontSize: '0.8rem',
-                      lineHeight: '1.4',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '6px',
-                      background: '#ffffff',
-                      color: '#334155',
-                      resize: 'vertical',
-                      boxSizing: 'border-box',
-                    }}
+                    className="w-full min-w-0 p-2 sm:p-2.5 text-xs sm:text-[0.82rem] leading-relaxed border border-slate-300 rounded-lg bg-white text-slate-700 placeholder:text-slate-400 focus:border-purple-500 focus:outline-hidden resize-y box-border"
                   />
                 </div>
               ))}
 
               {(!strategy.checkpoints || strategy.checkpoints.length === 0) && (
-                <div
-                  style={{
-                    gridColumn: '1 / -1',
-                    fontSize: '0.82rem',
-                    color: '#94a3b8',
-                    fontStyle: 'italic',
-                    textAlign: 'center',
-                    padding: '16px',
-                    background: '#ffffff',
-                    borderRadius: '8px',
-                    border: '1px dashed #cbd5e1',
-                  }}
-                >
+                <div className="col-span-full text-xs text-slate-400 italic text-center p-4 bg-white rounded-lg border border-dashed border-slate-300">
                   Chưa có mốc đánh giá định kỳ nào. Bấm &quot;Thêm mốc kiểm tra&quot; để thiết lập các cột mốc đo lường InBody.
                 </div>
               )}
@@ -1373,91 +1228,108 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
       )}
 
       {/* 4. Multi-Phase Breakdown (Phases -> Weeks & Goals) */}
-      <div style={{ display: 'grid', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-            <Layers size={20} color="var(--secondary-color)" /> Lộ trình Phân kỳ ({phases.length} Phase • {phases.reduce((acc, p) => acc + (p.durationWeeks || 0), 0)} Tuần)
+      <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+          <h3 className="text-base sm:text-lg font-extrabold text-primary flex items-center gap-2 m-0">
+            <Layers className="w-5 h-5 text-secondary shrink-0" />
+            <span>Lộ trình Phân kỳ ({phases.length} Phase • {phases.reduce((acc, p) => acc + (p.durationWeeks || 0), 0)} Tuần)</span>
           </h3>
           <button
             type="button"
-            className="button button-secondary"
+            className="button button-secondary text-xs self-start sm:self-auto flex items-center gap-1.5 shrink-0"
             onClick={addPhase}
-            style={{ fontSize: '0.8rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px' }}
           >
-            <Plus size={14} /> Thêm Phase
+            <Plus className="w-3.5 h-3.5" /> Thêm Phase
           </button>
         </div>
 
         {phases.map((phase, phaseIndex) => {
           const isExpanded = Boolean(expandedPhases[phaseIndex]);
+          const cleanPhaseName = (phase.name || `Giai đoạn ${phase.order}`).replace(
+            new RegExp(`^Phase\\s*${phase.order}\\s*[:\\-]\\s*`, 'i'),
+            ''
+          );
 
           return (
             <div
               key={phaseIndex}
-              style={{
-                background: '#ffffff',
-                borderRadius: '12px',
-                border: '1px solid #cbd5e1',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
-                overflow: 'hidden',
-              }}
+              className="bg-white rounded-xl border border-slate-300 shadow-2xs overflow-hidden w-full"
             >
               {/* Phase Card Header */}
               <div
-                style={{
-                  background: 'linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%)',
-                  padding: '14px 18px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none',
-                }}
+                className={`p-3 sm:px-4 sm:py-3.5 cursor-pointer select-none transition-colors border-b ${
+                  isExpanded
+                    ? 'bg-slate-100/90 border-slate-200'
+                    : 'bg-slate-50/70 border-transparent hover:bg-slate-100/60'
+                }`}
                 onClick={() => togglePhaseExpand(phaseIndex)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                  <span
-                    style={{
-                      background: 'var(--primary-color)',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: '0.85rem',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                    }}
-                  >
-                    Phase {phase.order}
-                  </span>
-                  <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>
-                    {phase.name || `Giai đoạn ${phase.order}`}
-                  </span>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b', background: '#ffffff', padding: '2px 8px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                    {phase.durationWeeks} tuần • {phase.weeks?.length || 0} tuần chi tiết
-                  </span>
-                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+                  {/* Left Block on desktop / Split Meta Row & Title on mobile */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
+                    {/* Top row on mobile: Badge + Duration pill + Trash + Chevron */}
+                    <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0">
+                      <span className="bg-primary text-white font-extrabold text-xs px-2.5 py-1 rounded-md shrink-0 whitespace-nowrap shadow-2xs">
+                        Phase {phase.order}
+                      </span>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <button
-                    type="button"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removePhase(phaseIndex);
-                    }}
-                    title="Xóa Phase này"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  {isExpanded ? <ChevronUp size={20} color="#64748b" /> : <ChevronDown size={20} color="#64748b" />}
+                      {/* Mobile-only duration badge, trash, and chevron */}
+                      <div className="flex items-center gap-2 sm:hidden shrink-0">
+                        <span className="text-xs text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                          {phase.durationWeeks} tuần • {phase.weeks?.length || 0} tuần chi tiết
+                        </span>
+                        <button
+                          type="button"
+                          className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer transition-colors shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removePhase(phaseIndex);
+                          }}
+                          title="Xóa Phase này"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <span className="text-slate-500 shrink-0">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Phase Title - full width on mobile, inline on desktop */}
+                    <strong className="text-sm sm:text-[0.92rem] font-bold text-slate-900 leading-snug break-words min-w-0">
+                      {cleanPhaseName}
+                    </strong>
+                  </div>
+
+                  {/* Right Block (Desktop only: duration + trash + chevron) */}
+                  <div className="hidden sm:flex items-center gap-2.5 shrink-0">
+                    <span className="text-xs text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-full font-semibold whitespace-nowrap">
+                      {phase.durationWeeks} tuần • {phase.weeks?.length || 0} tuần chi tiết
+                    </span>
+                    <button
+                      type="button"
+                      className="text-rose-500 hover:text-rose-700 p-1 cursor-pointer transition-colors shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removePhase(phaseIndex);
+                      }}
+                      title="Xóa Phase này"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <span className="text-slate-500 shrink-0">
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Phase Card Body */}
               {isExpanded && (
-                <div style={{ padding: '18px', display: 'grid', gap: '16px' }}>
-                  <div className="form-grid" style={{ gridTemplateColumns: '80px 1fr 140px' }}>
+                <div className="p-3.5 sm:p-5 flex flex-col gap-4 bg-slate-50/50 border-t border-slate-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-[80px_1fr_140px] gap-3">
                     <label className="field">
-                      <span style={{ fontWeight: 700 }}>Thứ tự</span>
+                      <span className="font-bold text-xs text-slate-700">Thứ tự</span>
                       <input
                         aria-label={`Thứ tự phase ${phaseIndex + 1}`}
                         type="number"
@@ -1468,7 +1340,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                       />
                     </label>
                     <label className="field">
-                      <span style={{ fontWeight: 700 }}>Tên giai đoạn (Phase Name)</span>
+                      <span className="font-bold text-xs text-slate-700">Tên giai đoạn (Phase Name)</span>
                       <input
                         aria-label={`Tên phase ${phaseIndex + 1}`}
                         placeholder="Ví dụ: Giai đoạn 1: Thích nghi & Chuẩn hóa Kỹ thuật..."
@@ -1478,7 +1350,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                       />
                     </label>
                     <label className="field">
-                      <span style={{ fontWeight: 700 }}>Thời lượng (Tuần)</span>
+                      <span className="font-bold text-xs text-slate-700">Thời lượng (Tuần)</span>
                       <input
                         aria-label={`Thời lượng phase ${phaseIndex + 1}`}
                         type="number"
@@ -1491,54 +1363,43 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                   </div>
 
                   {/* Phase Goals List (Editable) */}
-                  <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Target size={14} color="var(--secondary-color)" /> Mục tiêu giai đoạn Phase {phase.order}:
+                  <div className="bg-white p-3 sm:px-4 sm:py-3.5 rounded-lg border border-slate-200 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-xs sm:text-sm text-primary flex items-center gap-1.5">
+                        <Target className="w-3.5 h-3.5 text-secondary shrink-0" />
+                        <span>Mục tiêu giai đoạn Phase {phase.order}:</span>
                       </span>
                       <button
                         type="button"
                         onClick={() => addPhaseGoal(phaseIndex)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: '#ffffff',
-                          border: '1px solid #bae6fd',
-                          borderRadius: '6px',
-                          color: '#0284c7',
-                          padding: '3px 8px',
-                          fontSize: '0.72rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
+                        className="inline-flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 px-2 py-1 rounded text-xs font-bold transition-colors cursor-pointer"
                       >
-                        <Plus size={11} /> Thêm mục tiêu
+                        <Plus className="w-3 h-3" /> Thêm mục tiêu
                       </button>
                     </div>
 
-                    <div style={{ display: 'grid', gap: '6px' }}>
+                    <div className="flex flex-col gap-2">
                       {(phase.goals || []).map((goal, gIdx) => (
-                        <div key={gIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div key={gIdx} className="flex items-center gap-2">
                           <input
                             aria-label={`Mục tiêu ${gIdx + 1} phase ${phase.order}`}
                             value={goal}
                             onChange={(e) => updatePhaseGoal(phaseIndex, gIdx, e.target.value)}
-                            placeholder={`Ví dụ: Chuẩn hóa kỹ thuật Squat & Deadlift...`}
-                            style={{ flex: 1, padding: '6px 10px', fontSize: '0.82rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff' }}
+                            placeholder="Ví dụ: Chuẩn hóa kỹ thuật Squat & Deadlift..."
+                            className="flex-1 min-w-0 px-2.5 py-1.5 text-xs sm:text-sm border border-slate-300 rounded-md bg-white"
                           />
                           <button
                             type="button"
                             onClick={() => removePhaseGoal(phaseIndex, gIdx)}
-                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                            className="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors shrink-0"
                             title="Xóa mục tiêu này"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       ))}
                       {(!phase.goals || phase.goals.length === 0) && (
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
+                        <div className="text-xs text-slate-400 italic py-1">
                           Chưa có mục tiêu cho giai đoạn này. Bấm &quot;Thêm mục tiêu&quot; để thiết lập.
                         </div>
                       )}
@@ -1546,72 +1407,70 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                   </div>
 
                   {/* Weeks list inside Phase */}
-                  <div style={{ display: 'grid', gap: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#475569' }}>
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <span className="font-bold text-xs sm:text-sm text-slate-700">
                         Chi tiết các tuần huấn luyện trong Phase {phase.order}:
                       </span>
                       <button
                         type="button"
-                        className="button button-secondary"
+                        className="button button-secondary text-xs self-start sm:self-auto flex items-center gap-1.5"
                         onClick={() => addWeek(phaseIndex)}
-                        style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
                       >
-                        <Plus size={12} /> Thêm tuần vào phase {phaseIndex + 1}
+                        <Plus className="w-3 h-3" /> Thêm tuần vào phase {phaseIndex + 1}
                       </button>
                     </div>
 
                     {phase.weeks.map((week, weekIndex) => (
                       <div
                         key={weekIndex}
-                        style={{
-                          background: '#ffffff',
-                          padding: '12px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid #e2e8f0',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          flexWrap: 'wrap',
-                        }}
+                        className="bg-white p-3 sm:px-3.5 sm:py-3 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3"
                       >
-                        <span style={{ background: '#0284c7', color: '#ffffff', fontWeight: 800, fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px', flexShrink: 0 }}>
-                          Tuần {week.week}
-                        </span>
-
-                        <input
-                          aria-label={`Trọng tâm tuần ${week.week} phase ${phaseIndex + 1}`}
-                          placeholder={`Trọng tâm & mục tiêu huấn luyện tuần ${week.week}...`}
-                          value={week.focus}
-                          onChange={(e) => updateWeekFocus(phaseIndex, weekIndex, e.target.value)}
-                          style={{ flex: 1, minWidth: '220px', padding: '6px 10px', fontSize: '0.84rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
-                          required
-                        />
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Tần suất:</span>
-                          <select
-                            aria-label={`Tần suất tuần ${week.week}`}
-                            value={week.sessionTargets || sessionsPerWeek}
-                            onChange={(e) => updateWeekSessionTargets(phaseIndex, weekIndex, Number(e.target.value))}
-                            style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155' }}
-                          >
-                            <option value="2">2 buổi/tuần</option>
-                            <option value="3">3 buổi/tuần</option>
-                            <option value="4">4 buổi/tuần</option>
-                            <option value="5">5 buổi/tuần</option>
-                            <option value="6">6 buổi/tuần</option>
-                          </select>
+                        {/* Top / Left: Week badge & Focus input */}
+                        <div className="flex items-center gap-2 flex-1 min-w-0 w-full">
+                          <span className="bg-sky-600 text-white font-extrabold text-xs px-2.5 py-1 rounded shrink-0 whitespace-nowrap">
+                            Tuần {week.week}
+                          </span>
+                          <input
+                            aria-label={`Trọng tâm tuần ${week.week} phase ${phaseIndex + 1}`}
+                            placeholder={`Trọng tâm & mục tiêu huấn luyện tuần ${week.week}...`}
+                            value={week.focus}
+                            onChange={(e) => updateWeekFocus(phaseIndex, weekIndex, e.target.value)}
+                            className="flex-1 min-w-0 px-2.5 py-1.5 text-xs sm:text-sm border border-slate-300 rounded-md bg-white focus:border-primary focus:outline-hidden"
+                            required
+                          />
                         </div>
 
-                        <button
-                          type="button"
-                          style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', flexShrink: 0 }}
-                          onClick={() => removeWeek(phaseIndex, weekIndex)}
-                          title="Xóa tuần này"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        {/* Bottom / Right: Tần suất select + Delete button */}
+                        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-slate-500 whitespace-nowrap">Tần suất:</span>
+                            <div style={{ width: '130px' }}>
+                              <CustomSelect<number>
+                                size="sm"
+                                ariaLabel={`Tần suất tuần ${week.week}`}
+                                value={week.sessionTargets || sessionsPerWeek}
+                                onChange={(val) => updateWeekSessionTargets(phaseIndex, weekIndex, val)}
+                                options={[
+                                  { value: 2, label: '2 buổi/tuần' },
+                                  { value: 3, label: '3 buổi/tuần' },
+                                  { value: 4, label: '4 buổi/tuần' },
+                                  { value: 5, label: '5 buổi/tuần' },
+                                  { value: 6, label: '6 buổi/tuần' },
+                                ]}
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="text-slate-400 hover:text-rose-500 p-1 cursor-pointer transition-colors shrink-0"
+                            onClick={() => removeWeek(phaseIndex, weekIndex)}
+                            title="Xóa tuần này"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

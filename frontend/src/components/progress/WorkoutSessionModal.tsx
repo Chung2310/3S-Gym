@@ -31,6 +31,7 @@ export default function WorkoutSessionModal({
           customerId={journey.customer._id}
           activePlan={activePlan || null}
           onSaved={onSaved}
+          onClose={onClose}
         />
       ) : (
         <ProgressEmptyState

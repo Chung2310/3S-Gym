@@ -130,6 +130,111 @@ async function forceTransfer(user: AuthenticatedUser, requestId: string, payload
   });
 }
 
+interface BatchTransferPayload { customerIds: string[]; toPtId: string; reason: string }
+
+async function batchForceTransfer(user: AuthenticatedUser, payload: BatchTransferPayload) {
+  const toPt = await assertActivePt(payload.toPtId);
+  const rawCustomerIds = Array.from(new Set(payload.customerIds.map(String)));
+  if (rawCustomerIds.length === 0) {
+    throw businessError('Vui lòng chọn ít nhất một khách hàng để điều chuyển.', 400);
+  }
+
+  return withTransaction(async (session) => {
+    const customers = await CustomerProfile.find({
+      _id: { $in: rawCustomerIds.map((id) => new Types.ObjectId(id)) },
+    }).session(session);
+
+    if (customers.length === 0) {
+      throw businessError('Không tìm thấy khách hàng nào trong danh sách đã chọn.', 404);
+    }
+
+    const fromPtIds = Array.from(
+      new Set(
+        customers
+          .map((c) => c.assignedPtId)
+          .filter((id): id is Types.ObjectId => Boolean(id))
+          .map(String)
+      )
+    );
+
+    const fromPtUsers = fromPtIds.length > 0
+      ? await User.find({ _id: { $in: fromPtIds.map((id) => new Types.ObjectId(id)) } }).session(session)
+      : [];
+
+    const fromPtMap = new Map<string, string>();
+    for (const pt of fromPtUsers) {
+      fromPtMap.set(String(pt._id), pt.fullName || pt.username || 'PT cũ');
+    }
+
+    const resolvedAt = new Date();
+    const resolvedById = new Types.ObjectId(user.id);
+    const resolvedByName = user.fullName || user.username || '';
+    const toPtId = new Types.ObjectId(payload.toPtId);
+    const toPtName = toPt.fullName || toPt.username;
+    const reason = payload.reason.trim();
+
+    const transferDocs = [];
+    const customerIdsToUpdate: Types.ObjectId[] = [];
+
+    for (const customer of customers) {
+      const fromPtName = customer.assignedPtId ? (fromPtMap.get(String(customer.assignedPtId)) || 'PT cũ') : 'Chưa có PT';
+      transferDocs.push({
+        _id: new Types.ObjectId(),
+        customerId: customer._id,
+        fromPtId: customer.assignedPtId,
+        fromPtName,
+        toPtId,
+        toPtName,
+        reason,
+        status: 'ADMIN_FORCED' as const,
+        resolvedById,
+        resolvedByName,
+        resolvedAt,
+      });
+      customerIdsToUpdate.push(customer._id);
+    }
+
+    await TransferRequest.insertMany(transferDocs, { session });
+
+    await CustomerProfile.updateMany(
+      { _id: { $in: customerIdsToUpdate } },
+      { $set: { assignedPtId: toPtId } },
+      { session }
+    );
+
+    const transferIdByCustomerId = new Map<string, Types.ObjectId>();
+    for (const doc of transferDocs) {
+      transferIdByCustomerId.set(String(doc.customerId), doc._id);
+    }
+
+    for (const customerId of customerIdsToUpdate) {
+      await reassignOpenCare(customerId, toPtId, session);
+      await recordAudit(
+        {
+          actor: user,
+          action: 'TRANSFER_ADMIN_FORCED',
+          resourceType: 'transfers',
+          resourceId: String(transferIdByCustomerId.get(String(customerId)) || ''),
+          customerId,
+          metadata: {
+            toPtId: String(toPtId),
+            reason,
+            batch: true,
+            totalBatch: customerIdsToUpdate.length,
+          },
+        },
+        session
+      );
+    }
+
+    return {
+      transferredCount: customerIdsToUpdate.length,
+      toPtName,
+      customerIds: customerIdsToUpdate.map(String),
+    };
+  });
+}
+
 async function listTransfers(user: AuthenticatedUser, query: TransferQuery) {
   const page = Number(query.page || 1); const limit = Number(query.limit || 20);
   const filter: QueryFilter<ITransferRequest> = {};
@@ -144,4 +249,4 @@ async function listTransfers(user: AuthenticatedUser, query: TransferQuery) {
   return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 
-export { createTransfer, updateTransfer, deleteTransfer, resolveTransfer, forceTransfer, listTransfers };
+export { createTransfer, updateTransfer, deleteTransfer, resolveTransfer, forceTransfer, batchForceTransfer, listTransfers };

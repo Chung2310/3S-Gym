@@ -65,7 +65,7 @@ export default function SetResultEditor({
             )}
           </div>
 
-          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5 items-end">
+          <div className="grid gap-2.5 grid-cols-2 lg:grid-cols-5 items-end">
             <TrackingNumberField
               label="REPS"
               ariaLabel={`${exerciseName} set ${index + 1} REPS`}
@@ -95,7 +95,7 @@ export default function SetResultEditor({
               value={set.rir}
               onChange={(rir) => update(index, { rir })}
             />
-            <label className="flex items-center gap-2 h-10 px-3 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors">
+            <label className="col-span-2 lg:col-span-1 flex items-center gap-2 h-10 px-3 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-50 transition-colors">
               <input
                 type="checkbox"
                 className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 cursor-pointer"

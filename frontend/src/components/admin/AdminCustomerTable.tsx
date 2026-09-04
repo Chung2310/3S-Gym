@@ -19,6 +19,9 @@ interface AdminCustomerTableProps {
   pts: PtOption[];
   loading: boolean;
   meta: PaginationMeta;
+  selectedCustomerIds?: string[];
+  onToggleSelect?: (id: string) => void;
+  onToggleSelectAll?: () => void;
   onPageChange: (page: number) => void;
   onOpenTransfer: (c: CustomerAdminRecord) => void;
   onOpenEdit: (c: CustomerAdminRecord) => void;
@@ -30,6 +33,9 @@ export default function AdminCustomerTable({
   pts,
   loading,
   meta,
+  selectedCustomerIds = [],
+  onToggleSelect,
+  onToggleSelectAll,
   onPageChange,
   onOpenTransfer,
   onOpenEdit,
@@ -44,13 +50,28 @@ export default function AdminCustomerTable({
     return found ? found.fullName || found.username : 'PT phụ trách';
   };
 
+  const isAllSelected = customers.length > 0 && customers.every((c) => selectedCustomerIds.includes(c._id));
+  const isPartiallySelected = customers.some((c) => selectedCustomerIds.includes(c._id)) && !isAllSelected;
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
             <tr className="border-b border-slate-200/90 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              <th className="px-5 py-3.5">Khách hàng</th>
+              <th className="w-10 px-4 py-3.5 text-center">
+                <input
+                  type="checkbox"
+                  aria-label="Chọn tất cả khách hàng trên trang"
+                  checked={isAllSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = isPartiallySelected;
+                  }}
+                  onChange={onToggleSelectAll}
+                  className="w-4 h-4 rounded border-slate-300 cursor-pointer accent-[#003b70]"
+                />
+              </th>
+              <th className="px-4 py-3.5">Khách hàng</th>
               <th className="px-4 py-3.5">PT Phụ Trách</th>
               <th className="px-4 py-3.5">Liên hệ</th>
               <th className="px-4 py-3.5">Mục tiêu & Thể trạng</th>
@@ -61,14 +82,14 @@ export default function AdminCustomerTable({
           <tbody className="divide-y divide-slate-100">
             {loading && customers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-12 px-4 text-center text-slate-500">
+                <td colSpan={7} className="py-12 px-4 text-center text-slate-500">
                   <RefreshCw size={22} className="animate-spin mx-auto mb-2 text-sky-600" />
                   <p className="text-xs font-semibold">Đang tải danh sách khách hàng...</p>
                 </td>
               </tr>
             ) : customers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-14 px-4 text-center text-slate-500">
+                <td colSpan={7} className="py-14 px-4 text-center text-slate-500">
                   <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center mx-auto mb-2.5">
                     <Users size={24} />
                   </div>
@@ -80,14 +101,26 @@ export default function AdminCustomerTable({
               customers.map((c) => {
                 const ptName = getPtName(c);
                 const initial = c.fullName ? c.fullName.trim().charAt(0).toUpperCase() : 'K';
+                const isSelected = selectedCustomerIds.includes(c._id);
 
                 return (
                   <tr
                     key={c._id}
-                    className="hover:bg-slate-50/70 transition-colors"
+                    className={`transition-colors ${isSelected ? 'bg-sky-50/60' : 'hover:bg-slate-50/70'}`}
                   >
+                    {/* Checkbox chọn hàng */}
+                    <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Chọn khách hàng ${c.fullName}`}
+                        checked={isSelected}
+                        onChange={() => onToggleSelect?.(c._id)}
+                        className="w-4 h-4 rounded border-slate-300 cursor-pointer accent-[#003b70]"
+                      />
+                    </td>
+
                     {/* Khách hàng */}
-                    <td className="px-5 py-3.5 whitespace-nowrap">
+                    <td className="px-4 py-3.5 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-100 text-sky-700 font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
                           {initial}

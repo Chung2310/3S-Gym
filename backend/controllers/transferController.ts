@@ -14,6 +14,14 @@ const directForce = asyncHandler(async (req, res) => {
   const data = await service.forceTransfer(req.user!, newId, req.body);
   return success(res, { status: 201, message: 'Điều chuyển khách hàng thành công.', data });
 });
+const batchForce = asyncHandler(async (req, res) => {
+  const data = await service.batchForceTransfer(req.user!, req.body);
+  return success(res, {
+    status: 200,
+    message: `Đã điều chuyển ${data.transferredCount} khách hàng thành công sang PT ${data.toPtName}.`,
+    data,
+  });
+});
 const list = asyncHandler(async (req, res) => { const result = await service.listTransfers(req.user!, req.query); return success(res, { message: 'Lấy danh sách yêu cầu chuyển PT thành công.', data: result.items, meta: result.meta }); });
 
-export { create, update, remove, accept, reject, force, directForce, list };
+export { create, update, remove, accept, reject, force, directForce, batchForce, list };

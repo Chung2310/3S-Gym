@@ -3,9 +3,20 @@ import type { Exercise } from '../../types';
 import type { ScheduledExercise } from '../../types/workoutStudio';
 
 interface Props {
-  exercises: Exercise[]; recommendations: Exercise[]; unscheduled: ScheduledExercise[]; query: string; muscleGroup: string; level: string; muscleGroups: string[];
-  onQueryChange: (value: string) => void; onMuscleGroupChange: (value: string) => void; onLevelChange: (value: string) => void;
-  onPlace: (exercise: Exercise) => void; onPlaceUnscheduled: (item: ScheduledExercise) => void;
+  exercises: Exercise[];
+  recommendations: Exercise[];
+  unscheduled: ScheduledExercise[];
+  query: string;
+  muscleGroup: string;
+  level: string;
+  muscleGroups: string[];
+  activeDay?: number;
+  onQueryChange: (value: string) => void;
+  onMuscleGroupChange: (value: string) => void;
+  onLevelChange: (value: string) => void;
+  onPlace: (exercise: Exercise) => void;
+  onPlaceUnscheduled: (item: ScheduledExercise) => void;
+  onClose?: () => void;
 }
 
 export default function ExercisePalette(props: Props) {
@@ -29,6 +40,23 @@ export default function ExercisePalette(props: Props) {
 
   return (
     <aside role="search" aria-label="Tìm bài tập trong Studio" className="studio-palette">
+      {props.activeDay && (
+        <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 mb-3 flex items-center justify-between gap-2 shadow-xs">
+          <div className="text-xs">
+            <span className="text-slate-500">Đang chọn bài cho: </span>
+            <strong className="text-[#003b70] font-bold text-sm">Ngày {props.activeDay}</strong>
+          </div>
+          {props.onClose && (
+            <button
+              type="button"
+              className="button button-primary py-1 px-3 text-xs min-h-[32px] font-bold shadow-xs cursor-pointer"
+              onClick={props.onClose}
+            >
+              Xong · Xem lịch tập
+            </button>
+          )}
+        </div>
+      )}
       {/* Header */}
       <div className="studio-palette-header">
         <div className="studio-palette-heading">

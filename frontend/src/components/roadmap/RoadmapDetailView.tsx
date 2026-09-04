@@ -49,51 +49,45 @@ export default function RoadmapDetailView({ roadmap, hideBaseline }: RoadmapDeta
   };
 
   return (
-    <div style={{ display: 'grid', gap: '18px' }}>
+    <div className="flex flex-col gap-4">
       {/* ── Top Key Metrics Banner ── */}
       {strategy && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '12px',
-          }}
-        >
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '10px' }}>
-            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Thời lượng kế hoạch</span>
-            <strong style={{ fontSize: '1rem', color: 'var(--primary-color)' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+            <span className="text-xs text-slate-500 font-semibold block mb-0.5">Thời lượng kế hoạch</span>
+            <strong className="text-sm sm:text-base text-primary font-bold">
               {strategy.estimatedWeeks} Tuần • {strategy.sessionsPerWeek} Buổi/tuần
             </strong>
           </div>
 
           {strategy.nutrition && (
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px', borderRadius: '10px' }}>
-              <span style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 600, display: 'block' }}>Calo mục tiêu</span>
-              <strong style={{ fontSize: '1rem', color: '#15803d' }}>
+            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
+              <span className="text-xs text-emerald-800 font-semibold block mb-0.5">Calo mục tiêu</span>
+              <strong className="text-sm sm:text-base text-emerald-700 font-bold">
                 {strategy.nutrition.targetCalories} kcal/ngày
               </strong>
-              <div style={{ fontSize: '0.72rem', color: '#166534', marginTop: '2px' }}>
+              <div className="text-xs text-emerald-800 mt-0.5">
                 P: {strategy.nutrition.proteinGrams || 0}g • C: {strategy.nutrition.carbsGrams || 0}g • F: {strategy.nutrition.fatGrams || 0}g
               </div>
             </div>
           )}
 
           {!hideBaseline && baseline && (
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '12px', borderRadius: '10px' }}>
-              <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Chỉ số ban đầu</span>
-              <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
+            <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+              <span className="text-xs text-slate-500 font-semibold block mb-0.5">Chỉ số ban đầu</span>
+              <strong className="text-sm sm:text-base text-slate-900 font-bold">
                 {baseline.initialWeight ? `${baseline.initialWeight} kg` : '—'}
               </strong>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+              <div className="text-xs text-slate-500 mt-0.5">
                 % Mỡ: {baseline.initialBodyFat ? `${baseline.initialBodyFat}%` : '—'} • Cơ: {baseline.initialMuscleMass ? `${baseline.initialMuscleMass}kg` : '—'}
               </div>
             </div>
           )}
 
           {strategy.nutrition?.waterLiters && (
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px', borderRadius: '10px' }}>
-              <span style={{ fontSize: '0.74rem', color: '#1e40af', fontWeight: 600, display: 'block' }}>Nước uống mỗi ngày</span>
-              <strong style={{ fontSize: '1rem', color: '#2563eb' }}>
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl">
+              <span className="text-xs text-blue-800 font-semibold block mb-0.5">Nước uống mỗi ngày</span>
+              <strong className="text-sm sm:text-base text-blue-600 font-bold">
                 {strategy.nutrition.waterLiters} Lít / ngày
               </strong>
             </div>
@@ -103,73 +97,60 @@ export default function RoadmapDetailView({ roadmap, hideBaseline }: RoadmapDeta
 
       {/* ── Strategy Details Block ── */}
       {strategy && (
-        <div
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '12px',
-            padding: '16px',
-            display: 'grid',
-            gap: '12px',
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Target size={16} color="var(--secondary-color)" /> Định hướng Phương pháp & Dinh dưỡng
+        <div className="bg-white border border-slate-200 rounded-xl p-3.5 sm:p-4 flex flex-col gap-3">
+          <h3 className="m-0 text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+            <Target className="w-4 h-4 text-secondary shrink-0" />
+            <span>Định hướng Phương pháp & Dinh dưỡng</span>
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', fontSize: '0.84rem' }}>
-            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <strong style={{ color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <Zap size={14} color="#eab308" /> Phương pháp & Lịch tập
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <strong className="text-primary flex items-center gap-1.5 mb-1 text-xs sm:text-sm">
+                <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" /> Phương pháp & Lịch tập
               </strong>
-              <p style={{ margin: '0 0 4px', color: '#334155', lineHeight: 1.4 }}>{strategy.trainingMethod}</p>
-              <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                <strong>Lịch:</strong> {strategy.trainingSplit}
+              <p className="m-0 mb-1 text-slate-700 text-xs sm:text-sm leading-relaxed">{strategy.trainingMethod}</p>
+              <div className="text-xs text-slate-500">
+                <strong className="text-slate-700">Lịch:</strong> {strategy.trainingSplit}
               </div>
             </div>
 
             {strategy.cardioProtocol && (
-              <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <strong style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                  <HeartPulse size={14} /> Chiến lược Cardio
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <strong className="text-rose-600 flex items-center gap-1.5 mb-1 text-xs sm:text-sm">
+                  <HeartPulse className="w-3.5 h-3.5 shrink-0" /> Chiến lược Cardio
                 </strong>
-                <p style={{ margin: 0, color: '#334155', lineHeight: 1.4 }}>{strategy.cardioProtocol}</p>
+                <p className="m-0 text-slate-700 text-xs sm:text-sm leading-relaxed">{strategy.cardioProtocol}</p>
               </div>
             )}
           </div>
 
           {(strategy.nutrition?.advice || strategy.nutritionStrategy) && (
-            <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.82rem' }}>
-              <strong style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <Utensils size={14} /> Lời khuyên dinh dưỡng
+            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs sm:text-sm">
+              <strong className="text-emerald-700 flex items-center gap-1.5 mb-1">
+                <Utensils className="w-3.5 h-3.5 shrink-0" /> Lời khuyên dinh dưỡng
               </strong>
-              <p style={{ margin: 0, color: '#334155', lineHeight: 1.4 }}>{strategy.nutrition?.advice || strategy.nutritionStrategy}</p>
+              <p className="m-0 text-slate-700 leading-relaxed">{strategy.nutrition?.advice || strategy.nutritionStrategy}</p>
             </div>
           )}
 
           {/* Checkpoints */}
           {strategy.checkpoints && strategy.checkpoints.length > 0 && (
-            <div>
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>
+            <div className="mt-0.5">
+              <span className="text-xs font-bold text-slate-600 block mb-2">
                 Các mốc đánh giá & Đo InBody (Checkpoints):
               </span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {strategy.checkpoints.map((cp, idx) => (
                   <div
                     key={idx}
-                    style={{
-                      background: '#ede9fe',
-                      border: '1px solid #ddd6fe',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                      fontSize: '0.78rem',
-                    }}
+                    className="bg-purple-50 border border-purple-200 rounded-lg p-2.5 text-xs"
                   >
-                    <div style={{ fontWeight: 700, color: '#5b21b6', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <CheckCircle2 size={13} /> Tuần {cp.week}: {cp.title}
+                    <div className="font-bold text-purple-900 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-purple-700 shrink-0" />
+                      <span>Tuần {cp.week}: {cp.title}</span>
                     </div>
                     {cp.description && (
-                      <div style={{ color: '#6d28d9', marginTop: '2px', fontSize: '0.74rem' }}>{cp.description}</div>
+                      <div className="text-purple-700 mt-1 text-xs leading-relaxed">{cp.description}</div>
                     )}
                   </div>
                 ))}
@@ -180,178 +161,127 @@ export default function RoadmapDetailView({ roadmap, hideBaseline }: RoadmapDeta
       )}
 
       {/* ── Phase & Weekly Breakdown Accordion ── */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={16} color="var(--primary-color)" /> Chi tiết các Phase & Mục tiêu từng tuần ({roadmap.phases?.length || 0} Phase)
+      <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 mb-1">
+          <h3 className="m-0 text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary shrink-0" />
+            <span>Chi tiết các Phase & Mục tiêu từng tuần ({roadmap.phases?.length || 0} Phase)</span>
           </h3>
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
             <button
               type="button"
               onClick={expandAllPhases}
-              style={{
-                background: '#f1f5f9',
-                border: '1px solid #cbd5e1',
-                borderRadius: '6px',
-                padding: '3px 8px',
-                fontSize: '0.72rem',
-                color: '#475569',
-                cursor: 'pointer',
-              }}
+              className="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md transition-colors cursor-pointer"
             >
               Mở rộng tất cả
             </button>
             <button
               type="button"
               onClick={collapseAllPhases}
-              style={{
-                background: '#f1f5f9',
-                border: '1px solid #cbd5e1',
-                borderRadius: '6px',
-                padding: '3px 8px',
-                fontSize: '0.72rem',
-                color: '#475569',
-                cursor: 'pointer',
-              }}
+              className="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-md transition-colors cursor-pointer"
             >
               Thu gọn
             </button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gap: '10px' }}>
+        <div className="flex flex-col gap-2.5">
           {[...(roadmap.phases || [])]
             .sort((a, b) => a.order - b.order)
             .map((phase) => {
               const isExpanded = Boolean(expandedPhases[phase.order]);
+              const cleanPhaseName = phase.name.replace(
+                new RegExp(`^Phase\\s*${phase.order}\\s*[:\\-]\\s*`, 'i'),
+                ''
+              );
 
               return (
                 <div
                   key={phase.order}
-                  style={{
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '10px',
-                    overflow: 'hidden',
-                  }}
+                  className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs transition-shadow"
                 >
                   {/* Phase Header */}
                   <div
-                    style={{
-                      padding: '10px 14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      background: isExpanded ? '#f1f5f9' : '#f8fafc',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                    }}
+                    className={`p-3 sm:px-4 sm:py-3.5 cursor-pointer select-none transition-colors border-b ${
+                      isExpanded
+                        ? 'bg-slate-100/90 border-slate-200'
+                        : 'bg-slate-50/70 border-transparent hover:bg-slate-100/60'
+                    }`}
                     onClick={() => togglePhase(phase.order)}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                      <span
-                        style={{
-                          background: 'var(--primary-color)',
-                          color: '#ffffff',
-                          fontWeight: 800,
-                          fontSize: '0.75rem',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                        }}
-                      >
-                        Phase {phase.order}
-                      </span>
-                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', wordBreak: 'break-word' }}>
-                        {phase.name}
-                      </strong>
-                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+                      {/* Left Block on desktop / Split Meta Row & Title on mobile */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
+                        {/* Mobile top meta row: Badge + Duration pill + Chevron */}
+                        <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0">
+                          <span className="bg-primary text-white font-extrabold text-xs px-2.5 py-1 rounded-md shrink-0 whitespace-nowrap shadow-2xs">
+                            Phase {phase.order}
+                          </span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          color: '#475569',
-                          background: '#ffffff',
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          border: '1px solid #cbd5e1',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {phase.durationWeeks} tuần • {phase.weeks?.length || 0} tuần chi tiết
-                      </span>
-                      {isExpanded ? <ChevronUp size={16} color="#64748b" /> : <ChevronDown size={16} color="#64748b" />}
+                          {/* Mobile-only duration badge and chevron */}
+                          <div className="flex items-center gap-2 sm:hidden shrink-0">
+                            <span className="text-xs text-slate-600 bg-white border border-slate-200 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                              {phase.durationWeeks} tuần • {phase.weeks?.length || 0} tuần chi tiết
+                            </span>
+                            <span className="text-slate-500 shrink-0">
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Phase Title - full width on mobile, inline on desktop */}
+                        <strong className="text-sm sm:text-[0.92rem] font-bold text-slate-900 leading-snug break-words">
+                          {cleanPhaseName}
+                        </strong>
+                      </div>
+
+                      {/* Right Block (Desktop only: duration + chevron) */}
+                      <div className="hidden sm:flex items-center gap-2.5 shrink-0">
+                        <span className="text-xs text-slate-600 bg-white border border-slate-200 px-2.5 py-1 rounded-full font-semibold whitespace-nowrap">
+                          {phase.durationWeeks} tuần • {phase.weeks?.length || 0} tuần chi tiết
+                        </span>
+                        <span className="text-slate-500 shrink-0">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Phase Body */}
                   {isExpanded && (
-                    <div style={{ padding: '14px', borderTop: '1px solid #e2e8f0', display: 'grid', gap: '10px', background: '#fafbfc' }}>
+                    <div className="p-3 sm:p-4 border-t border-slate-200 flex flex-col gap-3 bg-slate-50/50">
                       {/* Phase Goals */}
                       {phase.goals && phase.goals.length > 0 && (
-                        <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.82rem' }}>
-                          <strong style={{ color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                            <Target size={14} color="var(--secondary-color)" /> Mục tiêu giai đoạn:
+                        <div className="bg-white p-3 sm:px-4 sm:py-3 rounded-lg border border-slate-200 text-xs sm:text-sm">
+                          <strong className="text-primary flex items-center gap-1.5 mb-2 font-bold">
+                            <Target className="w-3.5 h-3.5 text-secondary shrink-0" />
+                            <span>Mục tiêu giai đoạn:</span>
                           </strong>
-                          <ul style={{ margin: 0, paddingLeft: '18px', color: '#334155', display: 'grid', gap: '4px' }}>
+                          <ul className="m-0 pl-4 text-slate-700 flex flex-col gap-1.5 list-disc">
                             {phase.goals.map((g, gIdx) => (
-                              <li key={gIdx} style={{ lineHeight: 1.4 }}>{g}</li>
+                              <li key={gIdx} className="leading-relaxed">{g}</li>
                             ))}
                           </ul>
                         </div>
                       )}
 
                       {/* Weeks List */}
-                      <div style={{ display: 'grid', gap: '8px' }}>
+                      <div className="flex flex-col gap-2">
                         {phase.weeks?.map((w, wIdx) => (
                           <div
                             key={wIdx}
-                            style={{
-                              background: '#ffffff',
-                              padding: '12px 14px',
-                              borderRadius: '8px',
-                              border: '1px solid #e2e8f0',
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              justifyContent: 'space-between',
-                              gap: '12px',
-                            }}
+                            className="bg-white p-3 sm:px-4 sm:py-3 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3"
                           >
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1, minWidth: 0 }}>
-                              <span
-                                style={{
-                                  background: '#e0f2fe',
-                                  color: '#0369a1',
-                                  fontWeight: 800,
-                                  fontSize: '0.75rem',
-                                  padding: '3px 8px',
-                                  borderRadius: '6px',
-                                  flexShrink: 0,
-                                  marginTop: '1px',
-                                }}
-                              >
+                            <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                              <span className="bg-sky-100 text-sky-800 font-extrabold text-xs px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap mt-0.5">
                                 Tuần {w.week}
                               </span>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: '0.84rem', fontWeight: 600, color: '#1e293b', lineHeight: 1.45, wordBreak: 'break-word' }}>
-                                  {w.focus}
-                                </div>
+                              <div className="text-xs sm:text-sm font-semibold text-slate-800 leading-relaxed break-words min-w-0">
+                                {w.focus}
                               </div>
                             </div>
 
-                            <span
-                              style={{
-                                fontSize: '0.74rem',
-                                color: '#64748b',
-                                background: '#f8fafc',
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                border: '1px solid #e2e8f0',
-                                fontWeight: 600,
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0,
-                              }}
-                            >
+                            <span className="self-start sm:self-center text-xs text-slate-500 bg-slate-50 px-2.5 py-0.5 rounded-full border border-slate-200 font-medium whitespace-nowrap shrink-0">
                               {w.sessionTargets || 3} buổi/tuần
                             </span>
                           </div>

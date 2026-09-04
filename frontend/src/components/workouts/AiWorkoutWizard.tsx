@@ -10,6 +10,7 @@ import { errorMessage } from '../../types';
 import type { WorkoutAvailabilitySlot } from '../../types/workoutAvailability';
 import type { AiWorkoutGenerationJob } from '../../types/workoutGeneration';
 import WorkoutAvailabilityEditor from './WorkoutAvailabilityEditor';
+import CustomerSelect from '../ui/CustomerSelect';
 
 type Customer = { _id: string; fullName: string; phone: string };
 type Proposal = { durationWeeks: number; sessionsPerWeek: number; minutesPerSession: number; level: string; trainingMethod: string; trainingSplit: string; priorityMuscleGroups: string[]; restrictions: string[] };
@@ -163,8 +164,24 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
   const steps = ['Chọn học viên', 'Duyệt phân tích', 'Cấu hình', 'Tạo giáo án'];
 
   return (
-    <div className="modal-backdrop workout-wizard-backdrop" role="presentation">
-      <section className="module-modal workout-ai-wizard" role="dialog" aria-modal="true" aria-label="Tạo giáo án bằng AI">
+    <div
+      className="modal-backdrop workout-wizard-backdrop fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-xs overflow-hidden"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="module-modal workout-ai-wizard w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[88vh] flex flex-col bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden m-0 border-0 sm:border sm:border-slate-200"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tạo giáo án bằng AI"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {/* Mobile bottom sheet drag indicator */}
+        <div className="sm:hidden flex items-center justify-center pt-2.5 pb-1 bg-white shrink-0">
+          <div className="w-10 h-1 bg-slate-300 rounded-full" />
+        </div>
         <header className="workout-wizard-header">
           <div>
             <p>AI programming</p>
@@ -173,36 +190,58 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
           <button type="button" className="modal-close" aria-label="Đóng" onClick={onClose}>×</button>
         </header>
         <div className="workout-wizard-body">
-          <ol className="workout-wizard-progress" aria-label="Tiến trình tạo giáo án">
-            {steps.map((label, index) => (
-              <li
-                key={label}
-                className={index < step ? 'is-complete' : index === step ? 'is-active' : ''}
-                aria-current={index === step ? 'step' : undefined}
-              >
-                <span>{index + 1}</span>
-                {label}
-              </li>
-            ))}
-          </ol>
+          <div className="workout-wizard-progress-wrap">
+            {/* Mobile clean stepper bar */}
+            <div className="sm:hidden flex items-center justify-between gap-2 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl mb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                  {step + 1}
+                </span>
+                <span className="text-xs font-bold text-slate-800">
+                  Bước {step + 1}/4: {steps[step]}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {steps.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`h-1.5 rounded-full transition-all ${
+                      index === step
+                        ? 'w-5 bg-sky-600'
+                        : index < step
+                        ? 'w-2 bg-emerald-500'
+                        : 'w-2 bg-slate-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop 4-step progress */}
+            <ol className="hidden sm:grid workout-wizard-progress" aria-label="Tiến trình tạo giáo án">
+              {steps.map((label, index) => (
+                <li
+                  key={label}
+                  className={index < step ? 'is-complete' : index === step ? 'is-active' : ''}
+                  aria-current={index === step ? 'step' : undefined}
+                >
+                  <span>{index + 1}</span>
+                  {label}
+                </li>
+              ))}
+            </ol>
+          </div>
           {step === 0 && (
             <div className="module-form workout-wizard-form">
-              <label className="module-field">
-                Học viên
-                <select
-                  aria-label="Học viên"
-                  value={customerId}
-                  disabled={loading}
-                  onChange={(event) => setCustomerId(event.target.value)}
-                >
-                  <option value="">Chọn học viên...</option>
-                  {customers.map((customer) => (
-                    <option key={customer._id} value={customer._id}>
-                      {customer.fullName} · {customer.phone}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <CustomerSelect
+                label="Học viên"
+                name="customerId"
+                value={customerId}
+                customers={customers as unknown as import('../../types').Customer[]}
+                disabled={loading}
+                onChange={setCustomerId}
+                placeholder="Chọn học viên..."
+              />
               <WorkoutAvailabilityEditor
                 value={availabilitySlots}
                 disabled={loading}
@@ -306,19 +345,31 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
           {error && <p className="module-error workout-wizard-error" role="alert">{error}</p>}
           {generationMessage && <p className="workout-wizard-confirm-guide" role="status">{generationMessage}</p>}
         </div>
-        <footer className="module-actions workout-wizard-actions">
-          <button type="button" className="button button-secondary" onClick={onClose}>Hủy</button>
-          {step > 0 && (
+        <footer className="module-actions workout-wizard-actions flex items-center justify-between gap-2.5 p-3 sm:px-5 sm:py-3.5 border-t border-slate-200 bg-white shrink-0 pb-[max(14px,env(safe-area-inset-bottom))]">
+          {step === 0 ? (
             <button
               type="button"
-              className="button button-secondary"
+              className="button button-secondary flex-1 sm:flex-none min-h-[44px] text-xs sm:text-sm font-semibold cursor-pointer"
+              onClick={onClose}
+            >
+              Hủy
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="button button-secondary flex-1 sm:flex-none min-h-[44px] text-xs sm:text-sm font-semibold cursor-pointer"
               disabled={loading}
               onClick={() => { setError(''); setStep((current) => current - 1); }}
             >
               Quay lại
             </button>
           )}
-          <button type="button" className="button button-primary" disabled={loading} onClick={primaryAction}>
+          <button
+            type="button"
+            className="button button-primary flex-1 sm:flex-none min-h-[44px] text-xs sm:text-sm font-bold shadow-sm cursor-pointer"
+            disabled={loading}
+            onClick={primaryAction}
+          >
             {primaryLabel}
           </button>
         </footer>

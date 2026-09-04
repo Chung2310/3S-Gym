@@ -141,6 +141,10 @@ export default function RoadmapTimeline({ roadmap }: { roadmap: Roadmap }) {
           .sort((left, right) => left.order - right.order)
           .map((phase) => {
             const isExpanded = Boolean(expandedPhases[phase.order]);
+            const cleanPhaseName = phase.name.replace(
+              new RegExp(`^Phase\\s*${phase.order}\\s*[:\\-]\\s*`, 'i'),
+              ''
+            );
 
             return (
               <li
@@ -181,6 +185,7 @@ export default function RoadmapTimeline({ roadmap }: { roadmap: Roadmap }) {
                         padding: '1px 5px',
                         borderRadius: '4px',
                         flexShrink: 0,
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       P{phase.order}
@@ -194,7 +199,7 @@ export default function RoadmapTimeline({ roadmap }: { roadmap: Roadmap }) {
                         minWidth: 0,
                       }}
                     >
-                      {phase.name}
+                      {cleanPhaseName}
                     </strong>
                   </div>
 

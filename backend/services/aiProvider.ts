@@ -1,6 +1,6 @@
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
-import { APP_POLICY, getEnv } from '../config/env.js';
+import { getEnv } from '../config/env.js';
 import { fetchWithTimeout } from './providerRequest.js';
 import { withAiBilling } from './aiBillingService.js';
 import { logger } from '../config/logger.js';
@@ -100,6 +100,17 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
 
       if (!response.ok || data.error) {
         const errMsg = data.error?.message || `AI Provider phản hồi mã lỗi HTTP ${response.status}`;
+        if (
+          response.status === 402
+          || data.error?.code === 402
+          || /credit|balance|insufficient|payment|quota/i.test(errMsg)
+        ) {
+          throw new AppError({
+            status: 503,
+            code: ERROR_CODES.UNAVAILABLE,
+            message: 'Hệ thống gặp sự cố. Vui lòng liên hệ quản trị viên để được hỗ trợ',
+          });
+        }
         throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: errMsg });
       }
 

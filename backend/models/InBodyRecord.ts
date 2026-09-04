@@ -5,6 +5,7 @@ const schema = new mongoose.Schema({
   ptId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   measurementDate: { type: Date, required: true },
   weight: { type: Number, required: true, min: 0 },
+  height: { type: Number, min: 0, default: null },
   bmi: { type: Number, min: 0, default: null },
   bodyFatPercentage: { type: Number, min: 0, max: 100, default: null },
   bodyFatMass: { type: Number, min: 0, default: null },

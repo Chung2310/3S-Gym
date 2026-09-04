@@ -42,77 +42,23 @@ export default function CustomerRoadmap({ journey }: CustomerRoadmapProps) {
   return (
     <div className="space-y-5">
       {/* Compact Roadmap Title Bar */}
-      <div
-        style={{
-          background: 'linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%)',
-          border: '1px solid #e2e8f0',
-          borderRadius: '12px',
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              background: 'var(--primary-color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              flexShrink: 0,
-            }}
-          >
-            <Sparkles size={20} color="#38bdf8" />
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-3.5 sm:px-5 sm:py-3.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-white shrink-0">
+            <Sparkles className="w-5 h-5 text-sky-400" />
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  background: '#eff6ff',
-                  color: '#1e40af',
-                  border: '1px solid #bfdbfe',
-                  padding: '1px 8px',
-                  borderRadius: '12px',
-                  fontWeight: 700,
-                }}
-              >
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full font-bold">
                 Lộ trình cá nhân hóa
               </span>
               {journey.customer?.assignedPt?.fullName && (
-                <span
-                  style={{
-                    fontSize: '0.72rem',
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    border: '1px solid #bbf7d0',
-                    padding: '1px 8px',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                  }}
-                >
-                  <UserIcon size={11} /> {journey.customer.assignedPt.fullName}
+                <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold inline-flex items-center gap-1">
+                  <UserIcon className="w-3 h-3" /> {journey.customer.assignedPt.fullName}
                 </span>
               )}
             </div>
-            <h2
-              style={{
-                margin: '4px 0 0',
-                fontSize: '1.1rem',
-                fontWeight: 800,
-                color: 'var(--primary-color)',
-                wordBreak: 'break-word',
-              }}
-            >
+            <h2 className="m-0 mt-1 text-base sm:text-lg font-extrabold text-primary break-words">
               {roadmapData.title}
             </h2>
           </div>

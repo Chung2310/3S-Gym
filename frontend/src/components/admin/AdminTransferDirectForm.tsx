@@ -1,5 +1,14 @@
-import { useEffect, useState } from 'react';
-import { ArrowRightLeft, RefreshCw, User, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ArrowRightLeft,
+  RefreshCw,
+  Search,
+  Check,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  X,
+} from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
@@ -26,34 +35,36 @@ export default function AdminTransferDirectForm({
   onSuccess,
 }: AdminTransferDirectFormProps) {
   const toast = useToast();
-  const [selectedCustomerId, setSelectedCustomerId] = useState(preSelectedCustomerId || '');
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>(
+    preSelectedCustomerId ? [preSelectedCustomerId] : []
+  );
   const [selectedToPtId, setSelectedToPtId] = useState('');
   const [transferReason, setTransferReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [searchCustomerText, setSearchCustomerText] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (preSelectedCustomerId) {
-      setSelectedCustomerId(preSelectedCustomerId);
+      setSelectedCustomerIds((prev) =>
+        prev.includes(preSelectedCustomerId) ? prev : [...prev, preSelectedCustomerId]
+      );
     }
   }, [preSelectedCustomerId]);
 
-  const selectedCustomer = customers.find((c) => c._id === selectedCustomerId);
-
-  const getSelectedCustomerPtName = () => {
-    if (!selectedCustomer?.assignedPtId) return 'Chưa có PT phụ trách';
-    if (typeof selectedCustomer.assignedPtId === 'object') {
-      return selectedCustomer.assignedPtId.fullName || selectedCustomer.assignedPtId.username || 'PT';
-    }
-    const found = pts.find((p) => p._id === selectedCustomer.assignedPtId);
-    return found ? found.fullName || found.username : 'PT hiện tại';
-  };
-
-  const getSelectedCustomerPtId = (): string => {
-    if (!selectedCustomer?.assignedPtId) return '';
-    if (typeof selectedCustomer.assignedPtId === 'object') return selectedCustomer.assignedPtId._id;
-    return String(selectedCustomer.assignedPtId);
-  };
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Lọc danh sách khách hàng theo ô tìm kiếm
   const filteredCustomers = customers.filter((c) => {
@@ -65,12 +76,49 @@ export default function AdminTransferDirectForm({
     );
   });
 
-  const availablePts = pts.filter((p) => String(p._id) !== String(getSelectedCustomerPtId()));
+  const isAllSelected =
+    filteredCustomers.length > 0 &&
+    filteredCustomers.every((c) => selectedCustomerIds.includes(c._id));
+  const isPartiallySelected =
+    filteredCustomers.some((c) => selectedCustomerIds.includes(c._id)) && !isAllSelected;
+
+  const handleToggleSelectAll = () => {
+    const filteredIds = filteredCustomers.map((c) => c._id);
+    if (isAllSelected) {
+      setSelectedCustomerIds((prev) => prev.filter((id) => !filteredIds.includes(id)));
+    } else {
+      setSelectedCustomerIds((prev) => Array.from(new Set([...prev, ...filteredIds])));
+    }
+  };
+
+  const handleToggleCustomer = (id: string) => {
+    setSelectedCustomerIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const getDropdownLabel = () => {
+    if (selectedCustomerIds.length === 0) {
+      return `-- Bấm chọn khách hàng (${customers.length} khách) --`;
+    }
+    if (selectedCustomerIds.length === 1) {
+      const single = customers.find((c) => c._id === selectedCustomerIds[0]);
+      if (single) {
+        const ptName =
+          typeof single.assignedPtId === 'object' && single.assignedPtId
+            ? single.assignedPtId.fullName || single.assignedPtId.username
+            : 'Chưa có PT';
+        return `${single.fullName} (${single.phone}) — [PT: ${ptName}]`;
+      }
+      return `Đã chọn 1 khách hàng`;
+    }
+    return `Đã chọn ${selectedCustomerIds.length} khách hàng điều chuyển`;
+  };
 
   const handleDirectTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomerId) {
-      toast.error('Vui lòng chọn khách hàng cần điều chuyển.');
+    if (selectedCustomerIds.length === 0) {
+      toast.error('Vui lòng chọn ít nhất một khách hàng cần điều chuyển.');
       return;
     }
     if (!selectedToPtId) {
@@ -84,17 +132,23 @@ export default function AdminTransferDirectForm({
 
     try {
       setSubmitting(true);
-      await api.post('/api/transfers/admin-force', {
-        customerId: selectedCustomerId,
-        toPtId: selectedToPtId,
-        reason: transferReason.trim(),
-      });
+      const res = await api.post<{ transferredCount?: number; toPtName?: string }>(
+        '/api/transfers/admin-force-batch',
+        {
+          customerIds: selectedCustomerIds,
+          toPtId: selectedToPtId,
+          reason: transferReason.trim(),
+        }
+      );
 
-      toast.success(`Đã điều chuyển học viên ${selectedCustomer?.fullName || ''} thành công!`);
-      setSelectedCustomerId('');
+      const count = res.data?.transferredCount || selectedCustomerIds.length;
+      const ptName = res.data?.toPtName || 'PT mới';
+      toast.success(`Đã điều chuyển thành công ${count} khách hàng sang PT ${ptName}!`);
+      setSelectedCustomerIds([]);
       setSelectedToPtId('');
       setTransferReason('');
       setSearchCustomerText('');
+      setIsDropdownOpen(false);
       onSuccess();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -133,92 +187,319 @@ export default function AdminTransferDirectForm({
           <h3 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 750, color: '#003b70' }}>
             Tạo lệnh điều chuyển trực tiếp (Admin Force)
           </h3>
+          <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+            Chọn một hoặc tích chọn nhiều khách hàng trong menu để điều chuyển cùng lúc
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleDirectTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-          {/* 1. Chọn khách hàng */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+          {/* 1. Chọn khách hàng (Dropdown gọn gàng có Search & Checkbox) */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-              1. Chọn Khách hàng cần chuyển <span style={{ color: '#dc2626' }}>*</span>
-            </label>
-
-            {customers.length > 8 && (
-              <input
-                type="text"
-                placeholder="Gõ tên hoặc SĐT để lọc nhanh..."
-                value={searchCustomerText}
-                onChange={(e) => setSearchCustomerText(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: '34px',
-                  padding: '0 10px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.78rem',
-                  marginBottom: '6px',
-                  boxSizing: 'border-box',
-                }}
-              />
-            )}
-
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => {
-                setSelectedCustomerId(e.target.value);
-                setSelectedToPtId('');
-              }}
-              required
+            <div
               style={{
-                width: '100%',
-                height: '42px',
-                padding: '0 12px',
-                borderRadius: '8px',
-                border: '1.5px solid #cbd5e1',
-                fontSize: '0.84rem',
-                background: '#ffffff',
-                outline: 'none',
-                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '6px',
               }}
             >
-              <option value="">-- Bấm chọn khách hàng ({filteredCustomers.length} khách) --</option>
-              {filteredCustomers.map((c) => {
-                const ptName =
-                  typeof c.assignedPtId === 'object' && c.assignedPtId
-                    ? c.assignedPtId.fullName || c.assignedPtId.username
-                    : 'Chưa có PT';
-                return (
-                  <option key={c._id} value={c._id}>
-                    {c.fullName} ({c.phone}) — [PT: {ptName}]
-                  </option>
-                );
-              })}
-            </select>
+              <label style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
+                1. Chọn Khách hàng cần chuyển <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              {selectedCustomerIds.length > 0 && (
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    color: '#0284c7',
+                    background: '#e0f2fe',
+                    padding: '1px 8px',
+                    borderRadius: '12px',
+                  }}
+                >
+                  Đã chọn: {selectedCustomerIds.length}
+                </span>
+              )}
+            </div>
 
-            {/* Thông tin PT hiện tại của học viên */}
-            {selectedCustomer && (
-              <div
+            {/* Dropdown Box Trigger */}
+            <div ref={dropdownRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
                 style={{
-                  marginTop: '8px',
-                  padding: '8px 12px',
-                  background: '#f0f9ff',
-                  border: '1px solid #bae6fd',
+                  width: '100%',
+                  height: '42px',
+                  padding: '0 12px',
                   borderRadius: '8px',
-                  fontSize: '0.78rem',
-                  color: '#0369a1',
+                  border: isDropdownOpen ? '1.5px solid #003b70' : '1.5px solid #cbd5e1',
+                  fontSize: '0.84rem',
+                  background: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  boxShadow: isDropdownOpen ? '0 0 0 3px rgba(0, 59, 112, 0.1)' : 'none',
+                  transition: 'all 0.15s ease',
+                  boxSizing: 'border-box',
                 }}
               >
-                <User size={14} color="#0284c7" />
-                <span>
-                  Học viên: <strong>{selectedCustomer.fullName}</strong> | PT hiện tại:{' '}
-                  <strong>{getSelectedCustomerPtName()}</strong>
-                </span>
-              </div>
-            )}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    flex: 1,
+                  }}
+                >
+                  {selectedCustomerIds.length > 1 && (
+                    <span
+                      style={{
+                        background: '#003b70',
+                        color: '#ffffff',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: '10px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {selectedCustomerIds.length}
+                    </span>
+                  )}
+                  <span
+                    style={{
+                      color: selectedCustomerIds.length > 0 ? '#003b70' : '#64748b',
+                      fontWeight: selectedCustomerIds.length > 0 ? 650 : 400,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {getDropdownLabel()}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  {selectedCustomerIds.length > 0 && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCustomerIds([]);
+                      }}
+                      title="Bỏ chọn tất cả"
+                      style={{
+                        color: '#94a3b8',
+                        padding: '2px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <X size={14} />
+                    </span>
+                  )}
+                  {isDropdownOpen ? <ChevronUp size={16} color="#64748b" /> : <ChevronDown size={16} color="#64748b" />}
+                </div>
+              </button>
+
+              {/* Popover Menu khi mở Dropdown */}
+              {isDropdownOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 5px)',
+                    left: 0,
+                    right: 0,
+                    background: '#ffffff',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                    boxShadow: '0 12px 28px -4px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.05)',
+                    zIndex: 50,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Ô tìm kiếm Search */}
+                  <div style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                    <div style={{ position: 'relative' }}>
+                      <Search
+                        size={14}
+                        style={{
+                          position: 'absolute',
+                          left: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          color: '#94a3b8',
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Tìm theo họ tên hoặc SĐT..."
+                        value={searchCustomerText}
+                        onChange={(e) => setSearchCustomerText(e.target.value)}
+                        autoFocus
+                        style={{
+                          width: '100%',
+                          height: '34px',
+                          padding: '0 10px 0 32px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.78rem',
+                          outline: 'none',
+                          background: '#ffffff',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Header "Chọn tất cả" */}
+                  <div
+                    onClick={handleToggleSelectAll}
+                    style={{
+                      padding: '8px 12px',
+                      background: '#ffffff',
+                      borderBottom: '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <label
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '0.78rem',
+                        fontWeight: 750,
+                        color: '#003b70',
+                        cursor: 'pointer',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = isPartiallySelected;
+                        }}
+                        onChange={handleToggleSelectAll}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#003b70' }}
+                      />
+                      <span>Chọn tất cả ({filteredCustomers.length} khách)</span>
+                    </label>
+
+                    <span style={{ fontSize: '0.73rem', fontWeight: 650, color: '#0284c7' }}>
+                      Đã chọn: {selectedCustomerIds.length}
+                    </span>
+                  </div>
+
+                  {/* Danh sách cuộn từng khách hàng */}
+                  <div
+                    style={{
+                      maxHeight: '220px',
+                      overflowY: 'auto',
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    {filteredCustomers.length === 0 ? (
+                      <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.78rem' }}>
+                        Không tìm thấy khách hàng nào phù hợp.
+                      </div>
+                    ) : (
+                      filteredCustomers.map((c) => {
+                        const isChecked = selectedCustomerIds.includes(c._id);
+                        const ptName =
+                          typeof c.assignedPtId === 'object' && c.assignedPtId
+                            ? c.assignedPtId.fullName || c.assignedPtId.username
+                            : 'Chưa có PT';
+
+                        return (
+                          <div
+                            key={c._id}
+                            onClick={() => handleToggleCustomer(c._id)}
+                            style={{
+                              padding: '8px 12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              borderBottom: '1px solid #f1f5f9',
+                              background: isChecked ? '#f0f9ff' : '#ffffff',
+                              cursor: 'pointer',
+                              transition: 'background 0.12s ease',
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleToggleCustomer(c._id)}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#003b70', flexShrink: 0 }}
+                            />
+                            <div style={{ minWidth: 0, flex: 1, fontSize: '0.78rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <strong style={{ color: isChecked ? '#003b70' : '#1e293b' }}>
+                                  {c.fullName}
+                                </strong>
+                                <span style={{ color: '#64748b', fontSize: '0.74rem' }}>
+                                  ({c.phone})
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.71rem', color: '#64748b', marginTop: '1px' }}>
+                                PT hiện tại: <span style={{ color: '#0369a1', fontWeight: 600 }}>{ptName}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Footer nhỏ của dropdown */}
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      background: '#f8fafc',
+                      borderTop: '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      Đã chọn <strong>{selectedCustomerIds.length}</strong> / {customers.length} khách
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(false)}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#003b70',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Đóng
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 2. Chọn PT nhận mới */}
@@ -240,10 +521,11 @@ export default function AdminTransferDirectForm({
                 background: '#ffffff',
                 outline: 'none',
                 cursor: 'pointer',
+                boxSizing: 'border-box',
               }}
             >
-              <option value="">-- Chọn PT nhận bàn giao ({availablePts.length} PT) --</option>
-              {availablePts.map((p) => (
+              <option value="">-- Chọn PT nhận bàn giao ({pts.length} PT) --</option>
+              {pts.map((p) => (
                 <option key={p._id} value={p._id}>
                   PT: {p.fullName || p.username} ({p.phone || 'Chưa có SĐT'})
                 </option>
@@ -331,7 +613,7 @@ export default function AdminTransferDirectForm({
         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '6px', borderTop: '1px solid #f1f5f9' }}>
           <button
             type="submit"
-            disabled={submitting || !selectedCustomerId || !selectedToPtId || !transferReason.trim()}
+            disabled={submitting || selectedCustomerIds.length === 0 || !selectedToPtId || !transferReason.trim()}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -339,17 +621,36 @@ export default function AdminTransferDirectForm({
               padding: '10px 24px',
               borderRadius: '8px',
               border: 0,
-              background: !selectedCustomerId || !selectedToPtId || !transferReason.trim() ? '#94a3b8' : '#003b70',
+              background:
+                selectedCustomerIds.length === 0 || !selectedToPtId || !transferReason.trim()
+                  ? '#94a3b8'
+                  : '#003b70',
               color: '#ffffff',
               fontSize: '0.85rem',
               fontWeight: 750,
-              cursor: !selectedCustomerId || !selectedToPtId || !transferReason.trim() ? 'not-allowed' : 'pointer',
+              cursor:
+                selectedCustomerIds.length === 0 || !selectedToPtId || !transferReason.trim()
+                  ? 'not-allowed'
+                  : 'pointer',
               boxShadow: '0 2px 8px rgba(0, 59, 112, 0.25)',
               transition: 'all 0.15s ease',
             }}
           >
-            {submitting ? <RefreshCw size={15} className="animate-spin" /> : <ArrowRightLeft size={15} />}
-            <span>Xác nhận điều chuyển ngay</span>
+            {submitting ? (
+              <>
+                <RefreshCw size={15} className="animate-spin" />
+                <span>Đang điều chuyển...</span>
+              </>
+            ) : (
+              <>
+                <ArrowRightLeft size={15} />
+                <span>
+                  {selectedCustomerIds.length > 1
+                    ? `Xác nhận điều chuyển (${selectedCustomerIds.length} khách)`
+                    : 'Xác nhận điều chuyển ngay'}
+                </span>
+              </>
+            )}
           </button>
         </div>
       </form>

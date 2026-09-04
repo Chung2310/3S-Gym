@@ -114,152 +114,68 @@ export default function InBodyDetailModal({
     }
   };
 
-
-
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 10050,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-        overflowY: 'auto',
-      }}
+      className="fixed inset-0 z-[10050] bg-slate-950/65 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        style={{
-          background: '#ffffff',
-          borderRadius: '18px',
-          width: '100%',
-          maxWidth: '920px',
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          overflow: 'hidden',
-        }}
+        className="bg-white rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #003b70 0%, #0369a1 100%)',
-            padding: '12px 20px',
-            color: '#ffffff',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '16px',
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="bg-gradient-to-r from-primary to-sky-700 p-3 sm:px-5 sm:py-3.5 text-white flex justify-between items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
               <h2
                 title={customerName}
-                style={{
-                  margin: 0,
-                  fontSize: '1.25rem',
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  lineHeight: 1.2,
-                  maxWidth: '320px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
+                className="m-0 text-base sm:text-xl font-bold text-white leading-tight max-w-[280px] sm:max-w-md truncate"
               >
                 {customerName}
               </h2>
-              <span
-                style={{
-                  background: 'rgba(255, 255, 255, 0.18)',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  color: '#e0f2fe',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <Sparkles size={12} /> Phân Tích InBody & Tư Vấn PT
+              <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-semibold text-sky-100 inline-flex items-center gap-1 shrink-0">
+                <Sparkles className="w-3 h-3" /> Phân Tích InBody & Tư Vấn PT
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: '#bae6fd', marginTop: '3px', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Calendar size={13} /> Ngày đo: {new Date(record.measurementDate).toLocaleDateString('vi-VN')}
+            <div className="flex items-center gap-2.5 sm:gap-3 text-xs text-sky-200 mt-1 flex-wrap">
+              <span className="inline-flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" /> Ngày đo: {new Date(record.measurementDate).toLocaleDateString('vi-VN')}
               </span>
               {customerPhone && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Phone size={12} /> {customerPhone}
+                <span className="inline-flex items-center gap-1">
+                  <Phone className="w-3 h-3" /> {customerPhone}
                 </span>
               )}
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={handleCopyMessage}
-              style={{
-                background: copied ? '#10b981' : 'rgba(255, 255, 255, 0.2)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                color: '#ffffff',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                transition: 'all 0.15s ease',
-              }}
-              title="Sao chép gợi ý tư vấn gửi khách qua Zalo/SMS"
+              className={`border border-white/30 text-white px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1.5 ${
+                copied ? 'bg-emerald-600' : 'bg-white/20 hover:bg-white/30'
+              }`}
+              title="Sao chép kịch bản tư vấn nhanh"
             >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copied ? 'Đã chép' : 'Sao chép'}</span>
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{copied ? 'Đã chép' : 'Sao chép tư vấn'}</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                border: 'none',
-                color: '#ffffff',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'background 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-              }}
+              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center cursor-pointer transition-colors text-white"
               title="Đóng cửa sổ"
             >
-              <X size={18} />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div style={{ padding: '24px', overflowY: 'auto' }}>
+        <div className="p-3 sm:p-5 sm:px-6 overflow-y-auto">
           <InBodyDetailView
             record={record}
             previousRecord={previousRecord}
@@ -270,18 +186,7 @@ export default function InBodyDetailModal({
         </div>
 
         {/* Modal Footer Actions */}
-        <div
-          style={{
-            background: '#ffffff',
-            borderTop: '1px solid #e2e8f0',
-            padding: '14px 24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}
-        >
+        <div className="bg-white border-t border-slate-200 p-3 sm:px-6 sm:py-3.5 flex justify-between items-center flex-wrap gap-2.5">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {onEdit && (
               <button
