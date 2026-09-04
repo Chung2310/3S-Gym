@@ -732,8 +732,8 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       }
     } catch (err: any) {
       const msg = errorMessage(err);
-      if (msg.includes('402') || msg.includes('credits') || msg.includes('Insufficient')) {
-        toast.error('Tài khoản OpenRouter cần nạp thêm credit để tạo ảnh AI (FLUX.2 Klein 4B).');
+      if (msg.includes('402') || msg.includes('credit') || msg.includes('Insufficient') || msg.includes('OpenRouter')) {
+        toast.error('Hệ thống gặp sự cố. Vui lòng liên hệ quản trị viên để được hỗ trợ');
       } else {
         toast.error(`Không thể tạo ảnh: ${msg}`);
       }
