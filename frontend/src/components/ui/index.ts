@@ -19,4 +19,5 @@ export { default as RoleBadge } from './RoleBadge';
 export { default as StatusBadge } from './StatusBadge';
 export { ToastProvider, useToast } from './ToastProvider';
 export { default as TransferFormModal } from './TransferFormModal';
+export { default as CustomSelect, type CustomSelectOption, type CustomSelectProps } from './CustomSelect';
 export { default as UserFormModal, type UserRecord, type UserFormState } from './UserFormModal';
