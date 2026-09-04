@@ -13,6 +13,7 @@ interface Props {
   onMetadataChange: (value: TemplateMetadata) => void;
   onExerciseUpdate: (patch: Partial<ScheduledExercise>) => void;
   onUnscheduled: () => void;
+  onClose?: () => void;
 }
 
 export default function StudioSidebar(props: Props) {
@@ -23,6 +24,6 @@ export default function StudioSidebar(props: Props) {
     </div>
     {props.activeTab === 'template'
       ? <TemplateMetadataForm value={props.metadata} muscleGroupOptions={props.muscleGroupOptions} readOnly={props.readOnly} onChange={props.onMetadataChange} />
-      : <ExerciseInspector selected={props.selected} days={props.days} readOnly={props.readOnly} onUpdate={props.onExerciseUpdate} onUnscheduled={props.onUnscheduled} />}
+      : <ExerciseInspector selected={props.selected} days={props.days} readOnly={props.readOnly} onUpdate={props.onExerciseUpdate} onUnscheduled={props.onUnscheduled} onClose={props.onClose} />}
   </div>;
 }
