@@ -16,7 +16,7 @@ interface ExerciseFormModalProps {
 
 interface ExerciseFormState {
   name: string;
-  muscleGroup: string;
+  muscleGroups: string[];
   level: Exercise['level'];
   defaultTrackingType: TrackingType | '';
   equipment: string;
@@ -39,7 +39,7 @@ const DEFAULT_FALLBACK_GROUPS = [
 
 const emptyForm: ExerciseFormState = {
   name: '',
-  muscleGroup: '',
+  muscleGroups: [],
   level: 'BEGINNER',
   defaultTrackingType: '',
   equipment: '',
@@ -71,15 +71,19 @@ export default function ExerciseFormModal({
     setNewGroupName('');
 
     const baseList = muscleGroups.length > 0 ? muscleGroups : DEFAULT_FALLBACK_GROUPS;
-    const initialExerciseGroup = exercise?.muscleGroup?.trim() || '';
-    const merged = Array.from(new Set([...baseList, ...(initialExerciseGroup ? [initialExerciseGroup] : [])]));
+    const initialExerciseGroups = exercise?.muscleGroups && exercise.muscleGroups.length > 0
+      ? exercise.muscleGroups
+      : exercise?.muscleGroup
+        ? exercise.muscleGroup.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+    const merged = Array.from(new Set([...baseList, ...initialExerciseGroups]));
     setAvailableGroups(merged);
 
     setForm(
       exercise
         ? {
             name: exercise.name,
-            muscleGroup: exercise.muscleGroup,
+            muscleGroups: initialExerciseGroups,
             level: exercise.level,
             defaultTrackingType: exercise.defaultTrackingType ?? '',
             equipment: exercise.equipment?.join(', ') ?? '',
@@ -88,11 +92,21 @@ export default function ExerciseFormModal({
           }
         : {
             ...emptyForm,
-            muscleGroup: merged[0] || '',
+            muscleGroups: merged[0] ? [merged[0]] : [],
             videos: [],
           },
     );
   }, [exercise, muscleGroups, open]);
+
+  const toggleMuscleGroup = (group: string) => {
+    setForm((current) => {
+      const exists = current.muscleGroups.includes(group);
+      const next = exists
+        ? current.muscleGroups.filter((item) => item !== group)
+        : [...current.muscleGroups, group];
+      return { ...current, muscleGroups: next };
+    });
+  };
 
   const handleAddMuscleGroup = async () => {
     const trimmed = newGroupName.trim();
@@ -102,7 +116,12 @@ export default function ExerciseFormModal({
       const res = await api.post<{ name: string }>('/api/exercises/muscle-groups', { name: trimmed });
       const createdName = res.data?.name || trimmed;
       setAvailableGroups((prev) => (prev.includes(createdName) ? prev : [...prev, createdName]));
-      change('muscleGroup', createdName);
+      setForm((current) => ({
+        ...current,
+        muscleGroups: current.muscleGroups.includes(createdName)
+          ? current.muscleGroups
+          : [...current.muscleGroups, createdName],
+      }));
       onMuscleGroupCreated?.(createdName);
       toast.success(`Đã thêm nhóm cơ "${createdName}".`);
       setIsAddingCustom(false);
@@ -116,11 +135,16 @@ export default function ExerciseFormModal({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (form.muscleGroups.length === 0) {
+      toast.error('Vui lòng chọn ít nhất một nhóm cơ.');
+      return;
+    }
     setLoading(true);
     if (uploading) return;
     const body = {
       name: form.name,
-      muscleGroup: form.muscleGroup,
+      muscleGroups: form.muscleGroups,
+      muscleGroup: form.muscleGroups.join(', '),
       level: form.level,
       defaultTrackingType: form.defaultTrackingType,
       equipment: form.equipment.split(',').map((item) => item.trim()).filter(Boolean),
@@ -147,7 +171,7 @@ export default function ExerciseFormModal({
       className="module-modal exercise-form-modal"
       open={open}
       title={exercise ? 'Sửa bài tập' : 'Tạo bài tập'}
-      dirty={Object.values(form).some(Boolean)}
+      dirty={Object.values(form).some((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v)))}
       loading={loading || uploading}
       submitLabel="Lưu bài tập"
       onClose={onClose}
@@ -171,7 +195,12 @@ export default function ExerciseFormModal({
             </label>
             <div className="module-field exercise-form-muscle-field">
               <div className="exercise-form-muscle-header">
-                <span>Nhóm cơ</span>
+                <span>
+                  Nhóm cơ{' '}
+                  {form.muscleGroups.length > 0 && (
+                    <strong className="exercise-form-muscle-count">({form.muscleGroups.length})</strong>
+                  )}
+                </span>
                 {!isAddingCustom && (
                   <button
                     type="button"
@@ -185,7 +214,7 @@ export default function ExerciseFormModal({
                   </button>
                 )}
               </div>
-              {isAddingCustom ? (
+              {isAddingCustom && (
                 <div className="exercise-form-custom-muscle">
                   <input
                     aria-label="Tên nhóm cơ mới"
@@ -220,28 +249,34 @@ export default function ExerciseFormModal({
                     Hủy
                   </button>
                 </div>
+              )}
+              <div className="exercise-muscle-chips" role="group" aria-label="Danh sách nhóm cơ">
+                {availableGroups.map((group) => {
+                  const isSelected = form.muscleGroups.includes(group);
+                  return (
+                    <button
+                      key={group}
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isSelected}
+                      aria-label={group}
+                      className={`exercise-muscle-chip ${isSelected ? 'is-selected' : ''}`}
+                      onClick={() => toggleMuscleGroup(group)}
+                    >
+                      <span className="exercise-muscle-chip-icon" aria-hidden="true">
+                        {isSelected ? '✓' : '+'}
+                      </span>
+                      <span>{group}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {form.muscleGroups.length > 0 ? (
+                <p className="exercise-muscle-summary">
+                  Đã chọn: <strong>{form.muscleGroups.join(', ')}</strong>
+                </p>
               ) : (
-                <select
-                  aria-label="Nhóm cơ"
-                  value={form.muscleGroup}
-                  onChange={(event) => {
-                    if (event.target.value === '__NEW__') {
-                      setIsAddingCustom(true);
-                      setNewGroupName('');
-                    } else {
-                      change('muscleGroup', event.target.value);
-                    }
-                  }}
-                  required
-                >
-                  <option value="" disabled>Chọn nhóm cơ...</option>
-                  {availableGroups.map((group) => (
-                    <option key={group} value={group}>
-                      {group}
-                    </option>
-                  ))}
-                  <option value="__NEW__">+ Thêm nhóm cơ mới...</option>
-                </select>
+                <p className="exercise-muscle-hint">Chọn một hoặc nhiều nhóm cơ phù hợp với bài tập.</p>
               )}
             </div>
             <label className="module-field">
