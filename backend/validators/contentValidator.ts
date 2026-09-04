@@ -39,6 +39,7 @@ export const inbodySchemas = { create: { body: Joi.object({ ...inbodyFields, cus
 export const confirmInbodyOcrSchema: RequestValidationSchema = {
   params: idParams(),
   body: nonEmptyPatch({
+    customerId: objectId.optional().allow(null),
     measurementDate: Joi.date().iso().allow(null),
     weight: Joi.number().positive().allow(null),
     bodyFatPercentage: Joi.number().min(0).max(100).allow(null),

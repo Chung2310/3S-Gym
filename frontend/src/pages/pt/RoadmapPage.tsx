@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Calendar,
   Edit3,
   Eye,
   Filter,
   Plus,
-  RefreshCw,
   Search,
   Sparkles,
   Trash2,
@@ -430,6 +428,7 @@ export default function RoadmapPage() {
                       onClick={() => {
                         setEditingItem(item);
                         setShowForm(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                       style={{ fontSize: '0.78rem', padding: '5px 8px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '6px' }}
                       title="Chỉnh sửa roadmap"
@@ -514,6 +513,7 @@ export default function RoadmapPage() {
           setViewingItem(null);
           setEditingItem(item);
           setShowForm(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onTogglePublish={(item) => {
           setViewingItem(null);

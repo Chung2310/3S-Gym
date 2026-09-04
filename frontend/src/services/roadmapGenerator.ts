@@ -289,17 +289,11 @@ export function generateSmartRoadmap(
         weekFocus = `Gia tăng áp lực cơ bắp (RPE 8), duy trì đều đặn ${sessionsPerWeek} buổi tập`;
       }
 
-      // Generate Sessions for this week
-      const sessions: RoadmapSessionProposal[] = [];
-      for (let s = 1; s <= sessionsPerWeek; s++) {
-        sessions.push(generateSessionTemplate(s, sessionsPerWeek, goalType, isFirst));
-      }
-
       weeks.push({
         week: weekNumber,
         focus: weekFocus,
         sessionTargets: sessionsPerWeek,
-        sessions,
+        sessions: [],
       });
     }
 
@@ -330,78 +324,5 @@ export function generateSmartRoadmap(
       bmr,
       tdee,
     },
-  };
-}
-
-function generateSessionTemplate(
-  sessionNumber: number,
-  totalSessions: number,
-  goalType: RoadmapGoalType,
-  isIntroPhase: boolean
-): RoadmapSessionProposal {
-  if (totalSessions === 3) {
-    if (sessionNumber === 1) {
-      return {
-        sessionNumber: 1,
-        name: 'Buổi 1: Thân trên (Upper Body Push & Pull)',
-        focus: isIntroPhase ? 'Kỹ thuật Đẩy ngực & Kéo xô chuẩn form' : 'Gia tăng mức tạ ngực - lưng - vai (RPE 7.5)',
-        exercises: ['Barbell Bench Press / Dumbbell Press (4x8-10)', 'Lat Pulldown / Pull-ups (4x10-12)', 'Seated Dumbbell Shoulder Press (3x10)', 'Plank & Cable Core (3x45s)'],
-      };
-    }
-    if (sessionNumber === 2) {
-      return {
-        sessionNumber: 2,
-        name: 'Buổi 2: Thân dưới & Mông đùi (Lower Body Quad & Hamstring)',
-        focus: isIntroPhase ? 'Kỹ thuật Squat & Khớp gối/hông' : 'Tăng lực phát động chân - mông (RPE 8)',
-        exercises: ['Barbell / Goblet Squat (4x8-10)', 'Romanian Deadlift (4x10-12)', 'Walking Lunges (3x12/bên)', 'Hanging Knee Raises (3x15)'],
-      };
-    }
-    return {
-      sessionNumber: 3,
-      name: 'Buổi 3: Toàn thân & Kích hoạt Tim mạch (Full Body Conditioning)',
-      focus: goalType.includes('FAT') ? 'Đốt mỡ toàn thân + Cardio Zone 2' : 'Phát triển cơ toàn diện & Core',
-      exercises: ['Dumbbell Thrusters (4x10)', 'Kettlebell Swings (4x15)', 'Seated Cable Row (3x12)', 'Cardio Zone 2 (Đi bộ dốc 20 phút)'],
-    };
-  }
-
-  if (totalSessions >= 4) {
-    if (sessionNumber === 1) {
-      return {
-        sessionNumber: 1,
-        name: 'Buổi 1: Thân trên - Ngực & Tay sau (Upper Push Focus)',
-        focus: 'Phát triển cơ ngực, vai trước và tay sau',
-        exercises: ['Barbell Incline Bench Press (4x8-10)', 'Dumbbell Flat Press (3x10)', 'Dumbbell Lateral Raises (4x15)', 'Triceps Rope Pushdown (3x12)'],
-      };
-    }
-    if (sessionNumber === 2) {
-      return {
-        sessionNumber: 2,
-        name: 'Buổi 2: Thân dưới - Đùi trước & Bắp chân (Quad & Calves Focus)',
-        focus: 'Phát triển đùi trước và sức mạnh Squat',
-        exercises: ['Back Squat / Leg Press (4x8-10)', 'Bulgarian Split Squat (3x10/bên)', 'Leg Extension (3x12-15)', 'Standing Calf Raises (4x15)'],
-      };
-    }
-    if (sessionNumber === 3) {
-      return {
-        sessionNumber: 3,
-        name: 'Buổi 3: Thân trên - Lưng Xô & Tay trước (Upper Pull Focus)',
-        focus: 'Mở rộng lưng xô, độ dày cơ lưng và tay trước',
-        exercises: ['Lat Pulldown rộng tay (4x10-12)', 'Barbell Bent-Over Row (4x8-10)', 'Face Pulls (3x15)', 'Incline Dumbbell Bicep Curls (3x12)'],
-      };
-    }
-    return {
-      sessionNumber: sessionNumber,
-      name: `Buổi ${sessionNumber}: Thân dưới - Mông Đùi sau & Cardio (Posterior Chain & Cardio)`,
-      focus: 'Tối ưu cơ đùi sau, mông và đốt mỡ Zone 2',
-      exercises: ['Romanian Deadlift (4x10)', 'Hip Thrust (4x12)', 'Lying Leg Curl (3x12)', 'Cardio Zone 2 (20-25 phút)'],
-    };
-  }
-
-  // 2 sessions fallback
-  return {
-    sessionNumber,
-    name: `Buổi ${sessionNumber}: Toàn thân (Full Body Phase ${sessionNumber})`,
-    focus: 'Kích hoạt toàn bộ nhóm cơ chính',
-    exercises: ['Goblet Squat (4x10)', 'Dumbbell Bench Press (4x10)', 'Lat Pulldown (4x10)', 'Plank (3x60s)'],
   };
 }

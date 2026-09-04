@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import { ChevronDown, ChevronUp, Layers, Sparkles, UserCheck } from 'lucide-react';
 import { api } from '../../services/api';
 import { errorMessage } from '../../types';
 import { useToast } from '../ui/ToastProvider';
+import CustomerSelect from '../ui/CustomerSelect';
 
 import type { InBodyOcrDraft } from '../../types/inbody';
 export type { InBodyOcrDraft };
@@ -44,6 +45,7 @@ const numberValue = (value: string): number | undefined => (value.trim() === '' 
 export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFormProps) {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(draft.customerId || '');
   const [form, setForm] = useState({
     measurementDate: draft.measurementDate.slice(0, 10),
     weight: draft.weight?.toString() ?? '',
@@ -82,6 +84,10 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
   const change = (field: keyof typeof form, value: string) => setForm((current) => ({ ...current, [field]: value }));
 
   const submit = async () => {
+    if (!selectedCustomerId) {
+      toast.error('Vui lòng chọn học viên áp dụng cho kết quả InBody này.');
+      return;
+    }
     setLoading(true);
     try {
       const cleanSegmental = (seg: Record<string, string>) => {
@@ -97,6 +103,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
       };
 
       const payload = {
+        customerId: selectedCustomerId,
         measurementDate: form.measurementDate,
         weight: numberValue(form.weight),
         bmi: numberValue(form.bmi),
@@ -172,6 +179,80 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           </ul>
         </div>
       )}
+
+      {/* Customer Selection & Auto-Matching Notice */}
+      <div
+        style={{
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          padding: '16px',
+          display: 'grid',
+          gap: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '8px',
+                background: 'rgba(2, 132, 199, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <UserCheck size={16} color="#0284c7" />
+            </div>
+            <strong style={{ fontSize: '0.92rem', color: '#003b70' }}>
+              Học viên áp dụng kết quả đo <span style={{ color: '#e11d48' }}>*</span>
+            </strong>
+          </div>
+
+          {draft.detectedCustomerName && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                padding: '3px 10px',
+                borderRadius: '20px',
+                fontSize: '0.78rem',
+                color: '#0369a1',
+              }}
+            >
+              <Sparkles size={13} color="#0284c7" />
+              <span>
+                Tên đọc từ phiếu: <strong>{draft.detectedCustomerName}</strong>
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <CustomerSelect
+            label=""
+            name="reviewCustomerId"
+            ariaLabel="Học viên áp dụng kết quả đo"
+            value={selectedCustomerId}
+            onChange={(selectedId) => setSelectedCustomerId(selectedId)}
+            required
+            placeholder="Tìm và chọn học viên áp dụng kết quả InBody này..."
+          />
+        </div>
+
+        {draft.detectedCustomerName && (
+          <p style={{ margin: 0, fontSize: '0.76rem', color: selectedCustomerId ? '#16a34a' : '#b45309', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {selectedCustomerId
+              ? '✓ Đã ghép nối học viên tương ứng. Bạn có thể kiểm tra hoặc chọn học viên khác nếu cần.'
+              : '⚠️ Chưa tự động ghép được học viên. Vui lòng chọn học viên từ danh sách trên để lưu kết quả.'}
+          </p>
+        )}
+      </div>
 
       <div className="inbody-form-row-2">
         <label className="inbody-input-label">
