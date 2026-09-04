@@ -1,5 +1,4 @@
 import {
-  ArrowRightLeft,
   Clock,
   ExternalLink,
   Plus,
@@ -40,7 +39,6 @@ interface MealCardItemProps {
   onRemoveItem: (mealIdx: number, itemIdx: number) => void;
   onUpdateItem: (mealIdx: number, itemIdx: number, field: keyof MealFoodItem, val: any) => void;
   onGenerateImage: (mealIdx: number) => void;
-  onOpenSwapper: () => void;
   onPreviewImage: (preview: { url: string; title: string }) => void;
 }
 
@@ -56,7 +54,6 @@ export default function MealCardItem({
   onRemoveItem,
   onUpdateItem,
   onGenerateImage,
-  onOpenSwapper,
   onPreviewImage,
 }: MealCardItemProps) {
   const mealKcal = meal.items.reduce((s, i) => s + (i.calories || 0), 0);
@@ -233,11 +230,44 @@ export default function MealCardItem({
                   color: '#0f172a',
                   outline: 'none',
                 }}
+                placeholder="Tên món ăn..."
               />
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#16a34a' }}>
-                  {item.calories} kcal
-                </span>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '6px',
+                    padding: '2px 6px',
+                  }}
+                  title="Chỉnh sửa lượng calo"
+                >
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={item.calories ?? 0}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/[^0-9]/g, '');
+                      onUpdateItem(mealIdx, itemIdx, 'calories', clean === '' ? 0 : parseInt(clean, 10));
+                    }}
+                    style={{
+                      width: '42px',
+                      border: 'none',
+                      background: 'transparent',
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      color: '#16a34a',
+                      textAlign: 'right',
+                      outline: 'none',
+                      padding: 0,
+                    }}
+                  />
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#16a34a' }}>kcal</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => onRemoveItem(mealIdx, itemIdx)}
@@ -269,10 +299,129 @@ export default function MealCardItem({
                   placeholder="VD: 150g thịt ức gà"
                 />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, fontSize: '0.72rem' }}>P: {item.protein || 0}g</span>
-                <span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, fontSize: '0.72rem' }}>C: {item.carbs || 0}g</span>
-                <span style={{ background: '#fdf2f8', color: '#be185d', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, fontSize: '0.72rem' }}>F: {item.fat || 0}g</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                {/* Protein (P) */}
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '5px',
+                    padding: '1px 5px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#1d4ed8',
+                  }}
+                  title="Chỉnh sửa lượng Protein (g)"
+                >
+                  <span>P:</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={item.protein ?? 0}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/[^0-9]/g, '');
+                      onUpdateItem(mealIdx, itemIdx, 'protein', clean === '' ? 0 : parseInt(clean, 10));
+                    }}
+                    style={{
+                      width: '26px',
+                      border: 'none',
+                      background: 'transparent',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: '#1d4ed8',
+                      textAlign: 'center',
+                      outline: 'none',
+                      padding: 0,
+                    }}
+                  />
+                  <span>g</span>
+                </div>
+
+                {/* Carbs (C) */}
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    background: '#fef3c7',
+                    border: '1px solid #fde68a',
+                    borderRadius: '5px',
+                    padding: '1px 5px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#b45309',
+                  }}
+                  title="Chỉnh sửa lượng Carbs (g)"
+                >
+                  <span>C:</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={item.carbs ?? 0}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/[^0-9]/g, '');
+                      onUpdateItem(mealIdx, itemIdx, 'carbs', clean === '' ? 0 : parseInt(clean, 10));
+                    }}
+                    style={{
+                      width: '26px',
+                      border: 'none',
+                      background: 'transparent',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: '#b45309',
+                      textAlign: 'center',
+                      outline: 'none',
+                      padding: 0,
+                    }}
+                  />
+                  <span>g</span>
+                </div>
+
+                {/* Fat (F) */}
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    background: '#fdf2f8',
+                    border: '1px solid #fbcfe8',
+                    borderRadius: '5px',
+                    padding: '1px 5px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#be185d',
+                  }}
+                  title="Chỉnh sửa lượng Fat (g)"
+                >
+                  <span>F:</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={item.fat ?? 0}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/[^0-9]/g, '');
+                      onUpdateItem(mealIdx, itemIdx, 'fat', clean === '' ? 0 : parseInt(clean, 10));
+                    }}
+                    style={{
+                      width: '26px',
+                      border: 'none',
+                      background: 'transparent',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: '#be185d',
+                      textAlign: 'center',
+                      outline: 'none',
+                      padding: 0,
+                    }}
+                  />
+                  <span>g</span>
+                </div>
               </div>
             </div>
 
@@ -334,23 +483,6 @@ export default function MealCardItem({
           >
             {isGeneratingImg ? <RefreshCw size={13} className="spin" /> : <Sparkles size={13} color="#16a34a" />}
             {isGeneratingImg ? 'Đang vẽ...' : meal.imageUrl ? 'Vẽ lại ảnh' : 'Sinh ảnh AI'}
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenSwapper}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '0.75rem',
-              color: '#64748b',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <ArrowRightLeft size={12} color="#0284c7" /> Đổi món
           </button>
         </div>
       </div>

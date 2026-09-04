@@ -6,6 +6,8 @@ import { withAiBilling } from './aiBillingService.js';
 import type { AiBillingContext, ProviderResult, ProviderUsage } from './creditTypes.js';
 
 export interface InBodyExtraction {
+  customerName?: string | null;
+  measurementDate?: string | null;
   weight: number;
   bmi?: number | null;
   bodyFatPercentage?: number | null;
@@ -84,7 +86,7 @@ function normalizeInBodyWarning(warning: string): string {
 async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResult<InBodyExtraction>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Dịch vụ OCR InBody chưa được cấu hình.' });
-  const ocrModel = process.env.OPENROUTER_OCR_MODEL || process.env.OCR_MODEL || APP_POLICY.OCR_MODEL;
+  const ocrModel = getEnv().OCR_MODEL;
   try {
     const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
     const fileContent = isPdf
@@ -106,7 +108,31 @@ async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResu
       body: JSON.stringify({
         model: ocrModel, temperature: 0,
         messages: [{ role: 'user', content: [
-          { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm: weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, bodyWater, boneMineral, waistHipRatio, segmentalMuscle (rightArm, leftArm, trunk, rightLeg, leftLeg), segmentalFat (rightArm, leftArm, trunk, rightLeg, leftLeg), confidence (số thực từ 0.0 đến 1.0) và warnings (mảng chuỗi cảnh báo bằng tiếng Việt dễ hiểu nếu có, ví dụ: "Chỉ số mỡ từng phần là ước tính của máy đo", tuyệt đối không dùng tiếng Anh kỹ thuật như "Segmental fat is estimated"). Chỉ trả JSON thuần túy.' },
+          {
+            type: 'text',
+            text: `Bạn là chuyên gia thị giác máy tính OCR phân tích phiếu đo thể trạng InBody (InBody 270, 370S, 570, 770, Tanita, Accuniq).
+Hãy đọc kỹ hình ảnh hoặc tài liệu phiếu đo và trích xuất dữ liệu thành đúng 1 JSON object thuần túy theo cấu trúc sau:
+
+1. customerName: Họ tên hoặc ID học viên/khách hàng in trên phiếu (thường ở góc trên cùng, gần nhãn 'ID', 'Name', 'User', 'Họ tên'). Ví dụ: "NGUYEN VAN AN". Hãy loại bỏ các tiền tố như "Name:", "ID:", "Sex:". Nếu không có tên hoặc không đọc được, trả về null.
+2. measurementDate: Ngày đo trên phiếu (gần nhãn 'Test Date', 'Date / Time', 'Ngày đo'), chuẩn hóa về chuỗi định dạng YYYY-MM-DD. Nếu không thấy, trả về null.
+3. weight: Cân nặng thực tế đo được (kg) - số dương. CHÚ Ý: Luôn lấy giá trị thực tế đo được (cột Current / Measured Value), tuyệt đối KHÔNG lấy cột khoảng chuẩn (Normal Range).
+4. muscleMass: Khối lượng cơ xương (SMM - Skeletal Muscle Mass hoặc Muscle Mass) tính bằng kg. Nếu phiếu có SMM, luôn ưu tiên lấy SMM.
+5. bodyFatMass: Khối lượng mỡ cơ thể (Body Fat Mass / BFM) tính bằng kg.
+6. bodyFatPercentage: Phần trăm mỡ cơ thể (Percent Body Fat / PBF / %Fat), số thực từ 0 đến 100.
+7. bmi: Chỉ số khối cơ thể (Body Mass Index / BMI).
+8. bmr: Tỷ lệ trao đổi chất cơ bản (Basal Metabolic Rate / BMR) tính bằng kcal.
+9. visceralFatLevel: Cấp độ mỡ nội tạng (Visceral Fat Level / VFL), thường là cấp độ từ 1 đến 20 (chú ý: nếu phiếu ghi diện tích mỡ nội tạng cm2, hãy quy đổi hoặc lấy cấp độ level).
+10. inbodyScore: Điểm thể chất / InBody Score (thường từ 40 đến 100).
+11. bodyWater: Tổng lượng nước cơ thể (Total Body Water / TBW) tính bằng Lít hoặc kg.
+12. boneMineral: Khoáng chất trong xương (Bone Mineral Content / BMC) tính bằng kg.
+13. waistHipRatio: Tỷ lệ eo/hông (Waist-Hip Ratio / WHR).
+14. segmentalMuscle: Phân tích cơ từng phần (kg): { rightArm, leftArm, trunk, rightLeg, leftLeg }. Lấy số kg đo được, không lấy %.
+15. segmentalFat: Phân tích mỡ từng phần (kg): { rightArm, leftArm, trunk, rightLeg, leftLeg }. Lấy số kg đo được.
+16. confidence: Số thực từ 0.0 đến 1.0 đánh giá độ nét và độ tin cậy của ảnh.
+17. warnings: Mảng chuỗi tiếng Việt lưu ý nếu có chỉ số mờ, bị che khuất hoặc là giá trị ước tính.
+
+LƯU Ý: Nếu chỉ số nào không có trên phiếu, hãy gán null. Chỉ trả về JSON thuần túy, không kèm bất kỳ giải thích nào.`,
+          },
           fileContent,
         ] }],
       }),
@@ -143,7 +169,21 @@ async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResu
       };
     };
 
+    const customerName = typeof parsed.customerName === 'string' && parsed.customerName.trim()
+      ? parsed.customerName.trim()
+      : null;
+
+    let measurementDate: string | null = null;
+    if (typeof parsed.measurementDate === 'string' && parsed.measurementDate.trim()) {
+      const parsedDate = Date.parse(parsed.measurementDate.trim());
+      if (!Number.isNaN(parsedDate)) {
+        measurementDate = new Date(parsedDate).toISOString().slice(0, 10);
+      }
+    }
+
     const value: InBodyExtraction = {
+      customerName,
+      measurementDate,
       weight: Number(parsed.weight),
       bmi: numOrNull(parsed.bmi),
       bodyFatPercentage: numOrNull(parsed.bodyFatPercentage, 0, 100),

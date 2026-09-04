@@ -39,7 +39,7 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
     });
   }
 
-  const model = process.env.OPENROUTER_MODEL || APP_POLICY.AI_MODEL;
+  const model = getEnv().AI_MODEL;
   const temperature = options.temperature ?? 0.1;
   const maxTokens = options.maxTokens ?? 8192;
   const reasoningEffort = (process.env.OPENROUTER_REASONING_EFFORT as any) || options.reasoningEffort || 'none';

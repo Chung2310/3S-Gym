@@ -15,7 +15,7 @@ import type { AuthenticatedUser } from '../types/express.js';
 import { isAdminRole } from './roles.js';
 import { logger } from '../config/logger.js';
 
-function sanitizeJsonString(str: string): string {
+export function sanitizeJsonString(str: string): string {
   return str
     // Xóa comments /* ... */ và // ...
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -26,7 +26,7 @@ function sanitizeJsonString(str: string): string {
     .replace(/,\s*([}\]])/g, '$1');
 }
 
-function parseJson(text: string): Record<string, unknown> {
+export function parseJson(text: string): Record<string, unknown> {
   if (!text || typeof text !== 'string') {
     throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả nội dung có cấu trúc hợp lệ.' });
   }
@@ -61,11 +61,10 @@ function parseJson(text: string): Record<string, unknown> {
     } catch {}
   }
 
-  // 5. Nếu JSON bị cụt (truncated do token limit): tự đóng ngoặc nhọn/vuông
+  // 5. Nếu JSON bị cụt (truncated do token limit): tự đóng ngoặc nhọn/vuông theo đúng thứ tự lồng nhau LIFO
   if (firstBrace !== -1) {
     let candidate = sanitizeJsonString(cleaned.substring(firstBrace));
-    let openBraces = 0;
-    let openBrackets = 0;
+    const stack: Array<'{' | '['> = [];
     let inString = false;
     let escapeNext = false;
     for (let i = 0; i < candidate.length; i++) {
@@ -83,20 +82,20 @@ function parseJson(text: string): Record<string, unknown> {
         continue;
       }
       if (!inString) {
-        if (char === '{') openBraces++;
-        else if (char === '}') openBraces = Math.max(0, openBraces - 1);
-        else if (char === '[') openBrackets++;
-        else if (char === ']') openBrackets = Math.max(0, openBrackets - 1);
+        if (char === '{') stack.push('{');
+        else if (char === '}') {
+          if (stack[stack.length - 1] === '{') stack.pop();
+        } else if (char === '[') stack.push('[');
+        else if (char === ']') {
+          if (stack[stack.length - 1] === '[') stack.pop();
+        }
       }
     }
     if (inString) candidate += '"';
-    while (openBrackets > 0) {
-      candidate += ']';
-      openBrackets--;
-    }
-    while (openBraces > 0) {
-      candidate += '}';
-      openBraces--;
+    while (stack.length > 0) {
+      const last = stack.pop();
+      if (last === '{') candidate += '}';
+      else if (last === '[') candidate += ']';
     }
     try {
       return JSON.parse(sanitizeJsonString(candidate)) as Record<string, unknown>;
@@ -258,8 +257,9 @@ Hãy tạo Lộ trình huấn luyện (Roadmap) và Mục tiêu toàn diện d�
 
 QUY TẮC BẮT BUỘC:
 1. Trả về DUY NHẤT 1 JSON object hợp lệ, không kèm markdown giải thích ngoài JSON.
-2. Chia lộ trình thành các Phase liên tục, mỗi Phase bao gồm đầy đủ tất cả các tuần theo thứ tự từ 1 đến hết thời lượng (Ví dụ Lộ trình 12 tuần: Phase 1 gồm tuần 1, 2, 3, 4; Phase 2 gồm tuần 5, 6, 7, 8; Phase 3 gồm tuần 9, 10, 11, 12).
-3. Mỗi tuần có trọng tâm (focus) và danh sách các buổi tập (sessions) tương ứng.
+2. Chia lộ trình thành các Phase liên tục, mỗi Phase bao gồm danh sách mục tiêu giai đoạn (goals: string[]) và đầy đủ tất cả các tuần theo thứ tự từ 1 đến hết thời lượng (Ví dụ Lộ trình 12 tuần: Phase 1 gồm tuần 1, 2, 3, 4; Phase 2 gồm tuần 5, 6, 7, 8; Phase 3 gồm tuần 9, 10, 11, 12).
+3. Mỗi tuần có trọng tâm & mục tiêu tuần (focus) và số buổi tập mục tiêu/tuần (sessionTargets).
+4. TUYỆT ĐỐI KHÔNG sinh danh sách bài tập chi tiết (như Bench Press, Squat, v.v...) của từng buổi trong Roadmap. Chi tiết bài tập thuộc về Giáo án (Workout Plan), không thuộc Lộ trình.
 
 Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trúc sau:
 {
@@ -298,28 +298,22 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trú
         {
           "week": 1,
           "focus": "Làm quen bài tập và kiểm tra ROM",
-          "sessionTargets": 4,
-          "sessions": [
-            { "sessionNumber": 1, "name": "Buổi 1: Thân trên", "focus": "Kỹ thuật Bench press & Lat pulldown", "exercises": ["Bench Press 4x10", "Lat Pulldown 4x10"] }
-          ]
+          "sessionTargets": 4
         },
         {
           "week": 2,
           "focus": "Tăng dần mức tạ vừa phải",
-          "sessionTargets": 4,
-          "sessions": []
+          "sessionTargets": 4
         },
         {
           "week": 3,
           "focus": "Củng cố form chuyển động",
-          "sessionTargets": 4,
-          "sessions": []
+          "sessionTargets": 4
         },
         {
           "week": 4,
           "focus": "Đo InBody mốc 1 & Deload nhẹ",
-          "sessionTargets": 4,
-          "sessions": []
+          "sessionTargets": 4
         }
       ]
     }
@@ -347,18 +341,17 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trú
         const matchWeek = existingWeeks.find((ew: any) => ew.week === weekNum || ew.week === (w + 1)) || existingWeeks[w];
         if (matchWeek) {
           fullWeeks.push({
-            ...matchWeek,
             week: weekNum,
+            focus: matchWeek.focus || `Tuần ${weekNum}: Huấn luyện theo ${phase.name || `Phase ${pIdx + 1}`}`,
             sessionTargets: matchWeek.sessionTargets || generated.strategy?.sessionsPerWeek || 3,
-            sessions: Array.isArray(matchWeek.sessions) && matchWeek.sessions.length > 0 ? matchWeek.sessions : (existingWeeks[0]?.sessions || []),
+            sessions: [],
           });
         } else {
-          const templateWeek = existingWeeks[0] || {};
           fullWeeks.push({
             week: weekNum,
             focus: `Tuần ${weekNum}: Phân kỳ huấn luyện theo ${phase.name || `Phase ${pIdx + 1}`}`,
             sessionTargets: generated.strategy?.sessionsPerWeek || 3,
-            sessions: templateWeek.sessions || [],
+            sessions: [],
           });
         }
       }
@@ -367,6 +360,7 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trú
         ...phase,
         order: pIdx + 1,
         durationWeeks: duration,
+        goals: Array.isArray(phase.goals) ? phase.goals : [],
         weeks: fullWeeks,
       };
     });

@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
   ArrowLeft,
-  ArrowRightLeft,
   Calendar,
   Check,
   CheckCircle2,
   Copy,
-  Image as ImageIcon,
   Info,
   Layers,
   Plus,
@@ -21,9 +19,7 @@ import {
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
-import type { Customer, NutritionDraftPlan, MealDishItem, CalculatedNutrition, AiNutritionAnalysisResult } from '../../types';
-import MealSwapperModal from './MealSwapperModal';
-import MealInfographicPoster from '../MealInfographicPoster';
+import type { Customer, NutritionDraftPlan, CalculatedNutrition, AiNutritionAnalysisResult } from '../../types';
 import MealAiConfigStudio, { DIET_STYLES, ALLERGY_CHIPS } from './MealAiConfigStudio';
 import MealCardItem, { type MealBlock, type MealFoodItem } from './MealCardItem';
 import MealImagePreviewModal from './MealImagePreviewModal';
@@ -424,8 +420,6 @@ export default function MealPlannerBuilder({
   const [mealAiProgress, setMealAiProgress] = useState<number>(0);
   const [mealAiStage, setMealAiStage] = useState<number>(0);
   const [saving, setSaving] = useState(false);
-  const [showPoster, setShowPoster] = useState(false);
-  const [swapperOpen, setSwapperOpen] = useState(false);
   const [generatingImageId, setGeneratingImageId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
@@ -566,20 +560,6 @@ export default function MealPlannerBuilder({
   const totalProtein = meals.reduce((sum, m) => sum + m.items.reduce((s, i) => s + (i.protein || 0), 0), 0);
   const totalCarbs = meals.reduce((sum, m) => sum + m.items.reduce((s, i) => s + (i.carbs || 0), 0), 0);
   const totalFat = meals.reduce((sum, m) => sum + m.items.reduce((s, i) => s + (i.fat || 0), 0), 0);
-
-  // Infographic Poster Dishes
-  const posterDishes: MealDishItem[] = meals.map((m, idx) => ({
-    id: idx + 1,
-    title: m.name,
-    leftPills: m.items.slice(0, 3).map((item) => ({
-      label: item.name.split('(')[0].trim(),
-      weight: item.amount || '1 khẩu phần',
-    })),
-    rightPills: [
-      { label: 'Calo Bữa', val: `${m.items.reduce((s, i) => s + (i.calories || 0), 0)} kcal`, highlight: true },
-      { label: 'Protein', val: `${m.items.reduce((s, i) => s + (i.protein || 0), 0)}g` },
-    ],
-  }));
 
   const toggleAllergy = (chip: string) => {
     setSelectedAllergies((prev) => (prev.includes(chip) ? prev.filter((c) => c !== chip) : [...prev, chip]));
@@ -1012,46 +992,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
               <>
                 <button
                   type="button"
-                  onClick={() => setSwapperOpen(true)}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: '8px',
-                    padding: '9px 14px',
-                    fontWeight: 700,
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <ArrowRightLeft size={14} /> Đổi Món
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowPoster(!showPoster)}
-                  style={{
-                    background: showPoster ? '#0f172a' : 'rgba(255, 255, 255, 0.15)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    borderRadius: '8px',
-                    padding: '9px 14px',
-                    fontWeight: 700,
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <ImageIcon size={14} /> {showPoster ? 'Ẩn Poster' : 'Xem Poster'}
-                </button>
-
-                <button
-                  type="button"
                   disabled={saving}
                   onClick={() => void handleSavePlan(false)}
                   style={{
@@ -1257,18 +1197,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
           onAiGenerate={() => void handleAiGenerate()}
           appliedNutrition={appliedNutrition}
         />
-      )}
-
-      {/* Visual Infographic Poster View */}
-      {showPoster && (
-        <div style={{ marginBottom: '6px' }}>
-          <MealInfographicPoster
-            titleTag="Thực Đơn Đề Xuất Khoa Học"
-            subTitle={title}
-            timeframeText="3S GYM NUTRITION AI"
-            dishes={posterDishes}
-          />
-        </div>
       )}
 
       {/* Total Macros Summary Strip */}
@@ -1781,7 +1709,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
               onRemoveItem={handleRemoveItem}
               onUpdateItem={handleUpdateItem}
               onGenerateImage={(idx) => void handleGenerateMealImage(idx)}
-              onOpenSwapper={() => setSwapperOpen(true)}
               onPreviewImage={(prev) => setPreviewImage(prev)}
             />
           ))}
@@ -1892,9 +1819,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         previewImage={previewImage}
         onClose={() => setPreviewImage(null)}
       />
-
-      {/* Swapper Modal */}
-      <MealSwapperModal open={swapperOpen} onClose={() => setSwapperOpen(false)} />
     </div>
   );
 }
