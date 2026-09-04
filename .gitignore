@@ -79,6 +79,9 @@ frontend/tests/components/workouts/*
 !frontend/tests/components/exercises/
 frontend/tests/components/exercises/*
 !frontend/tests/components/exercises/AiExerciseWizard.test.tsx
+!frontend/tests/components/progress/
+frontend/tests/components/progress/*
+!frontend/tests/components/progress/ProgressDashboard.test.tsx
 !frontend/tests/components/IndexCssRedesignContract.test.ts
 !frontend/tests/pages/
 frontend/tests/pages/*
