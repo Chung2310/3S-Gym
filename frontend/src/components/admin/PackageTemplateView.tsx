@@ -126,7 +126,6 @@ export default function PackageTemplateView() {
       <div className="section-header">
         <div>
           <h1>Quản lý Gói tập mẫu</h1>
-          <p>Tạo và quản lý danh mục gói dịch vụ chuẩn của phòng gym để PT có thể gán nhanh khi tiếp nhận học viên.</p>
         </div>
         <button
           type="button"

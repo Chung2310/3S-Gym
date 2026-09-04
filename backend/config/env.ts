@@ -11,7 +11,7 @@ export const APP_POLICY = Object.freeze({
   AI_RATE_LIMIT_PER_MINUTE: 10,
   OCR_MAX_FILE_BYTES: 8_388_608,
   SHUTDOWN_TIMEOUT_MS: 10_000,
-  AI_MODEL: 'google/gemini-2.5-flash',
+  AI_MODEL: 'deepseek/deepseek-v4-flash',
   OCR_MODEL: 'qwen/qwen3-vl-32b-instruct',
   VECTOR_SEARCH_INDEX: 'knowledge-vector',
   LOG_MAX_DEPTH: 4,
@@ -35,6 +35,8 @@ export interface AppEnv {
   AUTH_RATE_LIMIT_PER_15M: number;
   AI_RATE_LIMIT_PER_MINUTE: number;
   OCR_MAX_FILE_BYTES: number;
+  AI_MODEL: string;
+  OCR_MODEL: string;
   APP_URL?: string;
   SUPER_ADMIN_USERNAME: string;
   SUPER_ADMIN_PASSWORD: string;
@@ -92,6 +94,8 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     AUTH_RATE_LIMIT_PER_15M: APP_POLICY.AUTH_RATE_LIMIT_PER_15M,
     AI_RATE_LIMIT_PER_MINUTE: APP_POLICY.AI_RATE_LIMIT_PER_MINUTE,
     OCR_MAX_FILE_BYTES: APP_POLICY.OCR_MAX_FILE_BYTES,
+    AI_MODEL: source.AI_MODEL?.trim() || source.OPENROUTER_MODEL?.trim() || APP_POLICY.AI_MODEL,
+    OCR_MODEL: source.OCR_MODEL?.trim() || source.OPENROUTER_OCR_MODEL?.trim() || APP_POLICY.OCR_MODEL,
     APP_URL: optional('APP_URL'),
     SUPER_ADMIN_USERNAME: optional('SUPER_ADMIN_USERNAME') || '',
     SUPER_ADMIN_PASSWORD: optional('SUPER_ADMIN_PASSWORD') || '',

@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Dumbbell,
   HeartPulse,
   Target,
   Utensils,
@@ -184,7 +183,7 @@ export default function RoadmapDetailView({ roadmap, hideBaseline }: RoadmapDeta
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
           <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar size={16} color="var(--primary-color)" /> Chi tiết các Phase & Giáo án từng tuần ({roadmap.phases?.length || 0} Phase)
+            <Calendar size={16} color="var(--primary-color)" /> Chi tiết các Phase & Mục tiêu từng tuần ({roadmap.phases?.length || 0} Phase)
           </h3>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
@@ -290,11 +289,13 @@ export default function RoadmapDetailView({ roadmap, hideBaseline }: RoadmapDeta
                     <div style={{ padding: '14px', borderTop: '1px solid #e2e8f0', display: 'grid', gap: '10px', background: '#fafbfc' }}>
                       {/* Phase Goals */}
                       {phase.goals && phase.goals.length > 0 && (
-                        <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
-                          <strong style={{ color: '#0f172a', display: 'block', marginBottom: '4px' }}>Mục tiêu giai đoạn:</strong>
-                          <ul style={{ margin: 0, paddingLeft: '18px', color: '#334155' }}>
+                        <div style={{ background: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.82rem' }}>
+                          <strong style={{ color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                            <Target size={14} color="var(--secondary-color)" /> Mục tiêu giai đoạn:
+                          </strong>
+                          <ul style={{ margin: 0, paddingLeft: '18px', color: '#334155', display: 'grid', gap: '4px' }}>
                             {phase.goals.map((g, gIdx) => (
-                              <li key={gIdx}>{g}</li>
+                              <li key={gIdx} style={{ lineHeight: 1.4 }}>{g}</li>
                             ))}
                           </ul>
                         </div>
@@ -307,55 +308,52 @@ export default function RoadmapDetailView({ roadmap, hideBaseline }: RoadmapDeta
                             key={wIdx}
                             style={{
                               background: '#ffffff',
-                              padding: '10px 12px',
+                              padding: '12px 14px',
                               borderRadius: '8px',
                               border: '1px solid #e2e8f0',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
+                              gap: '12px',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                              <span style={{ fontWeight: 800, color: '#0284c7', fontSize: '0.82rem' }}>
-                                Tuần {w.week}: {w.focus}
-                              </span>
-                              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{w.sessionTargets || 3} buổi/tuần</span>
-                            </div>
-
-                            {w.sessions && w.sessions.length > 0 && (
-                              <div
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1, minWidth: 0 }}>
+                              <span
                                 style={{
-                                  marginTop: '8px',
-                                  display: 'grid',
-                                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                                  gap: '8px',
-                                  borderTop: '1px dashed #e2e8f0',
-                                  paddingTop: '8px',
+                                  background: '#e0f2fe',
+                                  color: '#0369a1',
+                                  fontWeight: 800,
+                                  fontSize: '0.75rem',
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  flexShrink: 0,
+                                  marginTop: '1px',
                                 }}
                               >
-                                {w.sessions.map((sess, sIdx) => (
-                                  <div
-                                    key={sIdx}
-                                    style={{
-                                      background: '#f8fafc',
-                                      padding: '8px 10px',
-                                      borderRadius: '6px',
-                                      border: '1px solid #e2e8f0',
-                                      fontSize: '0.74rem',
-                                    }}
-                                  >
-                                    <strong style={{ color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                                      <Dumbbell size={11} color="var(--secondary-color)" /> {sess.name}
-                                    </strong>
-                                    <div style={{ color: '#475569', marginBottom: '4px' }}>{sess.focus}</div>
-                                    {sess.exercises && sess.exercises.length > 0 && (
-                                      <div style={{ color: '#64748b', fontSize: '0.7rem' }}>
-                                        {sess.exercises.map((ex, eIdx) => (
-                                          <div key={eIdx}>• {ex}</div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
+                                Tuần {w.week}
+                              </span>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: '0.84rem', fontWeight: 600, color: '#1e293b', lineHeight: 1.45, wordBreak: 'break-word' }}>
+                                  {w.focus}
+                                </div>
                               </div>
-                            )}
+                            </div>
+
+                            <span
+                              style={{
+                                fontSize: '0.74rem',
+                                color: '#64748b',
+                                background: '#f8fafc',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                border: '1px solid #e2e8f0',
+                                fontWeight: 600,
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {w.sessionTargets || 3} buổi/tuần
+                            </span>
                           </div>
                         ))}
                       </div>

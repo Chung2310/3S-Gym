@@ -241,7 +241,7 @@ export default function UserManagementView({ actor }: { actor: User }) {
           }}
         >
           <Dumbbell size={13} />
-          <span>Huấn luyện viên (PT)</span>
+          <span>Huấn luyện viên</span>
         </button>
 
         <button

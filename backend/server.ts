@@ -6,6 +6,7 @@ import { initTelemetry, flushTelemetry } from './services/telemetryService.js';
 import { createShutdown } from './services/lifecycleService.js';
 import { logger } from './config/logger.js';
 import { APP_POLICY, getEnv } from './config/env.js';
+import { startAiWorkoutGenerationWorker } from './services/aiWorkoutGenerationJobService.js';
 const env = getEnv();
 const PORT = env.PORT;
 
@@ -18,6 +19,7 @@ async function startServer() {
             fullName: env.SUPER_ADMIN_FULL_NAME || 'Quản lý cấp cao 3S',
         });
         await ensureCreditReferenceData();
+        await startAiWorkoutGenerationWorker();
         await app.frontendReady;
         initTelemetry();
         const server = app.listen(PORT, () => logger.info({ port: PORT }, 'Máy chủ đã khởi động'));

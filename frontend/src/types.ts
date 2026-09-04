@@ -40,4 +40,5 @@ export * from './types/exerciseTracking';
 export * from './types/exercise';
 export * from './types/adminAccount';
 export * from './types/workoutAvailability';
+export * from './types/workoutGeneration';
 

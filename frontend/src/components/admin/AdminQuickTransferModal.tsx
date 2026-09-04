@@ -97,7 +97,7 @@ export default function AdminQuickTransferModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ArrowRightLeft size={18} color="#003b70" />
             <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 750, color: '#003b70' }}>
-              Điều chuyển Huấn luyện viên (PT)
+              Điều chuyển Huấn luyện viên
             </h3>
           </div>
           <button
@@ -130,7 +130,7 @@ export default function AdminQuickTransferModal({
 
           <div>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-              Chọn Huấn luyện viên (PT) nhận mới <span style={{ color: '#dc2626' }}>*</span>
+              Chọn Huấn luyện viên nhận mới <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <select
               value={toPtId}

@@ -84,7 +84,6 @@ export default function AdminAccountManagementView({ actor }: { actor: User }) {
           </span>
           <div>
             <h1 className="font-oswald text-2xl font-bold text-primary">Quản lý tài khoản Admin</h1>
-            <p className="mt-1 text-sm text-slate-600">Tạo và quản lý các tài khoản Admin vận hành hệ thống.</p>
           </div>
         </div>
         <button

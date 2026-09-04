@@ -25,7 +25,7 @@ export default function ExerciseLibraryCard({ exercise, onEdit, onDelete }: Prop
             <p className="exercise-card-equipment">{exercise.equipment?.length ? exercise.equipment.join(' · ') : 'Không yêu cầu thiết bị'}</p>
           </div>
         </div>
-        <span className={`exercise-badge ${exercise.scope === 'GLOBAL' ? 'is-global' : 'is-owned'}`}>{exercise.scope === 'GLOBAL' ? 'Dùng chung' : 'Cá nhân'}</span>
+        <span className="exercise-badge is-global">Dùng chung</span>
       </header>
 
       <dl className="exercise-card-metrics">

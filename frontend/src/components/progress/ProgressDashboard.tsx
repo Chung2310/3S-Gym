@@ -11,8 +11,10 @@ import {
   X,
 } from 'lucide-react';
 import type { CustomerProgressOverview } from '../../types/progress';
+import Pagination from '../ui/Pagination';
 import ProgressEmptyState from './ProgressEmptyState';
 
+const PROGRESS_ITEMS_PER_PAGE = 12;
 const number = (value: number) => value.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
 const date = (value: string | null) => (value ? new Date(value).toLocaleDateString('vi-VN') : 'Chưa có');
 
@@ -26,16 +28,23 @@ export default function ProgressDashboard({
   onLogWorkout: (item: CustomerProgressOverview) => void;
 }) {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const filtered = useMemo(() => {
     const keyword = search.trim().toLocaleLowerCase('vi-VN');
     return keyword
       ? items.filter(
-          (item) =>
-            item.customer.fullName.toLocaleLowerCase('vi-VN').includes(keyword) ||
-            item.customer.phone.includes(keyword),
-        )
+        (item) =>
+          item.customer.fullName.toLocaleLowerCase('vi-VN').includes(keyword) ||
+          item.customer.phone.includes(keyword),
+      )
       : items;
   }, [items, search]);
+  const totalPages = Math.ceil(filtered.length / PROGRESS_ITEMS_PER_PAGE);
+  const currentPage = Math.min(page, Math.max(totalPages, 1));
+  const visibleItems = useMemo(() => {
+    const start = (currentPage - 1) * PROGRESS_ITEMS_PER_PAGE;
+    return filtered.slice(start, start + PROGRESS_ITEMS_PER_PAGE);
+  }, [currentPage, filtered]);
 
   const totalSessions = items.reduce((sum, item) => sum + item.sessionCount, 0);
   const activeCustomers = items.filter((item) => item.sessionCount > 0).length;
@@ -54,7 +63,6 @@ export default function ProgressDashboard({
           <div>
             <div className="pt-metric-label">Khách được quản lý</div>
             <div className="pt-metric-val text-[#003b70]">{items.length} khách hàng</div>
-            <div className="pt-metric-sub text-sky-600">Học viên đang được phân công</div>
           </div>
           <div className="pt-metric-icon bg-sky-50 text-sky-600">
             <Users size={20} />
@@ -65,7 +73,6 @@ export default function ProgressDashboard({
           <div>
             <div className="pt-metric-label">Khách có hoạt động</div>
             <div className="pt-metric-val text-emerald-600">{activeCustomers}</div>
-            <div className="pt-metric-sub text-emerald-600">Đã có dữ liệu buổi tập</div>
           </div>
           <div className="pt-metric-icon bg-emerald-50 text-emerald-600">
             <Activity size={20} />
@@ -76,7 +83,6 @@ export default function ProgressDashboard({
           <div>
             <div className="pt-metric-label">Tổng buổi đã ghi nhận</div>
             <div className="pt-metric-val text-amber-600">{totalSessions}</div>
-            <div className="pt-metric-sub text-amber-600">Trên toàn bộ học viên</div>
           </div>
           <div className="pt-metric-icon bg-amber-50 text-amber-600">
             <CalendarDays size={20} />
@@ -89,7 +95,6 @@ export default function ProgressDashboard({
             <div className="pt-metric-val text-[#003b70]">
               {averageAttendance === null ? '—' : `${number(averageAttendance)}%`}
             </div>
-            <div className="pt-metric-sub text-slate-500">Tỷ lệ tham gia các buổi tập</div>
           </div>
           <div className="pt-metric-icon bg-indigo-50 text-indigo-600">
             <TrendingDown size={20} />
@@ -103,7 +108,10 @@ export default function ProgressDashboard({
           <Search size={16} className="search-icon" aria-hidden="true" />
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
             placeholder="Tìm theo tên hoặc số điện thoại..."
             aria-label="Tìm kiếm học viên"
           />
@@ -111,7 +119,10 @@ export default function ProgressDashboard({
             <button
               type="button"
               className="search-clear-btn"
-              onClick={() => setSearch('')}
+              onClick={() => {
+                setSearch('');
+                setPage(1);
+              }}
               aria-label="Xóa tìm kiếm"
               title="Xóa tìm kiếm"
             >
@@ -127,7 +138,7 @@ export default function ProgressDashboard({
       {/* 3. Grid danh sách — dùng đúng chuẩn pt-grid / pt-card */}
       {filtered.length > 0 ? (
         <div className="pt-grid">
-          {filtered.map((item) => {
+          {visibleItems.map((item) => {
             const weightDelta = item.analytics.bodyDeltas?.weight;
             return (
               <article className="pt-card group" key={item.customer._id}>
@@ -151,11 +162,10 @@ export default function ProgressDashboard({
                         </div>
                       </div>
                     </div>
-                    <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
-                      item.customer.status === 'ACTIVE'
+                    <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${item.customer.status === 'ACTIVE'
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
                         : 'bg-slate-100 text-slate-600 border-slate-200'
-                    }`}>
+                      }`}>
                       {item.customer.status === 'ACTIVE' ? 'Đang tập' : item.customer.status}
                     </span>
                   </div>
@@ -238,6 +248,14 @@ export default function ProgressDashboard({
           description="Thử tìm lại bằng tên hoặc số điện thoại khác."
         />
       )}
+      <Pagination
+        page={currentPage}
+        totalPages={totalPages}
+        totalItems={filtered.length}
+        pageSize={PROGRESS_ITEMS_PER_PAGE}
+        itemLabel="học viên"
+        onPageChange={setPage}
+      />
     </div>
   );
 }

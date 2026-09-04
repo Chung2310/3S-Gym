@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Calendar,
   Edit3,
   Eye,
   Filter,
   Plus,
-  RefreshCw,
   Search,
   Sparkles,
   Trash2,
@@ -145,7 +143,7 @@ export default function RoadmapPage() {
       {/* Header section */}
       <div className="section-header">
         <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-          <Sparkles size={24} color="var(--secondary-color)" /> Quản lý Lộ trình (Roadmap)
+          <Sparkles size={24} color="var(--secondary-color)" /> Quản lý Lộ trình
         </h1>
         <button
           className="button button-primary"
@@ -430,6 +428,7 @@ export default function RoadmapPage() {
                       onClick={() => {
                         setEditingItem(item);
                         setShowForm(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                       style={{ fontSize: '0.78rem', padding: '5px 8px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '6px' }}
                       title="Chỉnh sửa roadmap"
@@ -514,6 +513,7 @@ export default function RoadmapPage() {
           setViewingItem(null);
           setEditingItem(item);
           setShowForm(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onTogglePublish={(item) => {
           setViewingItem(null);

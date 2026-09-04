@@ -1,0 +1,579 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import FoodImage, { type IFoodImage } from '../models/FoodImage.js';
+import { generateImage, type AspectRatio } from './imageProvider.js';
+import { AppError } from '../errors/AppError.js';
+import { ERROR_CODES } from '../errors/errorCodes.js';
+
+export const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads/food-images');
+
+/**
+ * Đảm bảo thư mục lưu trữ ảnh vật lý tồn tại
+ */
+export function ensureFoodImagesDir(): string {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+  return UPLOADS_DIR;
+}
+
+/**
+ * Chuẩn hóa tên món ăn tiếng Việt sang không dấu, viết thường, loại bỏ ký tự đặc biệt
+ * Ví dụ: "Ức Gà Áp Chảo (150g)!" -> "uc ga ap chao"
+ */
+export function normalizeFoodName(str: string): string {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .replace(/\([^)]*\)/g, '') // xóa nội dung trong ngoặc đơn như định lượng (150g)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Trích xuất mảng từ khóa từ tên món ăn
+ */
+export function extractKeywords(str: string): string[] {
+  const norm = normalizeFoodName(str);
+  if (!norm) return [];
+  const words = norm.split(' ').filter((w) => w.length > 1);
+  const keywords = new Set<string>();
+  keywords.add(norm);
+  words.forEach((w) => keywords.add(w));
+  // Bi-grams (cụm 2 từ liền nhau)
+  for (let i = 0; i < words.length - 1; i++) {
+    keywords.add(`${words[i]} ${words[i + 1]}`);
+  }
+  return Array.from(keywords);
+}
+
+/**
+ * Tìm ảnh món ăn trong kho dựa theo tên món ăn hoặc các món con trong bữa
+ */
+export async function findMatchingFoodImage(
+  mealName: string,
+  itemNames: string[] = []
+): Promise<IFoodImage | null> {
+  const normMeal = normalizeFoodName(mealName);
+
+  // 1. Khớp chính xác tên bữa ăn / tên món chính
+  if (normMeal) {
+    const exact = await FoodImage.findOne({ normalizedName: normMeal });
+    if (exact) return exact;
+
+    // 2. Tìm kiếm chứa cụm từ chính
+    const regexMatch = await FoodImage.findOne({
+      normalizedName: { $regex: new RegExp(`(^|\\s)${normMeal}(\\s|$)`, 'i') },
+    }).sort({ usageCount: -1 });
+    if (regexMatch) return regexMatch;
+  }
+
+  // 3. Khớp theo từng món ăn thành phần trong bữa (ưu tiên món đạm chính)
+  for (const item of itemNames) {
+    const normItem = normalizeFoodName(item);
+    if (!normItem || normItem.length < 3) continue;
+
+    // Tìm món khớp chính xác
+    const itemExact = await FoodImage.findOne({ normalizedName: normItem });
+    if (itemExact) return itemExact;
+
+    // Tìm món chứa tên
+    const itemPartial = await FoodImage.findOne({
+      normalizedName: { $regex: new RegExp(normItem, 'i') },
+    }).sort({ usageCount: -1 });
+    if (itemPartial) return itemPartial;
+  }
+
+  // 4. Tìm kiếm theo từ khóa quan trọng (vd: "uc ga", "bo", "ca hoi", "trung")
+  const allKeywords = [
+    ...extractKeywords(mealName),
+    ...itemNames.flatMap(extractKeywords),
+  ].filter((kw) => kw.includes(' ') || ['ga', 'bo', 'ca', 'tom', 'trung', 'heo', 'muc'].includes(kw));
+
+  if (allKeywords.length > 0) {
+    const keywordMatch = await FoodImage.findOne({
+      keywords: { $in: allKeywords },
+    }).sort({ usageCount: -1 });
+    if (keywordMatch) return keywordMatch;
+  }
+
+  return null;
+}
+
+/**
+ * Lưu Buffer ảnh vào folder vật lý uploads/food-images và lưu bản ghi vào MongoDB
+ */
+export async function saveFoodImageToStorage(options: {
+  buffer: Buffer;
+  name: string;
+  category?: string;
+  mimeType?: string;
+  source?: 'AI' | 'UPLOAD' | 'SEED';
+  prompt?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  keywords?: string[];
+  userId?: string;
+}): Promise<IFoodImage> {
+  const {
+    buffer,
+    name,
+    category = 'OTHER',
+    mimeType = 'image/jpeg',
+    source = 'AI',
+    prompt = '',
+    calories,
+    protein,
+    carbs,
+    fat,
+    keywords: customKeywords,
+    userId,
+  } = options;
+  const dir = ensureFoodImagesDir();
+
+  const norm = normalizeFoodName(name);
+  if (!norm) {
+    throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Tên món ăn không hợp lệ.' });
+  }
+
+  const slug = norm.replace(/\s+/g, '_').slice(0, 40);
+  const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+  const filename = `${slug}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  const localPath = path.join(dir, filename);
+
+  // Ghi file vật lý lên ổ đĩa
+  fs.writeFileSync(localPath, buffer);
+
+  const imageUrl = `/uploads/food-images/${filename}`;
+  const autoKeywords = extractKeywords(name);
+  const combinedKeywords = Array.from(new Set([...autoKeywords, ...(customKeywords || [])]));
+
+  // Lưu hoặc cập nhật trong cơ sở dữ liệu
+  const foodImage = await FoodImage.findOneAndUpdate(
+    { normalizedName: norm },
+    {
+      name: name.trim(),
+      normalizedName: norm,
+      keywords: combinedKeywords,
+      category: category.toUpperCase(),
+      imageUrl,
+      localPath,
+      fileSize: buffer.length,
+      mimeType,
+      source,
+      prompt,
+      ...(calories !== undefined ? { calories } : {}),
+      ...(protein !== undefined ? { protein } : {}),
+      ...(carbs !== undefined ? { carbs } : {}),
+      ...(fat !== undefined ? { fat } : {}),
+      createdBy: userId || null,
+      $inc: { usageCount: 1 },
+    },
+    { new: true, upsert: true }
+  );
+
+  return foodImage;
+}
+
+/**
+ * Lấy ảnh món ăn từ kho (nếu đã có) HOẶC gọi AI tạo mới và lưu vào kho (nếu chưa có)
+ */
+export async function getOrGenerateMealImage(params: {
+  mealName: string;
+  foodItems?: string[];
+  prompt?: string;
+  userId: string;
+  requestKey: string;
+  aspectRatio?: AspectRatio;
+}): Promise<{
+  imageUrl: string;
+  name: string;
+  source: 'CACHE' | 'AI';
+  reused: boolean;
+  cost?: number;
+  message: string;
+}> {
+  const { mealName, foodItems = [], prompt, userId, requestKey, aspectRatio = '4:3' } = params;
+
+  // BƯỚC 1: Tìm kiếm trong kho ảnh món ăn có sẵn
+  const existing = await findMatchingFoodImage(mealName, foodItems);
+  if (existing) {
+    existing.usageCount = (existing.usageCount || 0) + 1;
+    await existing.save();
+
+    return {
+      imageUrl: existing.imageUrl,
+      name: existing.name,
+      source: 'CACHE',
+      reused: true,
+      message: `Đã tìm thấy ảnh món "${existing.name}" có sẵn trong kho (Tiết kiệm 100% chi phí AI)!`,
+    };
+  }
+
+  // BƯỚC 2: Chưa có trong kho -> Gọi AI sinh ảnh mới
+  const defaultPrompt = prompt && prompt.trim().length > 10
+    ? prompt.trim()
+    : `Professional food photography of a delicious healthy fitness gym dish: ${mealName}${
+        foodItems.length > 0 ? `, ingredients including: ${foodItems.join(', ')}` : ''
+      }. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
+
+  const aiResult = await generateImage(
+    { userId, taskType: 'IMAGE_GENERATION', requestKey: `${requestKey}:meal-image` },
+    { prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' }
+  );
+
+  const buffer = Buffer.from(aiResult.b64Json, 'base64');
+
+  // BƯỚC 3: Lưu ảnh AI mới sinh vào folder kho ảnh và MongoDB để tái sử dụng mãi mãi
+  const saved = await saveFoodImageToStorage({
+    buffer,
+    name: mealName,
+    mimeType: aiResult.mediaType || 'image/jpeg',
+    source: 'AI',
+    prompt: defaultPrompt,
+    userId,
+  });
+
+  return {
+    imageUrl: saved.imageUrl,
+    name: saved.name,
+    source: 'AI',
+    reused: false,
+    cost: aiResult.cost,
+    message: `AI đã tạo ảnh mới và lưu vào kho món ăn "${saved.name}" thành công!`,
+  };
+}
+
+/**
+ * Lấy danh sách ảnh trong kho thư viện (kèm thống kê tổng quát)
+ */
+export async function listFoodImages(query: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  source?: string;
+  category?: string;
+}) {
+  const page = Math.max(1, Number(query.page || 1));
+  const limit = Math.min(100, Math.max(1, Number(query.limit || 24)));
+  const filter: Record<string, any> = {};
+
+  if (query.source && ['AI', 'UPLOAD', 'SEED'].includes(query.source.toUpperCase())) {
+    filter.source = query.source.toUpperCase();
+  }
+
+  if (query.category && query.category.toUpperCase() !== 'ALL') {
+    filter.category = query.category.toUpperCase();
+  }
+
+  if (query.search && query.search.trim()) {
+    const norm = normalizeFoodName(query.search.trim());
+    filter.$or = [
+      { normalizedName: { $regex: norm, $options: 'i' } },
+      { name: { $regex: query.search.trim(), $options: 'i' } },
+      { keywords: norm },
+    ];
+  }
+
+  const [items, total, stats] = await Promise.all([
+    FoodImage.find(filter)
+      .sort({ usageCount: -1, createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    FoodImage.countDocuments(filter),
+    FoodImage.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalImages: { $sum: 1 },
+          totalUsage: { $sum: '$usageCount' },
+          aiCount: { $sum: { $cond: [{ $eq: ['$source', 'AI'] }, 1, 0] } },
+          uploadCount: { $sum: { $cond: [{ $eq: ['$source', 'UPLOAD'] }, 1, 0] } },
+          seedCount: { $sum: { $cond: [{ $eq: ['$source', 'SEED'] }, 1, 0] } },
+        },
+      },
+    ]),
+  ]);
+
+  const summary = stats[0] || {
+    totalImages: total,
+    totalUsage: 0,
+    aiCount: 0,
+    uploadCount: 0,
+    seedCount: 0,
+  };
+
+  // Ước tính chi phí AI tiết kiệm được: mỗi lượt tái sử dụng ~500đ / 0.02$
+  const estimatedSavingsVnd = Math.max(0, (summary.totalUsage - summary.totalImages) * 500);
+
+  return {
+    items,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    summary: {
+      ...summary,
+      estimatedSavingsVnd,
+    },
+  };
+}
+
+/**
+ * Xóa một ảnh món ăn khỏi kho và xóa file vật lý
+ */
+export async function deleteFoodImage(id: string): Promise<boolean> {
+  const doc = await FoodImage.findById(id);
+  if (!doc) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy ảnh món ăn trong kho.' });
+
+  if (doc.localPath && fs.existsSync(doc.localPath)) {
+    try {
+      fs.unlinkSync(doc.localPath);
+    } catch {
+      // Bỏ qua lỗi xóa file vật lý nếu file không tồn tại
+    }
+  }
+
+  await doc.deleteOne();
+  return true;
+}
+
+/**
+ * Chỉnh sửa toàn bộ thông tin món ăn trong kho (Tên món, từ khóa, danh mục, calo, macro, prompt, link ảnh, file vật lý, lượt dùng)
+ */
+export async function updateFoodImage(
+  id: string,
+  updates: {
+    name?: string;
+    keywords?: string[] | string;
+    category?: string;
+    prompt?: string;
+    imageUrl?: string;
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    usageCount?: number;
+    source?: 'AI' | 'UPLOAD' | 'SEED';
+    buffer?: Buffer;
+    mimeType?: string;
+    userId?: string;
+  }
+): Promise<IFoodImage> {
+  const doc = await FoodImage.findById(id);
+  if (!doc) {
+    throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy ảnh món ăn trong kho.' });
+  }
+
+  // 1. Tên món ăn: tính lại normalizedName và cập nhật keywords
+  if (updates.name && typeof updates.name === 'string' && updates.name.trim()) {
+    const trimmed = updates.name.trim();
+    const norm = normalizeFoodName(trimmed);
+    if (!norm) {
+      throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Tên món ăn không hợp lệ.' });
+    }
+    doc.name = trimmed;
+    doc.normalizedName = norm;
+    // Tự động sinh từ khóa cơ bản từ tên
+    const baseKeywords = extractKeywords(trimmed);
+    doc.keywords = Array.from(new Set([...(doc.keywords || []), ...baseKeywords]));
+  }
+
+  // 2. Từ khóa đối soát (Keywords/Tags) bổ sung hoặc ghi đè
+  if (updates.keywords !== undefined) {
+    let kwList: string[] = [];
+    if (Array.isArray(updates.keywords)) {
+      kwList = updates.keywords.map((k) => String(k).trim()).filter(Boolean);
+    } else if (typeof updates.keywords === 'string') {
+      kwList = updates.keywords
+        .split(/[,;\n]/)
+        .map((k) => k.trim())
+        .filter(Boolean);
+    }
+    if (kwList.length > 0) {
+      const normalizedKeywords = kwList.map((k) => normalizeFoodName(k)).filter(Boolean);
+      doc.keywords = Array.from(new Set([...(doc.keywords || []), ...kwList, ...normalizedKeywords]));
+    }
+  }
+
+  // 3. Danh mục phân loại (Category)
+  if (updates.category !== undefined) {
+    doc.category = updates.category.trim().toUpperCase() || 'OTHER';
+  }
+
+  // 4. Prompt / Mô tả
+  if (updates.prompt !== undefined) {
+    doc.prompt = updates.prompt.trim();
+  }
+
+  // 5. URL ảnh trực tiếp (nếu người dùng dán link ảnh online)
+  if (updates.imageUrl && typeof updates.imageUrl === 'string' && updates.imageUrl.trim()) {
+    doc.imageUrl = updates.imageUrl.trim();
+  }
+
+  // 6. Calo và Macros (Dinh dưỡng)
+  if (updates.calories !== undefined) {
+    doc.calories = updates.calories !== null && !isNaN(Number(updates.calories)) ? Number(updates.calories) : undefined;
+  }
+  if (updates.protein !== undefined) {
+    doc.protein = updates.protein !== null && !isNaN(Number(updates.protein)) ? Number(updates.protein) : undefined;
+  }
+  if (updates.carbs !== undefined) {
+    doc.carbs = updates.carbs !== null && !isNaN(Number(updates.carbs)) ? Number(updates.carbs) : undefined;
+  }
+  if (updates.fat !== undefined) {
+    doc.fat = updates.fat !== null && !isNaN(Number(updates.fat)) ? Number(updates.fat) : undefined;
+  }
+
+  // 7. Lượt sử dụng (Usage count)
+  if (updates.usageCount !== undefined && !isNaN(Number(updates.usageCount))) {
+    doc.usageCount = Math.max(0, Number(updates.usageCount));
+  }
+
+  // 8. Nguồn (Source)
+  if (updates.source && ['AI', 'UPLOAD', 'SEED'].includes(updates.source.toUpperCase())) {
+    doc.source = updates.source.toUpperCase() as 'AI' | 'UPLOAD' | 'SEED';
+  }
+
+  // 9. Nếu có tải file ảnh mới thay thế (ghi đè file vật lý trên ổ đĩa)
+  if (updates.buffer && updates.buffer.length > 0) {
+    const dir = ensureFoodImagesDir();
+    const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 40);
+    const ext = (updates.mimeType || '').includes('png') ? 'png' : (updates.mimeType || '').includes('webp') ? 'webp' : 'jpg';
+    const filename = `${slug}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+    const newPath = path.join(dir, filename);
+
+    // Xóa file ảnh cũ nếu có
+    if (doc.localPath && fs.existsSync(doc.localPath)) {
+      try {
+        fs.unlinkSync(doc.localPath);
+      } catch {}
+    }
+
+    fs.writeFileSync(newPath, updates.buffer);
+    doc.imageUrl = `/uploads/food-images/${filename}`;
+    doc.localPath = newPath;
+    doc.fileSize = updates.buffer.length;
+    doc.mimeType = updates.mimeType || 'image/jpeg';
+    doc.source = 'UPLOAD';
+  }
+
+  await doc.save();
+  return doc;
+}
+
+/**
+ * Tái tạo lại ảnh bằng AI trực tiếp cho một món ăn đã có trong kho
+ */
+export async function regenerateFoodImageWithAi(
+  id: string,
+  options: {
+    prompt?: string;
+    aspectRatio?: AspectRatio;
+    userId: string;
+    requestKey: string;
+  }
+): Promise<IFoodImage> {
+  const doc = await FoodImage.findById(id);
+  if (!doc) {
+    throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy ảnh món ăn trong kho.' });
+  }
+
+  const promptToUse =
+    options.prompt && options.prompt.trim().length > 10
+      ? options.prompt.trim()
+      : doc.prompt && doc.prompt.trim().length > 10
+      ? doc.prompt.trim()
+      : `Professional food photography of a delicious healthy fitness gym dish: ${doc.name}. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
+
+  const aiResult = await generateImage(
+    { userId: options.userId, taskType: 'IMAGE_GENERATION', requestKey: `${options.requestKey}:regenerate-image` },
+    { prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' }
+  );
+
+  const buffer = Buffer.from(aiResult.b64Json, 'base64');
+  const dir = ensureFoodImagesDir();
+  const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 40);
+  const ext = (aiResult.mediaType || '').includes('png') ? 'png' : 'jpg';
+  const filename = `${slug}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  const newPath = path.join(dir, filename);
+
+  // Xóa ảnh vật lý cũ nếu tồn tại
+  if (doc.localPath && fs.existsSync(doc.localPath)) {
+    try {
+      fs.unlinkSync(doc.localPath);
+    } catch {}
+  }
+
+  fs.writeFileSync(newPath, buffer);
+
+  doc.imageUrl = `/uploads/food-images/${filename}`;
+  doc.localPath = newPath;
+  doc.fileSize = buffer.length;
+  doc.mimeType = aiResult.mediaType || 'image/jpeg';
+  doc.source = 'AI';
+  doc.prompt = promptToUse;
+
+  await doc.save();
+  return doc;
+}
+
+/**
+ * Nạp bộ ảnh mẫu các món ăn thể hình thông dụng (Seed standard)
+ */
+export async function seedStandardGymDishes(userId?: string) {
+  const SAMPLE_DISHES = [
+    { name: 'Ức gà áp chảo', category: 'PROTEIN', calories: 165, protein: 31, carbs: 0, fat: 3.6, prompt: 'Grilled chicken breast with herbs on modern white plate, gym diet meal, 4k.' },
+    { name: 'Cơm gạo lứt thịt bò', category: 'MEAL', calories: 420, protein: 28, carbs: 45, fat: 12, prompt: 'Brown rice with stir-fried lean beef and steamed broccoli, gym fitness bowl, 4k.' },
+    { name: 'Trứng ốp la bánh mì đen', category: 'MEAL', calories: 310, protein: 18, carbs: 28, fat: 14, prompt: 'Two sunny-side up eggs with rye whole wheat bread, avocado slices, breakfast gym.' },
+    { name: 'Cá hồi áp chảo măng tây', category: 'PROTEIN', calories: 380, protein: 34, carbs: 5, fat: 22, prompt: 'Pan-seared salmon fillet with grilled asparagus and lemon, high protein meal.' },
+    { name: 'Salad ức gà sốt mè rang', category: 'VEGGIE', calories: 260, protein: 26, carbs: 8, fat: 12, prompt: 'Chicken salad bowl with mixed greens, cherry tomatoes and roasted sesame dressing.' },
+    { name: 'Khoai lang luộc trứng', category: 'SNACK', calories: 270, protein: 14, carbs: 35, fat: 6, prompt: 'Boiled sweet potato with boiled eggs, simple gym pre-workout snack, clean background.' },
+    { name: 'Phở bò nạc', category: 'MEAL', calories: 450, protein: 32, carbs: 55, fat: 10, prompt: 'Traditional Vietnamese beef pho with lean tenderloin, fresh herbs, clear broth.' },
+    { name: 'Cháo yến mạch ức gà', category: 'CARB', calories: 320, protein: 25, carbs: 40, fat: 5, prompt: 'Warm oatmeal porridge with shredded chicken breast and spring onions, healthy breakfast.' },
+    { name: 'Sữa chua Hy Lạp hoa quả', category: 'SNACK', calories: 210, protein: 15, carbs: 25, fat: 4, prompt: 'Greek yogurt bowl topped with chia seeds, banana slices, berries and honey.' },
+    { name: 'Tôm hấp bông cải xanh', category: 'PROTEIN', calories: 190, protein: 28, carbs: 6, fat: 3, prompt: 'Steamed fresh shrimps with boiled green broccoli and carrots, clean diet plate.' },
+    { name: 'Thịt heo nạc luộc', category: 'PROTEIN', calories: 240, protein: 30, carbs: 0, fat: 12, prompt: 'Boiled lean pork tenderloin slices with fresh Vietnamese herbs and cucumber.' },
+    { name: 'Canh bí đỏ thịt băm', category: 'MEAL', calories: 180, protein: 14, carbs: 18, fat: 6, prompt: 'Vietnamese pumpkin soup with minced lean pork in modern bowl, warm comforting.' },
+  ];
+
+  const seeded = [];
+  for (const item of SAMPLE_DISHES) {
+    const norm = normalizeFoodName(item.name);
+    let existing = await FoodImage.findOne({ normalizedName: norm });
+    if (!existing) {
+      existing = new FoodImage({
+        name: item.name,
+        normalizedName: norm,
+        keywords: extractKeywords(item.name),
+        category: item.category,
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        imageUrl: `/images/dishes/${norm.replace(/\s+/g, '_')}.jpg`, // Fallback path
+        source: 'SEED',
+        prompt: item.prompt,
+        usageCount: 1,
+        createdBy: userId || null,
+      });
+      await existing.save();
+      seeded.push(existing);
+    }
+  }
+
+  return {
+    count: seeded.length,
+    message: `Đã nạp ${seeded.length} món ăn mẫu vào kho ảnh món ăn thành công!`,
+  };
+}
