@@ -117,3 +117,8 @@ export const bulkCreateExercisesSchema: RequestValidationSchema = {
   body: Joi.object({ exercises: Joi.array().items(reviewedAiExercise).min(1).max(10).required() }).messages(commonMessages),
 };
 export const updateExerciseSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...exerciseFields, scope: Joi.forbidden(), ownerPtId: Joi.forbidden() }) };
+export const createMuscleGroupSchema: RequestValidationSchema = {
+  body: Joi.object({
+    name: Joi.string().trim().min(1).max(100).required(),
+  }).messages(commonMessages),
+};

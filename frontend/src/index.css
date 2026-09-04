@@ -5084,6 +5084,191 @@ a {
   color: #8193a0;
 }
 
+.exercise-form-muscle-field {
+  position: relative;
+}
+
+.exercise-form-muscle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.exercise-form-muscle-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--secondary-color);
+  font-size: .74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color .2s ease;
+}
+
+.exercise-form-muscle-toggle:hover {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.exercise-form-custom-muscle {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.exercise-form-custom-muscle input {
+  flex: 1;
+}
+
+.exercise-form-muscle-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.muscle-group-modal {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.muscle-group-container {
+  display: grid;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.muscle-group-add-form {
+  display: flex;
+  gap: 8px;
+}
+
+.muscle-group-add-form input {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid #cbdbe5;
+  border-radius: 10px;
+  background: #f8fbfc;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: .82rem;
+  color: #16324a;
+}
+
+.muscle-group-add-form input:focus {
+  border-color: var(--secondary-color);
+  outline: none;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 164, 228, .14);
+}
+
+.muscle-group-add-btn {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.muscle-group-header-info {
+  color: #587184;
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.muscle-group-list {
+  display: grid;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.muscle-group-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #e0ebf2;
+  border-radius: 10px;
+  background: #f8fbfc;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.muscle-group-item:hover {
+  border-color: #cbdbe5;
+  background: #fff;
+}
+
+.muscle-group-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.muscle-group-icon {
+  color: #00a4e4;
+  flex-shrink: 0;
+}
+
+.muscle-group-item-name {
+  font-size: .88rem;
+  font-weight: 700;
+  color: #16324a;
+}
+
+.muscle-group-tag {
+  font-size: .68rem;
+  font-weight: 700;
+  color: #003b70;
+  background: #e1f0fa;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.muscle-group-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.muscle-group-badge {
+  font-size: .72rem;
+  font-weight: 700;
+  color: #587184;
+  background: #eef4f7;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.muscle-group-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #8c9fae;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.muscle-group-delete-btn:hover:not(:disabled) {
+  color: #d92d20;
+  background: #fee4e2;
+  border-color: #fecdca;
+}
+
+.muscle-group-delete-btn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
 .exercise-video-heading {
   align-items: center;
 }

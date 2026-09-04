@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Dumbbell, Plus, Sparkles } from 'lucide-react';
+import { Dumbbell, Layers, Plus, Sparkles } from 'lucide-react';
 import Pagination from '../../components/ui/Pagination';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useToast } from '../../components/ui/ToastProvider';
 import { api } from '../../services/api';
-import type { Exercise, PaginationMeta } from '../../types';
+import type { Exercise, MuscleGroupItem, PaginationMeta } from '../../types';
 import { errorMessage } from '../../types';
 
 // Components (mảnh UI)
@@ -12,6 +12,7 @@ import ExerciseFilter from '../../components/exercises/ExerciseFilter';
 import ExerciseFormModal from '../../components/exercises/ExerciseFormModal';
 import ExerciseLibraryCard from '../../components/exercises/ExerciseLibraryCard';
 import AiExerciseWizard from '../../components/exercises/AiExerciseWizard';
+import MuscleGroupModal from '../../components/exercises/MuscleGroupModal';
 
 const EXERCISES_PER_PAGE = 12;
 
@@ -22,20 +23,33 @@ export default function ExerciseLibraryPage() {
   const [items, setItems] = useState<Exercise[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0 });
   const [keyword, setKeyword] = useState('');
+  const [muscleGroup, setMuscleGroup] = useState('');
   const [level, setLevel] = useState('');
   const [trackingType, setTrackingType] = useState('');
+  const [muscleGroups, setMuscleGroups] = useState<MuscleGroupItem[]>([]);
+  const [muscleModalOpen, setMuscleModalOpen] = useState(false);
   const [formExercise, setFormExercise] = useState<Exercise | null | undefined>(undefined);
   const [aiOpen, setAiOpen] = useState(false);
   const [deleteExercise, setDeleteExercise] = useState<Exercise | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const hasFilters = Boolean(keyword || level || trackingType);
+  const hasFilters = Boolean(keyword || muscleGroup || level || trackingType);
 
   // === DATA FETCHING ===
+  const loadMuscleGroups = useCallback(async () => {
+    try {
+      const result = await api.get<MuscleGroupItem[]>('/api/exercises/muscle-groups');
+      setMuscleGroups(result.data || []);
+    } catch {
+      // Fallback silently if not available
+    }
+  }, []);
+
   const load = useCallback(async (page = 1) => {
     setLoading(true);
     const query = new URLSearchParams({ page: String(page), limit: String(EXERCISES_PER_PAGE) });
     if (keyword.trim()) query.set('keyword', keyword.trim());
+    if (muscleGroup.trim()) query.set('muscleGroup', muscleGroup.trim());
     if (level) query.set('level', level);
     if (trackingType) query.set('defaultTrackingType', trackingType);
     try {
@@ -47,7 +61,11 @@ export default function ExerciseLibraryPage() {
     } finally {
       setLoading(false);
     }
-  }, [keyword, level, toast, trackingType]);
+  }, [keyword, level, muscleGroup, toast, trackingType]);
+
+  useEffect(() => {
+    void loadMuscleGroups();
+  }, [loadMuscleGroups]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -58,6 +76,7 @@ export default function ExerciseLibraryPage() {
 
   const handleClearFilters = () => {
     setKeyword('');
+    setMuscleGroup('');
     setLevel('');
     setTrackingType('');
   };
@@ -72,12 +91,15 @@ export default function ExerciseLibraryPage() {
       const targetPage = items.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
       setDeleteExercise(null);
       await load(targetPage);
+      void loadMuscleGroups();
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
       setDeleting(false);
     }
   };
+
+  const muscleNames = muscleGroups.map((g) => g.name);
 
   // === LẮP RÁP COMPONENTS ===
   return (
@@ -88,6 +110,9 @@ export default function ExerciseLibraryPage() {
         </div>
         <div className="module-actions">
           <span className="exercise-count">{meta.total ?? items.length} bài tập</span>
+          <button type="button" className="button button-secondary" onClick={() => setMuscleModalOpen(true)}>
+            <Layers size={18} aria-hidden="true" /> Quản lý nhóm cơ
+          </button>
           <button type="button" className="button button-secondary" onClick={() => setAiOpen(true)}>
             <Sparkles size={18} aria-hidden="true" /> Tạo bằng AI
           </button>
@@ -99,9 +124,12 @@ export default function ExerciseLibraryPage() {
 
       <ExerciseFilter
         keyword={keyword}
+        muscleGroup={muscleGroup}
         level={level}
         trackingType={trackingType}
+        muscleGroups={muscleNames}
         onKeywordChange={setKeyword}
+        onMuscleGroupChange={setMuscleGroup}
         onLevelChange={setLevel}
         onTrackingTypeChange={setTrackingType}
         onFilter={() => void load(1)}
@@ -137,13 +165,21 @@ export default function ExerciseLibraryPage() {
       <ExerciseFormModal
         open={formExercise !== undefined}
         exercise={formExercise}
+        muscleGroups={muscleNames}
         onClose={() => setFormExercise(undefined)}
-        onSaved={() => { setFormExercise(undefined); void load(meta.page || 1); }}
+        onSaved={() => { setFormExercise(undefined); void load(meta.page || 1); void loadMuscleGroups(); }}
+        onMuscleGroupCreated={() => void loadMuscleGroups()}
       />
       <AiExerciseWizard
         open={aiOpen}
         onClose={() => setAiOpen(false)}
-        onSaved={() => { setAiOpen(false); void load(meta.page || 1); }}
+        onSaved={() => { setAiOpen(false); void load(meta.page || 1); void loadMuscleGroups(); }}
+      />
+      <MuscleGroupModal
+        open={muscleModalOpen}
+        muscleGroups={muscleGroups}
+        onClose={() => setMuscleModalOpen(false)}
+        onUpdated={() => { void loadMuscleGroups(); void load(meta.page || 1); }}
       />
       <ConfirmModal
         open={deleteExercise !== null}

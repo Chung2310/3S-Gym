@@ -30,3 +30,10 @@ export interface AiExerciseDraft {
 export interface AiExerciseGenerationRequest {
   prompt: string;
 }
+
+export interface MuscleGroupItem {
+  _id: string;
+  name: string;
+  isDefault?: boolean;
+  exerciseCount?: number;
+}
