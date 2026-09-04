@@ -6,7 +6,7 @@ function providerError(status: number, cause?: unknown): AppError {
     return new AppError({
       status: 503,
       code: ERROR_CODES.UNAVAILABLE,
-      message: 'Hệ thống gặp sự cố. Vui lòng liên hệ quản trị viên để được hỗ trợ',
+      message: 'Tài khoản OpenRouter chưa có số dư credits để tạo ảnh AI (vui lòng nạp thêm credit tại openrouter.ai/settings/credits).',
       cause,
     });
   }

@@ -20,11 +20,7 @@ function validationErrors(error: unknown): Array<{ field: string; message: strin
 export function errorMessage(error: unknown): string {
   const messages = [...new Set(validationErrors(error).map((item) => item.message))];
   if (messages.length > 0) return messages.join(' ');
-  const rawMsg = error instanceof Error ? error.message : 'Không thể thực hiện yêu cầu.';
-  if (/openrouter.*credit|insufficient credits|tài khoản openrouter/i.test(rawMsg)) {
-    return 'Hệ thống gặp sự cố. Vui lòng liên hệ quản trị viên để được hỗ trợ';
-  }
-  return rawMsg;
+  return error instanceof Error ? error.message : 'Không thể thực hiện yêu cầu.';
 }
 
 export function fieldErrors(error: unknown): Record<string, string> {
