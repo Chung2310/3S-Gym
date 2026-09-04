@@ -37,6 +37,8 @@ interface Props {
   onAssign?: (template: WorkoutTemplate) => void;
 }
 
+const WORKOUT_TEMPLATES_PER_PAGE = 12;
+
 export default function WorkoutTemplateList({ refreshKey, onEdit, onAssign }: Props) {
   const toast = useToast();
   const [items, setItems] = useState<WorkoutTemplate[]>([]);
@@ -48,7 +50,7 @@ export default function WorkoutTemplateList({ refreshKey, onEdit, onAssign }: Pr
   const load = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const query = new URLSearchParams({ page: String(page), limit: '20' });
+      const query = new URLSearchParams({ page: String(page), limit: String(WORKOUT_TEMPLATES_PER_PAGE) });
       if (status) query.set('status', status);
       const result = await api.get<WorkoutTemplate[]>(`/api/workout-templates?${query}`);
       setItems(result.data);
@@ -123,7 +125,15 @@ export default function WorkoutTemplateList({ refreshKey, onEdit, onAssign }: Pr
       ) : (
         <div className={`module-empty workout-template-empty ${search || status ? 'module-filtered-empty' : ''}`}><Dumbbell aria-hidden="true" /><h3>{search || status ? 'Không tìm thấy giáo án phù hợp' : 'Chưa có giáo án nào'}</h3><p>{search || status ? 'Thử đổi từ khóa hoặc xóa bộ lọc hiện tại.' : 'Hãy tạo giáo án đầu tiên để bắt đầu xây dựng thư viện.'}</p></div>
       )}
-      <Pagination page={meta.page || 1} totalPages={meta.totalPages || 0} onPageChange={load} />
+      <Pagination
+        page={meta.page || 1}
+        totalPages={meta.totalPages || 0}
+        totalItems={meta.total}
+        pageSize={meta.limit || WORKOUT_TEMPLATES_PER_PAGE}
+        itemLabel="giáo án"
+        loading={loading}
+        onPageChange={load}
+      />
     </section>
   );
 }

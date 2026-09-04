@@ -1,20 +1,49 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, vi } from 'vitest';
-vi.mock('../../../src/services/api', () => ({ api: { post: vi.fn() } }));
+vi.mock('../../../src/services/api', () => ({ api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() } }));
 import AiWorkoutWizard from '../../../src/components/workouts/AiWorkoutWizard';
+import WorkoutTemplateList from '../../../src/components/workouts/WorkoutTemplateList';
 import { api } from '../../../src/services/api';
 
 const proposal = { durationWeeks: 8, sessionsPerWeek: 4, minutesPerSession: 60, level: 'BEGINNER', trainingMethod: 'Full body', trainingSplit: 'Full body', priorityMuscleGroups: [], restrictions: [] };
 const customers = [{ _id: 'customer-1', fullName: 'Nguyễn An', phone: '0907' }];
 
 beforeEach(() => {
+  vi.mocked(api.get).mockReset();
   vi.mocked(api.post).mockReset().mockImplementation(async (path) => ({
     data: path === '/api/ai/workout-generations' ? { title: 'Bản nháp AI' } : proposal,
     message: '',
   }));
+});
+
+it('paginates the workout plan library with twelve templates per page', async () => {
+  const template = {
+    _id: 'template-1',
+    title: 'Giáo án sức mạnh',
+    goal: 'Tăng sức mạnh',
+    level: 'BEGINNER',
+    version: 1,
+    status: 'ACTIVE' as const,
+    sessions: [],
+  };
+  vi.mocked(api.get)
+    .mockResolvedValueOnce({ data: [template], meta: { page: 1, limit: 12, total: 25, totalPages: 3 }, message: '' })
+    .mockResolvedValueOnce({ data: [{ ...template, _id: 'template-2', title: 'Giáo án tăng cơ' }], meta: { page: 2, limit: 12, total: 25, totalPages: 3 }, message: '' });
+  const user = userEvent.setup();
+
+  render(<WorkoutTemplateList refreshKey={0} onEdit={vi.fn()} />);
+
+  await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/workout-templates?page=1&limit=12'));
+  expect(await screen.findByText('Hiển thị 1–12 trên 25 giáo án')).toBeVisible();
+
+  await user.click(screen.getByRole('button', { name: 'Trang 2' }));
+
+  await waitFor(() => expect(api.get).toHaveBeenLastCalledWith('/api/workout-templates?page=2&limit=12'));
+  expect(await screen.findByText('Giáo án tăng cơ')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Trang 2' })).toHaveAttribute('aria-current', 'page');
 });
 
 it('requires selecting a customer before proposal analysis', async () => {

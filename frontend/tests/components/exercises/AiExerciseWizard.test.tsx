@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -103,5 +103,34 @@ describe('ExerciseLibraryPage AI entry point', () => {
     render(<ExerciseLibraryPage />);
     await user.click(screen.getByRole('button', { name: 'Tạo bằng AI' }));
     expect(screen.getByRole('dialog', { name: 'Tạo bài tập bằng AI' })).toBeVisible();
+  });
+
+  it('loads twelve exercises per page and requests the selected page', async () => {
+    const exercise = {
+      _id: 'squat-1',
+      name: 'Back Squat',
+      muscleGroup: 'Chân',
+      level: 'BEGINNER' as const,
+      defaultTrackingType: 'STRENGTH' as const,
+      equipment: ['Đòn tạ'],
+      videos: [],
+      scope: 'GLOBAL' as const,
+      canManage: false,
+    };
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ data: [exercise], meta: { page: 1, limit: 12, total: 25, totalPages: 3 }, message: '' })
+      .mockResolvedValueOnce({ data: [{ ...exercise, _id: 'row-1', name: 'Cable Row' }], meta: { page: 2, limit: 12, total: 25, totalPages: 3 }, message: '' });
+    const user = userEvent.setup();
+
+    render(<ExerciseLibraryPage />);
+
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/api/exercises?page=1&limit=12'));
+    expect(await screen.findByText('Hiển thị 1–12 trên 25 bài tập')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Trang 2' }));
+
+    await waitFor(() => expect(api.get).toHaveBeenLastCalledWith('/api/exercises?page=2&limit=12'));
+    expect(await screen.findByText('Cable Row')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Trang 2' })).toHaveAttribute('aria-current', 'page');
   });
 });
