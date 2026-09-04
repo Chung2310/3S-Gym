@@ -1,15 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  Activity,
-  Calendar,
-  Dumbbell,
-  Flame,
-  LineChart,
-  Scale,
-  Sparkles,
-  TrendingDown,
-  TrendingUp,
-} from 'lucide-react';
+import { Calendar, LineChart } from 'lucide-react';
 import type { InBodyRecordData } from '../../types/inbody';
 
 type MetricTab = 'ALL' | 'WEIGHT' | 'MUSCLE' | 'FAT' | 'SCORE';

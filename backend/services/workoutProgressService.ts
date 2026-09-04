@@ -24,7 +24,7 @@ interface MeasurementPayload { customerId: string; measuredAt: string; weight?: 
 
 const circumferenceKeys = ['chest', 'waist', 'hips', 'arm', 'thigh', 'calf'] as const;
 function normalizeMeasurementPayload<T extends Partial<MeasurementPayload>>(payload: T, current: Record<string, number | undefined> = {}) {
-  const measurements = { ...current, ...(payload.measurements || {}) };
+  const measurements = { ...current, ...payload.measurements };
   const raw = payload as T & Record<string, unknown>;
   for (const key of circumferenceKeys) if (typeof raw[key] === 'number') measurements[key] = raw[key] as number;
   const normalized = { ...payload, measurements } as T & { measurements: Record<string, number> };

@@ -353,11 +353,18 @@ export default function InBodyDetailView({
             <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#003b70', margin: '4px 0' }}>
               <span>{record.weight}</span> <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>kg</span>
             </div>
-            {analysis.classifications.bmi && (
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: analysis.classifications.bmi.color }}>
-                BMI: {record.bmi || '—'} ({analysis.classifications.bmi.label})
-              </span>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {analysis.classifications.bmi && (
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: analysis.classifications.bmi.color }}>
+                  BMI: {record.bmi || '—'} ({analysis.classifications.bmi.label})
+                </span>
+              )}
+              {(record.height || customerMeta?.height || (typeof record.customerId === 'object' && record.customerId?.height)) && (
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                  Chiều cao: <strong style={{ color: '#0f172a' }}>{record.height || customerMeta?.height || (typeof record.customerId === 'object' && record.customerId?.height)} cm</strong>
+                </span>
+              )}
+            </div>
           </div>
 
           {/* 2. Tỷ lệ mỡ */}

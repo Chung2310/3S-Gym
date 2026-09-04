@@ -212,6 +212,7 @@ export default function AdminCustomerFormModal({
               </label>
               <input
                 type="number"
+                step="any"
                 placeholder="165"
                 value={formData.height}
                 onChange={(e) => setFormData({ ...formData, height: e.target.value })}
@@ -225,6 +226,7 @@ export default function AdminCustomerFormModal({
               </label>
               <input
                 type="number"
+                step="any"
                 placeholder="58"
                 value={formData.initialWeight}
                 onChange={(e) => setFormData({ ...formData, initialWeight: e.target.value })}
