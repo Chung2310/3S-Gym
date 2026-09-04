@@ -1,5 +1,4 @@
 import { DAY_MINUTES, formatMinute, SLOT_MINUTES, snapMinute } from '../../services/workoutStudioModel';
-import { TRACKING_TYPE_LABELS } from '../../types';
 import type { ScheduledExercise } from '../../types/workoutStudio';
 import PrescriptionEditor from '../workouts/tracking/PrescriptionEditor';
 
@@ -38,7 +37,6 @@ export default function ExerciseInspector({ selected, days, onUpdate, onUnschedu
         </div>
       </div>
       <div className="studio-inspector-tracking">
-        <p className="studio-inspector-tracking-note"><strong>Cách ghi nhận:</strong> {TRACKING_TYPE_LABELS[selected.trackingType ?? 'UNCLASSIFIED']}. Thiết lập này được lấy từ Quản lý bài tập.</p>
         <PrescriptionEditor exerciseName={selected.name} trackingType={selected.trackingType ?? 'UNCLASSIFIED'} value={selected.prescription ?? {}} disabled={readOnly} onChange={(prescription) => onUpdate({ prescription })} />
       </div>
       {!readOnly && <button type="button" className="studio-inspector-danger" onClick={onUnscheduled}>Bỏ khỏi lịch</button>}

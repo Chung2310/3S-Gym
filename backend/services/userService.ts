@@ -243,7 +243,9 @@ async function deletePt(id: string): Promise<void> {
     WorkoutPlan as unknown as Model<OwnedContent>, NutritionPlan as unknown as Model<OwnedContent>,
   ];
   await withTransaction(async (session) => {
-    await Promise.all(contentModels.map((item) => item.deleteMany({ ptId: id }).session(session)));
+    for (const item of contentModels) {
+      await item.deleteMany({ ptId: id }).session(session);
+    }
     await User.deleteOne({ _id: id }, { session });
   });
 }

@@ -237,7 +237,7 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
             onChange={(e) => handlePtChange(e.target.value)}
             style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#ffffff', color: '#1e293b', outline: 'none' }}
           >
-            <option value="">Tất cả Huấn luyện viên (PT)</option>
+            <option value="">Tất cả Huấn luyện viên</option>
             {pts.map((p) => (
               <option key={p._id} value={p._id}>
                 PT: {p.fullName || p.username}

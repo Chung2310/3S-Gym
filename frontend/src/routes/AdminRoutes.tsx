@@ -9,7 +9,7 @@ type AdminTab = 'overview' | 'pts' | 'packages' | 'flags';
 
 const TABS: Array<{ id: AdminTab; label: string; icon: any }> = [
   { id: 'overview', label: 'Tổng quan & KPI', icon: LayoutDashboard },
-  { id: 'pts', label: 'Huấn luyện viên (PT)', icon: UserCheck },
+  { id: 'pts', label: 'Huấn luyện viên', icon: UserCheck },
   { id: 'packages', label: 'Gói tập mẫu', icon: Package },
   { id: 'flags', label: 'Tính năng hệ thống', icon: SlidersHorizontal },
 ];

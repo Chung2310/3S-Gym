@@ -61,7 +61,7 @@ export default function ExerciseVideoFields({ videos, onChange, onUploadingChang
 
   return <section className="exercise-form-section exercise-form-videos" aria-labelledby="exercise-form-videos">
     <div className="exercise-form-section-heading exercise-video-heading">
-      <div><strong>Video hướng dẫn</strong><p>Tối đa 20 video, mỗi video không quá 100 MB.</p></div>
+      <div><strong>Video hướng dẫn</strong></div>
       <button type="button" className="button button-secondary" disabled={videos.length >= 20} onClick={() => onChange([...videos, { title: '', url: '', source: 'LINK' }])}><Plus size={16} /> Thêm video</button>
     </div>
     <span id="exercise-form-videos" className="sr-only">Video hướng dẫn</span>

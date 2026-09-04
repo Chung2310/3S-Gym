@@ -103,7 +103,6 @@ export default function FeatureFlagsView() {
             <span>Quản lý Tính năng Hệ thống (Feature Flags)</span>
           </h2>
           <p className="text-xs text-slate-500 m-0 mt-1 leading-relaxed">
-            Bật/tắt các module chức năng, phân quyền truy cập theo vai trò và kiểm thử Pilot.
           </p>
         </div>
       </div>

@@ -189,7 +189,7 @@ export default function CreditAdminPage() {
             Quản trị Credit Tài khoản
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Cấp hoặc trừ credit trực tiếp cho khách hàng, huấn luyện viên (PT) và theo dõi số dư ví.
+            Cấp hoặc trừ credit trực tiếp cho khách hàng, Huấn luyện viên và theo dõi số dư ví.
           </p>
         </div>
 
@@ -279,18 +279,17 @@ export default function CreditAdminPage() {
             {[
               { id: '', label: 'Tất cả tài khoản' },
               { id: 'CUSTOMER', label: 'Hội viên (Customer)' },
-              { id: 'PT', label: 'Huấn luyện viên (PT)' },
+              { id: 'PT', label: 'Huấn luyện viên' },
               { id: 'ADMIN', label: 'Quản trị viên' },
             ].map((chip) => (
               <button
                 key={chip.id}
                 type="button"
                 onClick={() => setRoleFilter(chip.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                  roleFilter === chip.id
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${roleFilter === chip.id
                     ? 'bg-[#003b70] text-white shadow-2xs'
                     : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
-                }`}
+                  }`}
               >
                 {chip.label}
               </button>
