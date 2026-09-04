@@ -12,6 +12,7 @@ export interface InBodyRecordData {
   ptId?: string;
   measurementDate: string;
   weight: number;
+  height?: number | null;
   bmi?: number | null;
   bodyFatPercentage?: number | null;
   bodyFatMass?: number | null;
@@ -125,6 +126,7 @@ export interface InBodyOcrDraft {
   detectedCustomerName?: string | null;
   measurementDate: string;
   weight?: number;
+  height?: number | null;
   bmi?: number;
   bodyFatPercentage?: number;
   bodyFatMass?: number;

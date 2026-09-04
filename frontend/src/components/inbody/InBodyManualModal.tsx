@@ -1,16 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   Activity,
-  Calendar,
   ChevronDown,
   ChevronUp,
-  Dumbbell,
-  Flame,
   Layers,
-  Ruler,
   Scale,
-  Sparkles,
-  User,
 } from 'lucide-react';
 import FormModal from '../ui/FormModal';
 import CustomerSelect from '../ui/CustomerSelect';
@@ -88,6 +82,11 @@ export default function InBodyManualModal({
       }
       setMeasurementDate(editingItem.measurementDate ? editingItem.measurementDate.slice(0, 10) : new Date().toISOString().slice(0, 10));
       setWeight(editingItem.weight ? String(editingItem.weight) : '');
+      if (editingItem.height != null) {
+        setHeight(String(editingItem.height));
+      } else if (typeof editingItem.customerId === 'object' && editingItem.customerId !== null && (editingItem.customerId as any).height != null) {
+        setHeight(String((editingItem.customerId as any).height));
+      }
       setBodyFatPercentage(editingItem.bodyFatPercentage != null ? String(editingItem.bodyFatPercentage) : '');
       setBodyFatMass(editingItem.bodyFatMass != null ? String(editingItem.bodyFatMass) : '');
       setMuscleMass(editingItem.muscleMass != null ? String(editingItem.muscleMass) : '');
@@ -150,7 +149,7 @@ export default function InBodyManualModal({
   useEffect(() => {
     const w = Number(weight);
     const fPct = Number(bodyFatPercentage);
-    if (w > 0 && fPct > 0 && (!bodyFatMass || !editingItem)) {
+    if (w > 0 && fPct > 0 && !editingItem) {
       setBodyFatMass(((w * fPct) / 100).toFixed(1));
     }
   }, [weight, bodyFatPercentage, editingItem]);
@@ -187,7 +186,8 @@ export default function InBodyManualModal({
       customerId,
       measurementDate: new Date(measurementDate).toISOString(),
       weight: w,
-      bmi: calculatedBmi ?? numVal(weight) ? calculatedBmi : null,
+      height: numVal(height),
+      bmi: calculatedBmi ?? (numVal(weight) ? calculatedBmi : null),
       bodyFatPercentage: numVal(bodyFatPercentage),
       bodyFatMass: numVal(bodyFatMass),
       muscleMass: numVal(muscleMass),
@@ -261,6 +261,11 @@ export default function InBodyManualModal({
               setCustomerId(selectedId);
               setCustomerObj(null);
             }}
+            onSelectCustomer={(cust) => {
+              if (cust && (cust as any).height) {
+                setHeight(String((cust as any).height));
+              }
+            }}
             required
             placeholder="Tìm và chọn học viên..."
           />
@@ -293,8 +298,8 @@ export default function InBodyManualModal({
               </span>
               <input
                 type="number"
-                step="0.1"
-                min="10"
+                step="any"
+                min="5"
                 max="300"
                 required
                 placeholder="vd: 68.5"
@@ -310,10 +315,10 @@ export default function InBodyManualModal({
               </span>
               <input
                 type="number"
-                step="1"
-                min="100"
+                step="any"
+                min="50"
                 max="250"
-                placeholder="vd: 172"
+                placeholder="vd: 170.1"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
               />
@@ -324,9 +329,9 @@ export default function InBodyManualModal({
               <span>Tỷ lệ mỡ (%)</span>
               <input
                 type="number"
-                step="0.1"
-                min="3"
-                max="70"
+                step="any"
+                min="1"
+                max="90"
                 placeholder="vd: 18.5"
                 value={bodyFatPercentage}
                 onChange={(e) => setBodyFatPercentage(e.target.value)}
@@ -338,9 +343,9 @@ export default function InBodyManualModal({
               <span>Khối lượng cơ (kg)</span>
               <input
                 type="number"
-                step="0.1"
-                min="5"
-                max="100"
+                step="any"
+                min="1"
+                max="150"
                 placeholder="vd: 31.2"
                 value={muscleMass}
                 onChange={(e) => setMuscleMass(e.target.value)}
@@ -384,13 +389,13 @@ export default function InBodyManualModal({
           <div className="inbody-form-row-3">
             {/* Mỡ nội tạng */}
             <label className="inbody-input-label">
-              <span>Mỡ nội tạng (1-20)</span>
+              <span>Mỡ nội tạng (Level 1-20)</span>
               <input
                 type="number"
-                step="1"
-                min="1"
-                max="20"
-                placeholder="vd: 4"
+                step="any"
+                min="0.1"
+                max="30"
+                placeholder="vd: 4.5"
                 value={visceralFatLevel}
                 onChange={(e) => setVisceralFatLevel(e.target.value)}
               />

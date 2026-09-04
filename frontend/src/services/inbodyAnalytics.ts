@@ -327,8 +327,8 @@ export function analyzeInBody(
     const deltaFat = current.bodyFatPercentage != null && previous.bodyFatPercentage != null ? Number((current.bodyFatPercentage - previous.bodyFatPercentage).toFixed(1)) : 0;
     const deltaFatM = current.bodyFatMass != null && previous.bodyFatMass != null ? Number((current.bodyFatMass - previous.bodyFatMass).toFixed(1)) : null;
     const deltaM = current.muscleMass != null && previous.muscleMass != null ? Number((current.muscleMass - previous.muscleMass).toFixed(1)) : 0;
-    const deltaV = current.visceralFatLevel != null && previous.visceralFatLevel != null ? current.visceralFatLevel - previous.visceralFatLevel : 0;
-    const deltaS = current.inbodyScore != null && previous.inbodyScore != null ? current.inbodyScore - previous.inbodyScore : 0;
+    const deltaV = current.visceralFatLevel != null && previous.visceralFatLevel != null ? Number((current.visceralFatLevel - previous.visceralFatLevel).toFixed(1)) : 0;
+    const deltaS = current.inbodyScore != null && previous.inbodyScore != null ? Number((current.inbodyScore - previous.inbodyScore).toFixed(1)) : 0;
 
     let trendType: InBodyComparison['trendType'] = 'NEUTRAL';
     let trendSummary = 'Chỉ số tương đối ổn định so với lần đo trước.';

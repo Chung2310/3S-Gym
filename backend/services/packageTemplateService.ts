@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import PackageTemplate, { type IPackageTemplate } from '../models/PackageTemplate.js';
+import PackageTemplate from '../models/PackageTemplate.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 

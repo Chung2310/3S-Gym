@@ -35,7 +35,7 @@ async function safeUploadImage(file: Express.Multer.File) {
       publicId: result.public_id,
       originalName: file.originalname,
     };
-  } catch (error) {
+  } catch {
     // If Cloudinary service is unconfigured/unavailable in dev, safely fallback to data URL
     const mime = file.mimetype || 'image/jpeg';
     const base64 = file.buffer.toString('base64');

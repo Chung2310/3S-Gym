@@ -1,6 +1,6 @@
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
-import { APP_POLICY, getEnv } from '../config/env.js';
+import { getEnv } from '../config/env.js';
 import { fetchWithTimeout } from './providerRequest.js';
 import { withAiBilling } from './aiBillingService.js';
 import type { AiBillingContext, ProviderResult, ProviderUsage } from './creditTypes.js';
@@ -9,6 +9,7 @@ export interface InBodyExtraction {
   customerName?: string | null;
   measurementDate?: string | null;
   weight: number;
+  height?: number | null;
   bmi?: number | null;
   bodyFatPercentage?: number | null;
   bodyFatMass?: number | null;
@@ -116,20 +117,21 @@ Hãy đọc kỹ hình ảnh hoặc tài liệu phiếu đo và trích xuất d�
 1. customerName: Họ tên hoặc ID học viên/khách hàng in trên phiếu (thường ở góc trên cùng, gần nhãn 'ID', 'Name', 'User', 'Họ tên'). Ví dụ: "NGUYEN VAN AN". Hãy loại bỏ các tiền tố như "Name:", "ID:", "Sex:". Nếu không có tên hoặc không đọc được, trả về null.
 2. measurementDate: Ngày đo trên phiếu (gần nhãn 'Test Date', 'Date / Time', 'Ngày đo'), chuẩn hóa về chuỗi định dạng YYYY-MM-DD. Nếu không thấy, trả về null.
 3. weight: Cân nặng thực tế đo được (kg) - số dương. CHÚ Ý: Luôn lấy giá trị thực tế đo được (cột Current / Measured Value), tuyệt đối KHÔNG lấy cột khoảng chuẩn (Normal Range).
-4. muscleMass: Khối lượng cơ xương (SMM - Skeletal Muscle Mass hoặc Muscle Mass) tính bằng kg. Nếu phiếu có SMM, luôn ưu tiên lấy SMM.
-5. bodyFatMass: Khối lượng mỡ cơ thể (Body Fat Mass / BFM) tính bằng kg.
-6. bodyFatPercentage: Phần trăm mỡ cơ thể (Percent Body Fat / PBF / %Fat), số thực từ 0 đến 100.
-7. bmi: Chỉ số khối cơ thể (Body Mass Index / BMI).
-8. bmr: Tỷ lệ trao đổi chất cơ bản (Basal Metabolic Rate / BMR) tính bằng kcal.
-9. visceralFatLevel: Cấp độ mỡ nội tạng (Visceral Fat Level / VFL), thường là cấp độ từ 1 đến 20 (chú ý: nếu phiếu ghi diện tích mỡ nội tạng cm2, hãy quy đổi hoặc lấy cấp độ level).
-10. inbodyScore: Điểm thể chất / InBody Score (thường từ 40 đến 100).
-11. bodyWater: Tổng lượng nước cơ thể (Total Body Water / TBW) tính bằng Lít hoặc kg.
-12. boneMineral: Khoáng chất trong xương (Bone Mineral Content / BMC) tính bằng kg.
-13. waistHipRatio: Tỷ lệ eo/hông (Waist-Hip Ratio / WHR).
-14. segmentalMuscle: Phân tích cơ từng phần (kg): { rightArm, leftArm, trunk, rightLeg, leftLeg }. Lấy số kg đo được, không lấy %.
-15. segmentalFat: Phân tích mỡ từng phần (kg): { rightArm, leftArm, trunk, rightLeg, leftLeg }. Lấy số kg đo được.
-16. confidence: Số thực từ 0.0 đến 1.0 đánh giá độ nét và độ tin cậy của ảnh.
-17. warnings: Mảng chuỗi tiếng Việt lưu ý nếu có chỉ số mờ, bị che khuất hoặc là giá trị ước tính.
+4. height: Chiều cao học viên in trên phiếu (cm, ví dụ: 170.1 hoặc 165). Nếu không thấy trả về null.
+5. muscleMass: Khối lượng cơ xương (SMM - Skeletal Muscle Mass hoặc Muscle Mass) tính bằng kg. Nếu phiếu có SMM, luôn ưu tiên lấy SMM.
+6. bodyFatMass: Khối lượng mỡ cơ thể (Body Fat Mass / BFM) tính bằng kg.
+7. bodyFatPercentage: Phần trăm mỡ cơ thể (Percent Body Fat / PBF / %Fat), số thực từ 0 đến 100.
+8. bmi: Chỉ số khối cơ thể (Body Mass Index / BMI).
+9. bmr: Tỷ lệ trao đổi chất cơ bản (Basal Metabolic Rate / BMR) tính bằng kcal.
+10. visceralFatLevel: Cấp độ mỡ nội tạng (Visceral Fat Level / VFL), thường là cấp độ từ 1 đến 20 (chú ý: nếu phiếu ghi diện tích mỡ nội tạng cm2, hãy quy đổi hoặc lấy cấp độ level).
+11. inbodyScore: Điểm thể chất / InBody Score (thường từ 40 đến 100).
+12. bodyWater: Tổng lượng nước cơ thể (Total Body Water / TBW) tính bằng Lít hoặc kg.
+13. boneMineral: Khoáng chất trong xương (Bone Mineral Content / BMC) tính bằng kg.
+14. waistHipRatio: Tỷ lệ eo/hông (Waist-Hip Ratio / WHR).
+15. segmentalMuscle: Phân tích cơ từng phần (kg): { rightArm, leftArm, trunk, rightLeg, leftLeg }. Lấy số kg đo được, không lấy %.
+16. segmentalFat: Phân tích mỡ từng phần (kg): { rightArm, leftArm, trunk, rightLeg, leftLeg }. Lấy số kg đo được.
+17. confidence: Số thực từ 0.0 đến 1.0 đánh giá độ nét và độ tin cậy của ảnh.
+18. warnings: Mảng chuỗi tiếng Việt lưu ý nếu có chỉ số mờ, bị che khuất hoặc là giá trị ước tính.
 
 LƯU Ý: Nếu chỉ số nào không có trên phiếu, hãy gán null. Chỉ trả về JSON thuần túy, không kèm bất kỳ giải thích nào.`,
           },
@@ -185,6 +187,7 @@ LƯU Ý: Nếu chỉ số nào không có trên phiếu, hãy gán null. Chỉ t
       customerName,
       measurementDate,
       weight: Number(parsed.weight),
+      height: numOrNull(parsed.height),
       bmi: numOrNull(parsed.bmi),
       bodyFatPercentage: numOrNull(parsed.bodyFatPercentage, 0, 100),
       bodyFatMass: numOrNull(parsed.bodyFatMass),

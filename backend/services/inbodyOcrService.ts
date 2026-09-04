@@ -163,7 +163,7 @@ async function confirmOcrDraft(user: AuthenticatedUser, id: string, corrections:
   record.customerId = customer._id;
 
   const allowed = [
-    'measurementDate', 'weight', 'bmi', 'bodyFatPercentage', 'bodyFatMass',
+    'measurementDate', 'weight', 'height', 'bmi', 'bodyFatPercentage', 'bodyFatMass',
     'muscleMass', 'bmr', 'visceralFatLevel', 'inbodyScore', 'bodyWater',
     'boneMineral', 'waistHipRatio', 'segmentalMuscle', 'segmentalFat',
     'consultationNotes', 'strengths', 'priorities', 'recommendation',

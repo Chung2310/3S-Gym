@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   Calendar,
@@ -49,7 +49,7 @@ export default function InBodyPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const loadRecords = async (page = 1) => {
+  const loadRecords = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       let url = `/api/inbody?page=${page}&limit=15`;
@@ -66,11 +66,11 @@ export default function InBodyPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, selectedCustomerId, toast]);
 
   useEffect(() => {
     void loadRecords(1);
-  }, [statusFilter, selectedCustomerId]);
+  }, [loadRecords]);
 
   const handleTogglePublish = async (item: InBodyItem) => {
     setTogglingId(item._id || '');
@@ -960,7 +960,7 @@ export default function InBodyPage() {
       <InBodyScanModal
         open={openScanModal}
         onClose={() => setOpenScanModal(false)}
-        onConfirmed={(confirmedDraft) => {
+        onConfirmed={() => {
           setOpenScanModal(false);
           toast.success('Đã lưu kết quả InBody thành công!');
           void loadRecords(1);
@@ -976,7 +976,7 @@ export default function InBodyPage() {
           setOpenManualModal(false);
           setEditingItem(null);
         }}
-        onSaved={(saved) => {
+        onSaved={() => {
           setOpenManualModal(false);
           setEditingItem(null);
           void loadRecords(meta.page || 1);

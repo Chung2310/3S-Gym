@@ -49,6 +49,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
   const [form, setForm] = useState({
     measurementDate: draft.measurementDate.slice(0, 10),
     weight: draft.weight?.toString() ?? '',
+    height: draft.height?.toString() ?? '',
     bmi: draft.bmi?.toString() ?? '',
     bodyFatPercentage: draft.bodyFatPercentage?.toString() ?? '',
     bodyFatMass: draft.bodyFatMass?.toString() ?? '',
@@ -106,6 +107,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         customerId: selectedCustomerId,
         measurementDate: form.measurementDate,
         weight: numberValue(form.weight),
+        height: numberValue(form.height),
         bmi: numberValue(form.bmi),
         bodyFatPercentage: numberValue(form.bodyFatPercentage),
         bodyFatMass: numberValue(form.bodyFatMass),
@@ -254,7 +256,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
         )}
       </div>
 
-      <div className="inbody-form-row-2">
+      <div className="inbody-form-row-3">
         <label className="inbody-input-label">
           <span>
             Ngày đo <strong style={{ color: '#e11d48' }}>*</strong>
@@ -273,10 +275,22 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="Cân nặng (kg)"
             type="number"
-            step="0.1"
+            step="any"
             placeholder="vd: 65.5"
             value={form.weight}
             onChange={(event) => change('weight', event.target.value)}
+          />
+        </label>
+
+        <label className="inbody-input-label">
+          <span>Chiều cao (cm)</span>
+          <input
+            aria-label="Chiều cao (cm)"
+            type="number"
+            step="any"
+            placeholder="vd: 170.1"
+            value={form.height}
+            onChange={(event) => change('height', event.target.value)}
           />
         </label>
       </div>
@@ -287,7 +301,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="BMI"
             type="number"
-            step="0.1"
+            step="any"
             placeholder="vd: 22.4"
             value={form.bmi}
             onChange={(event) => change('bmi', event.target.value)}
@@ -299,7 +313,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="Tỷ lệ mỡ (%)"
             type="number"
-            step="0.1"
+            step="any"
             placeholder="vd: 18.5"
             value={form.bodyFatPercentage}
             onChange={(event) => change('bodyFatPercentage', event.target.value)}
@@ -311,7 +325,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="Khối lượng mỡ (kg)"
             type="number"
-            step="0.1"
+            step="any"
             placeholder="vd: 12.1"
             value={form.bodyFatMass}
             onChange={(event) => change('bodyFatMass', event.target.value)}
@@ -323,7 +337,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="Khối lượng cơ (kg)"
             type="number"
-            step="0.1"
+            step="any"
             placeholder="vd: 28.2"
             value={form.muscleMass}
             onChange={(event) => change('muscleMass', event.target.value)}
@@ -337,8 +351,10 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="Mỡ nội tạng"
             type="number"
-            step="1"
-            placeholder="vd: 4"
+            step="any"
+            min="0.1"
+            max="30"
+            placeholder="vd: 4.5"
             value={form.visceralFatLevel}
             onChange={(event) => change('visceralFatLevel', event.target.value)}
           />
@@ -349,6 +365,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="BMR"
             type="number"
+            step="any"
             placeholder="vd: 1540"
             value={form.bmr}
             onChange={(event) => change('bmr', event.target.value)}
@@ -360,6 +377,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="Điểm InBody"
             type="number"
+            step="any"
             placeholder="vd: 78"
             value={form.inbodyScore}
             onChange={(event) => change('inbodyScore', event.target.value)}
@@ -373,7 +391,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="Lượng nước"
             type="number"
-            step="0.1"
+            step="any"
             placeholder="vd: 41.5"
             value={form.bodyWater}
             onChange={(event) => change('bodyWater', event.target.value)}
@@ -385,7 +403,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="Khoáng xương"
             type="number"
-            step="0.01"
+            step="any"
             placeholder="vd: 3.1"
             value={form.boneMineral}
             onChange={(event) => change('boneMineral', event.target.value)}
@@ -397,7 +415,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           <input
             aria-label="Tỷ lệ eo/mông"
             type="number"
-            step="0.01"
+            step="any"
             placeholder="vd: 0.85"
             value={form.waistHipRatio}
             onChange={(event) => change('waistHipRatio', event.target.value)}
