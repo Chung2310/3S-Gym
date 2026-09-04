@@ -15,7 +15,7 @@ import type { AuthenticatedUser } from '../types/express.js';
 import { isAdminRole } from './roles.js';
 import { logger } from '../config/logger.js';
 
-function sanitizeJsonString(str: string): string {
+export function sanitizeJsonString(str: string): string {
   return str
     // Xóa comments /* ... */ và // ...
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -26,7 +26,7 @@ function sanitizeJsonString(str: string): string {
     .replace(/,\s*([}\]])/g, '$1');
 }
 
-function parseJson(text: string): Record<string, unknown> {
+export function parseJson(text: string): Record<string, unknown> {
   if (!text || typeof text !== 'string') {
     throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả nội dung có cấu trúc hợp lệ.' });
   }
@@ -61,11 +61,10 @@ function parseJson(text: string): Record<string, unknown> {
     } catch {}
   }
 
-  // 5. Nếu JSON bị cụt (truncated do token limit): tự đóng ngoặc nhọn/vuông
+  // 5. Nếu JSON bị cụt (truncated do token limit): tự đóng ngoặc nhọn/vuông theo đúng thứ tự lồng nhau LIFO
   if (firstBrace !== -1) {
     let candidate = sanitizeJsonString(cleaned.substring(firstBrace));
-    let openBraces = 0;
-    let openBrackets = 0;
+    const stack: Array<'{' | '['> = [];
     let inString = false;
     let escapeNext = false;
     for (let i = 0; i < candidate.length; i++) {
@@ -83,20 +82,20 @@ function parseJson(text: string): Record<string, unknown> {
         continue;
       }
       if (!inString) {
-        if (char === '{') openBraces++;
-        else if (char === '}') openBraces = Math.max(0, openBraces - 1);
-        else if (char === '[') openBrackets++;
-        else if (char === ']') openBrackets = Math.max(0, openBrackets - 1);
+        if (char === '{') stack.push('{');
+        else if (char === '}') {
+          if (stack[stack.length - 1] === '{') stack.pop();
+        } else if (char === '[') stack.push('[');
+        else if (char === ']') {
+          if (stack[stack.length - 1] === '[') stack.pop();
+        }
       }
     }
     if (inString) candidate += '"';
-    while (openBrackets > 0) {
-      candidate += ']';
-      openBrackets--;
-    }
-    while (openBraces > 0) {
-      candidate += '}';
-      openBraces--;
+    while (stack.length > 0) {
+      const last = stack.pop();
+      if (last === '{') candidate += '}';
+      else if (last === '[') candidate += ']';
     }
     try {
       return JSON.parse(sanitizeJsonString(candidate)) as Record<string, unknown>;

@@ -6,4 +6,4 @@ const inbodyFile = Joi.object({ mimetype: Joi.string().valid('image/jpeg', 'imag
 const videoFile = Joi.object({ mimetype: Joi.string().valid('video/mp4', 'video/webm', 'video/quicktime').required() }).unknown(true).required().messages({ ...commonMessages, 'any.required': 'Vui lòng cung cấp file video.', 'any.only': 'Chỉ hỗ trợ video MP4, WebM hoặc MOV.' });
 export const imageUploadSchema: RequestValidationSchema = { file: imageFile };
 export const videoUploadSchema: RequestValidationSchema = { file: videoFile, fileField: 'video' };
-export const inbodyOcrUploadSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), measurementDate: Joi.date().iso().required() }).messages(commonMessages), file: inbodyFile };
+export const inbodyOcrUploadSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.optional().allow('', null), measurementDate: Joi.date().iso().optional().allow('', null) }).messages(commonMessages), file: inbodyFile };

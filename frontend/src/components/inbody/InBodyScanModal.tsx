@@ -54,18 +54,18 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
 
   const scan = async (event: FormEvent) => {
     event.preventDefault();
-    if (!customerId) {
-      toast.error('Vui lòng chọn học viên cần quét phiếu InBody.');
-      return;
-    }
     if (!image) {
       setImageError('Vui lòng chọn ảnh hoặc file PDF phiếu InBody.');
       return;
     }
     setImageError('');
     const body = new FormData();
-    body.set('customerId', customerId);
-    body.set('measurementDate', measurementDate);
+    if (customerId) {
+      body.set('customerId', customerId);
+    }
+    if (measurementDate) {
+      body.set('measurementDate', measurementDate);
+    }
     body.set('image', image);
     setLoading(true);
     try {
@@ -124,26 +124,27 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 200px', gap: '16px', alignItems: 'start' }}>
             <div>
               <CustomerSelect
-                label="Học viên / Khách hàng"
+                label="Học viên / Khách hàng (Tùy chọn - Hệ thống tự đọc từ phiếu)"
                 name="customerId"
                 ariaLabel="Học viên / Khách hàng"
                 value={customerId}
                 onChange={(selectedId) => setCustomerId(selectedId)}
-                required
-                placeholder="Tìm và chọn học viên..."
+                placeholder="Chọn trước học viên hoặc để trống để AI tự nhận diện..."
               />
+              <span style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                💡 Không bắt buộc: Hệ thống sẽ tự động quét tên học viên in trên phiếu InBody và gợi ý chọn ở bước tiếp theo.
+              </span>
             </div>
 
             <label className="field" style={{ margin: 0 }}>
               <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.86rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Calendar size={15} color="#0284c7" /> Ngày đo <strong style={{ color: '#e11d48' }}>*</strong>
+                <Calendar size={15} color="#0284c7" /> Ngày đo
               </span>
               <input
                 aria-label="Ngày đo"
                 type="date"
                 value={measurementDate}
                 onChange={(event) => setMeasurementDate(event.target.value)}
-                required
                 style={{
                   width: '100%',
                   padding: '9px 12px',
@@ -154,6 +155,9 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
                   background: '#ffffff',
                 }}
               />
+              <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
+                Tự động lấy ngày trên phiếu hoặc hôm nay
+              </span>
             </label>
           </div>
 
@@ -426,7 +430,7 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
           </div>
         </div>
       ) : (
-        <InBodyReviewForm draft={draft} onConfirmed={onConfirmed} />
+        <InBodyReviewForm draft={draft} onConfirmed={handleConfirmed} />
       )}
     </FormModal>
   );

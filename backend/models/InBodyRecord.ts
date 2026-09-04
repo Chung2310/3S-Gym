@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 const schema = new mongoose.Schema({
-  customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'CustomerProfile', required: true, index: true },
+  customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'CustomerProfile', required: false, default: null, index: true },
+  detectedCustomerName: { type: String, default: null },
   ptId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   measurementDate: { type: Date, required: true },
   weight: { type: Number, required: true, min: 0 },

@@ -121,7 +121,8 @@ export interface InBodyAnalysisResult {
 
 export interface InBodyOcrDraft {
   _id: string;
-  customerId: string;
+  customerId?: string | null;
+  detectedCustomerName?: string | null;
   measurementDate: string;
   weight?: number;
   bmi?: number;
