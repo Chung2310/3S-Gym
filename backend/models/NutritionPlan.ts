@@ -15,6 +15,7 @@ const schema = new mongoose.Schema({
   endDate: { type: Date, default: null, index: true },
   durationDays: { type: Number, min: 1, max: 31, default: 7 },
   menu: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  dailyPlans: { type: [mongoose.Schema.Types.Mixed], default: [] },
   notes: { type: String, default: '' },
   createdByAi: { type: Boolean, default: false },
   reviewStatus: { type: String, enum: ['NOT_REQUIRED', 'PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED'], default: 'NOT_REQUIRED' },

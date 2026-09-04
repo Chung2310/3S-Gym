@@ -18,6 +18,7 @@ import AdminCustomersPage from '../pages/admin/AdminCustomersPage';
 import AdminTransfersPage from '../pages/admin/AdminTransfersPage';
 import AdminUsersPage from '../pages/admin/AdminUsersPage';
 import AdminAccountsPage from '../pages/admin/AdminAccountsPage';
+import AdminKnowledgePage from '../pages/admin/AdminKnowledgePage';
 import CustomerPortalPage from '../pages/customer/CustomerPortalPage';
 import NotificationsPage from '../pages/common/NotificationsPage';
 import ConsultationTool from '../pages/ConsultationTool';
@@ -95,6 +96,14 @@ function PortalContent({ user }: { user: User }) {
           element={
             <FeatureRoute user={user} roles={['PT']}>
               <PtAssistantPage />
+            </FeatureRoute>
+          }
+        />
+        <Route
+          path="admin/knowledge"
+          element={
+            <FeatureRoute user={user} roles={['ADMIN']}>
+              <AdminKnowledgePage />
             </FeatureRoute>
           }
         />

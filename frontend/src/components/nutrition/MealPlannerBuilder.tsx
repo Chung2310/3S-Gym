@@ -30,7 +30,6 @@ import MealImagePreviewModal from './MealImagePreviewModal';
 import {
   VIETNAMESE_7DAYS_TEMPLATES,
   buildMealsFromTemplate,
-  getTemplateForDayOfWeek,
   randomizeDayMeals,
 } from './nutritionVariationEngine';
 
@@ -51,12 +50,25 @@ export interface WeekMenuPlan {
 
 const DAYS_OF_WEEK_VI = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
+function normalizeDayOfWeek(str?: string): string {
+  if (!str) return '';
+  const s = str.trim().toLowerCase();
+  if (s.includes('2') || s.includes('hai') || s.includes('mon')) return 'Thứ Hai';
+  if (s.includes('3') || s.includes('ba') || s.includes('tue')) return 'Thứ Ba';
+  if (s.includes('4') || s.includes('tư') || s.includes('tu') || s.includes('wed')) return 'Thứ Tư';
+  if (s.includes('5') || s.includes('năm') || s.includes('nam') || s.includes('thu')) return 'Thứ Năm';
+  if (s.includes('6') || s.includes('sáu') || s.includes('sau') || s.includes('fri')) return 'Thứ Sáu';
+  if (s.includes('7') || s.includes('bảy') || s.includes('bay') || s.includes('sat')) return 'Thứ Bảy';
+  if (s.includes('nhật') || s.includes('nhat') || s.includes('cn') || s.includes('sun')) return 'Chủ Nhật';
+  return str;
+}
+
 function buildWeeksSchedule(
   startStr: string,
   totalDays: number,
   baseMeals: MealBlock[] = [],
   existingWeeks?: WeekMenuPlan[],
-  targetKcal: number = 1850,
+  _targetKcal: number = 1850,
   dailyPlanTemplates?: Array<{ dayOfWeek?: string; meals: MealBlock[] }>
 ): WeekMenuPlan[] {
   const parts = startStr.split('-');
@@ -73,8 +85,6 @@ function buildWeeksSchedule(
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   };
-
-  const mealCount = baseMeals.length || 4;
 
   for (let w = 0; w < numWeeks; w++) {
     const startDayIdx = w * 7;
@@ -95,10 +105,13 @@ function buildWeeksSchedule(
       );
 
       if (existingDay && existingDay.meals && existingDay.meals.length > 0) {
+        // Giữ nguyên dữ liệu đã chỉnh sửa
         dayMeals = existingDay.meals;
       } else if (dailyPlanTemplates && dailyPlanTemplates.length > 0) {
+        // Dữ liệu AI: match theo dayOfWeek chuẩn hóa, fallback theo index luân phiên
+        const curNorm = normalizeDayOfWeek(dayOfWeek);
         const matched = dailyPlanTemplates.find(
-          (p) => p.dayOfWeek && p.dayOfWeek.toLowerCase() === dayOfWeek.toLowerCase()
+          (p) => normalizeDayOfWeek(p.dayOfWeek) === curNorm
         ) || dailyPlanTemplates[dIdx % dailyPlanTemplates.length];
         dayMeals = (matched?.meals || []).map((m, mIdx) => ({
           ...m,
@@ -106,24 +119,12 @@ function buildWeeksSchedule(
           items: m.items.map((it) => ({ ...it })),
         }));
       } else if (baseMeals.length > 0) {
-        if (dIdx === 0) {
-          dayMeals = baseMeals.map((m, mIdx) => ({
-            ...m,
-            id: `meal_w${w + 1}_d${dIdx + 1}_${mIdx + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-            items: m.items.map((it) => ({ ...it })),
-          }));
-        } else {
-          // Các ngày tiếp theo tự động lấy thực đơn phong phú từ kho món thể hình Việt Nam (luân phiên theo tuần)
-          const dayIndexInWeek = curD.getDay(); // 0: CN, 1: T2, ...
-          const rotatedTemplateIndex = (dayIndexInWeek + w) % VIETNAMESE_7DAYS_TEMPLATES.length;
-          const template = VIETNAMESE_7DAYS_TEMPLATES[rotatedTemplateIndex] || getTemplateForDayOfWeek(dayOfWeek);
-          const variedMeals = buildMealsFromTemplate(template, targetKcal, mealCount);
-          dayMeals = variedMeals.map((m, mIdx) => ({
-            ...m,
-            id: `meal_w${w + 1}_d${dIdx + 1}_${mIdx + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-            items: m.items.map((it) => ({ ...it })),
-          }));
-        }
+        // Fallback: clone baseMeals (legacy 1-day AI)
+        dayMeals = baseMeals.map((m, mIdx) => ({
+          ...m,
+          id: `meal_w${w + 1}_d${dIdx + 1}_${mIdx + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          items: m.items.map((it) => ({ ...it })),
+        }));
       }
 
       days.push({
@@ -396,10 +397,10 @@ export default function MealPlannerBuilder({
         const variedMeals = buildMealsFromTemplate(rotatedTemplate, targetKcal, count);
         return {
           ...d,
-          meals: variedMeals.map((m, mIdx) => ({
+          meals: variedMeals.map((m: any, mIdx: number) => ({
             ...m,
             id: `meal_w${curWeek.weekNumber}_d${d.dayNumber}_${mIdx + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-            items: m.items.map((it) => ({ ...it })),
+            items: m.items.map((it: any) => ({ ...it })),
           })),
         };
       });
@@ -601,7 +602,7 @@ export default function MealPlannerBuilder({
       const compositeRequest = `
 YÊU CẦU THIẾT KẾ THỰC ĐƠN:
 - Thời gian áp dụng: ${durationDays} ngày (từ ${formatDisplayDate(startDate)} đến ${formatDisplayDate(endDate)}).
-- Cấu trúc: Thiết kế bộ thực đơn mẫu gồm đúng ${mealCount} bữa/ngày để hệ thống phân bổ vào chu kỳ ${durationDays} ngày.
+- Cấu trúc: Thiết kế 7 thực đơn riêng biệt cho 7 ngày trong tuần (Thứ Hai đến Chủ Nhật), mỗi ngày đúng ${mealCount} bữa/ngày với các món ăn và nguồn đạm khác nhau hoàn toàn để phân bổ vào chu kỳ ${durationDays} ngày.
 - Số bữa ăn: ${mealCount} bữa/ngày.
 - Calo mục tiêu: ${targetKcalInput ? `${targetKcalInput} kcal` : 'Tự động tính theo chỉ số'}.
 - Phong cách ẩm thực: ${styleObj?.label || 'Món Việt Nam dễ nấu'} (${styleObj?.desc || ''}).
@@ -623,66 +624,73 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
           setCurrentPlanId(generatedId);
         }
         if (draft.title) setTitle(draft.title);
+        if ((draft as any).notes) setDietAdviceNotes((draft as any).notes);
         if (draft.advice) setDietAdviceNotes(draft.advice);
-        if (Array.isArray(draft.menu) && draft.menu.length > 0) {
-          const generatedMeals: MealBlock[] = draft.menu.map((m: any, idx: number) => {
-            const rawItems = Array.isArray(m.items) ? m.items : [];
-            const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
-              if (typeof it === 'object' && it !== null) {
-                return {
-                  name: it.name || 'Món ăn dinh dưỡng',
-                  amount: it.amount || '150g',
-                  calories: it.calories || Math.round((m.calories || 400) / (rawItems.length || 1)),
-                  protein: it.protein || 15,
-                  carbs: it.carbs || 20,
-                  fat: it.fat || 5,
-                  prepTip: it.prepTip || undefined,
-                };
-              }
-              return {
-                name: String(it),
-                amount: '1 khẩu phần',
-                calories: Math.round((m.calories || 400) / (rawItems.length || 1)),
-                protein: 15,
-                carbs: 20,
-                fat: 5,
-              };
-            });
 
+        const targetKcal = (draft as any).targetCalories || Number(targetKcalInput) || 1850;
+
+        // Helper: parse raw AI meal items into MealFoodItem[]
+        const parseMealItems = (rawItems: any[], mealCalories: number): MealFoodItem[] => {
+          if (!Array.isArray(rawItems) || rawItems.length === 0) {
+            return [{ name: 'Món ăn dinh dưỡng', amount: '150g', calories: 150, protein: 15, carbs: 15, fat: 3 }];
+          }
+          return rawItems.map((it: any) => {
+            if (typeof it === 'object' && it !== null) {
+              return {
+                name: it.name || 'Món ăn dinh dưỡng',
+                amount: it.amount || '150g',
+                calories: it.calories || Math.round(mealCalories / (rawItems.length || 1)),
+                protein: it.protein || 15,
+                carbs: it.carbs || 20,
+                fat: it.fat || 5,
+                prepTip: it.prepTip || undefined,
+              };
+            }
             return {
-              id: `meal_${idx + 1}`,
-              name: m.name || m.title || `Bữa ${idx + 1}`,
-              timeSlot: m.timeSlot || (idx === 0 ? '07:00 - 07:45' : idx === 1 ? '12:00 - 12:45' : idx === 2 ? '16:30 - 17:00' : '19:30 - 20:15'),
-              targetKcal: m.calories || Math.round((draft.targetCalories || 1800) / draft.menu.length),
-              items: mealFoods.length > 0 ? mealFoods : [{ name: 'Món ăn dinh dưỡng', amount: '150g', calories: 150, protein: 15, carbs: 15, fat: 3 }],
+              name: String(it),
+              amount: '1 khẩu phần',
+              calories: Math.round(mealCalories / (rawItems.length || 1)),
+              protein: 15,
+              carbs: 20,
+              fat: 5,
             };
           });
-          const targetKcal = draft.targetCalories || Number(targetKcalInput) || 1850;
-          let dailyPlanTemplates: Array<{ dayOfWeek?: string; meals: MealBlock[] }> | undefined;
-          if (Array.isArray((draft as any).dailyPlans) && (draft as any).dailyPlans.length > 0) {
-            dailyPlanTemplates = (draft as any).dailyPlans.map((dp: any, dpIdx: number) => {
-              const dpMeals = Array.isArray(dp.meals) ? dp.meals : [];
-              return {
-                dayOfWeek: dp.dayOfWeek || dp.dayName || DAYS_OF_WEEK_VI[dpIdx % 7],
-                meals: dpMeals.map((m: any, mIdx: number) => ({
-                  id: `meal_dp_${dpIdx}_${mIdx + 1}`,
-                  name: m.name || m.title || `Bữa ${mIdx + 1}`,
-                  timeSlot: m.timeSlot || (mIdx === 0 ? '07:00 - 07:45' : mIdx === 1 ? '12:00 - 12:45' : mIdx === 2 ? '16:00 - 16:30' : '19:30 - 20:15'),
-                  targetKcal: m.calories || Math.round(targetKcal / (dpMeals.length || 4)),
-                  items: (m.items || []).map((it: any) => ({
-                    name: typeof it === 'object' && it !== null ? (it.name || 'Món ăn dinh dưỡng') : String(it),
-                    amount: typeof it === 'object' && it !== null ? (it.amount || '150g') : '1 khẩu phần',
-                    calories: typeof it === 'object' && it !== null ? (it.calories || 150) : 150,
-                    protein: typeof it === 'object' && it !== null ? (it.protein || 15) : 15,
-                    carbs: typeof it === 'object' && it !== null ? (it.carbs || 20) : 20,
-                    fat: typeof it === 'object' && it !== null ? (it.fat || 5) : 5,
-                    prepTip: typeof it === 'object' && it !== null ? it.prepTip : undefined,
-                  })),
-                })),
-              };
-            });
-          }
-          const newWeeks = buildWeeksSchedule(startDate, durationDays, generatedMeals, undefined, targetKcal, dailyPlanTemplates);
+        };
+
+        // Helper: parse raw AI meal block into MealBlock
+        const parseMealBlock = (m: any, idx: number, totalMeals: number): MealBlock => ({
+          id: `meal_${idx + 1}`,
+          name: m.name || m.title || `Bữa ${idx + 1}`,
+          timeSlot: m.timeSlot || (idx === 0 ? '07:00 - 07:45' : idx === 1 ? '12:00 - 12:45' : idx === 2 ? '16:30 - 17:00' : '19:30 - 20:15'),
+          targetKcal: m.calories || Math.round(targetKcal / totalMeals),
+          items: parseMealItems(m.items, m.calories || Math.round(targetKcal / totalMeals)),
+        });
+
+        // *** LUỒNG CHÍNH: AI trả về dailyPlans[7] (7 ngày khác nhau) ***
+        const aiDailyPlans = (draft as any).dailyPlans;
+        if (Array.isArray(aiDailyPlans) && aiDailyPlans.length > 0) {
+          const dailyPlanTemplates = aiDailyPlans.map((dp: any, dpIdx: number) => {
+            const dpMeals = Array.isArray(dp.meals) ? dp.meals : [];
+            return {
+              dayOfWeek: normalizeDayOfWeek(dp.dayOfWeek || dp.dayName) || DAYS_OF_WEEK_VI[(dpIdx + 1) % 7], // +1 vì index 0 = Thứ Hai
+              meals: dpMeals.map((m: any, mIdx: number) => parseMealBlock(m, mIdx, dpMeals.length)),
+            };
+          });
+
+          // Dùng ngày đầu tiên làm baseMeals fallback (cho poster/tổng kết)
+          const firstDayMeals = dailyPlanTemplates[0]?.meals || [];
+
+          const newWeeks = buildWeeksSchedule(startDate, durationDays, firstDayMeals, undefined, targetKcal, dailyPlanTemplates);
+          setWeeks(newWeeks);
+          setSelectedWeekIdx(0);
+          setSelectedDayIdx(0);
+        }
+        // *** LUỒNG PHỤ (backward compat): AI trả về menu[] cho 1 ngày ***
+        else if (Array.isArray(draft.menu) && draft.menu.length > 0) {
+          const generatedMeals: MealBlock[] = draft.menu.map((m: any, idx: number) =>
+            parseMealBlock(m, idx, draft.menu.length)
+          );
+          const newWeeks = buildWeeksSchedule(startDate, durationDays, generatedMeals);
           setWeeks(newWeeks);
           setSelectedWeekIdx(0);
           setSelectedDayIdx(0);
@@ -698,7 +706,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
   };
 
   /**
-   * Sinh ảnh AI cho bữa ăn bằng FLUX.2 Klein 4B qua /api/images/generate
+   * Sinh ảnh cho bữa ăn: Ưu tiên lấy từ kho ảnh món ăn có sẵn (tiết kiệm chi phí), nếu chưa có mới dùng AI FLUX.2 và lưu kho
    */
   const handleGenerateMealImage = async (mealIdx: number) => {
     const meal = meals[mealIdx];
@@ -712,30 +720,42 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       const foodDescriptions = meal.items.map((i) => `${i.name} (${i.amount})`).join(', ');
       const prompt = `Professional food photography of a healthy fitness gym meal: ${meal.name}, containing ${foodDescriptions}. Beautifully arranged on a modern ceramic plate, warm natural restaurant lighting, fresh ingredients, appetizing, high detail 4k.`;
 
-      const res = await api.post<{ b64Json: string; mediaType: string; cost?: number }>('/api/images/generate', {
+      const res = await api.post<{
+        imageUrl: string;
+        name: string;
+        source: 'CACHE' | 'AI';
+        reused: boolean;
+        cost?: number;
+        message: string;
+      }>('/api/images/meal-image', {
+        mealName: meal.name,
+        items: meal.items.map((i) => i.name),
         prompt,
         aspectRatio: '4:3',
-        outputFormat: 'jpeg',
       });
 
-      if (res.data?.b64Json) {
-        const dataUrl = `data:${res.data.mediaType || 'image/jpeg'};base64,${res.data.b64Json}`;
+      if (res.data?.imageUrl) {
         updateActiveDayMeals((curr) => {
           const next = [...curr];
           next[mealIdx] = {
             ...next[mealIdx],
-            imageUrl: dataUrl,
+            imageUrl: res.data.imageUrl,
           };
           return next;
         });
-        toast.success(`AI đã tạo ảnh trực quan cho ${meal.name} (FLUX.2 Klein 4B)!`);
+
+        if (res.data.reused) {
+          toast.success(`🎉 ${res.data.message || `Đã lấy ảnh từ kho cho ${meal.name} (Tiết kiệm chi phí)!`}`);
+        } else {
+          toast.success(`✨ ${res.data.message || `AI đã tạo ảnh mới và lưu vào kho cho ${meal.name}!`}`);
+        }
       }
     } catch (err: any) {
       const msg = errorMessage(err);
       if (msg.includes('402') || msg.includes('credits') || msg.includes('Insufficient')) {
         toast.error('Tài khoản OpenRouter cần nạp thêm credit để tạo ảnh AI (FLUX.2 Klein 4B).');
       } else {
-        toast.error(`Không thể tạo ảnh AI: ${msg}`);
+        toast.error(`Không thể tạo ảnh: ${msg}`);
       }
     } finally {
       setGeneratingImageId(null);

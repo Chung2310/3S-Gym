@@ -145,7 +145,7 @@ export default function RoadmapPage() {
       {/* Header section */}
       <div className="section-header">
         <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-          <Sparkles size={24} color="var(--secondary-color)" /> Quản lý Lộ trình (Roadmap)
+          <Sparkles size={24} color="var(--secondary-color)" /> Quản lý Lộ trình
         </h1>
         <button
           className="button button-primary"

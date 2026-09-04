@@ -169,7 +169,7 @@ export default function PtDashboardPage() {
         <div className="pt-dash-title-wrap">
           <h1 className="pt-dash-title">
             <Activity size={24} className="text-sky-500" />
-            <span>Bảng điều khiển Huấn luyện viên (PT)</span>
+            <span>Bảng điều khiển Huấn luyện viên</span>
           </h1>
         </div>
         <button
@@ -598,9 +598,7 @@ export default function PtDashboardPage() {
             <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1e293b', margin: '0 0 4px' }}>
               Tuyệt vời! Không có học viên nào bị cảnh báo nghiêm trọng
             </h3>
-            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-              Toàn bộ học viên đang theo đúng phác đồ tập luyện và dinh dưỡng.
-            </p>
+
           </div>
         ) : (
           <div className="pt-alert-grid">

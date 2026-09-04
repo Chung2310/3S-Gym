@@ -196,7 +196,7 @@ export default function NutritionPlanList({
               transition: 'all 0.15s ease',
             }}
           >
-            <Plus size={16} /> Tạo Thực Đơn Mới (AI Cơm Việt)
+            <Plus size={16} /> Tạo Thực Đơn Mới
           </button>
         </div>
       </div>
@@ -286,8 +286,8 @@ export default function NutritionPlanList({
             const endDateObj = plan.endDate
               ? new Date(plan.endDate)
               : startDateObj
-              ? new Date(startDateObj.getTime() + ((plan.durationDays || 7) - 1) * 86400000)
-              : null;
+                ? new Date(startDateObj.getTime() + ((plan.durationDays || 7) - 1) * 86400000)
+                : null;
             if (endDateObj) endDateObj.setHours(23, 59, 59, 999);
             const isCurrentlyActive = Boolean(startDateObj && endDateObj && now >= startDateObj && now <= endDateObj);
             const isUpcoming = Boolean(startDateObj && now < startDateObj);
@@ -300,8 +300,8 @@ export default function NutritionPlanList({
                   border: isCurrentlyActive
                     ? '2px solid #22c55e'
                     : isPub
-                    ? '1.5px solid #86efac'
-                    : '1px solid #e2e8f0',
+                      ? '1.5px solid #86efac'
+                      : '1px solid #e2e8f0',
                   borderRadius: '16px',
                   padding: '20px',
                   display: 'flex',
