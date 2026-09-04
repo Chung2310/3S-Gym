@@ -41,7 +41,7 @@ export default function ExerciseFilter({
               onFilter();
             }
           }}
-          placeholder="Tìm tên bài tập, nhóm cơ, thiết bị..."
+          placeholder="Tìm theo tên bài tập..."
           className="exercise-filter-input"
         />
         {keyword && (

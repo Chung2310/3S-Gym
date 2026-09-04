@@ -7109,17 +7109,21 @@ a {
 
 .studio-palette {
   position: static;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+  height: 100%;
   max-height: none;
   padding: 14px;
   overflow: visible;
   border: 0;
   border-radius: inherit;
   background: transparent;
+  box-sizing: border-box;
 }
 
 .studio-palette-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7177,9 +7181,8 @@ a {
   font-weight: 800;
 }
 
-.studio-palette-controls,
-.studio-palette-scroll,
-.studio-palette-section {
+.studio-palette-controls {
+  flex-shrink: 0;
   display: grid;
   gap: 10px;
 }
@@ -7227,12 +7230,37 @@ a {
 }
 
 .studio-palette-scroll {
+  flex: 1 1 0px;
   min-height: 0;
-  padding-right: 2px;
+  display: grid;
+  gap: 10px;
+  padding-right: 4px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.studio-palette-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.studio-palette-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.studio-palette-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.studio-palette-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .studio-palette-section {
+  display: grid;
+  gap: 10px;
   padding: 11px;
   border: 1px solid #dce8f0;
   border-radius: 11px;
@@ -7462,10 +7490,21 @@ a {
     top: 12px;
   }
 
-  .studio-palette {
+  .studio-library-region,
+  .studio-inspector-region {
     position: sticky;
     top: var(--studio-sticky-header-offset);
-    max-height: calc(100dvh - var(--studio-sticky-header-offset) - 12px);
+    height: calc(100dvh - var(--studio-sticky-header-offset) - 16px);
+    max-height: calc(100dvh - var(--studio-sticky-header-offset) - 16px);
+    overflow: hidden;
+  }
+
+  .studio-palette {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
     overflow: hidden;
   }
 }
@@ -7987,9 +8026,9 @@ a {
 
 @media (min-width: 1024px) {
   .studio-sidebar {
-    position: sticky;
-    top: var(--studio-sticky-header-offset);
-    max-height: calc(100dvh - var(--studio-sticky-header-offset) - 12px);
+    position: static;
+    height: 100%;
+    max-height: 100%;
     overflow-y: auto;
   }
 

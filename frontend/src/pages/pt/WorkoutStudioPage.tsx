@@ -41,7 +41,7 @@ export default function WorkoutStudioPage() {
   const selected = items.find((item) => item.id === selectedId); const dayItems = items.filter((item) => (item.weekNumber || 1) === activeWeek && item.dayNumber === activeDay); const totalMinutes = dayItems.reduce((sum, item) => sum + item.durationMinutes, 0);
   const muscleGroups = [...new Set(library.map((exercise) => exercise.muscleGroup))].sort();
   const metadataMuscleGroups = [...new Set([...muscleGroups, ...metadata.muscleGroups])].sort();
-  const filteredLibrary = library.filter((exercise) => `${exercise.name} ${exercise.muscleGroup}`.toLocaleLowerCase('vi').includes(exerciseQuery.trim().toLocaleLowerCase('vi')) && (!muscleGroup || exercise.muscleGroup === muscleGroup) && (!exerciseLevel || exercise.level === exerciseLevel));
+  const filteredLibrary = library.filter((exercise) => exercise.name.toLocaleLowerCase('vi').includes(exerciseQuery.trim().toLocaleLowerCase('vi')) && (!muscleGroup || exercise.muscleGroup === muscleGroup) && (!exerciseLevel || exercise.level === exerciseLevel));
   const recommendedExercises = useMemo(() => recommendExercises(library, { goal, level, muscleGroups: metadata.muscleGroups }), [library, goal, level, metadata.muscleGroups]);
   const availabilityWarnings = useMemo(
     () => outsideAvailabilityWarnings(items, availabilitySlots),

@@ -78,7 +78,7 @@ export default function ExercisePalette(props: Props) {
           <Search className="studio-palette-search-icon" aria-hidden="true" />
           <input
             aria-label="Tìm bài tập"
-            placeholder="Tìm theo tên hoặc nhóm cơ..."
+            placeholder="Tìm theo tên bài tập..."
             value={props.query}
             onChange={(event) => props.onQueryChange(event.target.value)}
           />
