@@ -4,7 +4,8 @@ import InBodyRecord from '../models/InBodyRecord.js';
 import Exercise from '../models/Exercise.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
-import { generateText } from './aiProvider.js';
+import { logger } from '../config/logger.js';
+import { generateWorkoutDraft as generateWorkoutJson } from './aiProvider.js';
 import {
   availabilityProposalDefaults,
   normalizeWorkoutSessionTimings,
@@ -144,12 +145,28 @@ function extractJson(raw: string): any {
   throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về dữ liệu hợp lệ.' });
 }
 
+function parseWorkoutJson(raw: string, requestKey: string) {
+  try {
+    return extractJson(raw);
+  } catch (error) {
+    logger.error({
+      context: 'AI_WORKOUT_PARSE', requestKey,
+      responseLength: raw.length,
+      responseStart: raw.slice(0, 1_000),
+      responseEnd: raw.length > 1_000 ? raw.slice(-1_000) : undefined,
+      err: error,
+    }, 'Không parse được JSON giáo án từ OpenRouter');
+    throw error;
+  }
+}
+
 function parseProposal(
   raw: string,
   defaults: Pick<WorkoutProposal, 'sessionsPerWeek' | 'minutesPerSession'>,
+  requestKey: string,
 ): WorkoutProposal {
   let value: unknown;
-  try { value = extractJson(raw); } catch { throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về đề xuất hợp lệ.' }); }
+  try { value = parseWorkoutJson(raw, requestKey); } catch { throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về đề xuất hợp lệ.' }); }
   const rawObj = (value && typeof value === 'object' ? value : {}) as Partial<WorkoutProposal>;
   const proposal = {
     ...rawObj,
@@ -180,8 +197,9 @@ export async function createWorkoutProposal(
     exerciseLibraryFor(user),
   ]);
   const proposalDefaults = availabilityProposalDefaults(availabilitySlots);
-  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-proposal` }, `Trả về duy nhất JSON đề xuất giáo án 1-12 tuần cho học viên ${customer.fullName}. Mục tiêu: ${goal?.title || customer.initialGoal || 'chưa có'}. InBody: ${inbody ? `cân nặng ${inbody.weight}, mỡ ${inbody.bodyFatPercentage ?? 'chưa có'}` : 'chưa có'}. Sức khỏe: ${customer.medicalNotes || 'không có'}. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(availabilitySlots)}. Mỗi ngày chỉ xếp tối đa một buổi tập; dùng đúng sessionsPerWeek và minutesPerSession đã được hệ thống tự tính. Hãy phân tích khả năng đáp ứng của thư viện bài tập hiện có của PT khi đề xuất phương pháp và lịch tập; ưu tiên các bài phù hợp trong thư viện, chỉ dự kiến tạo bài mới nếu thật sự thiếu. Thư viện: ${JSON.stringify(exerciseCatalog(library))}. JSON gồm durationWeeks, sessionsPerWeek, minutesPerSession, level, trainingMethod, trainingSplit, priorityMuscleGroups, restrictions.`);
-  return parseProposal(raw, proposalDefaults);
+  const providerRequestKey = `${requestKey}:text-workout-proposal`;
+  const raw = await generateWorkoutJson({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: providerRequestKey }, `Trả về duy nhất JSON đề xuất giáo án 1-12 tuần cho học viên ${customer.fullName}. Mục tiêu: ${goal?.title || customer.initialGoal || 'chưa có'}. InBody: ${inbody ? `cân nặng ${inbody.weight}, mỡ ${inbody.bodyFatPercentage ?? 'chưa có'}` : 'chưa có'}. Sức khỏe: ${customer.medicalNotes || 'không có'}. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(availabilitySlots)}. Mỗi ngày chỉ xếp tối đa một buổi tập; dùng đúng sessionsPerWeek và minutesPerSession đã được hệ thống tự tính. Hãy phân tích khả năng đáp ứng của thư viện bài tập hiện có của PT khi đề xuất phương pháp và lịch tập; ưu tiên các bài phù hợp trong thư viện, chỉ dự kiến tạo bài mới nếu thật sự thiếu. Thư viện: ${JSON.stringify(exerciseCatalog(library))}. JSON gồm durationWeeks, sessionsPerWeek, minutesPerSession, level, trainingMethod, trainingSplit, priorityMuscleGroups, restrictions.`);
+  return parseProposal(raw, proposalDefaults, providerRequestKey);
 }
 
 export async function generateWorkoutDraft(user: AuthenticatedUser, input: WorkoutGenerationInput, requestKey: string) {
@@ -190,9 +208,10 @@ export async function generateWorkoutDraft(user: AuthenticatedUser, input: Worko
   const proposal = input.proposal;
   if (proposal.durationWeeks < 1 || proposal.durationWeeks > 12) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Chu kỳ AI phải từ 1 đến 12 tuần.' });
   const library = await exerciseLibraryFor(user);
-  const raw = await generateText({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: `${requestKey}:text-workout-draft` }, `Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises, generatedExercises. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(input.availabilitySlots)}. Mỗi ngày chỉ có tối đa một buổi tập; ưu tiên xếp nguyên buổi vào một khung giờ rảnh đủ dài. Nếu lịch rảnh không đủ, vẫn tạo đầy đủ số buổi và hệ thống sẽ sắp lại, cảnh báo PT. Ưu tiên tối đa bài phù hợp trong thư viện. Bài có sẵn: scheduledExercises dùng exerciseId. Chỉ khi không có bài phù hợp mới tạo bài mới: thêm đầy đủ vào generatedExercises và scheduledExercises tham chiếu bằng generatedExerciseName trùng chính xác tên bài mới. Mỗi scheduledExercises chỉ gồm exerciseId hoặc generatedExerciseName (chỉ một trong hai), weekNumber (chỉ sinh tuần mẫu weekNumber: 1, hệ thống sẽ tự nhân bản cho toàn bộ ${proposal.durationWeeks} tuần), dayNumber, startMinute, durationMinutes; không trả về trackingType, prescription hay thông số mục tiêu trong lịch. durationMinutes là thời lượng riêng của từng bài, không phải thời lượng cả buổi. Các bài cùng tuần và ngày phải nối tiếp nhau, không trùng giờ; tổng thời lượng của chúng không vượt quá ${proposal.minutesPerSession} phút. Mỗi generatedExercises gồm name, muscleGroup, level, defaultTrackingType, equipment, description, technique, commonMistakes, contraindications, variants; defaultTrackingType chỉ là STRENGTH, BODYWEIGHT, CARDIO, INTERVAL hoặc MOBILITY. Ngày không có bài là ngày nghỉ hợp lệ. Thời gian dùng bước 15 phút và không trùng nhau. Cấu hình: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}. Thư viện: ${JSON.stringify(exerciseCatalog(library))}.`);
+  const providerRequestKey = `${requestKey}:text-workout-draft`;
+  const raw = await generateWorkoutJson({ userId: user.id, taskType: 'TEXT_WORKOUT', requestKey: providerRequestKey }, `Trả về duy nhất JSON giáo án cho ${customer.fullName}: title, goal, level, durationWeeks, sessionsPerWeek, minutesPerSession, scheduledExercises, generatedExercises. Khung giờ rảnh lặp lại mỗi tuần, dayNumber từ 1 đến 7 và thời gian tính bằng phút: ${availabilityPrompt(input.availabilitySlots)}. Mỗi ngày chỉ có tối đa một buổi tập; ưu tiên xếp nguyên buổi vào một khung giờ rảnh đủ dài. Nếu lịch rảnh không đủ, vẫn tạo đầy đủ số buổi và hệ thống sẽ sắp lại, cảnh báo PT. Ưu tiên tối đa bài phù hợp trong thư viện. Bài có sẵn: scheduledExercises dùng exerciseId. Chỉ khi không có bài phù hợp mới tạo bài mới: thêm đầy đủ vào generatedExercises và scheduledExercises tham chiếu bằng generatedExerciseName trùng chính xác tên bài mới. Mỗi scheduledExercises chỉ gồm exerciseId hoặc generatedExerciseName (chỉ một trong hai), weekNumber (chỉ sinh tuần mẫu weekNumber: 1, hệ thống sẽ tự nhân bản cho toàn bộ ${proposal.durationWeeks} tuần), dayNumber, startMinute, durationMinutes; không trả về trackingType, prescription hay thông số mục tiêu trong lịch. durationMinutes là thời lượng riêng của từng bài, không phải thời lượng cả buổi. Các bài cùng tuần và ngày phải nối tiếp nhau, không trùng giờ; tổng thời lượng của chúng không vượt quá ${proposal.minutesPerSession} phút. Mỗi generatedExercises gồm name, muscleGroup, level, defaultTrackingType, equipment, description, technique, commonMistakes, contraindications, variants; defaultTrackingType chỉ là STRENGTH, BODYWEIGHT, CARDIO, INTERVAL hoặc MOBILITY. Ngày không có bài là ngày nghỉ hợp lệ. Thời gian dùng bước 15 phút và không trùng nhau. Cấu hình: ${JSON.stringify(proposal)}. Yêu cầu PT: ${input.additionalRequest || 'không có'}. Thư viện: ${JSON.stringify(exerciseCatalog(library))}.`);
 
-  const draft = extractJson(raw);
+  const draft = parseWorkoutJson(raw, providerRequestKey);
   if (!draft || typeof draft !== 'object') throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI không trả về giáo án hợp lệ.' });
 
   if (!Array.isArray(draft.scheduledExercises)) {
