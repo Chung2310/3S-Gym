@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   X,
   Clock,
@@ -8,7 +8,6 @@ import {
   ChevronUp,
   Info,
   Sparkles,
-  CheckCircle2,
 } from 'lucide-react';
 
 interface FoodItem {
@@ -53,22 +52,16 @@ const VIETNAMESE_DAYS = [
   'Thứ Bảy',
 ];
 
+const EMPTY_DAY_PLAN: DayPlan = { meals: [] };
+
 export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalProps> = ({
   plan,
   customerName,
   onClose,
 }) => {
-  if (!plan) return null;
-
   // 1. Xác định thời gian thực hiện tại
   const now = new Date();
   const currentDayOfWeekName = VIETNAMESE_DAYS[now.getDay()]; // vd: "Thứ Sáu"
-  const todayFormatted = now.toLocaleDateString('vi-VN', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
   const currentTimeNumber = currentHour * 60 + currentMinute;
@@ -136,7 +129,7 @@ export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalPr
   }, [plan]);
 
   // 3. Tìm vị trí ngày hôm nay trong danh sách ngày
-  const todayDayIndex = useMemo(() => {
+  const todayDayIndex = (() => {
     if (normalizedDays.length === 0) return 0;
 
     // Tìm theo tên thứ (vd: "Thứ Sáu")
@@ -155,11 +148,17 @@ export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalPr
     if (normalizedDays[dayMapIndex]) return dayMapIndex;
 
     return 0;
-  }, [normalizedDays, currentDayOfWeekName]);
+  })();
 
   // Tab ngày đang được xem (mặc định mở ra là ngày HÔM NAY)
   const [selectedDayIdx, setSelectedDayIdx] = useState<number>(todayDayIndex);
-  const activeDay = normalizedDays[selectedDayIdx] || normalizedDays[0] || { meals: [] };
+  useEffect(() => {
+    setSelectedDayIdx(todayDayIndex);
+  }, [plan, todayDayIndex]);
+  const activeDay = useMemo(
+    () => normalizedDays[selectedDayIdx] || normalizedDays[0] || EMPTY_DAY_PLAN,
+    [normalizedDays, selectedDayIdx]
+  );
   const isViewingToday = selectedDayIdx === todayDayIndex;
 
   // Chế độ xem: 'realtime' (chỉ bữa hiện tại - mặc định) | 'all' (tất cả bữa trong ngày)
@@ -259,6 +258,8 @@ export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalPr
   }, [activeDay]);
 
   const currentMeal = realtimeMealInfo?.meal;
+
+  if (!plan) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">

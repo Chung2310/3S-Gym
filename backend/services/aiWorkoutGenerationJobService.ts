@@ -70,7 +70,9 @@ async function processNextJob(): Promise<boolean> {
       context: 'AI_WORKOUT_JOB',
       jobId: String(job._id),
       code: error.code,
+      message: error.message,
       errorName: cause instanceof Error ? cause.name : 'Error',
+      err: cause,
     }, 'Tạo giáo án AI nền thất bại');
     await AiWorkoutGenerationJob.updateOne(
       { _id: job._id, status: 'PROCESSING' },
