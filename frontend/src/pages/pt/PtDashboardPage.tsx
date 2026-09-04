@@ -20,7 +20,6 @@ import {
   Utensils,
   Moon,
   ClipboardCheck,
-  Bot,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -454,14 +453,6 @@ export default function PtDashboardPage() {
                             <Ruler size={12} />
                             <span>InBody</span>
                           </Link>
-                          <Link
-                            to="/pt/assistant"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '8px', fontSize: '0.74rem', fontWeight: 700, color: '#003b70', background: '#f8fafc', border: '1px solid #cbd5e1', textDecoration: 'none' }}
-                            title="Hỏi Trợ lý AI"
-                          >
-                            <Bot size={12} color="#003b70" />
-                            <span>Hỏi AI</span>
-                          </Link>
                         </div>
                       </td>
                     </tr>
@@ -483,13 +474,8 @@ export default function PtDashboardPage() {
               <Trophy size={20} className="text-amber-500" />
               <span>KẾT QUẢ NỔI BẬT - TOP THAY ĐỔI THEO MỤC TIÊU</span>
             </h2>
-            <span className="pt-section-badge" style={{ background: '#fef3c7', color: '#92400e' }}>
-              🏆 Bảng vàng bứt phá InBody
-            </span>
+
           </div>
-          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-            Xếp hạng học viên giảm mỡ, tăng cơ &amp; chuyển biến hình thể nhanh nhất
-          </span>
         </div>
 
         {topTransformers.length === 0 ? (
@@ -601,13 +587,8 @@ export default function PtDashboardPage() {
               <ShieldAlert size={20} className="text-rose-600" />
               <span>CẢNH BÁO: HỌC VIÊN CẦN QUAN TÂM &amp; KHÔNG THAY ĐỔI</span>
             </h2>
-            <span className="pt-section-badge" style={{ background: '#fee2e2', color: '#991b1b' }}>
-              🚨 Cần can thiệp điều chỉnh
-            </span>
+
           </div>
-          <span style={{ fontSize: '0.76rem', color: '#64748b' }}>
-            Phát hiện học viên bị chững tiến độ, tăng mỡ, giảm cơ hoặc vi phạm tần suất tập
-          </span>
         </div>
 
         {attentionCustomers.length === 0 ? (
@@ -616,9 +597,7 @@ export default function PtDashboardPage() {
             <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1e293b', margin: '0 0 4px' }}>
               Tuyệt vời! Không có học viên nào bị cảnh báo nghiêm trọng
             </h3>
-            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-              Toàn bộ học viên đang theo đúng phác đồ tập luyện và dinh dưỡng.
-            </p>
+
           </div>
         ) : (
           <div className="pt-alert-grid">
@@ -645,23 +624,16 @@ export default function PtDashboardPage() {
                 </div>
 
                 {/* Alert Body Tinh Gọn */}
-                <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
-                  <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '10px', padding: '10px 12px', fontSize: '0.78rem', color: '#991b1b', lineHeight: 1.45 }}>
-                    <div style={{ fontWeight: 750, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
-                      <AlertTriangle size={13} color="#dc2626" />
-                      <span>Vấn đề cần lưu ý:</span>
+                {c.improvementTips && c.improvementTips.length > 0 ? (
+                  <div style={{ padding: '10px 18px', flex: 1 }}>
+                    <div style={{ background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: '8px', padding: '8px 12px', fontSize: '0.78rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={13} color="#16a34a" className="shrink-0" />
+                      <span>{c.improvementTips[0]}</span>
                     </div>
-                    <span>Học viên có dấu hiệu chững tiến độ hoặc vi phạm tần suất tập luyện gần đây.</span>
                   </div>
-
-                  <div style={{ background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: '10px', padding: '10px 12px', fontSize: '0.78rem', color: '#166534', lineHeight: 1.45 }}>
-                    <div style={{ fontWeight: 750, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
-                      <Sparkles size={13} color="#16a34a" />
-                      <span>Gợi ý xử lý:</span>
-                    </div>
-                    <span>{c.improvementTips && c.improvementTips.length > 0 ? c.improvementTips[0] : 'Hẹn đo InBody lại và kiểm tra nhật ký ăn uống tuần tới.'}</span>
-                  </div>
-                </div>
+                ) : (
+                  <div style={{ flex: 1 }} />
+                )}
 
                 {/* Alert Footer Thoáng Đãng */}
                 <div style={{ padding: '12px 18px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
@@ -670,15 +642,8 @@ export default function PtDashboardPage() {
                   </span>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                     <Link
-                      to="/pt/assistant"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, color: '#fff', background: '#003b70', textDecoration: 'none', border: '0', transition: 'all 0.15s ease' }}
-                    >
-                      <Bot size={13} />
-                      <span>Hỏi Trợ lý AI</span>
-                    </Link>
-                    <Link
                       to="/pt/inbody"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, color: '#003b70', background: '#ffffff', border: '1px solid #cbd5e1', textDecoration: 'none', transition: 'all 0.15s ease' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 14px', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 700, color: '#fff', background: '#003b70', textDecoration: 'none', border: '0', transition: 'all 0.15s ease' }}
                     >
                       <Ruler size={13} />
                       <span>Đo InBody</span>

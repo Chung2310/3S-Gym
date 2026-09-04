@@ -38,6 +38,7 @@ import { api } from '../../services/api';
 import { errorMessage } from '../../types';
 import CustomerConsultationModal from './CustomerConsultationModal';
 import CustomerPhotoModal from './CustomerPhotoModal';
+import { CustomerTodayNutritionModal } from '../nutrition/CustomerTodayNutritionModal';
 import PtPackageManagerModal from './PtPackageManagerModal';
 import InBodyDetailModal from '../inbody/InBodyDetailModal';
 import InBodyManualModal from '../inbody/InBodyManualModal';
@@ -108,6 +109,7 @@ export default function CustomerDetailModal({
   const [inbodies, setInbodies] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [nutritionPlans, setNutritionPlans] = useState<any[]>([]);
+  const [selectedRealtimePlan, setSelectedRealtimePlan] = useState<any | null>(null);
 
   // Drag-to-scroll & overflow scroll support for tabs
   const tabsContainerRef = useRef<HTMLDivElement | null>(null);
@@ -228,6 +230,10 @@ export default function CustomerDetailModal({
 
   const activePackage = useMemo(() => packages.find((p) => p.status === 'ACTIVE'), [packages]);
 
+  const publishedNutritionPlans = useMemo(() => {
+    return nutritionPlans.filter((p: any) => p.status === 'PUBLISHED');
+  }, [nutritionPlans]);
+
   const userAccount = useMemo(() => {
     if (!detail?.userId) return null;
     if (typeof detail.userId === 'object' && detail.userId !== null && 'username' in detail.userId && detail.userId.username) {
@@ -243,7 +249,8 @@ export default function CustomerDetailModal({
     showConsultationModal ||
     showPhotoModal ||
     Boolean(selectedInbodyRecord) ||
-    showInbodyManualModal;
+    showInbodyManualModal ||
+    Boolean(selectedRealtimePlan);
 
   if (!open || !customer) return null;
 
@@ -913,25 +920,32 @@ export default function CustomerDetailModal({
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#003b70' }}>
-                    Kế hoạch Thực đơn Dinh dưỡng ({nutritionPlans.length})
+                    Kế hoạch Thực đơn Dinh dưỡng ({publishedNutritionPlans.length})
                   </h3>
-                  <button
-                    type="button"
-                    className="button button-primary"
-                    onClick={() => {
-                      onClose();
-                      navigate('/pt/nutrition');
-                    }}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.84rem' }}
-                  >
-                    <Utensils size={15} /> Mở Trợ Lý Dinh Dưỡng
-                  </button>
+                  {publishedNutritionPlans.length > 0 && (
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      onClick={() => setSelectedRealtimePlan(publishedNutritionPlans[0])}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.84rem',
+                        background: '#0284c7',
+                      }}
+                    >
+                      <Utensils size={15} /> Xem Hôm Nay Ăn Gì
+                    </button>
+                  )}
                 </div>
 
-                {nutritionPlans.length === 0 ? (
+                {publishedNutritionPlans.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
                     <Salad size={36} style={{ color: '#94a3b8', margin: '0 auto 10px' }} />
-                    <p style={{ color: '#64748b', margin: '0 0 12px' }}>Chưa có kế hoạch thực đơn dinh dưỡng nào cho học viên.</p>
+                    <p style={{ color: '#64748b', margin: '0 0 12px' }}>
+                      Học viên chưa có thực đơn dinh dưỡng nào được công bố áp dụng.
+                    </p>
                     <button
                       type="button"
                       className="button button-primary"
@@ -945,9 +959,10 @@ export default function CustomerDetailModal({
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {nutritionPlans.map((plan: any) => (
+                    {publishedNutritionPlans.map((plan: any) => (
                       <div
                         key={plan._id}
+                        onClick={() => setSelectedRealtimePlan(plan)}
                         style={{
                           background: '#ffffff',
                           borderRadius: '12px',
@@ -958,12 +973,24 @@ export default function CustomerDetailModal({
                           alignItems: 'center',
                           flexWrap: 'wrap',
                           gap: '14px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
                         }}
                       >
                         <div style={{ flex: '1 1 280px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                             <strong style={{ color: '#003b70', fontSize: '1rem' }}>{plan.title || 'Thực đơn Dinh dưỡng'}</strong>
-                            <StatusBadge status={plan.status || 'DRAFT'} />
+                            <span style={{
+                              background: '#ecfdf5',
+                              color: '#059669',
+                              border: '1px solid #a7f3d0',
+                              padding: '2px 8px',
+                              borderRadius: '9999px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                            }}>
+                              Đã công bố
+                            </span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.82rem', color: '#475569', flexWrap: 'wrap', marginTop: '6px' }}>
                             {plan.targetCalories && (
@@ -993,14 +1020,23 @@ export default function CustomerDetailModal({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <button
                             type="button"
-                            className="button button-secondary"
-                            style={{ fontSize: '0.8rem', padding: '6px 14px', fontWeight: 600 }}
-                            onClick={() => {
-                              onClose();
-                              navigate('/pt/nutrition');
+                            className="button button-primary"
+                            style={{
+                              fontSize: '0.82rem',
+                              padding: '7px 16px',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              background: '#0284c7',
+                              cursor: 'pointer',
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedRealtimePlan(plan);
                             }}
                           >
-                            <Utensils size={13} style={{ marginRight: '4px' }} /> Mở Studio
+                            <Utensils size={14} /> Xem Hôm Nay Ăn Gì
                           </button>
                         </div>
                       </div>
@@ -1168,6 +1204,15 @@ export default function CustomerDetailModal({
           loadAll();
         }}
       />
+
+      {/* MODAL THỰC ĐƠN DINH DƯỠNG HÔM NAY (THỜI GIAN THỰC) */}
+      {selectedRealtimePlan && (
+        <CustomerTodayNutritionModal
+          plan={selectedRealtimePlan}
+          customerName={detail?.fullName || customer?.fullName}
+          onClose={() => setSelectedRealtimePlan(null)}
+        />
+      )}
     </>
   );
 }

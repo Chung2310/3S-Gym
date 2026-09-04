@@ -84,15 +84,30 @@ function normalizeInBodyWarning(warning: string): string {
 async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResult<InBodyExtraction>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Dịch vụ OCR InBody chưa được cấu hình.' });
+  const ocrModel = process.env.OPENROUTER_OCR_MODEL || process.env.OCR_MODEL || APP_POLICY.OCR_MODEL;
   try {
+    const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+    const fileContent = isPdf
+      ? {
+          type: 'file',
+          file: {
+            filename: file.originalname || 'inbody.pdf',
+            file_data: `data:application/pdf;base64,${file.buffer.toString('base64')}`,
+          },
+        }
+      : {
+          type: 'image_url',
+          image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` },
+        };
+
     const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: APP_POLICY.AI_MODEL, temperature: 0,
+        model: ocrModel, temperature: 0,
         messages: [{ role: 'user', content: [
           { type: 'text', text: 'Trích xuất phiếu InBody thành JSON gồm: weight, bmi, bodyFatPercentage, bodyFatMass, muscleMass, bmr, visceralFatLevel, inbodyScore, bodyWater, boneMineral, waistHipRatio, segmentalMuscle (rightArm, leftArm, trunk, rightLeg, leftLeg), segmentalFat (rightArm, leftArm, trunk, rightLeg, leftLeg), confidence (số thực từ 0.0 đến 1.0) và warnings (mảng chuỗi cảnh báo bằng tiếng Việt dễ hiểu nếu có, ví dụ: "Chỉ số mỡ từng phần là ước tính của máy đo", tuyệt đối không dùng tiếng Anh kỹ thuật như "Segmental fat is estimated"). Chỉ trả JSON thuần túy.' },
-          { type: 'image_url', image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` } },
+          fileContent,
         ] }],
       }),
     }, getEnv().PROVIDER_TIMEOUT_MS);
@@ -147,7 +162,7 @@ async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResu
         ? parsed.warnings.filter((w): w is string => typeof w === 'string').map(normalizeInBodyWarning)
         : [],
     };
-    return { value, provider: 'openrouter', model: APP_POLICY.AI_MODEL, usage: normalizedUsage(payload.usage) };
+    return { value, provider: 'openrouter', model: ocrModel, usage: normalizedUsage(payload.usage) };
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'Không thể đọc phiếu InBody. Vui lòng nhập thủ công hoặc thử lại.', cause: error });

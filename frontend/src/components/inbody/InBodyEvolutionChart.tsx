@@ -22,6 +22,7 @@ interface InBodyEvolutionChartProps {
 export default function InBodyEvolutionChart({ records, title }: InBodyEvolutionChartProps) {
   const [activeTab, setActiveTab] = useState<MetricTab>('ALL');
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   // Filter & sort chronological (oldest to newest)
   const sorted = useMemo(() => {
@@ -54,6 +55,9 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
     };
   }, [sorted]);
 
+  const activeIdx = hoveredIdx !== null ? hoveredIdx : selectedIdx !== null ? selectedIdx : sorted.length - 1;
+  const activeRecord = sorted[activeIdx] || sorted[sorted.length - 1];
+
   if (sorted.length < 2) {
     return (
       <div
@@ -76,12 +80,12 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
     );
   }
 
-  // SVG Dimension Constants
-  const width = 720;
-  const height = 220;
-  const paddingX = 46;
-  const paddingTop = 28;
-  const paddingBottom = 42;
+  // SVG Dimension Constants (260px height for optimal spacing)
+  const width = 740;
+  const height = 260;
+  const paddingX = 52;
+  const paddingTop = 36;
+  const paddingBottom = 46;
   const plotWidth = width - paddingX * 2;
   const plotHeight = height - paddingTop - paddingBottom;
 
@@ -96,7 +100,7 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
     if (rawMin === rawMax) {
       return { min: Math.max(0, rawMin - 2), max: rawMax + 2, span: 4 };
     }
-    const margin = (rawMax - rawMin) * 0.15 || 1;
+    const margin = (rawMax - rawMin) * 0.18 || 1;
     return { min: rawMin - margin, max: rawMax + margin, span: rawMax - rawMin + margin * 2 };
   };
 
@@ -150,7 +154,7 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
     const firstX = pts[0].split(',')[0];
     const lastX = pts[pts.length - 1].split(',')[0];
     const bottomY = height - paddingBottom;
-    return `M ${pts[0]} L ${pts.join(' L ')} L ${lastX},${bottomY} L ${firstX},${bottomY} Z`;
+    return `M ${firstX},${bottomY} L ${pointsStr.replace(/ /g, ' L ')} L ${lastX},${bottomY} Z`;
   };
 
   return (
@@ -159,11 +163,11 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
         background: '#ffffff',
         border: '1px solid #e2e8f0',
         borderRadius: '16px',
-        padding: '20px 22px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+        padding: '20px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
       }}
     >
-      {/* Top Header & Metric Tabs */}
+      {/* Header & Tabs */}
       <div
         style={{
           display: 'flex',
@@ -172,15 +176,13 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
           flexWrap: 'wrap',
           gap: '12px',
           marginBottom: '16px',
-          paddingBottom: '14px',
-          borderBottom: '1px solid #f1f5f9',
         }}
       >
         <div>
           <h4
             style={{
               margin: 0,
-              fontSize: '1rem',
+              fontSize: '1.02rem',
               fontWeight: 800,
               color: '#003b70',
               display: 'flex',
@@ -202,11 +204,11 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
         <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', padding: '4px', borderRadius: '10px', flexWrap: 'wrap' }}>
           {(
             [
-              { id: 'ALL', label: 'Tất cả (Tổng hợp)' },
+              { id: 'ALL', label: 'Tất cả' },
               { id: 'WEIGHT', label: 'Cân nặng' },
-              { id: 'MUSCLE', label: 'Cơ nạc' },
+              { id: 'MUSCLE', label: 'Cơ' },
               { id: 'FAT', label: '% Mỡ' },
-              { id: 'SCORE', label: 'Điểm InBody' },
+              { id: 'SCORE', label: 'Điểm' },
             ] as const
           ).map((tab) => {
             const isActive = activeTab === tab.id;
@@ -328,24 +330,24 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
       <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          style={{ width: '100%', minWidth: '580px', height: 'auto', overflow: 'visible', userSelect: 'none' }}
+          style={{ width: '100%', minWidth: '600px', height: 'auto', overflow: 'visible', userSelect: 'none' }}
         >
           <defs>
             {/* Gradients */}
             <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0284c7" stopOpacity="0.25" />
+              <stop offset="0%" stopColor="#0284c7" stopOpacity="0.28" />
               <stop offset="100%" stopColor="#0284c7" stopOpacity="0.0" />
             </linearGradient>
             <linearGradient id="muscleGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.28" />
               <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
             </linearGradient>
             <linearGradient id="fatGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.25" />
+              <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.28" />
               <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.0" />
             </linearGradient>
             <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
+              <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.28" />
               <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
             </linearGradient>
           </defs>
@@ -384,7 +386,7 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
             <polyline points={scorePoints} fill="none" stroke="#7c3aed" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
           )}
 
-          {/* Data Points and Column Columns */}
+          {/* Data Points and Column Highlights */}
           {sorted.map((item, idx) => {
             const cx = getX(idx);
             const cyWeight = getYWeight(item.weight);
@@ -393,6 +395,7 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
             const cyScore = getYScore(item.inbodyScore);
 
             const isHovered = hoveredIdx === idx;
+            const isSelected = activeIdx === idx;
             const dateStr = new Date(item.measurementDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 
             return (
@@ -401,6 +404,7 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
                 style={{ cursor: 'pointer' }}
                 onMouseEnter={() => setHoveredIdx(idx)}
                 onMouseLeave={() => setHoveredIdx(null)}
+                onClick={() => setSelectedIdx(idx)}
               >
                 {/* Vertical guideline */}
                 <line
@@ -408,66 +412,123 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
                   y1={paddingTop}
                   x2={cx}
                   y2={height - paddingBottom}
-                  stroke={isHovered ? '#0284c7' : '#f1f5f9'}
-                  strokeWidth={isHovered ? 1.5 : 1}
-                  strokeDasharray="2 2"
+                  stroke={isSelected ? '#0284c7' : isHovered ? '#94a3b8' : '#f1f5f9'}
+                  strokeWidth={isSelected ? 2 : 1}
+                  strokeDasharray={isSelected ? 'none' : '2 2'}
                 />
 
-                {/* Circles for ALL or Single Metric */}
+                {/* Circles & Labels: Clean, uncrowded rendering */}
                 {(activeTab === 'ALL' || activeTab === 'WEIGHT') && (
                   <g>
-                    <circle cx={cx} cy={cyWeight} r={isHovered ? 6 : 4.5} fill="#ffffff" stroke="#0284c7" strokeWidth={2.5} />
-                    <text x={cx} y={cyWeight - 8} textAnchor="middle" fontSize="10" fontWeight="700" fill="#0284c7">
-                      {item.weight}kg
-                    </text>
+                    <circle
+                      cx={cx}
+                      cy={cyWeight}
+                      r={isSelected ? 6.5 : isHovered ? 5.5 : 4.5}
+                      fill={isSelected ? '#0284c7' : '#ffffff'}
+                      stroke="#0284c7"
+                      strokeWidth={2.5}
+                    />
+                    {activeTab === 'WEIGHT' && (
+                      <g>
+                        <rect x={cx - 24} y={cyWeight - 24} width="48" height="18" rx="4" fill="#ffffff" stroke="#0284c7" strokeWidth="1" />
+                        <text x={cx} y={cyWeight - 11} textAnchor="middle" fontSize="10" fontWeight="700" fill="#0284c7">
+                          {item.weight}kg
+                        </text>
+                      </g>
+                    )}
                   </g>
                 )}
 
                 {(activeTab === 'ALL' || activeTab === 'MUSCLE') && item.muscleMass != null && (
                   <g>
-                    <circle cx={cx} cy={cyMuscle} r={isHovered ? 6 : 4} fill="#ffffff" stroke="#15803d" strokeWidth={2} />
-                    <text x={cx} y={activeTab === 'ALL' ? cyMuscle + 14 : cyMuscle - 8} textAnchor="middle" fontSize="10" fontWeight="700" fill="#15803d">
-                      {item.muscleMass}kg cơ
-                    </text>
+                    <circle
+                      cx={cx}
+                      cy={cyMuscle}
+                      r={isSelected ? 6 : isHovered ? 5 : 4}
+                      fill={isSelected ? '#15803d' : '#ffffff'}
+                      stroke="#15803d"
+                      strokeWidth={2}
+                    />
+                    {activeTab === 'MUSCLE' && (
+                      <g>
+                        <rect x={cx - 28} y={cyMuscle - 24} width="56" height="18" rx="4" fill="#ffffff" stroke="#15803d" strokeWidth="1" />
+                        <text x={cx} y={cyMuscle - 11} textAnchor="middle" fontSize="10" fontWeight="700" fill="#15803d">
+                          {item.muscleMass}kg
+                        </text>
+                      </g>
+                    )}
                   </g>
                 )}
 
                 {(activeTab === 'ALL' || activeTab === 'FAT') && item.bodyFatPercentage != null && (
                   <g>
-                    <circle cx={cx} cy={cyFat} r={isHovered ? 6 : 4} fill="#ffffff" stroke="#e11d48" strokeWidth={2} />
-                    <text x={cx} y={activeTab === 'ALL' ? cyFat - 8 : cyFat - 8} textAnchor="middle" fontSize="10" fontWeight="700" fill="#e11d48">
-                      {item.bodyFatPercentage}% mỡ
-                    </text>
+                    <circle
+                      cx={cx}
+                      cy={cyFat}
+                      r={isSelected ? 6 : isHovered ? 5 : 4}
+                      fill={isSelected ? '#e11d48' : '#ffffff'}
+                      stroke="#e11d48"
+                      strokeWidth={2}
+                    />
+                    {activeTab === 'FAT' && (
+                      <g>
+                        <rect x={cx - 24} y={cyFat - 24} width="48" height="18" rx="4" fill="#ffffff" stroke="#e11d48" strokeWidth="1" />
+                        <text x={cx} y={cyFat - 11} textAnchor="middle" fontSize="10" fontWeight="700" fill="#e11d48">
+                          {item.bodyFatPercentage}%
+                        </text>
+                      </g>
+                    )}
                   </g>
                 )}
 
                 {activeTab === 'SCORE' && item.inbodyScore != null && (
                   <g>
-                    <circle cx={cx} cy={cyScore} r={isHovered ? 6 : 4.5} fill="#ffffff" stroke="#7c3aed" strokeWidth={2.5} />
-                    <text x={cx} y={cyScore - 8} textAnchor="middle" fontSize="11" fontWeight="700" fill="#7c3aed">
-                      {item.inbodyScore} điểm
+                    <circle
+                      cx={cx}
+                      cy={cyScore}
+                      r={isSelected ? 6.5 : isHovered ? 5.5 : 4.5}
+                      fill={isSelected ? '#7c3aed' : '#ffffff'}
+                      stroke="#7c3aed"
+                      strokeWidth={2.5}
+                    />
+                    <g>
+                      <rect x={cx - 28} y={cyScore - 24} width="56" height="18" rx="4" fill="#ffffff" stroke="#7c3aed" strokeWidth="1" />
+                      <text x={cx} y={cyScore - 11} textAnchor="middle" fontSize="10" fontWeight="700" fill="#7c3aed">
+                        {item.inbodyScore} đ
+                      </text>
+                    </g>
+                  </g>
+                )}
+
+                {/* Floating summary pin when hovered in ALL tab */}
+                {activeTab === 'ALL' && (isHovered || isSelected) && (
+                  <g transform={`translate(${cx}, ${Math.max(14, Math.min(cyWeight, cyMuscle, cyFat) - 34)})`} pointerEvents="none">
+                    <rect x="-48" y="0" width="96" height="22" rx="6" fill="#0f172a" opacity="0.92" />
+                    <text x="0" y="14" textAnchor="middle" fontSize="9.5" fontWeight="700" fill="#ffffff">
+                      {item.weight}kg · {item.bodyFatPercentage ?? '—'}% mỡ
                     </text>
+                    <polygon points="-4,22 4,22 0,26" fill="#0f172a" opacity="0.92" />
                   </g>
                 )}
 
                 {/* X Axis Date Label */}
                 <text
                   x={cx}
-                  y={height - 18}
+                  y={height - 20}
                   textAnchor="middle"
                   fontSize="11"
-                  fontWeight={isHovered ? '700' : '600'}
-                  fill={isHovered ? '#003b70' : '#64748b'}
+                  fontWeight={isSelected ? '800' : isHovered ? '700' : '600'}
+                  fill={isSelected ? '#003b70' : isHovered ? '#0f172a' : '#64748b'}
                 >
                   {dateStr}
                 </text>
                 <text
                   x={cx}
-                  y={height - 6}
+                  y={height - 7}
                   textAnchor="middle"
-                  fontSize="9"
-                  fontWeight="500"
-                  fill="#94a3b8"
+                  fontSize="9.5"
+                  fontWeight={isSelected ? '700' : '500'}
+                  fill={isSelected ? '#0284c7' : '#94a3b8'}
                 >
                   Lần {idx + 1}
                 </text>
@@ -477,42 +538,62 @@ export default function InBodyEvolutionChart({ records, title }: InBodyEvolution
         </svg>
       </div>
 
-      {/* Floating or Selected Point Details Box */}
-      {hoveredIdx !== null && sorted[hoveredIdx] && (
+      {/* Prominent Inspection Card for Active / Selected Point */}
+      {activeRecord && (
         <div
           style={{
-            marginTop: '14px',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '10px 14px',
+            marginTop: '16px',
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            border: '1px solid #cbd5e1',
+            borderRadius: '12px',
+            padding: '12px 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '10px',
-            fontSize: '0.84rem',
+            gap: '12px',
+            fontSize: '0.85rem',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Calendar size={14} color="#0284c7" />
-            <strong style={{ color: '#003b70' }}>
-              Lần đo {hoveredIdx + 1}: {new Date(sorted[hoveredIdx].measurementDate).toLocaleDateString('vi-VN')}
-            </strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calendar size={16} color="#0284c7" />
+            <div>
+              <strong style={{ color: '#003b70', display: 'block', fontSize: '0.88rem' }}>
+                Lần đo {activeIdx + 1} ({new Date(activeRecord.measurementDate).toLocaleDateString('vi-VN')})
+                {activeIdx === sorted.length - 1 && (
+                  <span style={{ marginLeft: '6px', fontSize: '0.72rem', background: '#dbeafe', color: '#1d4ed8', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                    Mới nhất
+                  </span>
+                )}
+              </strong>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                💡 Click vào bất kỳ lần đo nào trên biểu đồ để xem chi tiết
+              </span>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', color: '#334155' }}>
-            <span>⚖️ Cân nặng: <strong>{sorted[hoveredIdx].weight} kg</strong></span>
-            {sorted[hoveredIdx].bodyFatPercentage != null && (
-              <span>🔥 % Mỡ: <strong style={{ color: '#e11d48' }}>{sorted[hoveredIdx].bodyFatPercentage}%</strong></span>
+          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '8px' }}>
+              ⚖️ Cân nặng: <strong style={{ color: '#003b70' }}>{activeRecord.weight} kg</strong>
+            </span>
+            {activeRecord.muscleMass != null && (
+              <span style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '8px' }}>
+                💪 Cơ: <strong style={{ color: '#15803d' }}>{activeRecord.muscleMass} kg</strong>
+              </span>
             )}
-            {sorted[hoveredIdx].muscleMass != null && (
-              <span>💪 Cơ: <strong style={{ color: '#15803d' }}>{sorted[hoveredIdx].muscleMass} kg</strong></span>
+            {activeRecord.bodyFatPercentage != null && (
+              <span style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '8px' }}>
+                🔥 % Mỡ: <strong style={{ color: '#e11d48' }}>{activeRecord.bodyFatPercentage}%</strong>
+              </span>
             )}
-            {sorted[hoveredIdx].visceralFatLevel != null && (
-              <span>Mỡ nội tạng: <strong>Lv {sorted[hoveredIdx].visceralFatLevel}</strong></span>
+            {activeRecord.visceralFatLevel != null && (
+              <span style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '8px' }}>
+                Mỡ nội tạng: <strong>Lv {activeRecord.visceralFatLevel}</strong>
+              </span>
             )}
-            {sorted[hoveredIdx].inbodyScore != null && (
-              <span>⭐ Điểm: <strong>{sorted[hoveredIdx].inbodyScore}/100</strong></span>
+            {activeRecord.inbodyScore != null && (
+              <span style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '4px 10px', borderRadius: '8px' }}>
+                ⭐ Điểm: <strong style={{ color: '#7c3aed' }}>{activeRecord.inbodyScore}/100</strong>
+              </span>
             )}
           </div>
         </div>

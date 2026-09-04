@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Apple,
+  Calendar,
   CheckCircle,
   ChevronDown,
   Clock,
@@ -20,10 +21,33 @@ interface CustomerNutritionProps {
 
 export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
   const { nutritionPlans } = journey;
-  const activeNutrition = nutritionPlans && nutritionPlans.length > 0 ? nutritionPlans[0] : null;
-  const historyNutrition = nutritionPlans && nutritionPlans.length > 1 ? nutritionPlans.slice(1) : [];
+
+  // Priority: find the plan currently active today (between startDate and endDate)
+  const now = new Date();
+  const currentScheduledPlan = nutritionPlans?.find((p) => {
+    if (!p.startDate) return false;
+    const start = new Date(p.startDate);
+    const end = p.endDate
+      ? new Date(p.endDate)
+      : new Date(start.getTime() + ((p.durationDays || 7) - 1) * 86400000);
+    end.setHours(23, 59, 59, 999);
+    return now >= start && now <= end;
+  });
+
+  const activeNutrition = currentScheduledPlan || (nutritionPlans && nutritionPlans.length > 0 ? nutritionPlans[0] : null);
+  const historyNutrition = nutritionPlans ? nutritionPlans.filter((p) => p._id !== activeNutrition?._id) : [];
 
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [selectedPortalWeek, setSelectedPortalWeek] = useState<number>(0);
+  const [selectedPortalDay, setSelectedPortalDay] = useState<number>(0);
+
+  // Meal breakdown & Hierarchical Detection
+  const rawMenu = activeNutrition?.menu;
+  const isHierarchical = Array.isArray(rawMenu) && rawMenu.length > 0 && Boolean((rawMenu[0] as any)?.days);
+  const weeksData = isHierarchical ? (rawMenu as any[]) : [];
+  const currentWeek = weeksData[selectedPortalWeek] || weeksData[0];
+  const currentDay = currentWeek?.days?.[selectedPortalDay] || currentWeek?.days?.[0];
+  const activeDayMeals: any[] = isHierarchical ? (currentDay?.meals || []) : [];
 
   // Macros and calorie calculations
   const targetCalories = activeNutrition?.targetCalories || 2000;
@@ -40,9 +64,7 @@ export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
   const carbsPct = Math.round((carbsKcal / totalKcalCalc) * 100) || 45;
   const fatPct = Math.round((fatKcal / totalKcalCalc) * 100) || 25;
 
-  // Meal breakdown
-  const rawMenu = activeNutrition?.menu;
-  const menuItems: NutritionPlanMenuItem[] = Array.isArray(rawMenu) ? (rawMenu as NutritionPlanMenuItem[]) : [];
+  const menuItems: NutritionPlanMenuItem[] = !isHierarchical && Array.isArray(rawMenu) ? (rawMenu as NutritionPlanMenuItem[]) : [];
 
   return (
     <div className="space-y-6">
@@ -60,9 +82,19 @@ export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
                   <h3 className="font-oswald text-2xl font-bold uppercase tracking-wide text-white md:text-3xl">
                     {activeNutrition.title}
                   </h3>
-                  <p className="text-xs text-emerald-100">
-                    Công bố ngày {activeNutrition.publishedAt ? new Date(activeNutrition.publishedAt).toLocaleDateString('vi-VN') : 'Gần đây'}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-emerald-100">
+                    {activeNutrition.startDate ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-white/20 px-2.5 py-1 font-medium text-white shadow-xs backdrop-blur-xs">
+                        <Calendar size={13} className="text-amber-300" />
+                        Lịch áp dụng: {new Date(activeNutrition.startDate).toLocaleDateString('vi-VN')} - {new Date(activeNutrition.endDate || activeNutrition.startDate).toLocaleDateString('vi-VN')}
+                        {activeNutrition.durationDays ? ` (${activeNutrition.durationDays} ngày)` : ''}
+                      </span>
+                    ) : (
+                      <span>
+                        Công bố ngày {activeNutrition.publishedAt ? new Date(activeNutrition.publishedAt).toLocaleDateString('vi-VN') : 'Gần đây'}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3 rounded-2xl bg-white/10 p-4 backdrop-blur-md">
@@ -170,7 +202,137 @@ export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
               <span className="text-xs text-slate-500">Định lượng theo grams thực phẩm chín/sống</span>
             </div>
 
-            {menuItems.length > 0 ? (
+            {/* 4. HIERARCHICAL OR DETAILED MEAL MENU BREAKDOWN */}
+            {isHierarchical ? (
+              <div className="space-y-4">
+                {/* Level 1: Week Navigation */}
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 pb-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mr-2">Tuần:</span>
+                  {weeksData.map((w, wIdx) => {
+                    const isSelected = wIdx === selectedPortalWeek;
+                    return (
+                      <button
+                        key={w.weekNumber || wIdx}
+                        type="button"
+                        onClick={() => {
+                          setSelectedPortalWeek(wIdx);
+                          setSelectedPortalDay(0);
+                        }}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                          isSelected
+                            ? 'bg-emerald-700 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {w.name || `Tuần ${wIdx + 1}`}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Level 2: Day Navigation within active week */}
+                {currentWeek?.days && (
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {currentWeek.days.map((d: any, dIdx: number) => {
+                      const isSelected = dIdx === selectedPortalDay;
+                      return (
+                        <button
+                          key={d.dayNumber || dIdx}
+                          type="button"
+                          onClick={() => setSelectedPortalDay(dIdx)}
+                          className={`flex-shrink-0 rounded-xl border p-2.5 text-center transition ${
+                            isSelected
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-900 shadow-xs'
+                              : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:bg-slate-100'
+                          }`}
+                          style={{ minWidth: '100px' }}
+                        >
+                          <div className="text-xs font-bold">{d.dayOfWeek}</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            {d.date ? new Date(d.date).toLocaleDateString('vi-VN').slice(0, 5) : `Ngày ${d.dayNumber}`}
+                          </div>
+                          <div className="mt-1 text-[10px] font-semibold text-emerald-700">
+                            {d.meals?.length || 0} bữa ăn
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Level 3: Meals Grid for active day */}
+                <div className="mt-4">
+                  <div className="mb-3 flex items-center justify-between text-xs text-slate-600 font-semibold">
+                    <span>Thực đơn {currentDay?.dayOfWeek} ({currentDay?.date ? new Date(currentDay.date).toLocaleDateString('vi-VN') : `Ngày ${currentDay?.dayNumber}`}) • {currentWeek?.name}</span>
+                    <span>{activeDayMeals.length} bữa ăn</span>
+                  </div>
+
+                  {activeDayMeals.length > 0 ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {activeDayMeals.map((meal: any, idx: number) => (
+                        <div
+                          key={meal.id || idx}
+                          className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition hover:border-emerald-300 hover:bg-white hover:shadow-sm"
+                        >
+                          <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 font-oswald text-xs font-bold text-white">
+                                {idx + 1}
+                              </div>
+                              <h5 className="font-bold text-slate-900">{meal.name || `Bữa ăn ${idx + 1}`}</h5>
+                            </div>
+                            {meal.timeSlot && (
+                              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                                <Clock size={12} />
+                                {meal.timeSlot}
+                              </span>
+                            )}
+                          </div>
+
+                          {meal.calories && (
+                            <div className="mt-2 text-xs font-semibold text-emerald-700">
+                              Năng lượng dự tính: ~{meal.calories} kcal
+                            </div>
+                          )}
+
+                          {meal.imageUrl && (
+                            <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
+                              <img src={meal.imageUrl} alt={meal.name} className="h-36 w-full object-cover" />
+                            </div>
+                          )}
+
+                          {Array.isArray(meal.items) && meal.items.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {meal.items.map((item: any, itemIdx: number) => (
+                                <div
+                                  key={itemIdx}
+                                  className="flex items-center justify-between rounded-lg bg-white p-2.5 text-xs border border-slate-100"
+                                >
+                                  <div>
+                                    <div className="font-semibold text-slate-800">{item.name}</div>
+                                    {item.prepTip && (
+                                      <div className="text-[10px] text-slate-500 italic mt-0.5">{item.prepTip}</div>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 font-mono text-slate-600">
+                                    {item.amount && <span>{item.amount}</span>}
+                                    {item.calories && <span className="text-amber-600 font-bold">{item.calories} kcal</span>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 p-6 text-center text-xs text-slate-500">
+                      Chưa có thực đơn cho ngày này. Hãy liên hệ PT để được cập nhật.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : menuItems.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {menuItems.map((meal, idx) => (
                   <div
@@ -262,7 +424,16 @@ export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
                       className="flex cursor-pointer items-center justify-between"
                     >
                       <div>
-                        <h5 className="font-bold text-slate-900">{plan.title}</h5>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h5 className="font-bold text-slate-900">{plan.title}</h5>
+                          {plan.startDate && (
+                            <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                              <Calendar size={11} />
+                              {new Date(plan.startDate).toLocaleDateString('vi-VN')} - {new Date(plan.endDate || plan.startDate).toLocaleDateString('vi-VN')}
+                              {plan.durationDays ? ` (${plan.durationDays} ngày)` : ''}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-500">
                           {plan.targetCalories} Kcal/ngày • Đạm {plan.macros.protein}g • Carbs {plan.macros.carbs}g • Béo {plan.macros.fat}g
                         </p>

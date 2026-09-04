@@ -134,6 +134,8 @@ export interface InBodyOcrDraft {
   bodyWater?: number;
   boneMineral?: number;
   waistHipRatio?: number;
+  segmentalMuscle?: SegmentalMap | null;
+  segmentalFat?: SegmentalMap | null;
   confidence?: number;
   ocrWarnings?: string[];
   warnings?: string[];

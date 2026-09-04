@@ -11,8 +11,12 @@ export interface CustomerProgressReportSectionProps {
 function ReportMetrics({ metrics }: { metrics?: Record<string, unknown> }) {
   if (!metrics) return null;
   const weightDelta = typeof metrics.weightDelta === 'number' ? metrics.weightDelta : null;
+  const bodyFatDelta = typeof metrics.bodyFatDelta === 'number' ? metrics.bodyFatDelta : null;
+  const muscleDelta = typeof metrics.muscleDelta === 'number' ? metrics.muscleDelta : null;
+  const attendanceRate = typeof metrics.attendanceRate === 'number' ? metrics.attendanceRate : null;
   const totalVolume = typeof metrics.totalVolume === 'number' ? metrics.totalVolume : null;
-  if (weightDelta === null && totalVolume === null) return null;
+
+  if (weightDelta === null && bodyFatDelta === null && muscleDelta === null && totalVolume === null) return null;
 
   return (
     <dl className="mt-4 flex flex-wrap gap-2">
@@ -20,6 +24,24 @@ function ReportMetrics({ metrics }: { metrics?: Record<string, unknown> }) {
         <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
           <dt className="text-[0.65rem] font-bold uppercase tracking-wide text-slate-500">Cân nặng</dt>
           <dd className="mt-0.5 text-sm font-bold text-slate-900">{weightDelta > 0 ? '+' : ''}{weightDelta} kg</dd>
+        </div>
+      )}
+      {bodyFatDelta !== null && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+          <dt className="text-[0.65rem] font-bold uppercase tracking-wide text-amber-700">Tỷ lệ mỡ</dt>
+          <dd className="mt-0.5 text-sm font-bold text-amber-900">{bodyFatDelta > 0 ? '+' : ''}{bodyFatDelta}%</dd>
+        </div>
+      )}
+      {muscleDelta !== null && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+          <dt className="text-[0.65rem] font-bold uppercase tracking-wide text-emerald-700">Cơ bắp</dt>
+          <dd className="mt-0.5 text-sm font-bold text-emerald-900">{muscleDelta > 0 ? '+' : ''}{muscleDelta} kg</dd>
+        </div>
+      )}
+      {attendanceRate !== null && (
+        <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2">
+          <dt className="text-[0.65rem] font-bold uppercase tracking-wide text-indigo-600">Chuyên cần</dt>
+          <dd className="mt-0.5 text-sm font-bold text-indigo-900">{attendanceRate}%</dd>
         </div>
       )}
       {totalVolume !== null && (

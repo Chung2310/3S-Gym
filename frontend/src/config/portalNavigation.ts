@@ -35,6 +35,7 @@ export const portalNavigation: NavigationItem[] = [
   { path: '/admin/transfers', label: 'Điều chuyển khách', section: 'Vận hành', icon: ArrowRightLeft, roles: ['ADMIN'], matchChildren: true },
   { path: '/admin/admin-accounts', label: 'Tài khoản Admin', section: 'Vận hành', icon: ShieldCheck, roles: ['SUPER_ADMIN'], matchChildren: true },
   { path: '/admin/users', label: 'Quản lý tài khoản', section: 'Vận hành', icon: ShieldCheck, roles: ['ADMIN'], matchChildren: true },
+  { path: '/admin/knowledge', label: 'Kho tri thức & Ảnh món', section: 'Vận hành', icon: BookOpen, roles: ['ADMIN'], matchChildren: true },
 
   { path: '/pt/dashboard', label: 'Dashboard PT', section: 'Tổng quan', icon: LayoutDashboard, roles: ['PT'], feature: 'DASHBOARD' },
   { path: '/pt/customers', label: 'Khách hàng', section: 'Vận hành', icon: Users, roles: ['PT'], matchChildren: true },

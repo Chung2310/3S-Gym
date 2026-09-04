@@ -3,6 +3,7 @@ import {
   Calendar,
   CheckCircle2,
   FileImage,
+  FileText,
   ImageIcon,
   Sparkles,
   Trash2,
@@ -32,11 +33,15 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Object URL preview for the selected image
+  const isPdf = Boolean(
+    image && (image.type === 'application/pdf' || image.name.toLowerCase().endsWith('.pdf'))
+  );
+
+  // Object URL preview for the selected image (skip for PDF)
   const previewUrl = useMemo(() => {
-    if (!image) return null;
+    if (!image || isPdf) return null;
     return URL.createObjectURL(image);
-  }, [image]);
+  }, [image, isPdf]);
 
   // Clean up object URL when image changes or unmounts
   useEffect(() => {
@@ -54,7 +59,7 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
       return;
     }
     if (!image) {
-      setImageError('Vui lòng chọn ảnh phiếu InBody.');
+      setImageError('Vui lòng chọn ảnh hoặc file PDF phiếu InBody.');
       return;
     }
     setImageError('');
@@ -105,7 +110,7 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
       description={
         draft
           ? 'Vui lòng đối chiếu và chỉnh sửa các chỉ số từ bản quét trước khi lưu.'
-          : 'Tải ảnh chụp phiếu đo rõ nét để hệ thống tự động nhận diện các chỉ số thể trạng.'
+          : 'Tải ảnh chụp hoặc file PDF phiếu đo để hệ thống tự động nhận diện các chỉ số thể trạng.'
       }
       dirty={Boolean(customerId || measurementDate || image || draft)}
       loading={loading}
@@ -155,7 +160,7 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
           {/* Upload Dropzone Section */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FileImage size={16} color="#0284c7" /> Ảnh phiếu InBody <strong style={{ color: '#e11d48' }}>*</strong>
+              <FileImage size={16} color="#0284c7" /> Ảnh hoặc File PDF phiếu InBody <strong style={{ color: '#e11d48' }}>*</strong>
             </span>
 
             {!image ? (
@@ -204,9 +209,9 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
               >
                 <input
                   id={fileInputId}
-                  aria-label="Ảnh phiếu InBody"
+                  aria-label="Ảnh hoặc file PDF phiếu InBody"
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
                   onChange={(event) => {
                     setImage(event.target.files?.[0] ?? null);
                     setImageError('');
@@ -232,10 +237,10 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
                 </div>
 
                 <strong style={{ fontSize: '0.96rem', color: '#0f172a', marginBottom: '4px' }}>
-                  Kéo thả ảnh phiếu InBody vào đây hoặc duyệt từ thiết bị
+                  Kéo thả ảnh hoặc file PDF phiếu InBody vào đây hoặc duyệt từ thiết bị
                 </strong>
                 <span style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '14px', maxWidth: '440px' }}>
-                  Hỗ trợ định dạng JPG, PNG, WebP. Nên chụp thẳng góc, đủ sáng và rõ nét các dòng số liệu.
+                  Hỗ trợ định dạng JPG, PNG, WebP hoặc PDF xuất từ máy đo. Tài liệu rõ nét sẽ cho kết quả nhận diện chính xác nhất.
                 </span>
 
                 <span
@@ -253,14 +258,14 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                   }}
                 >
-                  <ImageIcon size={15} color="#0284c7" /> Chọn tệp ảnh
+                  <ImageIcon size={15} color="#0284c7" /> Chọn ảnh hoặc PDF
                 </span>
               </label>
             ) : (
               <div
                 style={{
-                  border: '1px solid #bbf7d0',
-                  background: '#f0fdf4',
+                  border: isPdf ? '1px solid #fecaca' : '1px solid #bbf7d0',
+                  background: isPdf ? '#fef2f2' : '#f0fdf4',
                   borderRadius: '14px',
                   padding: '16px 20px',
                   display: 'flex',
@@ -272,9 +277,9 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
               >
                 <input
                   id={fileInputId}
-                  aria-label="Ảnh phiếu InBody"
+                  aria-label="Ảnh hoặc file PDF phiếu InBody"
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
                   onChange={(event) => {
                     setImage(event.target.files?.[0] ?? null);
                     setImageError('');
@@ -284,7 +289,26 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
 
                 {/* Left: Thumbnail & Info */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: '240px' }}>
-                  {previewUrl ? (
+                  {isPdf ? (
+                    <div
+                      style={{
+                        width: '58px',
+                        height: '58px',
+                        borderRadius: '8px',
+                        background: '#fee2e2',
+                        border: '1px solid #fca5a5',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#dc2626',
+                        gap: '2px',
+                      }}
+                    >
+                      <FileText size={24} />
+                      <span style={{ fontSize: '0.65rem', fontWeight: 800 }}>PDF</span>
+                    </div>
+                  ) : previewUrl ? (
                     <img
                       src={previewUrl}
                       alt="Phiếu InBody preview"
@@ -316,10 +340,10 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
 
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <CheckCircle2 size={16} color="#16a34a" />
-                      <strong style={{ color: '#14532d', fontSize: '0.92rem' }}>{image.name}</strong>
+                      <CheckCircle2 size={16} color={isPdf ? '#dc2626' : '#16a34a'} />
+                      <strong style={{ color: isPdf ? '#991b1b' : '#14532d', fontSize: '0.92rem' }}>{image.name}</strong>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '0.8rem', color: '#15803d' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '0.8rem', color: isPdf ? '#b91c1c' : '#15803d' }}>
                       <span>{formatFileSize(image.size)}</span>
                       <span>•</span>
                       <span style={{ fontWeight: 600 }}>Sẵn sàng quét chỉ số</span>
@@ -345,7 +369,7 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
                       cursor: 'pointer',
                     }}
                   >
-                    Đổi ảnh khác
+                    Đổi tệp khác
                   </label>
 
                   <button

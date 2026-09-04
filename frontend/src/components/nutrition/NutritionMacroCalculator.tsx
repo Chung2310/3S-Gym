@@ -10,25 +10,25 @@ interface NutritionMacroCalculatorProps {
 }
 
 const BODY_TYPE_PRESETS = [
-  'Endomorph (Dễ tích mỡ bụng, chuyển hóa chậm, kháng insulin nhẹ)',
-  'Ectomorph (Khó tăng cân, chuyển hóa nhanh, cần nhiều tinh bột)',
-  'Mesomorph (Cơ địa thể thao, hấp thu tốt, dễ phát triển cơ bắp)',
-  'Skinny Fat (Ít cơ nhưng nhiều mỡ nội tạng, cần tăng cơ giảm mỡ đồng thời)',
+  'Endomorph (Dễ tích mỡ)',
+  'Ectomorph (Khó tăng cân)',
+  'Mesomorph (Cơ địa thể thao)',
+  'Skinny Fat (Ít cơ, nhiều mỡ)',
 ];
 
 const SCHEDULE_PRESETS = [
-  'Văn phòng 8h-17h30 (ngồi nhiều), tập gym chiều 18h-19h30, ngủ 23h30',
-  'Làm việc ca kíp / Ca đêm, tập sáng sớm 7h-8h30, ngủ không cố định',
-  'Kinh doanh tự do, bận rộn, chỉ nấu được 2 bữa/ngày, tập trưa 11h30',
-  'Sinh viên / Người trẻ, tập sáng 6h-7h15, học và hoạt động năng động cả ngày',
+  'Văn phòng ngồi nhiều, tập chiều 18h-19h30',
+  'Làm ca kíp / Ca đêm, tập sáng sớm 7h-8h30',
+  'Bận rộn, chỉ nấu 2 bữa/ngày, tập trưa 11h30',
+  'Tập sáng sớm 6h-7h15, năng động cả ngày',
 ];
 
 const DIETARY_PRESETS = [
-  'Ưu tiên món Việt Nam dễ nấu, không hải sản vỏ, không uống được sữa có lactose',
-  'Ăn Eat Clean chuẩn (nhiều rau, ức gà, cá, gạo lứt, hạn chế dầu mỡ)',
-  'Ăn chay thể hình Flexitarian (đậu phụ, nấm, trứng, sữa hạt, whey thực vật)',
-  'Nhịn ăn gián đoạn 16/8 (bỏ ăn sáng, chỉ ăn trong khung 12h00 - 20h00)',
-  'Thường xuyên ăn ngoài quán cơm bình dân, cần hướng dẫn chọn món chuẩn',
+  'Món Việt dễ nấu, không hải sản vỏ, không lactose',
+  'Eat Clean (nhiều rau, ức gà, cá, gạo lứt)',
+  'Ăn chay thể hình (đậu phụ, nấm, trứng, sữa hạt)',
+  'Nhịn ăn gián đoạn 16/8',
+  'Ăn ngoài quán cơm bình dân',
 ];
 
 export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan }: NutritionMacroCalculatorProps) {
@@ -158,17 +158,17 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
       case 'FAT_LOSS_FAST':
         deficitOrSurplus = -500;
         targetCalories = Math.round(tdee - 500);
-        goalLabel = 'Giảm mỡ nhanh (-500 kcal/ngày)';
+        goalLabel = 'Giảm mỡ nhanh';
         break;
       case 'FAT_LOSS_MODERATE':
         deficitOrSurplus = -350;
         targetCalories = Math.round(tdee - 350);
-        goalLabel = 'Giảm mỡ bền vững (-350 kcal/ngày)';
+        goalLabel = 'Giảm mỡ bền vững';
         break;
       case 'LEAN_BULK':
         deficitOrSurplus = 300;
         targetCalories = Math.round(tdee + 300);
-        goalLabel = 'Tăng cơ nạc (+300 kcal/ngày)';
+        goalLabel = 'Tăng cơ nạc';
         break;
       default:
         targetCalories = tdee;
@@ -533,11 +533,11 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                   onChange={(e) => setActivityFactor(e.target.value)}
                   style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
                 >
-                  <option value="1.2">1.2 - Ít vận động (Ngồi văn phòng, không tập thể thao)</option>
-                  <option value="1.375">1.375 - Vận động nhẹ (Tập thể thao 1-3 ngày/tuần)</option>
-                  <option value="1.55">1.55 - Vận động vừa (Tập thể thao 3-5 ngày/tuần)</option>
-                  <option value="1.725">1.725 - Vận động nặng (Tập thể thao 6-7 ngày/tuần)</option>
-                  <option value="1.9">1.9 - Vận động rất nặng (Vận động viên / Lao động chân tay)</option>
+                  <option value="1.2">1.2 - Ít vận động</option>
+                  <option value="1.375">1.375 - Vận động nhẹ</option>
+                  <option value="1.55">1.55 - Vận động vừa</option>
+                  <option value="1.725">1.725 - Vận động nặng</option>
+                  <option value="1.9">1.9 - Vận động rất nặng</option>
                 </select>
               </div>
 
@@ -548,10 +548,10 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                   onChange={(e) => setFormulaGoal(e.target.value)}
                   style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
                 >
-                  <option value="FAT_LOSS_FAST">Giảm mỡ nhanh (-500 kcal/ngày)</option>
-                  <option value="FAT_LOSS_MODERATE">Giảm mỡ bền vững (-350 kcal/ngày)</option>
-                  <option value="MAINTENANCE">Duy trì vóc dáng (0 kcal deficit)</option>
-                  <option value="LEAN_BULK">Tăng cơ nạc (+300 kcal/ngày)</option>
+                  <option value="FAT_LOSS_FAST">Giảm mỡ nhanh</option>
+                  <option value="FAT_LOSS_MODERATE">Giảm mỡ bền vững</option>
+                  <option value="MAINTENANCE">Duy trì vóc dáng</option>
+                  <option value="LEAN_BULK">Tăng cơ nạc</option>
                 </select>
               </div>
 
@@ -584,7 +584,7 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                 onClick={handleCalculateFormula}
                 style={{ padding: '10px 16px', fontSize: '0.88rem', fontWeight: 700, marginTop: '8px' }}
               >
-                Tính Toán Theo Công Thức Toán
+                Tính theo công thức
               </button>
             </>
           )}

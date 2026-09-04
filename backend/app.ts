@@ -36,6 +36,9 @@ import imageGenerationRouter from './routes/imageGeneration.js';
 import aiWorkoutRouter from './routes/aiWorkout.js';
 import creditsRouter from './routes/credits.js';
 import adminCreditsRouter from './routes/adminCredits.js';
+import foodImagesRouter from './routes/foodImages.js';
+import knowledgeRouter from './routes/knowledge.js';
+import fs from 'node:fs';
 import { configureSecurity } from './middlewares/security.js';
 import { createRateLimiter } from './middlewares/rateLimit.js';
 import { getEnv } from './config/env.js';
@@ -45,6 +48,14 @@ app.use(requestContext);
 const env = getEnv();
 configureSecurity(app, { corsOrigins: env.CORS_ORIGINS, trustProxy: env.TRUST_PROXY, jsonBodyLimit: env.JSON_BODY_LIMIT });
 app.use(requestLogging);
+
+// Phục vụ tĩnh thư mục kho ảnh món ăn vật lý
+const foodImagesDir = path.resolve(process.cwd(), 'uploads/food-images');
+if (!fs.existsSync(foodImagesDir)) {
+  fs.mkdirSync(foodImagesDir, { recursive: true });
+}
+app.use('/uploads/food-images', express.static(foodImagesDir));
+
 app.use('/api', createRateLimiter({ limit: 1_000, windowMs: 60_000 }));
 
 app.get('/api/health', (req, res) => success(res, {
@@ -83,6 +94,8 @@ app.use('/api', careDashboardRouter);
 app.use('/api', knowledgeAssistantRouter);
 app.use('/api', operationsRouter);
 app.use('/api/images', imageGenerationRouter);
+app.use('/api', foodImagesRouter);
+app.use('/api/knowledge', knowledgeRouter);
 app.use('/api', nutritionMetricsRouter);
 app.use('/api/content-drafts', contentDraftsRouter);
 

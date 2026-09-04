@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   ArrowRightLeft,
+  Calendar,
   Check,
   CheckCircle2,
+  Copy,
   Image as ImageIcon,
   Info,
+  Layers,
   Plus,
   RefreshCw,
   Salad,
@@ -24,6 +27,125 @@ import MealInfographicPoster from '../MealInfographicPoster';
 import MealAiConfigStudio, { DIET_STYLES, ALLERGY_CHIPS } from './MealAiConfigStudio';
 import MealCardItem, { type MealBlock, type MealFoodItem } from './MealCardItem';
 import MealImagePreviewModal from './MealImagePreviewModal';
+import {
+  VIETNAMESE_7DAYS_TEMPLATES,
+  buildMealsFromTemplate,
+  randomizeDayMeals,
+} from './nutritionVariationEngine';
+
+export interface DayMenuPlan {
+  dayNumber: number;
+  date: string;
+  dayOfWeek: string;
+  meals: MealBlock[];
+}
+
+export interface WeekMenuPlan {
+  weekNumber: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+  days: DayMenuPlan[];
+}
+
+const DAYS_OF_WEEK_VI = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+
+function normalizeDayOfWeek(str?: string): string {
+  if (!str) return '';
+  const s = str.trim().toLowerCase();
+  if (s.includes('2') || s.includes('hai') || s.includes('mon')) return 'Thứ Hai';
+  if (s.includes('3') || s.includes('ba') || s.includes('tue')) return 'Thứ Ba';
+  if (s.includes('4') || s.includes('tư') || s.includes('tu') || s.includes('wed')) return 'Thứ Tư';
+  if (s.includes('5') || s.includes('năm') || s.includes('nam') || s.includes('thu')) return 'Thứ Năm';
+  if (s.includes('6') || s.includes('sáu') || s.includes('sau') || s.includes('fri')) return 'Thứ Sáu';
+  if (s.includes('7') || s.includes('bảy') || s.includes('bay') || s.includes('sat')) return 'Thứ Bảy';
+  if (s.includes('nhật') || s.includes('nhat') || s.includes('cn') || s.includes('sun')) return 'Chủ Nhật';
+  return str;
+}
+
+function buildWeeksSchedule(
+  startStr: string,
+  totalDays: number,
+  baseMeals: MealBlock[] = [],
+  existingWeeks?: WeekMenuPlan[],
+  _targetKcal: number = 1850,
+  dailyPlanTemplates?: Array<{ dayOfWeek?: string; meals: MealBlock[] }>
+): WeekMenuPlan[] {
+  const parts = startStr.split('-');
+  const baseDate = parts.length === 3
+    ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+    : new Date(startStr);
+
+  const numWeeks = Math.max(1, Math.ceil(totalDays / 7));
+  const resultWeeks: WeekMenuPlan[] = [];
+
+  const formatYmd = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  for (let w = 0; w < numWeeks; w++) {
+    const startDayIdx = w * 7;
+    const endDayIdx = Math.min(totalDays - 1, (w + 1) * 7 - 1);
+
+    const wStartD = new Date(baseDate.getTime() + startDayIdx * 86400000);
+    const wEndD = new Date(baseDate.getTime() + endDayIdx * 86400000);
+
+    const days: DayMenuPlan[] = [];
+    for (let dIdx = startDayIdx; dIdx <= endDayIdx; dIdx++) {
+      const curD = new Date(baseDate.getTime() + dIdx * 86400000);
+      const dateYmd = formatYmd(curD);
+      const dayOfWeek = DAYS_OF_WEEK_VI[curD.getDay()];
+
+      let dayMeals: MealBlock[] = [];
+      const existingDay = existingWeeks?.[w]?.days?.find(
+        (ed) => ed.dayNumber === dIdx + 1 || ed.date === dateYmd
+      );
+
+      if (existingDay && existingDay.meals && existingDay.meals.length > 0) {
+        // Giữ nguyên dữ liệu đã chỉnh sửa
+        dayMeals = existingDay.meals;
+      } else if (dailyPlanTemplates && dailyPlanTemplates.length > 0) {
+        // Dữ liệu AI: match theo dayOfWeek chuẩn hóa, fallback theo index luân phiên
+        const curNorm = normalizeDayOfWeek(dayOfWeek);
+        const matched = dailyPlanTemplates.find(
+          (p) => normalizeDayOfWeek(p.dayOfWeek) === curNorm
+        ) || dailyPlanTemplates[dIdx % dailyPlanTemplates.length];
+        dayMeals = (matched?.meals || []).map((m, mIdx) => ({
+          ...m,
+          id: `meal_w${w + 1}_d${dIdx + 1}_${mIdx + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          items: m.items.map((it) => ({ ...it })),
+        }));
+      } else if (baseMeals.length > 0) {
+        // Fallback: clone baseMeals (legacy 1-day AI)
+        dayMeals = baseMeals.map((m, mIdx) => ({
+          ...m,
+          id: `meal_w${w + 1}_d${dIdx + 1}_${mIdx + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          items: m.items.map((it) => ({ ...it })),
+        }));
+      }
+
+      days.push({
+        dayNumber: dIdx + 1,
+        date: dateYmd,
+        dayOfWeek,
+        meals: dayMeals,
+      });
+    }
+
+    resultWeeks.push({
+      weekNumber: w + 1,
+      name: `Tuần ${w + 1}`,
+      startDate: formatYmd(wStartD),
+      endDate: formatYmd(wEndD),
+      days,
+    });
+  }
+
+  return resultWeeks;
+}
 
 interface MealPlannerBuilderProps {
   selectedCustomer?: Customer | null;
@@ -46,14 +168,251 @@ export default function MealPlannerBuilder({
 }: MealPlannerBuilderProps) {
   const toast = useToast();
   const [title, setTitle] = useState('');
-  const [meals, setMeals] = useState<MealBlock[]>([]);
   const [dietAdviceNotes, setDietAdviceNotes] = useState('');
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+  const [mealCount, setMealCount] = useState<number>(4);
+  const [targetKcalInput, setTargetKcalInput] = useState<string>('1850');
+
+  // Date Range / Duration State (max 31 days = 1 month)
+  const computeEndDate = (startStr: string, days: number): string => {
+    try {
+      const parts = startStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        d.setDate(d.getDate() + days - 1);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+    } catch {
+      // fallback
+    }
+    const d = new Date(startStr);
+    d.setDate(d.getDate() + days - 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const getTodayStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const formatDisplayDate = (dStr: string) => {
+    if (!dStr) return '';
+    const parts = dStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return new Date(dStr).toLocaleDateString('vi-VN');
+  };
+
+  const [startDate, setStartDate] = useState<string>(getTodayStr());
+  const [durationDays, setDurationDays] = useState<number>(7);
+  const [endDate, setEndDate] = useState<string>(computeEndDate(getTodayStr(), 7));
+
+  // Hierarchical Week & Day State
+  const [weeks, setWeeks] = useState<WeekMenuPlan[]>(() => buildWeeksSchedule(getTodayStr(), 7, []));
+  const [selectedWeekIdx, setSelectedWeekIdx] = useState<number>(0);
+  const [selectedDayIdx, setSelectedDayIdx] = useState<number>(0);
+
+  const activeWeek: WeekMenuPlan = weeks[selectedWeekIdx] || weeks[0] || { weekNumber: 1, name: 'Tuần 1', startDate: getTodayStr(), endDate: getTodayStr(), days: [] };
+  const activeDay: DayMenuPlan = activeWeek.days?.[selectedDayIdx] || activeWeek.days?.[0] || { dayNumber: 1, date: getTodayStr(), dayOfWeek: 'Thứ Hai', meals: [] };
+  const meals: MealBlock[] = activeDay?.meals || [];
+  const hasAnyMeals = weeks.some((w) => w.days.some((d) => d.meals.length > 0));
+
+  const updateActiveDayMeals = (updater: (prev: MealBlock[]) => MealBlock[]) => {
+    setWeeks((prev) => {
+      const next = [...prev];
+      if (!next[selectedWeekIdx]) return prev;
+      const week = { ...next[selectedWeekIdx] };
+      if (!week.days[selectedDayIdx]) return prev;
+      const day = { ...week.days[selectedDayIdx] };
+      day.meals = updater(day.meals || []);
+      week.days = [...week.days];
+      week.days[selectedDayIdx] = day;
+      next[selectedWeekIdx] = week;
+      return next;
+    });
+  };
+
+  const handleStartDateChange = (newStart: string) => {
+    setStartDate(newStart);
+    const newEnd = computeEndDate(newStart, durationDays);
+    setEndDate(newEnd);
+    setWeeks((prev) => buildWeeksSchedule(newStart, durationDays, meals, prev));
+  };
+
+  const handleDurationPreset = (days: number) => {
+    const clamped = Math.max(1, Math.min(31, days));
+    setDurationDays(clamped);
+    const newEnd = computeEndDate(startDate, clamped);
+    setEndDate(newEnd);
+    setWeeks((prev) => buildWeeksSchedule(startDate, clamped, meals, prev));
+    setSelectedWeekIdx(0);
+    setSelectedDayIdx(0);
+  };
+
+  const handleEndDateChange = (newEnd: string) => {
+    setEndDate(newEnd);
+    try {
+      const s = new Date(startDate).getTime();
+      const e = new Date(newEnd).getTime();
+      const diff = Math.round((e - s) / 86400000) + 1;
+      let targetDays = durationDays;
+      if (diff < 1) {
+        toast.error('Ngày kết thúc phải bằng hoặc sau ngày bắt đầu ăn.');
+        targetDays = 1;
+        setDurationDays(1);
+        setEndDate(startDate);
+      } else if (diff > 31) {
+        toast.info('Khoảng thời gian tối đa cho 1 thực đơn là 1 tháng (31 ngày).');
+        targetDays = 31;
+        setDurationDays(31);
+        setEndDate(computeEndDate(startDate, 31));
+      } else {
+        targetDays = diff;
+        setDurationDays(diff);
+      }
+      setWeeks((prev) => buildWeeksSchedule(startDate, targetDays, meals, prev));
+    } catch {
+      // ignore
+    }
+  };
+
+  // Copy helpers for hierarchical planning
+  const handleCopyDayToWeek = () => {
+    const currentDayMeals = activeDay?.meals;
+    if (!currentDayMeals || currentDayMeals.length === 0) {
+      toast.error('Chưa có bữa ăn nào trong ngày hiện tại để sao chép.');
+      return;
+    }
+    setWeeks((prev) => {
+      const next = prev.map((w, wIdx) => {
+        if (wIdx !== selectedWeekIdx) return w;
+        return {
+          ...w,
+          days: w.days.map((d) => ({
+            ...d,
+            meals: currentDayMeals.map((m) => ({
+              ...m,
+              id: `meal_w${wIdx + 1}_d${d.dayNumber}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+              items: m.items.map((it) => ({ ...it })),
+            })),
+          })),
+        };
+      });
+      return next;
+    });
+    toast.success(`Đã áp dụng thực đơn ngày này cho toàn bộ ${activeWeek.name}!`);
+  };
+
+  const handleCopyDayToAllWeeks = () => {
+    const currentDayMeals = activeDay?.meals;
+    if (!currentDayMeals || currentDayMeals.length === 0) {
+      toast.error('Chưa có bữa ăn nào trong ngày hiện tại để sao chép.');
+      return;
+    }
+    setWeeks((prev) => {
+      const next = prev.map((w, wIdx) => ({
+        ...w,
+        days: w.days.map((d) => ({
+          ...d,
+          meals: currentDayMeals.map((m) => ({
+            ...m,
+            id: `meal_w${wIdx + 1}_d${d.dayNumber}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            items: m.items.map((it) => ({ ...it })),
+          })),
+        })),
+      }));
+      return next;
+    });
+    toast.success(`Đã áp dụng thực đơn ngày này cho toàn bộ ${durationDays} ngày!`);
+  };
+
+  const handleCopyWeekToAllWeeks = () => {
+    const currentWeek = activeWeek;
+    if (!currentWeek || currentWeek.days.length === 0) {
+      toast.error('Chưa có dữ liệu tuần để sao chép.');
+      return;
+    }
+    setWeeks((prev) => {
+      const next = prev.map((w, wIdx) => {
+        if (wIdx === selectedWeekIdx) return w;
+        return {
+          ...w,
+          days: w.days.map((d, dIdx) => {
+            const sourceDay = currentWeek.days[dIdx % currentWeek.days.length];
+            return {
+              ...d,
+              meals: (sourceDay?.meals || []).map((m) => ({
+                ...m,
+                id: `meal_w${wIdx + 1}_d${d.dayNumber}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+                items: m.items.map((it) => ({ ...it })),
+              })),
+            };
+          }),
+        };
+      });
+      return next;
+    });
+    toast.success(`Đã sao chép toàn bộ ${currentWeek.name} sang các tuần còn lại!`);
+  };
+
+  // Đổi món ngẫu nhiên cho ngày đang chọn
+  const handleRandomizeActiveDay = () => {
+    const currentMeals = activeDay?.meals || [];
+    if (currentMeals.length === 0) {
+      toast.error('Chưa có bữa ăn nào trong ngày để đổi món.');
+      return;
+    }
+    const targetKcal = Number(targetKcalInput) || 1850;
+    const newMeals = randomizeDayMeals(currentMeals, targetKcal, activeDay?.dayOfWeek);
+    updateActiveDayMeals(() => newMeals);
+    toast.success(`Đã đổi món ngẫu nhiên cho ${activeDay?.dayOfWeek} (${formatDisplayDate(activeDay?.date)})!`);
+  };
+
+  // Đổi món toàn bộ các ngày trong tuần hiện tại
+  const handleRandomizeActiveWeek = () => {
+    const currentWeek = activeWeek;
+    if (!currentWeek || currentWeek.days.length === 0) {
+      toast.error('Chưa có dữ liệu tuần để đổi món.');
+      return;
+    }
+    const targetKcal = Number(targetKcalInput) || 1850;
+    const currentMeals = activeDay?.meals || [];
+    const count = currentMeals.length || mealCount || 4;
+
+    setWeeks((prev) => {
+      const clone = [...prev];
+      const curWeek = clone[selectedWeekIdx];
+      if (!curWeek) return prev;
+
+      const randomOffset = Math.floor(Math.random() * VIETNAMESE_7DAYS_TEMPLATES.length);
+      const newDays = curWeek.days.map((d, idx) => {
+        const rotatedTemplate = VIETNAMESE_7DAYS_TEMPLATES[(idx + randomOffset) % VIETNAMESE_7DAYS_TEMPLATES.length];
+        const variedMeals = buildMealsFromTemplate(rotatedTemplate, targetKcal, count);
+        return {
+          ...d,
+          meals: variedMeals.map((m: any, mIdx: number) => ({
+            ...m,
+            id: `meal_w${curWeek.weekNumber}_d${d.dayNumber}_${mIdx + 1}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+            items: m.items.map((it: any) => ({ ...it })),
+          })),
+        };
+      });
+
+      clone[selectedWeekIdx] = { ...curWeek, days: newDays };
+      return clone;
+    });
+    toast.success(`Đã làm mới và đổi món phong phú cho toàn bộ ${activeWeek.name}!`);
+  };
 
   // AI Configuration Studio State
   const [showConfigStudio, setShowConfigStudio] = useState(true);
-  const [mealCount, setMealCount] = useState<number>(4);
-  const [targetKcalInput, setTargetKcalInput] = useState<string>('1850');
   const [dietStyle, setDietStyle] = useState<string>('vietnamese_easy');
   const [workoutSchedule, setWorkoutSchedule] = useState<string>('Tập gym chiều 17h30 - 19h00, làm văn phòng ngồi nhiều');
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
@@ -97,44 +456,74 @@ export default function MealPlannerBuilder({
       if (editingPlan.title) setTitle(editingPlan.title);
       if (editingPlan.notes) setDietAdviceNotes(editingPlan.notes);
       if (editingPlan.targetCalories) setTargetKcalInput(String(editingPlan.targetCalories));
+
+      let planStart = getTodayStr();
+      let planDuration = 7;
+      if (editingPlan.startDate) {
+        planStart = new Date(editingPlan.startDate).toISOString().split('T')[0];
+        setStartDate(planStart);
+        if (editingPlan.endDate) {
+          const e = new Date(editingPlan.endDate).toISOString().split('T')[0];
+          setEndDate(e);
+          const diff = Math.round((new Date(e).getTime() - new Date(planStart).getTime()) / 86400000) + 1;
+          planDuration = editingPlan.durationDays || Math.max(1, Math.min(31, diff));
+          setDurationDays(planDuration);
+        } else if (editingPlan.durationDays) {
+          planDuration = Math.max(1, Math.min(31, editingPlan.durationDays));
+          setDurationDays(planDuration);
+          setEndDate(computeEndDate(planStart, planDuration));
+        }
+      }
+
       if (Array.isArray(editingPlan.menu) && editingPlan.menu.length > 0) {
-        setMealCount(editingPlan.menu.length);
-        const parsedMeals: MealBlock[] = editingPlan.menu.map((m: any, idx: number) => {
-          const rawItems = Array.isArray(m.items) ? m.items : [];
-          const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
-            if (typeof it === 'object' && it !== null) {
+        // Check if hierarchical
+        if (editingPlan.menu[0]?.days) {
+          setWeeks(editingPlan.menu as WeekMenuPlan[]);
+          setSelectedWeekIdx(0);
+          setSelectedDayIdx(0);
+          setShowConfigStudio(false);
+        } else {
+          setMealCount(editingPlan.menu.length);
+          const parsedMeals: MealBlock[] = editingPlan.menu.map((m: any, idx: number) => {
+            const rawItems = Array.isArray(m.items) ? m.items : [];
+            const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
+              if (typeof it === 'object' && it !== null) {
+                return {
+                  name: it.name || 'Món ăn',
+                  amount: it.amount || '100g',
+                  calories: it.calories || 100,
+                  protein: it.protein || 10,
+                  carbs: it.carbs || 10,
+                  fat: it.fat || 3,
+                  prepTip: it.prepTip || undefined,
+                };
+              }
+              const str = String(it);
               return {
-                name: it.name || 'Món ăn',
-                amount: it.amount || '100g',
-                calories: it.calories || 100,
-                protein: it.protein || 10,
-                carbs: it.carbs || 10,
-                fat: it.fat || 3,
-                prepTip: it.prepTip || undefined,
+                name: str.split('(')[0]?.trim() || str,
+                amount: '1 khẩu phần',
+                calories: 120,
+                protein: 15,
+                carbs: 10,
+                fat: 3,
               };
-            }
-            const str = String(it);
+            });
+
             return {
-              name: str.split('(')[0]?.trim() || str,
-              amount: '1 khẩu phần',
-              calories: 120,
-              protein: 15,
-              carbs: 10,
-              fat: 3,
+              id: `meal_loaded_${idx + 1}`,
+              name: m.name || `Bữa ${idx + 1}`,
+              timeSlot: m.timeSlot || '08:00',
+              targetKcal: m.calories || 400,
+              items: mealFoods,
+              imageUrl: m.imageUrl || undefined,
             };
           });
-
-          return {
-            id: `meal_loaded_${idx + 1}`,
-            name: m.name || `Bữa ${idx + 1}`,
-            timeSlot: m.timeSlot || '08:00',
-            targetKcal: m.calories || 400,
-            items: mealFoods,
-            imageUrl: m.imageUrl || undefined,
-          };
-        });
-        setMeals(parsedMeals);
-        setShowConfigStudio(false);
+          const loadedWeeks = buildWeeksSchedule(planStart, planDuration, parsedMeals);
+          setWeeks(loadedWeeks);
+          setSelectedWeekIdx(0);
+          setSelectedDayIdx(0);
+          setShowConfigStudio(false);
+        }
       }
     } else if (appliedAiAnalysis) {
       setCurrentPlanId(null);
@@ -152,7 +541,7 @@ export default function MealPlannerBuilder({
           targetKcal: ts.calorieTarget,
           items: [],
         }));
-        setMeals(timingMeals);
+        setWeeks(buildWeeksSchedule(startDate, durationDays, timingMeals));
       }
       setShowConfigStudio(true);
     } else if (appliedNutrition) {
@@ -167,7 +556,7 @@ export default function MealPlannerBuilder({
       } else {
         setTitle('Kế Hoạch Thực Đơn Dinh Dưỡng');
       }
-      setMeals([]);
+      setWeeks(buildWeeksSchedule(startDate, durationDays, []));
       setShowConfigStudio(true);
     }
   }, [editingPlan, appliedAiAnalysis, appliedNutrition, selectedCustomer]);
@@ -212,12 +601,14 @@ export default function MealPlannerBuilder({
       const styleObj = DIET_STYLES.find((s) => s.id === dietStyle);
       const compositeRequest = `
 YÊU CẦU THIẾT KẾ THỰC ĐƠN:
+- Thời gian áp dụng: ${durationDays} ngày (từ ${formatDisplayDate(startDate)} đến ${formatDisplayDate(endDate)}).
+- Cấu trúc: Thiết kế 7 thực đơn riêng biệt cho 7 ngày trong tuần (Thứ Hai đến Chủ Nhật), mỗi ngày đúng ${mealCount} bữa/ngày với các món ăn và nguồn đạm khác nhau hoàn toàn để phân bổ vào chu kỳ ${durationDays} ngày.
 - Số bữa ăn: ${mealCount} bữa/ngày.
 - Calo mục tiêu: ${targetKcalInput ? `${targetKcalInput} kcal` : 'Tự động tính theo chỉ số'}.
 - Phong cách ẩm thực: ${styleObj?.label || 'Món Việt Nam dễ nấu'} (${styleObj?.desc || ''}).
 - Lịch trình sinh hoạt & giờ tập: ${workoutSchedule}.
 - Kiêng kỵ & Dị ứng: ${selectedAllergies.length > 0 ? selectedAllergies.join(', ') : 'Không có dị ứng đặc biệt'}.
-- Ngân sách: ${budgetLevel === 'BUDGET' ? 'Tiết kiệm / Sinh viên' : budgetLevel === 'PREMIUM' ? 'Cao cấp (cá hồi, bò Úc, whey isolate)' : 'Tiêu chuẩn Gym'}.
+- Ngân sách: ${budgetLevel === 'BUDGET' ? 'Tiết kiệm / Sinh viên' : budgetLevel === 'PREMIUM' ? 'Cao cấp (cá hồi, bò Úc, whey isolate)' : 'Tiêu chuẩn'}.
 ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       `.trim();
 
@@ -233,44 +624,79 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
           setCurrentPlanId(generatedId);
         }
         if (draft.title) setTitle(draft.title);
+        if ((draft as any).notes) setDietAdviceNotes((draft as any).notes);
         if (draft.advice) setDietAdviceNotes(draft.advice);
-        if (Array.isArray(draft.menu) && draft.menu.length > 0) {
-          const generatedMeals: MealBlock[] = draft.menu.map((m: any, idx: number) => {
-            const rawItems = Array.isArray(m.items) ? m.items : [];
-            const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
-              if (typeof it === 'object' && it !== null) {
-                return {
-                  name: it.name || 'Món ăn dinh dưỡng',
-                  amount: it.amount || '150g',
-                  calories: it.calories || Math.round((m.calories || 400) / (rawItems.length || 1)),
-                  protein: it.protein || 15,
-                  carbs: it.carbs || 20,
-                  fat: it.fat || 5,
-                  prepTip: it.prepTip || undefined,
-                };
-              }
-              return {
-                name: String(it),
-                amount: '1 khẩu phần',
-                calories: Math.round((m.calories || 400) / (rawItems.length || 1)),
-                protein: 15,
-                carbs: 20,
-                fat: 5,
-              };
-            });
 
+        const targetKcal = (draft as any).targetCalories || Number(targetKcalInput) || 1850;
+
+        // Helper: parse raw AI meal items into MealFoodItem[]
+        const parseMealItems = (rawItems: any[], mealCalories: number): MealFoodItem[] => {
+          if (!Array.isArray(rawItems) || rawItems.length === 0) {
+            return [{ name: 'Món ăn dinh dưỡng', amount: '150g', calories: 150, protein: 15, carbs: 15, fat: 3 }];
+          }
+          return rawItems.map((it: any) => {
+            if (typeof it === 'object' && it !== null) {
+              return {
+                name: it.name || 'Món ăn dinh dưỡng',
+                amount: it.amount || '150g',
+                calories: it.calories || Math.round(mealCalories / (rawItems.length || 1)),
+                protein: it.protein || 15,
+                carbs: it.carbs || 20,
+                fat: it.fat || 5,
+                prepTip: it.prepTip || undefined,
+              };
+            }
             return {
-              id: `meal_${idx + 1}`,
-              name: m.name || m.title || `Bữa ${idx + 1}`,
-              timeSlot: m.timeSlot || (idx === 0 ? '07:00 - 07:45' : idx === 1 ? '12:00 - 12:45' : idx === 2 ? '16:30 - 17:00' : '19:30 - 20:15'),
-              targetKcal: m.calories || Math.round((draft.targetCalories || 1800) / draft.menu.length),
-              items: mealFoods.length > 0 ? mealFoods : [{ name: 'Món ăn dinh dưỡng', amount: '150g', calories: 150, protein: 15, carbs: 15, fat: 3 }],
+              name: String(it),
+              amount: '1 khẩu phần',
+              calories: Math.round(mealCalories / (rawItems.length || 1)),
+              protein: 15,
+              carbs: 20,
+              fat: 5,
             };
           });
-          setMeals(generatedMeals);
+        };
+
+        // Helper: parse raw AI meal block into MealBlock
+        const parseMealBlock = (m: any, idx: number, totalMeals: number): MealBlock => ({
+          id: `meal_${idx + 1}`,
+          name: m.name || m.title || `Bữa ${idx + 1}`,
+          timeSlot: m.timeSlot || (idx === 0 ? '07:00 - 07:45' : idx === 1 ? '12:00 - 12:45' : idx === 2 ? '16:30 - 17:00' : '19:30 - 20:15'),
+          targetKcal: m.calories || Math.round(targetKcal / totalMeals),
+          items: parseMealItems(m.items, m.calories || Math.round(targetKcal / totalMeals)),
+        });
+
+        // *** LUỒNG CHÍNH: AI trả về dailyPlans[7] (7 ngày khác nhau) ***
+        const aiDailyPlans = (draft as any).dailyPlans;
+        if (Array.isArray(aiDailyPlans) && aiDailyPlans.length > 0) {
+          const dailyPlanTemplates = aiDailyPlans.map((dp: any, dpIdx: number) => {
+            const dpMeals = Array.isArray(dp.meals) ? dp.meals : [];
+            return {
+              dayOfWeek: normalizeDayOfWeek(dp.dayOfWeek || dp.dayName) || DAYS_OF_WEEK_VI[(dpIdx + 1) % 7], // +1 vì index 0 = Thứ Hai
+              meals: dpMeals.map((m: any, mIdx: number) => parseMealBlock(m, mIdx, dpMeals.length)),
+            };
+          });
+
+          // Dùng ngày đầu tiên làm baseMeals fallback (cho poster/tổng kết)
+          const firstDayMeals = dailyPlanTemplates[0]?.meals || [];
+
+          const newWeeks = buildWeeksSchedule(startDate, durationDays, firstDayMeals, undefined, targetKcal, dailyPlanTemplates);
+          setWeeks(newWeeks);
+          setSelectedWeekIdx(0);
+          setSelectedDayIdx(0);
+        }
+        // *** LUỒNG PHỤ (backward compat): AI trả về menu[] cho 1 ngày ***
+        else if (Array.isArray(draft.menu) && draft.menu.length > 0) {
+          const generatedMeals: MealBlock[] = draft.menu.map((m: any, idx: number) =>
+            parseMealBlock(m, idx, draft.menu.length)
+          );
+          const newWeeks = buildWeeksSchedule(startDate, durationDays, generatedMeals);
+          setWeeks(newWeeks);
+          setSelectedWeekIdx(0);
+          setSelectedDayIdx(0);
         }
       }
-      toast.success('AI đã tự động sinh thực đơn chi tiết 100% khớp nhu cầu học viên!');
+      toast.success(`AI đã tự động sinh thực đơn chi tiết cho ${durationDays} ngày (${weeks.length} tuần)!`);
       setShowConfigStudio(false);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -280,7 +706,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
   };
 
   /**
-   * Sinh ảnh AI cho bữa ăn bằng FLUX.2 Klein 4B qua /api/images/generate
+   * Sinh ảnh cho bữa ăn: Ưu tiên lấy từ kho ảnh món ăn có sẵn (tiết kiệm chi phí), nếu chưa có mới dùng AI FLUX.2 và lưu kho
    */
   const handleGenerateMealImage = async (mealIdx: number) => {
     const meal = meals[mealIdx];
@@ -294,28 +720,42 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       const foodDescriptions = meal.items.map((i) => `${i.name} (${i.amount})`).join(', ');
       const prompt = `Professional food photography of a healthy fitness gym meal: ${meal.name}, containing ${foodDescriptions}. Beautifully arranged on a modern ceramic plate, warm natural restaurant lighting, fresh ingredients, appetizing, high detail 4k.`;
 
-      const res = await api.post<{ b64Json: string; mediaType: string; cost?: number }>('/api/images/generate', {
+      const res = await api.post<{
+        imageUrl: string;
+        name: string;
+        source: 'CACHE' | 'AI';
+        reused: boolean;
+        cost?: number;
+        message: string;
+      }>('/api/images/meal-image', {
+        mealName: meal.name,
+        items: meal.items.map((i) => i.name),
         prompt,
         aspectRatio: '4:3',
-        outputFormat: 'jpeg',
       });
 
-      if (res.data?.b64Json) {
-        const dataUrl = `data:${res.data.mediaType || 'image/jpeg'};base64,${res.data.b64Json}`;
-        const newMeals = [...meals];
-        newMeals[mealIdx] = {
-          ...newMeals[mealIdx],
-          imageUrl: dataUrl,
-        };
-        setMeals(newMeals);
-        toast.success(`AI đã tạo ảnh trực quan cho ${meal.name} (FLUX.2 Klein 4B)!`);
+      if (res.data?.imageUrl) {
+        updateActiveDayMeals((curr) => {
+          const next = [...curr];
+          next[mealIdx] = {
+            ...next[mealIdx],
+            imageUrl: res.data.imageUrl,
+          };
+          return next;
+        });
+
+        if (res.data.reused) {
+          toast.success(`🎉 ${res.data.message || `Đã lấy ảnh từ kho cho ${meal.name} (Tiết kiệm chi phí)!`}`);
+        } else {
+          toast.success(`✨ ${res.data.message || `AI đã tạo ảnh mới và lưu vào kho cho ${meal.name}!`}`);
+        }
       }
     } catch (err: any) {
       const msg = errorMessage(err);
       if (msg.includes('402') || msg.includes('credits') || msg.includes('Insufficient')) {
         toast.error('Tài khoản OpenRouter cần nạp thêm credit để tạo ảnh AI (FLUX.2 Klein 4B).');
       } else {
-        toast.error(`Không thể tạo ảnh AI: ${msg}`);
+        toast.error(`Không thể tạo ảnh: ${msg}`);
       }
     } finally {
       setGeneratingImageId(null);
@@ -328,32 +768,47 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       toast.error('Vui lòng chọn học viên trước khi lưu thực đơn.');
       return;
     }
-    if (meals.length === 0) {
+    if (!hasAnyMeals) {
       toast.error('Chưa có bữa ăn nào trong thực đơn. Vui lòng bấm AI Sinh Thực Đơn trước khi lưu.');
       return;
     }
 
     try {
       setSaving(true);
-      const menuPayload = meals.map((m) => ({
-        name: m.name,
-        timeSlot: m.timeSlot,
-        calories: m.items.reduce((s, i) => s + (i.calories || 0), 0),
-        items: m.items.map((i) => ({
-          name: i.name,
-          amount: i.amount,
-          calories: i.calories,
-          protein: i.protein || 0,
-          carbs: i.carbs || 0,
-          fat: i.fat || 0,
-          prepTip: i.prepTip || undefined,
+      const menuPayload = weeks.map((w) => ({
+        weekNumber: w.weekNumber,
+        name: w.name,
+        startDate: w.startDate,
+        endDate: w.endDate,
+        days: w.days.map((d) => ({
+          dayNumber: d.dayNumber,
+          date: d.date,
+          dayOfWeek: d.dayOfWeek,
+          meals: d.meals.map((m) => ({
+            id: m.id,
+            name: m.name,
+            timeSlot: m.timeSlot,
+            calories: m.items.reduce((s, i) => s + (Number(i.calories) || 0), 0),
+            items: m.items.map((i) => ({
+              name: i.name,
+              amount: i.amount,
+              calories: i.calories,
+              protein: i.protein || 0,
+              carbs: i.carbs || 0,
+              fat: i.fat || 0,
+              prepTip: i.prepTip || undefined,
+            })),
+            imageUrl: m.imageUrl || undefined,
+          })),
         })),
-        imageUrl: m.imageUrl || undefined,
       }));
 
       const payload = {
         customerId: targetId,
-        title: title || `Thực Đơn Dinh Dưỡng - ${selectedCustomer?.fullName || 'Học viên'}`,
+        title: title || `Thực Đơn ${durationDays} Ngày (${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)}) - ${selectedCustomer?.fullName || 'Học viên'}`,
+        startDate: startDate ? new Date(startDate).toISOString() : new Date().toISOString(),
+        endDate: endDate ? new Date(endDate).toISOString() : new Date(Date.now() + 6 * 86400000).toISOString(),
+        durationDays: durationDays || 7,
         targetCalories: totalKcal,
         macros: {
           protein: totalProtein,
@@ -389,61 +844,85 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
   };
 
   const handleAddItem = (mealIndex: number) => {
-    const newMeals = [...meals];
-    newMeals[mealIndex].items.push({
-      name: 'Món ăn mới',
-      amount: '100g',
-      calories: 120,
-      protein: 15,
-      carbs: 10,
-      fat: 2,
-      prepTip: 'Chế biến ít dầu mỡ',
+    updateActiveDayMeals((currMeals) => {
+      const next = [...currMeals];
+      next[mealIndex] = {
+        ...next[mealIndex],
+        items: [
+          ...next[mealIndex].items,
+          {
+            name: 'Món ăn mới',
+            amount: '100g',
+            calories: 120,
+            protein: 15,
+            carbs: 10,
+            fat: 2,
+            prepTip: 'Chế biến ít dầu mỡ',
+          },
+        ],
+      };
+      return next;
     });
-    setMeals(newMeals);
   };
 
   const handleRemoveItem = (mealIndex: number, itemIndex: number) => {
-    const newMeals = [...meals];
-    newMeals[mealIndex].items.splice(itemIndex, 1);
-    setMeals(newMeals);
+    updateActiveDayMeals((currMeals) => {
+      const next = [...currMeals];
+      const items = [...next[mealIndex].items];
+      items.splice(itemIndex, 1);
+      next[mealIndex] = { ...next[mealIndex], items };
+      return next;
+    });
   };
 
   const handleUpdateItem = (mealIndex: number, itemIndex: number, field: keyof MealFoodItem, val: any) => {
-    const newMeals = [...meals];
-    (newMeals[mealIndex].items[itemIndex] as any)[field] = val;
-    setMeals(newMeals);
+    updateActiveDayMeals((currMeals) => {
+      const next = [...currMeals];
+      const items = [...next[mealIndex].items];
+      items[itemIndex] = { ...items[itemIndex], [field]: val };
+      next[mealIndex] = { ...next[mealIndex], items };
+      return next;
+    });
   };
 
   const handleUpdateMealName = (mealIndex: number, name: string) => {
-    const newMeals = [...meals];
-    newMeals[mealIndex].name = name;
-    setMeals(newMeals);
+    updateActiveDayMeals((currMeals) => {
+      const next = [...currMeals];
+      next[mealIndex] = { ...next[mealIndex], name };
+      return next;
+    });
   };
 
   const handleUpdateMealTimeSlot = (mealIndex: number, timeSlot: string) => {
-    const newMeals = [...meals];
-    newMeals[mealIndex].timeSlot = timeSlot;
-    setMeals(newMeals);
+    updateActiveDayMeals((currMeals) => {
+      const next = [...currMeals];
+      next[mealIndex] = { ...next[mealIndex], timeSlot };
+      return next;
+    });
   };
 
   const handleAddMealBlock = () => {
-    const newIdx = meals.length + 1;
-    setMeals([
-      ...meals,
-      {
-        id: `meal_custom_${Date.now()}`,
-        name: `Bữa ${newIdx}`,
-        timeSlot: '15:00',
-        targetKcal: 300,
-        items: [{ name: 'Món ăn dinh dưỡng', amount: '150g', calories: 150, protein: 10, carbs: 15, fat: 5 }],
-      },
-    ]);
+    updateActiveDayMeals((currMeals) => {
+      const newIdx = currMeals.length + 1;
+      return [
+        ...currMeals,
+        {
+          id: `meal_custom_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          name: `Bữa ${newIdx}`,
+          timeSlot: '15:00',
+          targetKcal: 300,
+          items: [{ name: 'Món ăn dinh dưỡng', amount: '150g', calories: 150, protein: 10, carbs: 15, fat: 5 }],
+        },
+      ];
+    });
   };
 
   const handleRemoveMealBlock = (mealIndex: number) => {
-    const newMeals = [...meals];
-    newMeals.splice(mealIndex, 1);
-    setMeals(newMeals);
+    updateActiveDayMeals((currMeals) => {
+      const next = [...currMeals];
+      next.splice(mealIndex, 1);
+      return next;
+    });
   };
 
   return (
@@ -621,6 +1100,142 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         </div>
       </div>
 
+      {/* Date Range & Timeframe Scheduler Card */}
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid #e2e8f0',
+          padding: '16px 20px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ background: '#e0f2fe', color: '#0284c7', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+              <Calendar size={18} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#003b70' }}>
+                Lịch Áp Dụng Thực Đơn Cho Học Viên
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748b' }}>
+                Chọn ngày bắt đầu ăn và khoảng thời gian áp dụng thực đơn (Tối đa 1 tháng)
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Summary Pill */}
+          <div
+            style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '20px',
+              padding: '5px 14px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              color: '#166534',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Sparkles size={14} color="#16a34a" />
+            <span>
+              Áp dụng <strong>{durationDays} ngày</strong>: Từ <strong>{formatDisplayDate(startDate)}</strong> đến <strong>{formatDisplayDate(endDate)}</strong>
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', alignItems: 'flex-start' }}>
+          {/* Start Date Picker */}
+          <div>
+            <label style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+              NGÀY BẮT ĐẦU ĂN
+            </label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => handleStartDateChange(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.86rem',
+                fontWeight: 600,
+                color: '#1e293b',
+                background: '#f8fafc',
+              }}
+            />
+          </div>
+
+          {/* Duration Presets */}
+          <div>
+            <label style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+              SỐ NGÀY ÁP DỤNG ({durationDays} NGÀY)
+            </label>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {[
+                { days: 3, label: '3 ngày' },
+                { days: 7, label: '7 ngày (1 tuần)' },
+                { days: 14, label: '14 ngày (2 tuần)' },
+                { days: 21, label: '21 ngày (3 tuần)' },
+                { days: 30, label: '30 ngày (1 tháng)' },
+              ].map((p) => {
+                const isActive = durationDays === p.days;
+                return (
+                  <button
+                    key={p.days}
+                    type="button"
+                    onClick={() => handleDurationPreset(p.days)}
+                    style={{
+                      background: isActive ? '#003b70' : '#f1f5f9',
+                      color: isActive ? '#ffffff' : '#334155',
+                      border: `1px solid ${isActive ? '#003b70' : '#cbd5e1'}`,
+                      borderRadius: '6px',
+                      padding: '6px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: isActive ? 800 : 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* End Date Picker */}
+          <div>
+            <label style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+              NGÀY KẾT THÚC
+            </label>
+            <input
+              type="date"
+              value={endDate}
+              min={startDate}
+              onChange={(e) => handleEndDateChange(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.86rem',
+                fontWeight: 600,
+                color: '#1e293b',
+                background: '#f8fafc',
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* AI CONFIGURATION STUDIO COMPONENT */}
       {showConfigStudio && (
         <MealAiConfigStudio
@@ -673,9 +1288,27 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
           }}
         >
           <div style={{ flex: '1 1 260px' }}>
-            <label style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, display: 'block', marginBottom: '2px' }}>
-              TÊN KẾ HOẠCH THỰC ĐƠN
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+              <label style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>
+                TÊN KẾ HOẠCH THỰC ĐƠN
+              </label>
+              <button
+                type="button"
+                onClick={() => setTitle(`Thực Đơn ${durationDays} Ngày (${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)}) - ${selectedCustomer?.fullName || 'Học viên'}`)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#0284c7',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline',
+                }}
+              >
+                Đặt tên theo thời gian ({durationDays} ngày)
+              </button>
+            </div>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -802,7 +1435,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       )}
 
       {/* Empty State when no meals exist yet and not loading */}
-      {!loadingAi && meals.length === 0 && (
+      {!loadingAi && !hasAnyMeals && (
         <div
           style={{
             background: '#ffffff',
@@ -869,8 +1502,270 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         </div>
       )}
 
+      {/* HIERARCHICAL RENDERING: LEVEL 1 (WEEKS) & LEVEL 2 (DAYS) */}
+      {hasAnyMeals && weeks.length > 0 && (
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            padding: '16px 20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          {/* LEVEL 1: WEEK NAVIGATION */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#003b70', fontWeight: 800 }}>
+                  1. PHÂN CẤP THEO TUẦN ({weeks.length} TUẦN)
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  • Chọn tuần để xem lịch ăn
+                </span>
+              </div>
+
+              {/* Quick Week Copy Button */}
+              {weeks.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handleCopyWeekToAllWeeks}
+                  style={{
+                    background: '#f0fdf4',
+                    color: '#166534',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Sao chép toàn bộ các ngày của tuần hiện tại sang tất cả các tuần khác"
+                >
+                  <Copy size={12} /> Sao chép {activeWeek.name} sang các tuần khác
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {weeks.map((w, wIdx) => {
+                const isSelected = wIdx === selectedWeekIdx;
+                return (
+                  <button
+                    key={w.weekNumber}
+                    type="button"
+                    onClick={() => {
+                      setSelectedWeekIdx(wIdx);
+                      setSelectedDayIdx(0);
+                    }}
+                    style={{
+                      flex: '0 0 auto',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: isSelected ? '2px solid #003b70' : '1px solid #cbd5e1',
+                      background: isSelected ? '#003b70' : '#ffffff',
+                      color: isSelected ? '#ffffff' : '#334155',
+                      fontWeight: isSelected ? 800 : 600,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '2px',
+                      boxShadow: isSelected ? '0 4px 12px rgba(0, 59, 112, 0.2)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>{w.name}</span>
+                      {isSelected && (
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80' }} />
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.68rem', color: isSelected ? '#93c5fd' : '#64748b' }}>
+                      {formatDisplayDate(w.startDate).slice(0, 5)} - {formatDisplayDate(w.endDate).slice(0, 5)} ({w.days.length} ngày)
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* LEVEL 2: DAY NAVIGATION WITHIN ACTIVE WEEK */}
+          <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#0284c7', fontWeight: 800 }}>
+                  2. PHÂN CẤP THEO NGÀY TRONG {activeWeek.name}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  • Bấm từng ngày để chỉnh sửa bữa ăn
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleRandomizeActiveDay}
+                  style={{
+                    background: '#fdf2f8',
+                    color: '#be185d',
+                    border: '1px solid #fbcfe8',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Tự động đổi sang các món ăn dinh dưỡng khác cho ngày này"
+                >
+                  <Sparkles size={12} /> 🎲 Đổi món ngày này
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRandomizeActiveWeek}
+                  style={{
+                    background: '#faf5ff',
+                    color: '#7e22ce',
+                    border: '1px solid #e9d5ff',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Tự động đổi món đa dạng cho tất cả 7 ngày trong tuần này"
+                >
+                  <Wand2 size={12} /> ✨ Đổi món cả tuần
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyDayToWeek}
+                  style={{
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Lấy thực đơn của ngày đang chọn áp dụng cho tất cả các ngày trong tuần này"
+                >
+                  <Copy size={12} /> Áp dụng ngày này cho cả {activeWeek.name}
+                </button>
+
+                {weeks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleCopyDayToAllWeeks}
+                    style={{
+                      background: '#fefce8',
+                      color: '#854d0e',
+                      border: '1px solid #fef08a',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Lấy thực đơn của ngày này áp dụng cho toàn bộ các ngày"
+                  >
+                    <Copy size={12} /> Áp dụng cho toàn bộ {durationDays} ngày
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+              {activeWeek.days.map((d, dIdx) => {
+                const isSelected = dIdx === selectedDayIdx;
+                const dayKcal = d.meals.reduce((sum, m) => sum + (m.items.reduce((s, it) => s + (Number(it.calories) || 0), 0)), 0);
+                return (
+                  <button
+                    key={d.dayNumber}
+                    type="button"
+                    onClick={() => setSelectedDayIdx(dIdx)}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      border: isSelected ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                      background: isSelected ? '#f0f9ff' : '#f8fafc',
+                      color: isSelected ? '#003b70' : '#475569',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 8px rgba(2, 132, 199, 0.15)' : 'none',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isSelected ? '#0284c7' : '#1e293b' }}>
+                      {d.dayOfWeek}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: isSelected ? '#0369a1' : '#64748b' }}>
+                      {formatDisplayDate(d.date).slice(0, 5)} (Ngày {d.dayNumber})
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        marginTop: '2px',
+                        background: isSelected ? '#bae6fd' : '#e2e8f0',
+                        color: isSelected ? '#0369a1' : '#475569',
+                        borderRadius: '4px',
+                        padding: '2px 4px',
+                      }}
+                    >
+                      {d.meals.length} bữa • {dayKcal} kcal
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LEVEL 3: MEALS BANNER FOR ACTIVE DAY */}
+      {hasAnyMeals && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Salad size={18} color="#16a34a" />
+            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#003b70' }}>
+              3. PHÂN CẤP THEO BỮA ĂN: {activeDay.dayOfWeek} ({formatDisplayDate(activeDay.date)}) • {activeWeek.name}
+            </h3>
+          </div>
+          <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>
+            {meals.length} Bữa • {totalKcal} kcal (P: {totalProtein}g | C: {totalCarbs}g | F: {totalFat}g)
+          </div>
+        </div>
+      )}
+
       {/* Meals Grid (Bữa Sáng, Bữa Trưa, Bữa Phụ, Bữa Tối, v.v.) */}
-      {meals.length > 0 && (
+      {hasAnyMeals && meals.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px' }}>
           {meals.map((meal, mealIdx) => (
             <MealCardItem
