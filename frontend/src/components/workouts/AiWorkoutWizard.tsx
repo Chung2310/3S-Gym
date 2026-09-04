@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import {
@@ -8,11 +8,18 @@ import {
 } from '../../services/workoutAvailability';
 import { errorMessage } from '../../types';
 import type { WorkoutAvailabilitySlot } from '../../types/workoutAvailability';
+import type { AiWorkoutGenerationJob } from '../../types/workoutGeneration';
 import WorkoutAvailabilityEditor from './WorkoutAvailabilityEditor';
 
 type Customer = { _id: string; fullName: string; phone: string };
 type Proposal = { durationWeeks: number; sessionsPerWeek: number; minutesPerSession: number; level: string; trainingMethod: string; trainingSplit: string; priorityMuscleGroups: string[]; restrictions: string[] };
 type Props = { open: boolean; customers: Customer[]; onClose(): void; onGenerated(value: unknown): void };
+
+const POLL_INTERVAL_MS = 2_000;
+const MAX_POLL_ATTEMPTS = 300;
+const wait = (durationMs: number) => new Promise((resolve) => setTimeout(resolve, durationMs));
+const newIdempotencyKey = () => globalThis.crypto?.randomUUID?.()
+  || `workout-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export default function AiWorkoutWizard({ open, customers, onClose, onGenerated }: Props) {
   const toast = useToast();
@@ -22,6 +29,25 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState(0);
+  const [generationMessage, setGenerationMessage] = useState('');
+  const generationRun = useRef(0);
+  const generationKey = useRef('');
+
+  useEffect(() => {
+    if (!open) {
+      generationRun.current += 1;
+      setLoading(false);
+      setGenerationMessage('');
+    }
+  }, [open]);
+
+  useEffect(() => {
+    generationKey.current = '';
+  }, [customerId, proposal, availabilitySlots]);
+
+  useEffect(() => () => {
+    generationRun.current += 1;
+  }, []);
 
   if (!open) return null;
 
@@ -58,18 +84,47 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
 
   const generate = async () => {
     if (!proposal) return;
+    const run = ++generationRun.current;
+    const idempotencyKey = generationKey.current || newIdempotencyKey();
+    generationKey.current = idempotencyKey;
     setLoading(true);
     setError('');
+    setGenerationMessage('Đang gửi yêu cầu tạo giáo án...');
     try {
-      const result = await api.post('/api/ai/workout-generations', { customerId, proposal, availabilitySlots, additionalRequest: '' });
-      toast.success('Tạo giáo án bằng AI thành công.');
-      onGenerated(result.data);
+      const accepted = await api.post<AiWorkoutGenerationJob>(
+        '/api/ai/workout-generations',
+        { customerId, proposal, availabilitySlots, additionalRequest: '' },
+        { headers: { 'Idempotency-Key': idempotencyKey } },
+      );
+      let job = accepted.data;
+      setGenerationMessage('AI đang tạo giáo án ở chế độ nền. Bạn có thể tiếp tục chờ tại đây...');
+
+      for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
+        if (generationRun.current !== run) return;
+        if (job.status === 'SUCCEEDED') {
+          if (!('result' in job)) throw new Error('Tác vụ AI hoàn tất nhưng không có dữ liệu giáo án.');
+          generationKey.current = '';
+          setGenerationMessage('');
+          toast.success('Tạo giáo án bằng AI thành công.');
+          onGenerated(job.result);
+          return;
+        }
+        if (job.status === 'FAILED') {
+          generationKey.current = '';
+          throw new Error(job.error?.message || 'Không thể tạo bản nháp giáo án.');
+        }
+        if (attempt > 0) await wait(POLL_INTERVAL_MS);
+        if (generationRun.current !== run) return;
+        job = (await api.get<AiWorkoutGenerationJob>(`/api/ai/workout-generations/${job.id}`)).data;
+      }
+      throw new Error('Tác vụ AI vẫn đang xử lý. Vui lòng thử kiểm tra lại sau.');
     } catch (cause) {
       const msg = errorMessage(cause);
       toast.error(msg);
       setError(msg);
+      setGenerationMessage('');
     } finally {
-      setLoading(false);
+      if (generationRun.current === run) setLoading(false);
     }
   };
 
@@ -249,6 +304,7 @@ export default function AiWorkoutWizard({ open, customers, onClose, onGenerated 
             </div>
           )}
           {error && <p className="module-error workout-wizard-error" role="alert">{error}</p>}
+          {generationMessage && <p className="workout-wizard-confirm-guide" role="status">{generationMessage}</p>}
         </div>
         <footer className="module-actions workout-wizard-actions">
           <button type="button" className="button button-secondary" onClick={onClose}>Hủy</button>

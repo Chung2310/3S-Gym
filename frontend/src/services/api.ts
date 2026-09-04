@@ -37,7 +37,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<ApiR
 }
 export const api = {
   get: <T = unknown>(path: string) => request<T>(path),
-  post: <T = unknown>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  post: <T = unknown>(path: string, body: unknown, options: RequestInit = {}) => request<T>(path, { ...options, method: 'POST', body: JSON.stringify(body) }),
   patch: <T = unknown>(path: string, body: unknown = {}) => request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: <T = unknown>(path: string) => request<T>(path, { method: 'DELETE' }),
   upload: <T = unknown>(path: string, formData: FormData) => request<T>(path, { method: 'POST', body: formData }),
