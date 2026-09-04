@@ -9,6 +9,7 @@ export interface ProfileFormModalProps {
   loading?: boolean;
   submitLabel?: string;
   submitDisabled?: boolean;
+  hideFooter?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   onClose: () => void;
@@ -24,6 +25,7 @@ export default function ProfileFormModal({
   loading = false,
   submitLabel = 'Lưu',
   submitDisabled = false,
+  hideFooter = false,
   size = 'md',
   className = '',
   onClose,
@@ -100,16 +102,18 @@ export default function ProfileFormModal({
           </header>
           <form onSubmit={onSubmit}>
             <div className="profile-form-body">{children}</div>
-            <footer className="profile-form-actions">
-              <button type="button" className="button button-secondary" onClick={requestClose} disabled={loading}>
-                Hủy
-              </button>
-              {submitLabel ? (
-                <button type="submit" className="button button-primary" disabled={loading || submitDisabled}>
-                  {loading ? 'Đang lưu...' : submitLabel}
+            {!hideFooter && (
+              <footer className="profile-form-actions">
+                <button type="button" className="button button-secondary" onClick={requestClose} disabled={loading}>
+                  Hủy
                 </button>
-              ) : null}
-            </footer>
+                {submitLabel ? (
+                  <button type="submit" className="button button-primary" disabled={loading || submitDisabled}>
+                    {loading ? 'Đang lưu...' : submitLabel}
+                  </button>
+                ) : null}
+              </footer>
+            )}
           </form>
         </section>
       </div>

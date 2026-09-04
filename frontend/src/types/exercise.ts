@@ -5,6 +5,7 @@ export interface Exercise {
   _id: string;
   name: string;
   muscleGroup: string;
+  muscleGroups?: string[];
   level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   defaultTrackingType?: TrackingType;
   equipment?: string[];
@@ -17,6 +18,7 @@ export interface Exercise {
 export interface AiExerciseDraft {
   name: string;
   muscleGroup: string;
+  muscleGroups?: string[];
   level: Exercise['level'];
   defaultTrackingType: ClassifiedTrackingType;
   equipment: string[];
@@ -29,4 +31,11 @@ export interface AiExerciseDraft {
 
 export interface AiExerciseGenerationRequest {
   prompt: string;
+}
+
+export interface MuscleGroupItem {
+  _id: string;
+  name: string;
+  isDefault?: boolean;
+  exerciseCount?: number;
 }
