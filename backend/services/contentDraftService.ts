@@ -258,8 +258,9 @@ Hãy tạo Lộ trình huấn luyện (Roadmap) và Mục tiêu toàn diện d�
 
 QUY TẮC BẮT BUỘC:
 1. Trả về DUY NHẤT 1 JSON object hợp lệ, không kèm markdown giải thích ngoài JSON.
-2. Chia lộ trình thành các Phase liên tục, mỗi Phase bao gồm đầy đủ tất cả các tuần theo thứ tự từ 1 đến hết thời lượng (Ví dụ Lộ trình 12 tuần: Phase 1 gồm tuần 1, 2, 3, 4; Phase 2 gồm tuần 5, 6, 7, 8; Phase 3 gồm tuần 9, 10, 11, 12).
-3. Mỗi tuần có trọng tâm (focus) và danh sách các buổi tập (sessions) tương ứng.
+2. Chia lộ trình thành các Phase liên tục, mỗi Phase bao gồm danh sách mục tiêu giai đoạn (goals: string[]) và đầy đủ tất cả các tuần theo thứ tự từ 1 đến hết thời lượng (Ví dụ Lộ trình 12 tuần: Phase 1 gồm tuần 1, 2, 3, 4; Phase 2 gồm tuần 5, 6, 7, 8; Phase 3 gồm tuần 9, 10, 11, 12).
+3. Mỗi tuần có trọng tâm & mục tiêu tuần (focus) và số buổi tập mục tiêu/tuần (sessionTargets).
+4. TUYỆT ĐỐI KHÔNG sinh danh sách bài tập chi tiết (như Bench Press, Squat, v.v...) của từng buổi trong Roadmap. Chi tiết bài tập thuộc về Giáo án (Workout Plan), không thuộc Lộ trình.
 
 Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trúc sau:
 {
@@ -298,28 +299,22 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trú
         {
           "week": 1,
           "focus": "Làm quen bài tập và kiểm tra ROM",
-          "sessionTargets": 4,
-          "sessions": [
-            { "sessionNumber": 1, "name": "Buổi 1: Thân trên", "focus": "Kỹ thuật Bench press & Lat pulldown", "exercises": ["Bench Press 4x10", "Lat Pulldown 4x10"] }
-          ]
+          "sessionTargets": 4
         },
         {
           "week": 2,
           "focus": "Tăng dần mức tạ vừa phải",
-          "sessionTargets": 4,
-          "sessions": []
+          "sessionTargets": 4
         },
         {
           "week": 3,
           "focus": "Củng cố form chuyển động",
-          "sessionTargets": 4,
-          "sessions": []
+          "sessionTargets": 4
         },
         {
           "week": 4,
           "focus": "Đo InBody mốc 1 & Deload nhẹ",
-          "sessionTargets": 4,
-          "sessions": []
+          "sessionTargets": 4
         }
       ]
     }
@@ -347,18 +342,17 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trú
         const matchWeek = existingWeeks.find((ew: any) => ew.week === weekNum || ew.week === (w + 1)) || existingWeeks[w];
         if (matchWeek) {
           fullWeeks.push({
-            ...matchWeek,
             week: weekNum,
+            focus: matchWeek.focus || `Tuần ${weekNum}: Huấn luyện theo ${phase.name || `Phase ${pIdx + 1}`}`,
             sessionTargets: matchWeek.sessionTargets || generated.strategy?.sessionsPerWeek || 3,
-            sessions: Array.isArray(matchWeek.sessions) && matchWeek.sessions.length > 0 ? matchWeek.sessions : (existingWeeks[0]?.sessions || []),
+            sessions: [],
           });
         } else {
-          const templateWeek = existingWeeks[0] || {};
           fullWeeks.push({
             week: weekNum,
             focus: `Tuần ${weekNum}: Phân kỳ huấn luyện theo ${phase.name || `Phase ${pIdx + 1}`}`,
             sessionTargets: generated.strategy?.sessionsPerWeek || 3,
-            sessions: templateWeek.sessions || [],
+            sessions: [],
           });
         }
       }
@@ -367,6 +361,7 @@ Hãy phân tích và trả về ĐÚNG 1 JSON object hợp lệ với cấu trú
         ...phase,
         order: pIdx + 1,
         durationWeeks: duration,
+        goals: Array.isArray(phase.goals) ? phase.goals : [],
         weeks: fullWeeks,
       };
     });

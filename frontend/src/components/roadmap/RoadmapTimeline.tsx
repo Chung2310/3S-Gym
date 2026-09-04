@@ -3,7 +3,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Dumbbell,
   HeartPulse,
   Utensils,
   Zap,
@@ -250,30 +249,6 @@ export default function RoadmapTimeline({ roadmap }: { roadmap: Roadmap }) {
                           <span style={{ color: '#64748b', fontSize: '0.7rem', flexShrink: 0 }}>{w.sessionTargets || 3} buổi</span>
                         </div>
                         <div style={{ color: '#334155', lineHeight: 1.4, wordBreak: 'break-word' }}>{w.focus}</div>
-
-                        {w.sessions && w.sessions.length > 0 && (
-                          <div style={{ marginTop: '4px', display: 'grid', gap: '3px', borderTop: '1px dashed #e2e8f0', paddingTop: '4px', minWidth: 0 }}>
-                            {w.sessions.map((sess, sIdx) => (
-                              <div
-                                key={sIdx}
-                                style={{
-                                  fontSize: '0.7rem',
-                                  color: '#475569',
-                                  display: 'flex',
-                                  alignItems: 'flex-start',
-                                  gap: '4px',
-                                  wordBreak: 'break-word',
-                                  minWidth: 0,
-                                }}
-                              >
-                                <Dumbbell size={10} color="var(--secondary-color)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                                <span style={{ minWidth: 0 }}>
-                                  <strong>{sess.name}:</strong> {sess.focus}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>

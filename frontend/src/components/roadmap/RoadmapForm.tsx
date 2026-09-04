@@ -1,12 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
-  Activity,
   AlertCircle,
-  Calendar,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Clock,
+  Droplets,
   Dumbbell,
   Flame,
   HeartPulse,
@@ -25,11 +24,11 @@ import { errorMessage } from '../../types';
 import type { InBodyRecordData } from '../../types/inbody';
 import {
   generateSmartRoadmap,
-  type GeneratedRoadmapProposal,
   type RoadmapCustomerMeta,
+  type RoadmapEvaluationCheckpoint,
   type RoadmapGoalType,
+  type RoadmapNutritionStrategy,
   type RoadmapPhaseProposal,
-  type RoadmapSessionProposal,
   type RoadmapStrategyProposal,
   type RoadmapWeekProposal,
 } from '../../services/roadmapGenerator';
@@ -80,7 +79,6 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
 
   // UI Accordion toggles
   const [expandedPhases, setExpandedPhases] = useState<Record<number, boolean>>({ 0: true });
-  const [showSessions, setShowSessions] = useState(true);
   const [loadingAi, setLoadingAi] = useState(false);
   const [aiElapsedSeconds, setAiElapsedSeconds] = useState(0);
   const [aiStep, setAiStep] = useState(1);
@@ -356,82 +354,83 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
     );
   };
 
-  const updateSession = (
-    phaseIndex: number,
-    weekIndex: number,
-    sessionIndex: number,
-    change: Partial<RoadmapSessionProposal>
-  ) => {
+  const addPhaseGoal = (phaseIndex: number) => {
+    setPhases((current) =>
+      current.map((phase, pIdx) => {
+        if (pIdx !== phaseIndex) return phase;
+        return { ...phase, goals: [...(phase.goals || []), ''] };
+      })
+    );
+  };
+
+  const updatePhaseGoal = (phaseIndex: number, goalIndex: number, text: string) => {
+    setPhases((current) =>
+      current.map((phase, pIdx) => {
+        if (pIdx !== phaseIndex) return phase;
+        const newGoals = [...(phase.goals || [])];
+        newGoals[goalIndex] = text;
+        return { ...phase, goals: newGoals };
+      })
+    );
+  };
+
+  const removePhaseGoal = (phaseIndex: number, goalIndex: number) => {
+    setPhases((current) =>
+      current.map((phase, pIdx) => {
+        if (pIdx !== phaseIndex) return phase;
+        return { ...phase, goals: (phase.goals || []).filter((_, gIdx) => gIdx !== goalIndex) };
+      })
+    );
+  };
+
+  const updateWeekSessionTargets = (phaseIndex: number, weekIndex: number, sessionTargets: number) => {
     setPhases((current) =>
       current.map((phase, pIdx) => {
         if (pIdx !== phaseIndex) return phase;
         return {
           ...phase,
-          weeks: phase.weeks.map((week, wIdx) => {
-            if (wIdx !== weekIndex) return week;
-            const updatedSessions: RoadmapSessionProposal[] = (week.sessions || []).map((sess, sIdx) => {
-              if (sIdx !== sessionIndex) return sess;
-              return {
-                sessionNumber: sess.sessionNumber || sIdx + 1,
-                name: sess.name || '',
-                focus: sess.focus || '',
-                exercises: sess.exercises || [],
-                ...change,
-              };
-            });
-            return { ...week, sessions: updatedSessions };
-          }),
+          weeks: phase.weeks.map((w, wIdx) => (wIdx === weekIndex ? { ...w, sessionTargets } : w)),
         };
       })
     );
   };
 
-  const addSession = (phaseIndex: number, weekIndex: number) => {
-    setPhases((current) =>
-      current.map((phase, pIdx) => {
-        if (pIdx !== phaseIndex) return phase;
-        return {
-          ...phase,
-          weeks: phase.weeks.map((week, wIdx) => {
-            if (wIdx !== weekIndex) return week;
-            const currentSessions = week.sessions || [];
-            const newSessionNum = currentSessions.length + 1;
-            const newSess: RoadmapSessionProposal = {
-              sessionNumber: newSessionNum,
-              name: `Buổi ${newSessionNum}`,
-              focus: '',
-              exercises: [],
-            };
-            return { ...week, sessions: [...currentSessions, newSess] };
-          }),
-        };
-      })
-    );
+  const updateStrategy = (change: Partial<RoadmapStrategyProposal>) => {
+    setStrategy((prev) => (prev ? { ...prev, ...change } : null));
   };
 
-  const removeSession = (phaseIndex: number, weekIndex: number, sessionIndex: number) => {
-    setPhases((current) =>
-      current.map((phase, pIdx) => {
-        if (pIdx !== phaseIndex) return phase;
-        return {
-          ...phase,
-          weeks: phase.weeks.map((week, wIdx) => {
-            if (wIdx !== weekIndex) return week;
-            const filtered = (week.sessions || []).filter((_, sIdx) => sIdx !== sessionIndex);
-            const reindexed: RoadmapSessionProposal[] = filtered.map((s, idx) => ({
-              sessionNumber: idx + 1,
-              name: s.name || '',
-              focus: s.focus || '',
-              exercises: s.exercises || [],
-            }));
-            return {
-              ...week,
-              sessions: reindexed,
-            };
-          }),
-        };
-      })
-    );
+  const updateNutrition = (change: Partial<RoadmapNutritionStrategy>) => {
+    setStrategy((prev) => (prev ? { ...prev, nutrition: { ...prev.nutrition, ...change } } : null));
+  };
+
+  const updateCheckpoint = (index: number, change: Partial<RoadmapEvaluationCheckpoint>) => {
+    setStrategy((prev) => {
+      if (!prev) return null;
+      const cps = [...prev.checkpoints];
+      if (cps[index]) {
+        cps[index] = { ...cps[index], ...change };
+      }
+      return { ...prev, checkpoints: cps };
+    });
+  };
+
+  const addCheckpoint = () => {
+    setStrategy((prev) => {
+      if (!prev) return null;
+      const newCp: RoadmapEvaluationCheckpoint = {
+        week: (prev.checkpoints.length + 1) * 4,
+        title: `Mốc ${prev.checkpoints.length + 1}: Đánh giá & InBody`,
+        description: 'Kiểm tra tỷ lệ cơ/mỡ và tinh chỉnh lộ trình',
+      };
+      return { ...prev, checkpoints: [...prev.checkpoints, newCp] };
+    });
+  };
+
+  const removeCheckpoint = (index: number) => {
+    setStrategy((prev) => {
+      if (!prev) return null;
+      return { ...prev, checkpoints: prev.checkpoints.filter((_, idx) => idx !== index) };
+    });
   };
 
   // Submit Handler
@@ -447,14 +446,12 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
     try {
       const sanitizedPhases = phases.map((phase) => ({
         ...phase,
+        goals: (phase.goals || []).map((g) => g.trim()).filter(Boolean),
         weeks: phase.weeks.map((week) => ({
-          ...week,
-          sessions: (week.sessions || []).map((sess, idx) => ({
-            sessionNumber: sess.sessionNumber || idx + 1,
-            name: sess.name || `Buổi ${idx + 1}`,
-            focus: sess.focus || '',
-            exercises: (sess.exercises || []).map((ex) => ex.trim()).filter(Boolean),
-          })),
+          week: week.week,
+          focus: week.focus.trim(),
+          sessionTargets: week.sessionTargets || sessionsPerWeek,
+          sessions: [],
         })),
       }));
 
@@ -751,107 +748,644 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
         )}
       </div>
 
-      {/* 3. Comprehensive Strategy Overview Cards (Generated or Custom) */}
+      {/* 3. Comprehensive Strategy Overview (Editable) */}
       {strategy && (
-        <div style={{ background: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              <Zap size={18} color="#eab308" /> Chiến lược Huấn luyện & Dinh dưỡng Tổng quan
-            </h3>
-            <span style={{ fontSize: '0.8rem', background: '#dbeafe', color: '#1e40af', padding: '4px 10px', borderRadius: '20px', fontWeight: 700 }}>
-              {strategy.estimatedWeeks} Tuần • {strategy.sessionsPerWeek} Buổi/Tuần
-            </span>
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+            padding: '24px',
+            boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)',
+            display: 'grid',
+            gap: '20px',
+          }}
+        >
+          {/* Header với Tiêu đề & Cấu hình Thời lượng/Tần suất đẹp mắt */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '16px',
+              flexWrap: 'wrap',
+              gap: '12px',
+            }}
+          >
+            <div>
+              <h3
+                style={{
+                  fontSize: '1.15rem',
+                  fontWeight: 800,
+                  color: 'var(--primary-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  margin: 0,
+                }}
+              >
+                <Zap size={20} color="#eab308" /> Chiến lược Huấn luyện & Dinh dưỡng (Có thể tùy chỉnh)
+              </h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                Định hướng phương pháp huấn luyện, phân chia lịch tập, cardio, macro dinh dưỡng và các mốc kiểm tra.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                background: '#f8fafc',
+                padding: '6px 14px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                fontSize: '0.85rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={15} color="#0284c7" />
+                <span style={{ color: '#475569', fontWeight: 600 }}>Thời lượng:</span>
+                <input
+                  aria-label="Số tuần ước tính"
+                  type="number"
+                  min="1"
+                  max="52"
+                  value={strategy.estimatedWeeks || durationWeeks}
+                  onChange={(e) => updateStrategy({ estimatedWeeks: Number(e.target.value) })}
+                  style={{
+                    width: '56px',
+                    padding: '4px 6px',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                    background: '#ffffff',
+                    color: '#0f172a',
+                  }}
+                />
+                <span style={{ color: '#64748b', fontWeight: 600 }}>Tuần</span>
+              </div>
+              <span style={{ color: '#cbd5e1' }}>|</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Dumbbell size={15} color="#0284c7" />
+                <span style={{ color: '#475569', fontWeight: 600 }}>Tần suất:</span>
+                <input
+                  aria-label="Số buổi mỗi tuần"
+                  type="number"
+                  min="1"
+                  max="7"
+                  value={strategy.sessionsPerWeek || sessionsPerWeek}
+                  onChange={(e) => updateStrategy({ sessionsPerWeek: Number(e.target.value) })}
+                  style={{
+                    width: '50px',
+                    padding: '4px 6px',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                    background: '#ffffff',
+                    color: '#0f172a',
+                  }}
+                />
+                <span style={{ color: '#64748b', fontWeight: 600 }}>Buổi / Tuần</span>
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-            {/* Phương pháp tập luyện */}
-            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', marginBottom: '6px', fontSize: '0.9rem' }}>
-                <Dumbbell size={16} color="var(--secondary-color)" /> Phương pháp tập luyện & Lịch phân chia
+          {/* BỐ CỤC 2 CỘT RỘNG RÃI VÀ THOÁNG MẮT (Training + Cardio vs Nutrition) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '20px' }}>
+            {/* CỘT 1: HUẤN LUYỆN & CARDIO (TRAINING & CARDIO) */}
+            <div
+              style={{
+                background: '#f8fafc',
+                padding: '18px 20px',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: 'var(--primary-color)', fontSize: '0.95rem' }}>
+                <div
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: 'rgba(2, 132, 199, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Dumbbell size={16} color="var(--secondary-color)" />
+                </div>
+                Phương pháp tập & Lịch phân chia
               </div>
-              <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: '#334155', lineHeight: 1.5 }}>
-                {strategy.trainingMethod}
-              </p>
-              <div style={{ fontSize: '0.78rem', color: '#64748b', background: '#ffffff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                <strong>Lịch tập:</strong> {strategy.trainingSplit}
-              </div>
-            </div>
 
-            {/* Chiến lược Cardio */}
-            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', marginBottom: '6px', fontSize: '0.9rem' }}>
-                <HeartPulse size={16} color="#ef4444" /> Chiến lược Cardio & Tim mạch
-              </div>
-              <p style={{ margin: 0, fontSize: '0.84rem', color: '#334155', lineHeight: 1.5 }}>
-                {strategy.cardioProtocol}
-              </p>
-            </div>
-
-            {/* Chiến lược Dinh dưỡng */}
-            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', marginBottom: '6px', fontSize: '0.9rem' }}>
-                <Utensils size={16} color="#16a34a" /> Mục tiêu Dinh dưỡng & Calo hàng ngày
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#16a34a' }}>
-                  {strategy.nutrition.targetCalories} kcal
-                </span>
-                <span style={{ fontSize: '0.78rem', color: strategy.nutrition.calorieDeficitOrSurplus < 0 ? '#dc2626' : '#2563eb', fontWeight: 700 }}>
-                  ({strategy.nutrition.calorieDeficitOrSurplus < 0 ? `Thâm hụt ${Math.abs(strategy.nutrition.calorieDeficitOrSurplus)}` : `Thặng dư ${strategy.nutrition.calorieDeficitOrSurplus}`} kcal)
-                </span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', fontSize: '0.76rem', textAlign: 'center', background: '#ffffff', padding: '6px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                <div><span style={{ color: '#64748b' }}>Đạm (Protein)</span><br /><strong>{strategy.nutrition.proteinGrams}g</strong></div>
-                <div><span style={{ color: '#64748b' }}>Tinh bột (Carb)</span><br /><strong>{strategy.nutrition.carbsGrams}g</strong></div>
-                <div><span style={{ color: '#64748b' }}>Chất béo (Fat)</span><br /><strong>{strategy.nutrition.fatGrams}g</strong></div>
-              </div>
-              <div style={{ fontSize: '0.76rem', color: '#475569', marginTop: '6px' }}>
-                💧 Uống tối thiểu: <strong>{strategy.nutrition.waterLiters} Lít nước/ngày</strong>
-              </div>
-            </div>
-
-            {/* Các mốc đánh giá */}
-            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', marginBottom: '6px', fontSize: '0.9rem' }}>
-                <CheckCircle2 size={16} color="#8b5cf6" /> Các mốc Đánh giá & Checkpoints
-              </div>
+              {/* Training Method */}
               <div style={{ display: 'grid', gap: '6px' }}>
-                {strategy.checkpoints.map((cp, idx) => (
-                  <div key={idx} style={{ fontSize: '0.78rem', background: '#ffffff', padding: '6px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                    <strong style={{ color: '#4338ca' }}>{cp.title}</strong>
-                    <div style={{ color: '#64748b', fontSize: '0.74rem' }}>{cp.description}</div>
-                  </div>
-                ))}
+                <label style={{ fontSize: '0.82rem', color: '#334155', fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Phương pháp tập luyện (Training Method):</span>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 400 }}>Tùy chỉnh theo học viên</span>
+                </label>
+                <textarea
+                  aria-label="Phương pháp tập luyện"
+                  rows={3}
+                  value={strategy.trainingMethod || ''}
+                  onChange={(e) => updateStrategy({ trainingMethod: e.target.value })}
+                  placeholder="Ví dụ: Progressive Overload (Tăng tiến quá tải) kết hợp Hypertrophy..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '0.88rem',
+                    lineHeight: '1.5',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    background: '#ffffff',
+                    color: '#1e293b',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
+                />
               </div>
+
+              {/* Training Split */}
+              <div style={{ display: 'grid', gap: '6px' }}>
+                <label style={{ fontSize: '0.82rem', color: '#334155', fontWeight: 700 }}>
+                  Lịch tập phân chia (Split):
+                </label>
+                <input
+                  aria-label="Lịch tập phân chia"
+                  value={strategy.trainingSplit || ''}
+                  onChange={(e) => updateStrategy({ trainingSplit: e.target.value })}
+                  placeholder="Ví dụ: Upper / Lower / Full Body luân phiên..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '0.88rem',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    background: '#ffffff',
+                    color: '#1e293b',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Cardio Protocol */}
+              <div style={{ display: 'grid', gap: '6px' }}>
+                <label style={{ fontSize: '0.82rem', color: '#334155', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <HeartPulse size={15} color="#ef4444" />
+                  <span>Chiến lược Cardio & Tim mạch (Cardio Protocol):</span>
+                </label>
+                <textarea
+                  aria-label="Chiến lược cardio"
+                  rows={4}
+                  value={strategy.cardioProtocol || ''}
+                  onChange={(e) => updateStrategy({ cardioProtocol: e.target.value })}
+                  placeholder="Ví dụ: Kết hợp Cardio Zone 2 (30-45 phút, 3-4 buổi/tuần) để tối ưu đốt mỡ..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '0.88rem',
+                    lineHeight: '1.5',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    background: '#ffffff',
+                    color: '#1e293b',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* CỘT 2: DINH DƯỠNG & MACROS (NUTRITION & MACROS) */}
+            <div
+              style={{
+                background: '#f8fafc',
+                padding: '18px 20px',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 800, color: 'var(--primary-color)', fontSize: '0.95rem' }}>
+                <div
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: 'rgba(22, 163, 74, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Utensils size={16} color="#16a34a" />
+                </div>
+                Mục tiêu Dinh dưỡng & Calo hàng ngày
+              </div>
+
+              {/* Calo & Deficit/Surplus Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'grid', gap: '4px' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Flame size={14} color="#f97316" /> Calo mục tiêu (kcal/ngày)
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      aria-label="Calo mục tiêu"
+                      type="number"
+                      value={strategy.nutrition?.targetCalories || 0}
+                      onChange={(e) => updateNutrition({ targetCalories: Number(e.target.value) })}
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: '#0f172a',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap', fontWeight: 600 }}>kcal</span>
+                  </div>
+                </div>
+
+                <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'grid', gap: '4px' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Scale size={14} color="#8b5cf6" /> Thâm hụt / Thặng dư
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      aria-label="Thâm hụt hoặc thặng dư calo"
+                      type="number"
+                      value={strategy.nutrition?.calorieDeficitOrSurplus || 0}
+                      onChange={(e) => updateNutrition({ calorieDeficitOrSurplus: Number(e.target.value) })}
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: (strategy.nutrition?.calorieDeficitOrSurplus || 0) < 0 ? '#dc2626' : '#16a34a',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap', fontWeight: 600 }}>kcal</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Macros: Đạm, Carb, Fat */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <div style={{ background: '#fef2f2', padding: '10px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#991b1b', fontWeight: 700, display: 'block', marginBottom: '4px' }}>🥩 Đạm (Protein)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <input
+                      aria-label="Protein grams"
+                      type="number"
+                      value={strategy.nutrition?.proteinGrams || 0}
+                      onChange={(e) => updateNutrition({ proteinGrams: Number(e.target.value) })}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        border: '1px solid #fca5a5',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        background: '#ffffff',
+                        color: '#991b1b',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#991b1b', fontWeight: 600 }}>g</span>
+                  </div>
+                </div>
+
+                <div style={{ background: '#fffbeb', padding: '10px 12px', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#92400e', fontWeight: 700, display: 'block', marginBottom: '4px' }}>🍚 Tinh bột (Carb)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <input
+                      aria-label="Carb grams"
+                      type="number"
+                      value={strategy.nutrition?.carbsGrams || 0}
+                      onChange={(e) => updateNutrition({ carbsGrams: Number(e.target.value) })}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        border: '1px solid #fcd34d',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        background: '#ffffff',
+                        color: '#92400e',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 600 }}>g</span>
+                  </div>
+                </div>
+
+                <div style={{ background: '#f5f3ff', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd6fe' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#6b21a8', fontWeight: 700, display: 'block', marginBottom: '4px' }}>🥑 Chất béo (Fat)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <input
+                      aria-label="Fat grams"
+                      type="number"
+                      value={strategy.nutrition?.fatGrams || 0}
+                      onChange={(e) => updateNutrition({ fatGrams: Number(e.target.value) })}
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        border: '1px solid #c4b5fd',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        background: '#ffffff',
+                        color: '#6b21a8',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#6b21a8', fontWeight: 600 }}>g</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nước uống */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f0f9ff', padding: '8px 14px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
+                <span style={{ fontSize: '0.82rem', color: '#0369a1', fontWeight: 700, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Droplets size={15} color="#0284c7" /> Lượng nước tối thiểu:
+                </span>
+                <input
+                  aria-label="Lượng nước"
+                  type="number"
+                  step="0.1"
+                  value={strategy.nutrition?.waterLiters || 2.5}
+                  onChange={(e) => updateNutrition({ waterLiters: Number(e.target.value) })}
+                  style={{
+                    width: '70px',
+                    padding: '4px 8px',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    border: '1px solid #7dd3fc',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                    background: '#ffffff',
+                    color: '#0369a1',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <span style={{ fontSize: '0.8rem', color: '#0369a1', fontWeight: 600 }}>Lít / ngày</span>
+              </div>
+
+              {/* Lời khuyên dinh dưỡng */}
+              <div style={{ display: 'grid', gap: '6px' }}>
+                <label style={{ fontSize: '0.82rem', color: '#334155', fontWeight: 700 }}>
+                  Lời khuyên & Định hướng Dinh dưỡng:
+                </label>
+                <textarea
+                  aria-label="Lời khuyên dinh dưỡng"
+                  rows={3}
+                  value={strategy.nutrition?.advice || ''}
+                  onChange={(e) => updateNutrition({ advice: e.target.value })}
+                  placeholder="Ví dụ: Tập trung vào thực phẩm toàn phần, giàu protein, chất xơ. Hạn chế đồ uống có đường..."
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '0.85rem',
+                    lineHeight: '1.4',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    background: '#ffffff',
+                    color: '#1e293b',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* HÀNG 2: CÁC MỐC ĐÁNH GIÁ & CHECKPOINTS (FULL WIDTH RỘNG RÃI) */}
+          <div
+            style={{
+              background: '#f8fafc',
+              padding: '20px',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              display: 'grid',
+              gap: '16px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'rgba(139, 92, 246, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <CheckCircle2 size={18} color="#8b5cf6" />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                    Các mốc Đánh giá & Đo lường Thể chất (Checkpoints)
+                  </h4>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    Các cột mốc kiểm tra InBody, chụp ảnh vóc dáng và đánh giá mức độ thích nghi định kỳ
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={addCheckpoint}
+                style={{
+                  background: '#f5f3ff',
+                  border: '1px solid #ddd6fe',
+                  color: '#7c3aed',
+                  borderRadius: '8px',
+                  padding: '6px 14px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'background 0.2s',
+                }}
+              >
+                <Plus size={14} /> Thêm mốc kiểm tra
+              </button>
+            </div>
+
+            {/* Grid các Checkpoint Card độc lập - Rộng rãi, KHÔNG scroll ngang chồng chéo! */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
+              {(strategy.checkpoints || []).map((cp, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: '#ffffff',
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                    display: 'grid',
+                    gap: '10px',
+                    transition: 'box-shadow 0.2s',
+                  }}
+                >
+                  {/* Row 1: Badge Tuần + Input Tiêu đề + Nút Xóa */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: '#f5f3ff',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd6fe',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7c3aed' }}>Tuần</span>
+                      <input
+                        aria-label={`Tuần mốc ${idx + 1}`}
+                        type="number"
+                        min="1"
+                        max="52"
+                        value={cp.week}
+                        onChange={(e) => updateCheckpoint(idx, { week: Number(e.target.value) })}
+                        style={{
+                          width: '40px',
+                          padding: '2px 4px',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          border: '1px solid #c4b5fd',
+                          borderRadius: '4px',
+                          textAlign: 'center',
+                          background: '#ffffff',
+                          color: '#7c3aed',
+                        }}
+                      />
+                    </div>
+
+                    <input
+                      aria-label={`Tiêu đề mốc ${idx + 1}`}
+                      value={cp.title}
+                      onChange={(e) => updateCheckpoint(idx, { title: e.target.value })}
+                      placeholder="Ví dụ: Mốc 1: Đánh giá thích nghi..."
+                      style={{
+                        flex: 1,
+                        padding: '6px 10px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        background: '#ffffff',
+                        color: '#0f172a',
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => removeCheckpoint(idx)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        padding: '6px',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Xóa mốc này"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+
+                  {/* Row 2: Textarea mô tả */}
+                  <textarea
+                    aria-label={`Mô tả mốc ${idx + 1}`}
+                    rows={2}
+                    value={cp.description}
+                    onChange={(e) => updateCheckpoint(idx, { description: e.target.value })}
+                    placeholder="Mô tả chi tiết nội dung kiểm tra, đo lường InBody, điều chỉnh kế hoạch..."
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      fontSize: '0.8rem',
+                      lineHeight: '1.4',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      background: '#ffffff',
+                      color: '#334155',
+                      resize: 'vertical',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              ))}
+
+              {(!strategy.checkpoints || strategy.checkpoints.length === 0) && (
+                <div
+                  style={{
+                    gridColumn: '1 / -1',
+                    fontSize: '0.82rem',
+                    color: '#94a3b8',
+                    fontStyle: 'italic',
+                    textAlign: 'center',
+                    padding: '16px',
+                    background: '#ffffff',
+                    borderRadius: '8px',
+                    border: '1px dashed #cbd5e1',
+                  }}
+                >
+                  Chưa có mốc đánh giá định kỳ nào. Bấm &quot;Thêm mốc kiểm tra&quot; để thiết lập các cột mốc đo lường InBody.
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* 4. Multi-Phase Breakdown (Phases -> Weeks -> Sessions) */}
+      {/* 4. Multi-Phase Breakdown (Phases -> Weeks & Goals) */}
       <div style={{ display: 'grid', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
             <Layers size={20} color="var(--secondary-color)" /> Lộ trình Phân kỳ ({phases.length} Phase • {phases.reduce((acc, p) => acc + (p.durationWeeks || 0), 0)} Tuần)
           </h3>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              className="button button-secondary"
-              onClick={() => setShowSessions(!showSessions)}
-              style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-            >
-              {showSessions ? 'Ẩn chi tiết buổi tập' : 'Hiện chi tiết buổi tập'}
-            </button>
-            <button
-              type="button"
-              className="button button-secondary"
-              onClick={addPhase}
-              style={{ fontSize: '0.8rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px' }}
-            >
-              <Plus size={14} /> Thêm Phase
-            </button>
-          </div>
+          <button
+            type="button"
+            className="button button-secondary"
+            onClick={addPhase}
+            style={{ fontSize: '0.8rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '4px' }}
+          >
+            <Plus size={14} /> Thêm Phase
+          </button>
         </div>
 
         {phases.map((phase, phaseIndex) => {
@@ -956,8 +1490,63 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                     </label>
                   </div>
 
+                  {/* Phase Goals List (Editable) */}
+                  <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Target size={14} color="var(--secondary-color)" /> Mục tiêu giai đoạn Phase {phase.order}:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => addPhaseGoal(phaseIndex)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: '#ffffff',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '6px',
+                          color: '#0284c7',
+                          padding: '3px 8px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Plus size={11} /> Thêm mục tiêu
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '6px' }}>
+                      {(phase.goals || []).map((goal, gIdx) => (
+                        <div key={gIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            aria-label={`Mục tiêu ${gIdx + 1} phase ${phase.order}`}
+                            value={goal}
+                            onChange={(e) => updatePhaseGoal(phaseIndex, gIdx, e.target.value)}
+                            placeholder={`Ví dụ: Chuẩn hóa kỹ thuật Squat & Deadlift...`}
+                            style={{ flex: 1, padding: '6px 10px', fontSize: '0.82rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePhaseGoal(phaseIndex, gIdx)}
+                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                            title="Xóa mục tiêu này"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      {(!phase.goals || phase.goals.length === 0) && (
+                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>
+                          Chưa có mục tiêu cho giai đoạn này. Bấm &quot;Thêm mục tiêu&quot; để thiết lập.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Weeks list inside Phase */}
-                  <div style={{ display: 'grid', gap: '12px' }}>
+                  <div style={{ display: 'grid', gap: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#475569' }}>
                         Chi tiết các tuần huấn luyện trong Phase {phase.order}:
@@ -976,169 +1565,53 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                       <div
                         key={weekIndex}
                         style={{
-                          background: '#f8fafc',
+                          background: '#ffffff',
                           padding: '12px 14px',
                           borderRadius: '8px',
                           border: '1px solid #e2e8f0',
-                          display: 'grid',
-                          gap: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          flexWrap: 'wrap',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                            <span style={{ background: '#0284c7', color: '#ffffff', fontWeight: 800, fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px' }}>
-                              Tuần {week.week}
-                            </span>
-                            <input
-                              aria-label={`Trọng tâm tuần ${week.week} phase ${phaseIndex + 1}`}
-                              placeholder={`Trọng tâm huấn luyện tuần ${week.week}...`}
-                              value={week.focus}
-                              onChange={(e) => updateWeekFocus(phaseIndex, weekIndex, e.target.value)}
-                              style={{ flex: 1, padding: '6px 10px', fontSize: '0.85rem' }}
-                              required
-                            />
-                          </div>
+                        <span style={{ background: '#0284c7', color: '#ffffff', fontWeight: 800, fontSize: '0.75rem', padding: '4px 8px', borderRadius: '4px', flexShrink: 0 }}>
+                          Tuần {week.week}
+                        </span>
 
-                          <button
-                            type="button"
-                            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
-                            onClick={() => removeWeek(phaseIndex, weekIndex)}
-                            title="Xóa tuần này"
+                        <input
+                          aria-label={`Trọng tâm tuần ${week.week} phase ${phaseIndex + 1}`}
+                          placeholder={`Trọng tâm & mục tiêu huấn luyện tuần ${week.week}...`}
+                          value={week.focus}
+                          onChange={(e) => updateWeekFocus(phaseIndex, weekIndex, e.target.value)}
+                          style={{ flex: 1, minWidth: '220px', padding: '6px 10px', fontSize: '0.84rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+                          required
+                        />
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Tần suất:</span>
+                          <select
+                            aria-label={`Tần suất tuần ${week.week}`}
+                            value={week.sessionTargets || sessionsPerWeek}
+                            onChange={(e) => updateWeekSessionTargets(phaseIndex, weekIndex, Number(e.target.value))}
+                            style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155' }}
                           >
-                            <Trash2 size={14} />
-                          </button>
+                            <option value="2">2 buổi/tuần</option>
+                            <option value="3">3 buổi/tuần</option>
+                            <option value="4">4 buổi/tuần</option>
+                            <option value="5">5 buổi/tuần</option>
+                            <option value="6">6 buổi/tuần</option>
+                          </select>
                         </div>
 
-                        {/* Sessions inside week */}
-                        {showSessions && (
-                          <div style={{ marginTop: '6px', display: 'grid', gap: '8px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b' }}>
-                                Các buổi tập trong Tuần {week.week} ({week.sessions?.length || 0} buổi):
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => addSession(phaseIndex, weekIndex)}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  background: '#ffffff',
-                                  border: '1px solid #bae6fd',
-                                  borderRadius: '6px',
-                                  color: '#0284c7',
-                                  padding: '3px 8px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <Plus size={11} /> Thêm buổi tập
-                              </button>
-                            </div>
-
-                            {week.sessions && week.sessions.length > 0 ? (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '8px' }}>
-                                {week.sessions.map((sess, sIdx) => (
-                                  <div
-                                    key={sIdx}
-                                    style={{
-                                      background: '#ffffff',
-                                      padding: '10px 12px',
-                                      borderRadius: '8px',
-                                      border: '1px solid #cbd5e1',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: '6px',
-                                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                                    }}
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                                      <input
-                                        aria-label={`Tên buổi ${sIdx + 1}`}
-                                        value={sess.name || ''}
-                                        placeholder={`Buổi ${sIdx + 1}: Tên ca tập...`}
-                                        onChange={(e) => updateSession(phaseIndex, weekIndex, sIdx, { name: e.target.value })}
-                                        style={{
-                                          fontWeight: 750,
-                                          fontSize: '0.8rem',
-                                          color: '#003b70',
-                                          padding: '4px 6px',
-                                          border: '1px solid #cbd5e1',
-                                          borderRadius: '5px',
-                                          flex: 1,
-                                          boxSizing: 'border-box',
-                                        }}
-                                      />
-                                      <button
-                                        type="button"
-                                        onClick={() => removeSession(phaseIndex, weekIndex, sIdx)}
-                                        style={{
-                                          background: 'none',
-                                          border: 'none',
-                                          color: '#94a3b8',
-                                          cursor: 'pointer',
-                                          padding: '3px',
-                                          transition: 'color 0.15s ease',
-                                        }}
-                                        onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-                                        onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
-                                        title="Xóa buổi tập này"
-                                      >
-                                        <Trash2 size={13} />
-                                      </button>
-                                    </div>
-
-                                    <input
-                                      aria-label={`Trọng tâm buổi ${sIdx + 1}`}
-                                      value={sess.focus || ''}
-                                      placeholder="Trọng tâm / nhóm cơ (VD: Ngực, vai, RPE 7...)"
-                                      onChange={(e) => updateSession(phaseIndex, weekIndex, sIdx, { focus: e.target.value })}
-                                      style={{
-                                        fontSize: '0.73rem',
-                                        color: '#475569',
-                                        padding: '4px 6px',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '5px',
-                                        width: '100%',
-                                        boxSizing: 'border-box',
-                                      }}
-                                    />
-
-                                    <div>
-                                      <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '2px' }}>
-                                        Bài tập (mỗi dòng 1 bài):
-                                      </span>
-                                      <textarea
-                                        aria-label={`Bài tập buổi ${sIdx + 1}`}
-                                        rows={4}
-                                        placeholder="Ví dụ:&#10;Bench Press 3x12&#10;Incline Dumbbell Press 3x12&#10;Plank 3x30s"
-                                        value={sess.exercises?.join('\n') || ''}
-                                        onChange={(e) => updateSession(phaseIndex, weekIndex, sIdx, { exercises: e.target.value.split('\n') })}
-                                        style={{
-                                          fontSize: '0.72rem',
-                                          color: '#334155',
-                                          padding: '5px 6px',
-                                          border: '1px solid #e2e8f0',
-                                          borderRadius: '5px',
-                                          width: '100%',
-                                          boxSizing: 'border-box',
-                                          resize: 'vertical',
-                                          lineHeight: 1.4,
-                                          fontFamily: 'inherit',
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div style={{ textAlign: 'center', padding: '12px', background: '#ffffff', borderRadius: '6px', border: '1px dashed #cbd5e1', fontSize: '0.75rem', color: '#94a3b8' }}>
-                                Chưa có buổi tập nào trong tuần này. Bấm &quot;Thêm buổi tập&quot; để thiết lập.
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', flexShrink: 0 }}
+                          onClick={() => removeWeek(phaseIndex, weekIndex)}
+                          title="Xóa tuần này"
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     ))}
                   </div>
