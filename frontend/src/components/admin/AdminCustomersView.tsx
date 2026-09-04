@@ -11,6 +11,7 @@ import { useToast } from '../ui/ToastProvider';
 import ConfirmModal from '../ui/ConfirmModal';
 import AdminCustomerTable from './AdminCustomerTable';
 import AdminQuickTransferModal from './AdminQuickTransferModal';
+import AdminBulkTransferModal from './AdminBulkTransferModal';
 import AdminCustomerFormModal from './AdminCustomerFormModal';
 import { errorMessage } from '../../types';
 import type { PaginationMeta } from '../../types';
@@ -57,6 +58,10 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
   const [pts, setPts] = useState<PtOption[]>([]);
   const [meta, setMeta] = useState<PaginationMeta>({ page: 1, totalPages: 0, total: 0 });
   const [loading, setLoading] = useState(false);
+
+  // Bulk selection
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
+  const [openBulkTransfer, setOpenBulkTransfer] = useState(false);
 
   // Filters
   const [keyword, setKeyword] = useState('');
@@ -135,17 +140,41 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
     void loadCustomers(1, '', '', '');
   };
 
+  const handleToggleSelect = (id: string) => {
+    setSelectedCustomerIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    const pageIds = customers.map((c) => c._id);
+    const isAllPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedCustomerIds.includes(id));
+
+    if (isAllPageSelected) {
+      setSelectedCustomerIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+    } else {
+      setSelectedCustomerIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleRemoveCustomerFromBulk = (id: string) => {
+    setSelectedCustomerIds((prev) => prev.filter((item) => item !== id));
+  };
+
   const handleDeleteCustomer = async () => {
     if (!deleteCustomer) return;
     try {
       await api.delete(`/api/customers/${deleteCustomer._id}`);
       toast.success('Đã xóa hồ sơ khách hàng.');
       setDeleteCustomer(null);
+      setSelectedCustomerIds((prev) => prev.filter((id) => id !== deleteCustomer._id));
       void loadCustomers(meta.page, keyword, statusFilter, ptFilter);
     } catch (err) {
       toast.error(errorMessage(err));
     }
   };
+
+  const selectedCustomersForBulk = customers.filter((c) => selectedCustomerIds.includes(c._id));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -286,25 +315,126 @@ export default function AdminCustomersView({ onOpenTransferTab }: { onOpenTransf
         </button>
       </div>
 
+      {/* Bulk Action Bar khi có khách hàng được tick chọn */}
+      {selectedCustomerIds.length > 0 && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #003b70 0%, #0284c7 100%)',
+            color: '#ffffff',
+            borderRadius: '12px',
+            padding: '12px 18px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            boxShadow: '0 4px 14px rgba(0, 59, 112, 0.22)',
+            animation: 'fadeIn 0.2s ease-in-out',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                padding: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <ArrowRightLeft size={16} />
+            </div>
+            <div>
+              <span style={{ fontSize: '0.88rem', fontWeight: 750 }}>
+                Đã chọn {selectedCustomerIds.length} khách hàng
+              </span>
+              <span style={{ fontSize: '0.75rem', opacity: 0.85, marginLeft: '8px' }}>
+                (Sẵn sàng điều chuyển Huấn luyện viên)
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setOpenBulkTransfer(true)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 0,
+                background: '#ffffff',
+                color: '#003b70',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+              }}
+            >
+              <ArrowRightLeft size={14} />
+              <span>Chuyển PT ({selectedCustomerIds.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedCustomerIds([])}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.35)',
+                background: 'rgba(255, 255, 255, 0.15)',
+                color: '#ffffff',
+                fontSize: '0.8rem',
+                fontWeight: 650,
+                cursor: 'pointer',
+              }}
+            >
+              Bỏ chọn
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Customers Table */}
       <AdminCustomerTable
         customers={customers}
         pts={pts}
         loading={loading}
         meta={meta}
+        selectedCustomerIds={selectedCustomerIds}
+        onToggleSelect={handleToggleSelect}
+        onToggleSelectAll={handleToggleSelectAll}
         onPageChange={(page) => void loadCustomers(page, keyword, statusFilter, ptFilter)}
         onOpenTransfer={(c) => setTransferCustomer(c)}
         onOpenEdit={(c) => setFormCustomer(c)}
         onOpenDelete={(c) => setDeleteCustomer(c)}
       />
 
-      {/* Modal Quick Transfer */}
+      {/* Modal Quick Transfer Đơn lẻ */}
       {transferCustomer && (
         <AdminQuickTransferModal
           customer={transferCustomer}
           pts={pts}
           onClose={() => setTransferCustomer(null)}
           onSuccess={() => void loadCustomers(meta.page, keyword, statusFilter, ptFilter)}
+        />
+      )}
+
+      {/* Modal Bulk Transfer Hàng loạt */}
+      {openBulkTransfer && (
+        <AdminBulkTransferModal
+          selectedCustomers={selectedCustomersForBulk}
+          pts={pts}
+          onClose={() => setOpenBulkTransfer(false)}
+          onRemoveCustomer={handleRemoveCustomerFromBulk}
+          onSuccess={() => {
+            setSelectedCustomerIds([]);
+            setOpenBulkTransfer(false);
+            void loadCustomers(meta.page, keyword, statusFilter, ptFilter);
+          }}
         />
       )}
 
