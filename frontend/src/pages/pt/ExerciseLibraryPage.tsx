@@ -13,6 +13,8 @@ import ExerciseFormModal from '../../components/exercises/ExerciseFormModal';
 import ExerciseLibraryCard from '../../components/exercises/ExerciseLibraryCard';
 import AiExerciseWizard from '../../components/exercises/AiExerciseWizard';
 
+const EXERCISES_PER_PAGE = 12;
+
 export default function ExerciseLibraryPage() {
   const toast = useToast();
 
@@ -32,7 +34,7 @@ export default function ExerciseLibraryPage() {
   // === DATA FETCHING ===
   const load = useCallback(async (page = 1) => {
     setLoading(true);
-    const query = new URLSearchParams({ page: String(page), limit: '20' });
+    const query = new URLSearchParams({ page: String(page), limit: String(EXERCISES_PER_PAGE) });
     if (keyword.trim()) query.set('keyword', keyword.trim());
     if (level) query.set('level', level);
     if (trackingType) query.set('defaultTrackingType', trackingType);
@@ -122,7 +124,15 @@ export default function ExerciseLibraryPage() {
           {hasFilters && <button type="button" className="button button-secondary" onClick={handleClearFilters}>Xóa bộ lọc</button>}
         </div>
       )}
-      <Pagination page={meta.page || 1} totalPages={meta.totalPages || 0} onPageChange={load} />
+      <Pagination
+        page={meta.page || 1}
+        totalPages={meta.totalPages || 0}
+        totalItems={meta.total}
+        pageSize={meta.limit || EXERCISES_PER_PAGE}
+        itemLabel="bài tập"
+        loading={loading}
+        onPageChange={load}
+      />
 
       <ExerciseFormModal
         open={formExercise !== undefined}
