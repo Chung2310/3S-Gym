@@ -56,166 +56,102 @@ export default function InBodyDetailView({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {/* Section 1: InBody Score & Comparison Summary Banner */}
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: record.inbodyScore ? 'minmax(180px, 220px) 1fr' : '1fr',
-          gap: '16px',
-          alignItems: 'stretch',
-        }}
+        className={`grid ${record.inbodyScore != null ? 'grid-cols-1 md:grid-cols-[200px_1fr]' : 'grid-cols-1'} gap-3.5 sm:gap-4 items-stretch max-w-full`}
       >
         {/* Score Box */}
         {record.inbodyScore != null && (
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-              border: '1px solid #bbf7d0',
-              borderRadius: '14px',
-              padding: '18px 20px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-            }}
-          >
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Điểm InBody Score
-            </span>
-            <div style={{ fontSize: '2.8rem', fontWeight: 900, color: '#15803d', lineHeight: 1.1, margin: '6px 0' }}>
-              <span>{record.inbodyScore}</span>
-              <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#16a34a' }}>/100</span>
+          <div className="bg-gradient-to-br from-emerald-50 to-green-100 border border-green-200 rounded-2xl p-3.5 sm:p-5 flex flex-row md:flex-col items-center justify-between md:justify-center text-left md:text-center gap-3 shadow-2xs">
+            <div className="flex flex-col items-start md:items-center">
+              <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                Điểm InBody Score
+              </span>
+              <span className="mt-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-700 text-white shadow-2xs inline-block">
+                {analysis.classifications.inbodyScore?.label || 'Đạt chuẩn'}
+              </span>
             </div>
-            <span
-              style={{
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: '12px',
-                background: '#15803d',
-                color: '#ffffff',
-              }}
-            >
-              {analysis.classifications.inbodyScore?.label || 'Đạt chuẩn'}
-            </span>
+            <div className="text-3xl sm:text-4xl md:text-5xl font-black text-emerald-700 leading-none shrink-0">
+              <span>{record.inbodyScore}</span>
+              <span className="text-sm sm:text-base font-semibold text-emerald-600">/100</span>
+            </div>
           </div>
         )}
 
         {/* Comparison / Delta Card or Status Banner */}
         <div
-          style={{
-            background: analysis.comparison
+          className={`rounded-2xl p-3.5 sm:p-5 border flex flex-col justify-center min-w-0 max-w-full shadow-2xs ${
+            analysis.comparison
               ? analysis.comparison.trendType === 'EXCELLENT'
-                ? '#f0fdf4'
+                ? 'bg-emerald-50/70 border-emerald-200'
                 : analysis.comparison.trendType === 'NEEDS_ADJUSTMENT'
-                  ? '#fff1f2'
-                  : '#f0f9ff'
-              : '#f8fafc',
-            border: `1px solid ${analysis.comparison
-                ? analysis.comparison.trendType === 'EXCELLENT'
-                  ? '#bbf7d0'
-                  : analysis.comparison.trendType === 'NEEDS_ADJUSTMENT'
-                    ? '#fecdd3'
-                    : '#bae6fd'
-                : '#e2e8f0'
-              }`,
-            borderRadius: '14px',
-            padding: '16px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}
+                  ? 'bg-rose-50/70 border-rose-200'
+                  : 'bg-sky-50/70 border-sky-200'
+              : 'bg-slate-50 border-slate-200'
+          }`}
         >
           {analysis.comparison ? (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <TrendingUp size={18} color={analysis.comparison.trendType === 'NEEDS_ADJUSTMENT' ? '#e11d48' : '#0284c7'} />
-                <strong style={{ fontSize: '0.94rem', color: '#0f172a' }}>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className={`w-4 h-4 shrink-0 ${analysis.comparison.trendType === 'NEEDS_ADJUSTMENT' ? 'text-rose-600' : 'text-sky-600'}`} />
+                <strong className="text-xs sm:text-sm text-slate-900 leading-snug break-words">
                   So sánh với lần đo ngày {previousRecord?.measurementDate ? new Date(previousRecord.measurementDate).toLocaleDateString('vi-VN') : 'trước'} (cách {analysis.comparison.daysBetween} ngày):
                 </strong>
               </div>
-              <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: '#334155', fontWeight: 600 }}>
+              <p className="m-0 mb-3 text-xs sm:text-sm text-slate-700 font-semibold leading-relaxed">
                 {analysis.comparison.trendSummary}
               </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <div className="flex flex-wrap gap-2 sm:gap-2.5">
                 {/* Cân nặng */}
-                <div
-                  style={{
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <span style={{ color: '#64748b' }}>Cân nặng:</span>
-                  <strong style={{ color: '#0f172a' }}>
+                <div className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs inline-flex flex-wrap items-center gap-1.5 max-w-full">
+                  <span className="text-slate-500 font-medium">Cân nặng:</span>
+                  <strong className="text-slate-900">
                     {previousRecord?.weight != null ? `${previousRecord.weight} kg` : '—'} ➔ {record.weight} kg
                   </strong>
                   <span
-                    style={{
-                      fontWeight: 700,
-                      color: analysis.comparison.deltaWeight > 0 ? '#b45309' : analysis.comparison.deltaWeight < 0 ? '#15803d' : '#64748b',
-                    }}
+                    className={`font-bold ${
+                      analysis.comparison.deltaWeight > 0
+                        ? 'text-amber-600'
+                        : analysis.comparison.deltaWeight < 0
+                          ? 'text-emerald-700'
+                          : 'text-slate-500'
+                    }`}
                   >
                     ({analysis.comparison.deltaWeight > 0 ? `+${analysis.comparison.deltaWeight} kg` : analysis.comparison.deltaWeight < 0 ? `${analysis.comparison.deltaWeight} kg` : 'Không đổi'})
                   </span>
                 </div>
 
                 {/* % Mỡ */}
-                <div
-                  style={{
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <span style={{ color: '#64748b' }}>% Mỡ:</span>
-                  <strong style={{ color: '#0f172a' }}>
+                <div className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs inline-flex flex-wrap items-center gap-1.5 max-w-full">
+                  <span className="text-slate-500 font-medium">% Mỡ:</span>
+                  <strong className="text-slate-900">
                     {previousRecord?.bodyFatPercentage != null ? `${previousRecord.bodyFatPercentage}%` : '—'} ➔ {record.bodyFatPercentage != null ? `${record.bodyFatPercentage}%` : '—'}
                   </strong>
                   <span
-                    style={{
-                      fontWeight: 700,
-                      color: analysis.comparison.deltaFatPercentage < 0 ? '#15803d' : analysis.comparison.deltaFatPercentage > 0 ? '#e11d48' : '#64748b',
-                    }}
+                    className={`font-bold ${
+                      analysis.comparison.deltaFatPercentage < 0
+                        ? 'text-emerald-700'
+                        : analysis.comparison.deltaFatPercentage > 0
+                          ? 'text-rose-600'
+                          : 'text-slate-500'
+                    }`}
                   >
                     ({analysis.comparison.deltaFatPercentage > 0 ? `+${analysis.comparison.deltaFatPercentage}%` : analysis.comparison.deltaFatPercentage < 0 ? `${analysis.comparison.deltaFatPercentage}%` : 'Không đổi'})
                   </span>
                 </div>
 
                 {/* Khối lượng cơ */}
-                <div
-                  style={{
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <span style={{ color: '#64748b' }}>Khối lượng cơ:</span>
-                  <strong style={{ color: '#0f172a' }}>
+                <div className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs inline-flex flex-wrap items-center gap-1.5 max-w-full">
+                  <span className="text-slate-500 font-medium">Khối lượng cơ:</span>
+                  <strong className="text-slate-900">
                     {previousRecord?.muscleMass != null ? `${previousRecord.muscleMass} kg` : '—'} ➔ {record.muscleMass != null ? `${record.muscleMass} kg` : '—'}
                   </strong>
                   <span
-                    style={{
-                      fontWeight: 700,
-                      color: analysis.comparison.deltaMuscleMass > 0 ? '#15803d' : analysis.comparison.deltaMuscleMass < 0 ? '#b45309' : '#64748b',
-                    }}
+                    className={`font-bold ${
+                      analysis.comparison.deltaMuscleMass > 0
+                        ? 'text-emerald-700'
+                        : analysis.comparison.deltaMuscleMass < 0
+                          ? 'text-amber-600'
+                          : 'text-slate-500'
+                    }`}
                   >
                     ({analysis.comparison.deltaMuscleMass > 0 ? `+${analysis.comparison.deltaMuscleMass} kg` : analysis.comparison.deltaMuscleMass < 0 ? `${analysis.comparison.deltaMuscleMass} kg` : 'Không đổi'})
                   </span>
@@ -223,28 +159,19 @@ export default function InBodyDetailView({
 
                 {/* Mỡ nội tạng */}
                 {previousRecord?.visceralFatLevel != null && record.visceralFatLevel != null && (
-                  <div
-                    style={{
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      background: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <span style={{ color: '#64748b' }}>Mỡ nội tạng:</span>
-                    <strong style={{ color: '#0f172a' }}>
+                  <div className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs inline-flex flex-wrap items-center gap-1.5 max-w-full">
+                    <span className="text-slate-500 font-medium">Mỡ nội tạng:</span>
+                    <strong className="text-slate-900">
                       Lv {previousRecord.visceralFatLevel} ➔ Lv {record.visceralFatLevel}
                     </strong>
                     <span
-                      style={{
-                        fontWeight: 700,
-                        color: analysis.comparison.deltaVisceralFat < 0 ? '#15803d' : analysis.comparison.deltaVisceralFat > 0 ? '#e11d48' : '#64748b',
-                      }}
+                      className={`font-bold ${
+                        analysis.comparison.deltaVisceralFat < 0
+                          ? 'text-emerald-700'
+                          : analysis.comparison.deltaVisceralFat > 0
+                            ? 'text-rose-600'
+                            : 'text-slate-500'
+                      }`}
                     >
                       ({analysis.comparison.deltaVisceralFat > 0 ? `+${analysis.comparison.deltaVisceralFat} Lv` : analysis.comparison.deltaVisceralFat < 0 ? `${analysis.comparison.deltaVisceralFat} Lv` : 'Không đổi'})
                     </span>
@@ -253,13 +180,13 @@ export default function InBodyDetailView({
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Info size={24} color="#0284c7" />
+            <div className="flex items-center gap-3">
+              <Info className="w-6 h-6 text-sky-600 shrink-0" />
               <div>
-                <strong style={{ color: '#003b70', display: 'block', fontSize: '0.94rem' }}>
+                <strong className="text-sky-950 block text-sm">
                   Phiếu InBody khởi điểm (Baseline)
                 </strong>
-                <p style={{ margin: '2px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                <p className="m-0 mt-0.5 text-xs text-slate-600">
                   Đây là kết quả đo đầu tiên hoặc chưa có dữ liệu đối chiếu. Các lần đo tiếp theo sẽ tự động so sánh mức độ tiến bộ.
                 </p>
               </div>
@@ -270,71 +197,37 @@ export default function InBodyDetailView({
 
       {/* Section 1.5: Active Customer Goal Alignment Card */}
       {analysis.goalAlignment && (
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-            border: '1px solid #bae6fd',
-            borderRadius: '14px',
-            padding: '16px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '14px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', minWidth: '280px', flex: '1 1 300px' }}>
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '10px',
-                background: '#0284c7',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                marginTop: '2px',
-              }}
-            >
-              <Target size={20} />
+        <div className="p-3.5 sm:p-5 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-sky-100/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 max-w-full shadow-2xs">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+              <Target className="w-5 h-5" />
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: '0.96rem', color: '#003b70' }}>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <strong className="text-sm sm:text-[0.95rem] text-sky-950 break-words">
                   Mục tiêu đang theo đuổi: {analysis.goalAlignment.goal.title}
                 </strong>
-                <span
-                  style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '10px',
-                    background: '#0284c7',
-                    color: '#ffffff',
-                  }}
-                >
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-sky-600 text-white whitespace-nowrap">
                   {analysis.goalAlignment.goalTypeLabel}
                 </span>
               </div>
-              <p style={{ margin: '4px 0 0', fontSize: '0.86rem', color: '#0369a1', fontWeight: 600 }}>
+              <p className="m-0 mt-1 text-xs sm:text-sm text-sky-800 font-semibold leading-relaxed">
                 {analysis.goalAlignment.statusSummary}
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: '#334155' }}>
+          <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-700 shrink-0 self-start sm:self-auto">
             {analysis.goalAlignment.goal.deadline && (
-              <div style={{ background: '#ffffff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                <span style={{ color: '#64748b', display: 'block', fontSize: '0.72rem' }}>HẠN CHÓT</span>
-                <strong style={{ color: '#0f172a' }}>{new Date(analysis.goalAlignment.goal.deadline).toLocaleDateString('vi-VN')}</strong>
+              <div className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
+                <span className="text-slate-500 block text-[0.7rem] uppercase font-bold">Hạn chót</span>
+                <strong className="text-slate-900 font-bold">{new Date(analysis.goalAlignment.goal.deadline).toLocaleDateString('vi-VN')}</strong>
               </div>
             )}
             {analysis.goalAlignment.goal.sessionsPerWeek && (
-              <div style={{ background: '#ffffff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                <span style={{ color: '#64748b', display: 'block', fontSize: '0.72rem' }}>LỊCH TẬP</span>
-                <strong style={{ color: '#0f172a' }}>{analysis.goalAlignment.goal.sessionsPerWeek} buổi/tuần</strong>
+              <div className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
+                <span className="text-slate-500 block text-[0.7rem] uppercase font-bold">Lịch tập</span>
+                <strong className="text-slate-900 font-bold">{analysis.goalAlignment.goal.sessionsPerWeek} buổi/tuần</strong>
               </div>
             )}
           </div>
@@ -342,61 +235,62 @@ export default function InBodyDetailView({
       )}
 
       {/* Section 2: Core Body Composition Metrics Grid */}
-      <div>
-        <h3 style={{ margin: '0 0 12px', fontSize: '1.02rem', fontWeight: 800, color: '#003b70', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Scale size={18} color="#0284c7" /> Phân Tích Thành Phần Cơ Thể (Body Composition)
+      <div className="flex flex-col gap-3 max-w-full">
+        <h3 className="m-0 text-sm sm:text-base font-extrabold text-slate-900 flex items-center gap-2">
+          <Scale className="w-4 h-4 text-sky-600 shrink-0" />
+          <span>Phân Tích Thành Phần Cơ Thể (Body Composition)</span>
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3 max-w-full">
           {/* 1. Cân nặng */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Cân nặng (Weight)</span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#003b70', margin: '4px 0' }}>
-              <span>{record.weight}</span> <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>kg</span>
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between min-w-0 max-w-full">
+            <span className="text-xs font-semibold text-slate-500 block">Cân nặng (Weight)</span>
+            <div className="text-lg sm:text-2xl font-extrabold text-primary my-1">
+              <span>{record.weight}</span> <span className="text-xs sm:text-sm font-semibold text-slate-500">kg</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div className="flex flex-col gap-0.5 text-xs">
               {analysis.classifications.bmi && (
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: analysis.classifications.bmi.color }}>
+                <span className="font-bold" style={{ color: analysis.classifications.bmi.color }}>
                   BMI: {record.bmi || '—'} ({analysis.classifications.bmi.label})
                 </span>
               )}
               {(record.height || customerMeta?.height || (typeof record.customerId === 'object' && record.customerId?.height)) && (
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
-                  Chiều cao: <strong style={{ color: '#0f172a' }}>{record.height || customerMeta?.height || (typeof record.customerId === 'object' && record.customerId?.height)} cm</strong>
+                <span className="text-slate-500 font-medium truncate">
+                  Cao: <strong className="text-slate-800">{record.height || customerMeta?.height || (typeof record.customerId === 'object' && record.customerId?.height)} cm</strong>
                 </span>
               )}
             </div>
           </div>
 
           {/* 2. Tỷ lệ mỡ */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Tỷ lệ mỡ (Body Fat %)</span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between min-w-0 max-w-full">
+            <span className="text-xs font-semibold text-slate-500 block">Tỷ lệ mỡ (Body Fat %)</span>
+            <div className="text-lg sm:text-2xl font-extrabold text-slate-900 my-1">
               <span>{record.bodyFatPercentage != null ? record.bodyFatPercentage : '—'}</span>{' '}
-              {record.bodyFatPercentage != null && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>%</span>}
+              {record.bodyFatPercentage != null && <span className="text-xs sm:text-sm font-semibold text-slate-500">%</span>}
             </div>
             {analysis.classifications.bodyFat && (
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: analysis.classifications.bodyFat.color }}>
+              <span className="text-xs font-bold" style={{ color: analysis.classifications.bodyFat.color }}>
                 {analysis.classifications.bodyFat.label}
               </span>
             )}
           </div>
 
           {/* 3. Khối lượng cơ xương */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Khối lượng cơ (Muscle)</span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#15803d', margin: '4px 0' }}>
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between min-w-0 max-w-full">
+            <span className="text-xs font-semibold text-slate-500 block">Khối lượng cơ (Muscle)</span>
+            <div className="text-lg sm:text-2xl font-extrabold text-emerald-700 my-1">
               <span>{record.muscleMass != null ? record.muscleMass : '—'}</span>{' '}
-              {record.muscleMass != null && <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>kg</span>}
+              {record.muscleMass != null && <span className="text-xs sm:text-sm font-semibold text-slate-500">kg</span>}
             </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+            <span className="text-xs text-slate-500 font-medium truncate">
               {record.weight && record.muscleMass ? `~${((record.muscleMass / record.weight) * 100).toFixed(1)}% cơ thể` : 'Cơ xương (SMM)'}
             </span>
           </div>
 
           {/* 4. Khối lượng mỡ (Body Fat Mass) */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Khối lượng mỡ (Fat Mass)</span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#b45309', margin: '4px 0' }}>
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between min-w-0 max-w-full">
+            <span className="text-xs font-semibold text-slate-500 block">Khối lượng mỡ (Fat Mass)</span>
+            <div className="text-lg sm:text-2xl font-extrabold text-amber-700 my-1">
               <span>
                 {record.bodyFatMass != null
                   ? record.bodyFatMass
@@ -404,70 +298,67 @@ export default function InBodyDetailView({
                     ? ((record.weight * record.bodyFatPercentage) / 100).toFixed(1)
                     : '—'}
               </span>{' '}
-              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>kg</span>
+              <span className="text-xs sm:text-sm font-semibold text-slate-500">kg</span>
             </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Tổng lượng mỡ tích tụ</span>
+            <span className="text-xs text-slate-500 font-medium">Tổng lượng mỡ</span>
           </div>
 
           {/* 5. Mỡ nội tạng (Visceral Fat) */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Mỡ nội tạng (Visceral Fat)</span>
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between min-w-0 max-w-full">
+            <span className="text-xs font-semibold text-slate-500 block">Mỡ nội tạng (Visceral Fat)</span>
             <div
-              style={{
-                fontSize: '1.4rem',
-                fontWeight: 800,
-                color: record.visceralFatLevel && record.visceralFatLevel >= 10 ? '#dc2626' : '#0f172a',
-                margin: '4px 0',
-              }}
+              className={`text-lg sm:text-2xl font-extrabold my-1 ${
+                record.visceralFatLevel && record.visceralFatLevel >= 10 ? 'text-rose-600' : 'text-slate-900'
+              }`}
             >
               Level <span>{record.visceralFatLevel != null ? record.visceralFatLevel : '—'}</span>
             </div>
             {analysis.classifications.visceralFat && (
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: analysis.classifications.visceralFat.color }}>
+              <span className="text-xs font-bold" style={{ color: analysis.classifications.visceralFat.color }}>
                 {analysis.classifications.visceralFat.label}
               </span>
             )}
           </div>
 
           {/* 6. BMR Trao đổi chất */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Trao đổi chất cơ bản (BMR)</span>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0369a1', margin: '4px 0' }}>
-              <span>{record.bmr != null ? record.bmr : '—'}</span> <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>kcal</span>
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between min-w-0 max-w-full">
+            <span className="text-xs font-semibold text-slate-500 block">Trao đổi chất cơ bản (BMR)</span>
+            <div className="text-lg sm:text-2xl font-extrabold text-sky-700 my-1">
+              <span>{record.bmr != null ? record.bmr : '—'}</span> <span className="text-xs sm:text-sm font-semibold text-slate-500">kcal</span>
             </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Đốt thụ động / ngày</span>
+            <span className="text-xs text-slate-500 font-medium">Đốt thụ động / ngày</span>
           </div>
 
           {/* 7. Lượng nước (Body Water) */}
           {record.bodyWater != null && (
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Tổng lượng nước (TBW)</span>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7', margin: '4px 0' }}>
-                <span>{record.bodyWater}</span> <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>L</span>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between min-w-0 max-w-full">
+              <span className="text-xs font-semibold text-slate-500 block">Tổng lượng nước (TBW)</span>
+              <div className="text-lg sm:text-2xl font-extrabold text-sky-600 my-1">
+                <span>{record.bodyWater}</span> <span className="text-xs sm:text-sm font-semibold text-slate-500">L</span>
               </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Độ hydrat hóa cơ thể</span>
+              <span className="text-xs text-slate-500 font-medium">Độ hydrat hóa</span>
             </div>
           )}
 
           {/* 8. Khoáng chất xương (Bone Mineral) */}
           {record.boneMineral != null && (
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Khoáng chất xương (BMC)</span>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#059669', margin: '4px 0' }}>
-                <span>{record.boneMineral}</span> <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>kg</span>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between min-w-0 max-w-full">
+              <span className="text-xs font-semibold text-slate-500 block">Khoáng chất xương (BMC)</span>
+              <div className="text-lg sm:text-2xl font-extrabold text-emerald-600 my-1">
+                <span>{record.boneMineral}</span> <span className="text-xs sm:text-sm font-semibold text-slate-500">kg</span>
               </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Mật độ khoáng xương</span>
+              <span className="text-xs text-slate-500 font-medium">Mật độ khoáng xương</span>
             </div>
           )}
 
           {/* 9. Tỷ lệ eo / mông (WHR) */}
           {record.waistHipRatio != null && (
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block' }}>Tỷ lệ eo / mông (WHR)</span>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#7c3aed', margin: '4px 0' }}>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between min-w-0 max-w-full">
+              <span className="text-xs font-semibold text-slate-500 block">Tỷ lệ eo / mông (WHR)</span>
+              <div className="text-lg sm:text-2xl font-extrabold text-purple-600 my-1">
                 <span>{record.waistHipRatio}</span>
               </div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Phân bố mỡ bụng</span>
+              <span className="text-xs text-slate-500 font-medium">Phân bố mỡ bụng</span>
             </div>
           )}
         </div>
@@ -475,11 +366,12 @@ export default function InBodyDetailView({
 
       {/* Section 3: Segmental Muscle & Fat Breakdown */}
       {hasSegmental && (
-        <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '18px 20px' }}>
-          <h4 style={{ margin: '0 0 14px', fontSize: '0.96rem', fontWeight: 800, color: '#003b70', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Layers size={17} color="#0284c7" /> Phân Tích Cơ & Mỡ Từng Phần (Segmental Lean & Fat)
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 sm:p-5 max-w-full">
+          <h4 className="m-0 mb-3 text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <Layers className="w-4 h-4 text-sky-600 shrink-0" />
+            <span>Phân Tích Cơ & Mỡ Từng Phần (Segmental Lean & Fat)</span>
           </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-2.5">
             {[
               { label: 'Tay Phải (Right Arm)', m: sm?.rightArm, f: sf?.rightArm },
               { label: 'Tay Trái (Left Arm)', m: sm?.leftArm, f: sf?.leftArm },
@@ -487,13 +379,13 @@ export default function InBodyDetailView({
               { label: 'Chân Phải (Right Leg)', m: sm?.rightLeg, f: sf?.rightLeg },
               { label: 'Chân Trái (Left Leg)', m: sm?.leftLeg, f: sf?.leftLeg },
             ].map((part) => (
-              <div key={part.label} style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '10px 12px' }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#475569', display: 'block' }}>{part.label}</span>
-                <div style={{ marginTop: '4px', fontSize: '0.84rem' }}>
-                  <span style={{ color: '#15803d', fontWeight: 700, display: 'block' }}>
+              <div key={part.label} className="bg-white border border-slate-200 rounded-xl p-2.5 sm:p-3 shadow-2xs">
+                <span className="text-[0.72rem] sm:text-xs font-bold text-slate-600 block truncate">{part.label}</span>
+                <div className="mt-1 text-xs">
+                  <span className="text-emerald-700 font-bold block">
                     Cơ: {part.m != null ? `${part.m} kg` : '—'}
                   </span>
-                  <span style={{ color: '#b45309', fontWeight: 600, fontSize: '0.78rem', display: 'block' }}>
+                  <span className="text-amber-700 font-semibold block text-[0.7rem] sm:text-xs">
                     Mỡ: {part.f != null ? `${part.f} kg` : '—'}
                   </span>
                 </div>
@@ -501,7 +393,7 @@ export default function InBodyDetailView({
             ))}
           </div>
           {(analysis.segmentalAnalysis.muscleImbalanceArm.hasImbalance || analysis.segmentalAnalysis.muscleImbalanceLeg.hasImbalance) && (
-            <div style={{ marginTop: '12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 12px', fontSize: '0.82rem', color: '#92400e' }}>
+            <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-2.5 sm:p-3 text-xs text-amber-900">
               <strong>⚠️ Lưu ý mất cân đối cơ:</strong>
               {analysis.segmentalAnalysis.muscleImbalanceArm.hasImbalance && (
                 <div>• {analysis.segmentalAnalysis.muscleImbalanceArm.note}</div>
@@ -515,48 +407,48 @@ export default function InBodyDetailView({
       )}
 
       {/* Section 4: Strengths & Improvements */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 max-w-full">
         {/* Box: Strengths & Highlights */}
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '14px', padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#15803d' }}>
-            <CheckCircle2 size={20} />
-            <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800 }}>Điểm Mạnh Của Học Viên</h4>
+        <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3.5 sm:p-5">
+          <div className="flex items-center gap-2 mb-2.5 text-emerald-700">
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
+            <h4 className="m-0 text-sm sm:text-base font-extrabold">Điểm Mạnh Của Học Viên</h4>
           </div>
           {record.strengths ? (
-            <p style={{ margin: 0, fontSize: '0.86rem', color: '#166534', lineHeight: 1.5 }}>{record.strengths}</p>
+            <p className="m-0 text-xs sm:text-sm text-emerald-900 leading-relaxed">{record.strengths}</p>
           ) : analysis.strengths.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.86rem', color: '#166534' }}>
+            <ul className="m-0 pl-5 flex flex-col gap-1.5 text-xs sm:text-sm text-emerald-900">
               {analysis.strengths.map((s, idx) => (
-                <li key={idx} style={{ lineHeight: 1.45 }}>{s}</li>
+                <li key={idx} className="leading-relaxed">{s}</li>
               ))}
             </ul>
           ) : (
-            <p style={{ margin: 0, fontSize: '0.86rem', color: '#166534' }}>Thể trạng ở mức khởi đầu, sẵn sàng cho lộ trình rèn luyện mới.</p>
+            <p className="m-0 text-xs sm:text-sm text-emerald-800">Thể trạng ở mức khởi đầu, sẵn sàng cho lộ trình rèn luyện mới.</p>
           )}
         </div>
 
         {/* Box: Improvements & Priority Focus */}
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '14px', padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: '#b45309' }}>
-            <Flame size={20} />
-            <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800 }}>Điểm Cần Cải Thiện & Vấn Đề Ưu Tiên</h4>
+        <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-3.5 sm:p-5">
+          <div className="flex items-center gap-2 mb-2.5 text-amber-800">
+            <Flame className="w-5 h-5 shrink-0" />
+            <h4 className="m-0 text-sm sm:text-base font-extrabold">Điểm Cần Cải Thiện & Ưu Tiên</h4>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.86rem', color: '#92400e' }}>
+          <div className="flex flex-col gap-2 text-xs sm:text-sm text-amber-900">
             {record.priorities ? (
-              <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '8px', borderLeft: '3px solid #b45309' }}>
-                <strong style={{ color: '#78350f', display: 'block', fontSize: '0.82rem', textTransform: 'uppercase' }}>
+              <div className="bg-white p-2.5 sm:p-3 rounded-xl border-l-4 border-amber-600 shadow-2xs">
+                <strong className="text-amber-900 block text-xs uppercase">
                   🎯 Ưu tiên từ PT:
                 </strong>
-                <p style={{ margin: '2px 0 0', fontWeight: 700, color: '#92400e' }}>
+                <p className="m-0 mt-0.5 font-bold text-amber-950">
                   {record.priorities}
                 </p>
               </div>
             ) : analysis.priorities.length > 0 ? (
-              <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: '8px', borderLeft: '3px solid #b45309' }}>
-                <strong style={{ color: '#78350f', display: 'block', fontSize: '0.82rem', textTransform: 'uppercase' }}>
+              <div className="bg-white p-2.5 sm:p-3 rounded-xl border-l-4 border-amber-600 shadow-2xs">
+                <strong className="text-amber-900 block text-xs uppercase">
                   🎯 Mục Tiêu Ưu Tiên Số 1:
                 </strong>
-                <p style={{ margin: '2px 0 0', fontWeight: 700, color: '#92400e' }}>
+                <p className="m-0 mt-0.5 font-bold text-amber-950">
                   {analysis.priorities[0]}
                 </p>
               </div>
@@ -564,8 +456,8 @@ export default function InBodyDetailView({
 
             {analysis.improvements.length > 0 && !record.priorities && (
               <div>
-                <strong style={{ display: 'block', marginBottom: '4px' }}>Cần cải thiện:</strong>
-                <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <strong className="block mb-1 text-xs sm:text-sm">Cần cải thiện:</strong>
+                <ul className="m-0 pl-5 flex flex-col gap-1 text-xs sm:text-sm">
                   {analysis.improvements.map((imp, idx) => (
                     <li key={idx}>{imp}</li>
                   ))}
@@ -578,19 +470,12 @@ export default function InBodyDetailView({
 
       {/* Section 4.5: PT Consultation Notes & Advice */}
       {(record.consultationNotes || record.recommendation) && (
-        <div
-          style={{
-            background: '#f0f9ff',
-            border: '1px solid #bae6fd',
-            borderRadius: '14px',
-            padding: '18px 20px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#0369a1' }}>
-            <MessageSquare size={18} />
-            <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800 }}>Tư Vấn & Lời Khuyên Từ Huấn Luyện Viên</h4>
+        <div className="bg-sky-50 border border-sky-200 rounded-2xl p-3.5 sm:p-5 max-w-full">
+          <div className="flex items-center gap-2 mb-2 text-sky-800">
+            <MessageSquare className="w-4 h-4 shrink-0" />
+            <h4 className="m-0 text-sm sm:text-base font-extrabold">Tư Vấn & Lời Khuyên Từ Huấn Luyện Viên</h4>
           </div>
-          <p style={{ margin: 0, fontSize: '0.88rem', color: '#0c4a6e', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+          <p className="m-0 text-xs sm:text-sm text-sky-950 leading-relaxed whitespace-pre-line">
             {record.consultationNotes || record.recommendation}
           </p>
         </div>
@@ -598,26 +483,22 @@ export default function InBodyDetailView({
 
       {/* Section 5: Health & Biometric Alerts */}
       {analysis.alerts.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 800, color: '#dc2626', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertTriangle size={18} /> Cảnh Báo Chỉ Số Sức Khỏe Cần Theo Dõi Sát
+        <div className="flex flex-col gap-2.5 max-w-full">
+          <h4 className="m-0 text-sm sm:text-base font-extrabold text-rose-600 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0" /> Cảnh Báo Chỉ Số Sức Khỏe Cần Theo Dõi Sát
           </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '10px' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-full">
             {analysis.alerts.map((alert) => (
               <div
                 key={alert.id}
-                style={{
-                  background: alert.level === 'danger' ? '#fff1f2' : '#fffbeb',
-                  border: `1px solid ${alert.level === 'danger' ? '#fecdd3' : '#fde68a'}`,
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  color: alert.level === 'danger' ? '#9f1239' : '#92400e',
-                }}
+                className={`rounded-xl p-3 border ${
+                  alert.level === 'danger' ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-amber-50 border-amber-200 text-amber-900'
+                }`}
               >
-                <strong style={{ display: 'block', fontSize: '0.88rem', marginBottom: '2px' }}>
+                <strong className="block text-xs sm:text-sm mb-0.5 font-bold">
                   ⚠️ {alert.title}
                 </strong>
-                <p style={{ margin: 0, fontSize: '0.82rem', lineHeight: 1.4 }}>{alert.desc}</p>
+                <p className="m-0 text-xs leading-relaxed opacity-90">{alert.desc}</p>
               </div>
             ))}
           </div>
@@ -631,63 +512,53 @@ export default function InBodyDetailView({
 
       {/* Section 7: PT Consultation Guide (when not hidden) */}
       {!hideConsultation && (
-        <div
-          style={{
-            background: '#f8fafc',
-            border: '1px solid #cbd5e1',
-            borderRadius: '16px',
-            padding: '20px 22px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#003b70' }}>
-            <MessageSquare size={20} color="#0284c7" />
-            <h4 style={{ margin: 0, fontSize: '1.02rem', fontWeight: 800 }}>
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 sm:p-5 flex flex-col gap-3.5 max-w-full">
+          <div className="flex items-center gap-2 text-primary">
+            <MessageSquare className="w-5 h-5 text-sky-600 shrink-0" />
+            <h4 className="m-0 text-sm sm:text-base font-extrabold">
               Kịch Bản & Hướng Dẫn Tư Vấn Chuyên Sâu Cho PT
             </h4>
           </div>
 
           {/* Talking Points */}
-          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-            <strong style={{ color: '#003b70', display: 'block', fontSize: '0.86rem', marginBottom: '8px' }}>
+          <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-2xs">
+            <strong className="text-primary block text-xs sm:text-sm mb-2">
               🗣️ Lời thoại gợi ý khi trao đổi trực tiếp với học viên:
             </strong>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.86rem', color: '#334155' }}>
+            <div className="flex flex-col gap-2 text-xs sm:text-sm text-slate-700">
               {analysis.consultationGuide.talkingPoints.map((tp, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <span style={{ background: '#e0f2fe', color: '#0369a1', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0, marginTop: '2px' }}>
+                <div key={idx} className="flex gap-2 items-start">
+                  <span className="bg-sky-100 text-sky-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
                     {idx + 1}
                   </span>
-                  <p style={{ margin: 0, lineHeight: 1.45 }}>{tp}</p>
+                  <p className="m-0 leading-relaxed">{tp}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Nutrition & Workout Targets */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '12px' }}>
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-              <strong style={{ color: '#15803d', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.86rem', marginBottom: '6px' }}>
-                <Salad size={16} /> Định hướng Dinh dưỡng:
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-full">
+            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-2xs">
+              <strong className="text-emerald-700 flex items-center gap-1.5 text-xs sm:text-sm mb-1.5">
+                <Salad className="w-4 h-4 shrink-0" /> Định hướng Dinh dưỡng:
               </strong>
-              <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: '#334155', lineHeight: 1.4 }}>
+              <p className="m-0 mb-1.5 text-xs sm:text-sm text-slate-700 leading-relaxed">
                 {analysis.consultationGuide.nutritionAdvice}
               </p>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', background: '#f0fdf4', padding: '6px 10px', borderRadius: '6px', marginTop: '6px' }}>
+              <div className="text-xs text-slate-600 bg-emerald-50/70 p-2 rounded-lg mt-1.5 border border-emerald-100">
                 💧 <strong>Nước & Protein:</strong> {analysis.consultationGuide.proteinRecommendation}. {analysis.consultationGuide.waterRecommendation}
               </div>
             </div>
 
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px' }}>
-              <strong style={{ color: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.86rem', marginBottom: '6px' }}>
-                <Dumbbell size={16} /> Định hướng Tập luyện:
+            <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-2xs">
+              <strong className="text-sky-700 flex items-center gap-1.5 text-xs sm:text-sm mb-1.5">
+                <Dumbbell className="w-4 h-4 shrink-0" /> Định hướng Tập luyện:
               </strong>
-              <p style={{ margin: '0 0 6px', fontSize: '0.84rem', color: '#334155', lineHeight: 1.4 }}>
+              <p className="m-0 mb-1.5 text-xs sm:text-sm text-slate-700 leading-relaxed">
                 {analysis.consultationGuide.workoutAdvice}
               </p>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', background: '#f0f9ff', padding: '6px 10px', borderRadius: '6px', marginTop: '6px' }}>
+              <div className="text-xs text-slate-600 bg-sky-50/70 p-2 rounded-lg mt-1.5 border border-sky-100">
                 ⚡ <strong>Calo đề xuất:</strong> Giảm mỡ: {analysis.consultationGuide.targetCaloriesRecommendation.fatLoss} kcal | Tăng cơ: {analysis.consultationGuide.targetCaloriesRecommendation.muscleGain} kcal/ngày.
               </div>
             </div>

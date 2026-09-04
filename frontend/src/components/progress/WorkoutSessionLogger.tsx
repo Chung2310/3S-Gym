@@ -52,6 +52,7 @@ interface Props {
   customerId: string;
   activePlan: WorkoutLoggerActivePlan | null;
   onSaved: () => void;
+  onClose?: () => void;
 }
 
 interface ExerciseResultDraft {
@@ -142,7 +143,12 @@ function resultEditor(
   );
 }
 
-export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }: Props) {
+export default function WorkoutSessionLogger({
+  customerId,
+  activePlan,
+  onSaved,
+  onClose,
+}: Props) {
   const toast = useToast();
   const idempotencyKey = useRef(key());
   const submitting = useRef(false);
@@ -436,10 +442,20 @@ export default function WorkoutSessionLogger({ customerId, activePlan, onSaved }
         </div>
       </section>
 
-      {/* 5. Action Buttons — dùng profile-form-actions từ index.css */}
-      <div className="profile-form-actions mt-4">
+      {/* 5. Action Buttons — sticky bottom để luôn thấy nút thao tác trên mobile */}
+      <div className="profile-form-actions sticky bottom-0 z-20 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-6 border-t border-slate-200 bg-white/95 backdrop-blur-xs p-3.5 sm:p-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] flex items-center justify-end gap-2.5">
+        {onClose && (
+          <button
+            type="button"
+            className="button button-secondary flex-1 sm:flex-none min-h-[44px]"
+            disabled={loading}
+            onClick={onClose}
+          >
+            Hủy
+          </button>
+        )}
         <button
-          className="button button-primary"
+          className="button button-primary flex-1 sm:flex-none min-h-[44px]"
           disabled={loading}
           type="submit"
         >

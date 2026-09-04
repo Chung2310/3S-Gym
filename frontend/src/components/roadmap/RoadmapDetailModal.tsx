@@ -32,112 +32,35 @@ export default function RoadmapDetailModal({
 
   return (
     <div
-      className="modal-backdrop"
+      className="modal-backdrop fixed inset-0 z-9999 flex items-center justify-center p-2 sm:p-4 overflow-y-auto bg-slate-900/65 backdrop-blur-xs"
       role="presentation"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        padding: '16px',
-        overflowY: 'auto',
-      }}
     >
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="roadmap-detail-title"
-        style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
-          width: '100%',
-          maxWidth: '920px',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          border: '1px solid #e2e8f0',
-        }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-[920px] max-h-[92vh] flex flex-col overflow-hidden border border-slate-200"
       >
         {/* Header */}
-        <div
-          style={{
-            padding: '16px 22px',
-            borderBottom: '1px solid #e2e8f0',
-            background: 'linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                background: 'var(--primary-color)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                flexShrink: 0,
-              }}
-            >
-              <Sparkles size={20} color="#38bdf8" />
+        <div className="px-3.5 py-3 sm:px-6 sm:py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-white shrink-0">
+              <Sparkles className="w-5 h-5 text-sky-400" />
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <StatusBadge status={roadmap.status} />
-                <span
-                  style={{
-                    fontSize: '0.75rem',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontWeight: 700,
-                    color: '#475569',
-                  }}
-                >
+                <span className="text-xs bg-white border border-slate-300 px-1.5 py-0.5 rounded font-bold text-slate-600">
                   v{roadmap.version || 1}
                 </span>
-                <span
-                  style={{
-                    fontSize: '0.78rem',
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    border: '1px solid #bbf7d0',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <User size={12} color="#16a34a" /> {customerName} {customerPhone ? `(${customerPhone})` : ''}
+                <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold inline-flex items-center gap-1">
+                  <User className="w-3 h-3 text-emerald-600" /> {customerName} {customerPhone ? `(${customerPhone})` : ''}
                 </span>
               </div>
               <h2
                 id="roadmap-detail-title"
-                style={{
-                  margin: '4px 0 0',
-                  fontSize: '1.15rem',
-                  fontWeight: 800,
-                  color: 'var(--primary-color)',
-                  wordBreak: 'break-word',
-                }}
+                className="m-0 mt-1 text-base sm:text-lg font-extrabold text-primary break-words"
               >
                 {roadmap.title}
               </h2>
@@ -146,51 +69,35 @@ export default function RoadmapDetailModal({
 
           <button
             type="button"
-            className="icon-button"
+            className="icon-button bg-white hover:bg-slate-100 border border-slate-300 rounded-lg p-1.5 cursor-pointer text-slate-500 shrink-0 transition-colors"
             onClick={onClose}
             aria-label="Đóng modal chi tiết"
-            style={{
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '6px',
-              cursor: 'pointer',
-              color: '#64748b',
-              flexShrink: 0,
-            }}
           >
-            <X size={18} />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div style={{ padding: '20px 22px', overflowY: 'auto' }}>
+        <div className="p-3 sm:p-5 sm:px-6 overflow-y-auto">
           <RoadmapDetailView roadmap={roadmap} />
         </div>
 
         {/* Footer Actions */}
-        <div
-          style={{
-            padding: '14px 22px',
-            borderTop: '1px solid #e2e8f0',
-            background: '#f8fafc',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-          }}
-        >
-          <button type="button" className="button button-secondary" onClick={onClose} style={{ fontSize: '0.85rem' }}>
+        <div className="p-3 sm:px-6 sm:py-3.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-2 flex-wrap">
+          <button
+            type="button"
+            className="button button-secondary text-xs sm:text-sm"
+            onClick={onClose}
+          >
             Đóng
           </button>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="flex items-center gap-2 flex-wrap">
             {onTogglePublish && (
               <button
                 type="button"
-                className={`button ${roadmap.status === 'PUBLISHED' ? 'button-secondary' : 'button-primary'}`}
+                className={`button ${roadmap.status === 'PUBLISHED' ? 'button-secondary' : 'button-primary'} text-xs sm:text-sm`}
                 onClick={() => onTogglePublish(roadmap)}
-                style={{ fontSize: '0.85rem' }}
               >
                 {roadmap.status === 'PUBLISHED' ? 'Gỡ công bố' : 'Công bố roadmap'}
               </button>
@@ -199,11 +106,10 @@ export default function RoadmapDetailModal({
             {onEdit && (
               <button
                 type="button"
-                className="button button-secondary"
+                className="button button-secondary text-xs sm:text-sm flex items-center gap-1.5"
                 onClick={() => onEdit(roadmap)}
-                style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                <Edit3 size={14} /> Chỉnh sửa
+                <Edit3 className="w-3.5 h-3.5" /> Chỉnh sửa
               </button>
             )}
           </div>
