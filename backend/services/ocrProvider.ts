@@ -1,7 +1,7 @@
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { getEnv } from '../config/env.js';
-import { fetchWithTimeout } from './providerRequest.js';
+import { requestOpenRouter } from './openRouterRequest.js';
 import { withAiBilling } from './aiBillingService.js';
 import type { AiBillingContext, ProviderResult, ProviderUsage } from './creditTypes.js';
 
@@ -103,7 +103,7 @@ async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResu
           image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` },
         };
 
-    const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
+    const { data: payload } = await requestOpenRouter<{ usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown; cost?: unknown } }>('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -139,7 +139,6 @@ LƯU Ý: Nếu chỉ số nào không có trên phiếu, hãy gán null. Chỉ t
         ] }],
       }),
     }, getEnv().PROVIDER_TIMEOUT_MS);
-    const payload = await response.json() as { usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown; cost?: unknown } };
     const content = extractContent(payload);
     const match = content?.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('OCR provider không trả JSON hợp lệ');

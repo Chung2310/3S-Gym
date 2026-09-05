@@ -16,6 +16,7 @@ export interface MealFoodItem {
   carbs?: number;
   fat?: number;
   prepTip?: string;
+  imageUrl?: string;
 }
 
 export interface MealBlock {
@@ -32,13 +33,17 @@ interface MealCardItemProps {
   mealIdx: number;
   mealsCount: number;
   isGeneratingImg: boolean;
+  isGeneratingAllItems?: boolean;
+  generatingItemKey?: string | null;
   onUpdateMealName: (mealIdx: number, name: string) => void;
   onUpdateMealTimeSlot: (mealIdx: number, timeSlot: string) => void;
   onRemoveMeal: (mealIdx: number) => void;
   onAddItem: (mealIdx: number) => void;
   onRemoveItem: (mealIdx: number, itemIdx: number) => void;
   onUpdateItem: (mealIdx: number, itemIdx: number, field: keyof MealFoodItem, val: any) => void;
-  onGenerateImage: (mealIdx: number) => void;
+  onGenerateImage?: (mealIdx: number) => void;
+  onGenerateItemImage: (mealIdx: number, itemIdx: number, force?: boolean) => void;
+  onGenerateAllMealItemsImages: (mealIdx: number) => void;
   onPreviewImage: (preview: { url: string; title: string }) => void;
 }
 
@@ -47,6 +52,8 @@ export default function MealCardItem({
   mealIdx,
   mealsCount,
   isGeneratingImg,
+  isGeneratingAllItems = false,
+  generatingItemKey = null,
   onUpdateMealName,
   onUpdateMealTimeSlot,
   onRemoveMeal,
@@ -54,6 +61,8 @@ export default function MealCardItem({
   onRemoveItem,
   onUpdateItem,
   onGenerateImage,
+  onGenerateItemImage,
+  onGenerateAllMealItemsImages,
   onPreviewImage,
 }: MealCardItemProps) {
   const mealKcal = meal.items.reduce((s, i) => s + (i.calories || 0), 0);
@@ -161,7 +170,7 @@ export default function MealCardItem({
         </div>
       )}
 
-      {/* AI Meal Image Display (if generated) */}
+      {/* AI Meal Image Display (if generated - clean photo, no text overlay) */}
       {!isGeneratingImg && meal.imageUrl && (
         <div
           style={{
@@ -173,270 +182,352 @@ export default function MealCardItem({
             cursor: 'pointer',
           }}
           onClick={() => onPreviewImage({ url: meal.imageUrl!, title: meal.name })}
+          title="Bấm để xem ảnh lớn"
         >
           <img
             src={meal.imageUrl}
             alt={meal.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)',
-              padding: '6px 10px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span style={{ color: '#ffffff', fontSize: '0.72rem', fontWeight: 700 }}>
-              Ảnh AI minh họa (FLUX.2)
-            </span>
-            <span style={{ color: '#38bdf8', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
-              <ExternalLink size={11} /> Xem lớn
-            </span>
-          </div>
         </div>
       )}
 
       {/* Meal Food Items List */}
       <div style={{ display: 'grid', gap: '8px' }}>
-        {meal.items.map((item, itemIdx) => (
-          <div
-            key={itemIdx}
-            style={{
-              background: '#f8fafc',
-              border: '1px solid #f1f5f9',
-              borderRadius: '10px',
-              padding: '10px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-              <input
-                value={item.name}
-                onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'name', e.target.value)}
-                style={{
-                  width: '100%',
-                  border: 'none',
-                  background: 'transparent',
-                  fontWeight: 800,
-                  fontSize: '0.84rem',
-                  color: '#0f172a',
-                  outline: 'none',
-                }}
-                placeholder="Tên món ăn..."
-              />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    background: '#f0fdf4',
-                    border: '1px solid #bbf7d0',
-                    borderRadius: '6px',
-                    padding: '2px 6px',
-                  }}
-                  title="Chỉnh sửa lượng calo"
-                >
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={item.calories ?? 0}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => {
-                      const clean = e.target.value.replace(/[^0-9]/g, '');
-                      onUpdateItem(mealIdx, itemIdx, 'calories', clean === '' ? 0 : parseInt(clean, 10));
-                    }}
+        {meal.items.map((item, itemIdx) => {
+          const itemKey = `${meal.id || mealIdx}-${itemIdx}`;
+          const isItemGenerating = generatingItemKey === itemKey;
+
+          return (
+            <div
+              key={itemIdx}
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #f1f5f9',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                display: 'flex',
+                gap: '12px',
+                alignItems: 'flex-start',
+              }}
+            >
+              {/* Dish Image Thumbnail / Generate Button */}
+              <div style={{ flexShrink: 0, marginTop: '2px' }}>
+                {isItemGenerating ? (
+                  <div
                     style={{
-                      width: '42px',
-                      border: 'none',
-                      background: 'transparent',
-                      fontSize: '0.82rem',
-                      fontWeight: 800,
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '8px',
+                      background: '#f0fdf4',
+                      border: '1px dashed #86efac',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       color: '#16a34a',
-                      textAlign: 'right',
-                      outline: 'none',
-                      padding: 0,
                     }}
+                    title="Đang tạo ảnh AI cho món này..."
+                  >
+                    <RefreshCw size={18} className="spin" />
+                  </div>
+                ) : item.imageUrl ? (
+                  <div
+                    style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      border: '1px solid #cbd5e1',
+                      cursor: 'pointer',
+                      background: '#0f172a',
+                    }}
+                    onClick={() => onPreviewImage({ url: item.imageUrl!, title: item.name })}
+                    title="Bấm để xem ảnh món ăn. Bấm nút nhỏ để vẽ lại."
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onGenerateItemImage(mealIdx, itemIdx, true);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: 2,
+                        right: 2,
+                        background: 'rgba(0,0,0,0.6)',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '3px',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Vẽ lại ảnh món này"
+                    >
+                      <RefreshCw size={10} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onGenerateItemImage(mealIdx, itemIdx, false)}
+                    disabled={isGeneratingAllItems}
+                    style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '8px',
+                      border: '1px dashed #94a3b8',
+                      background: '#ffffff',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '2px',
+                      cursor: 'pointer',
+                      color: '#0284c7',
+                      padding: 0,
+                      transition: 'all 0.15s ease',
+                    }}
+                    title="Tạo ảnh AI cho món này"
+                  >
+                    <Sparkles size={14} color="#0284c7" />
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0369a1' }}>Tạo ảnh</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Item Content (Inputs & Details) */}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <input
+                    value={item.name}
+                    onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'name', e.target.value)}
+                    style={{
+                      width: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      fontWeight: 800,
+                      fontSize: '0.84rem',
+                      color: '#0f172a',
+                      outline: 'none',
+                    }}
+                    placeholder="Tên món ăn..."
                   />
-                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#16a34a' }}>kcal</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '6px',
+                        padding: '2px 6px',
+                      }}
+                      title="Chỉnh sửa lượng calo"
+                    >
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={item.calories ?? 0}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const clean = e.target.value.replace(/[^0-9]/g, '');
+                          onUpdateItem(mealIdx, itemIdx, 'calories', clean === '' ? 0 : parseInt(clean, 10));
+                        }}
+                        style={{
+                          width: '42px',
+                          border: 'none',
+                          background: 'transparent',
+                          fontSize: '0.82rem',
+                          fontWeight: 800,
+                          color: '#16a34a',
+                          textAlign: 'right',
+                          outline: 'none',
+                          padding: 0,
+                        }}
+                      />
+                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#16a34a' }}>kcal</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveItem(mealIdx, itemIdx)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
+                      title="Xóa món"
+                    >
+                      <Trash2 size={13} style={{ color: '#ef4444' }} />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onRemoveItem(mealIdx, itemIdx)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
-                  title="Xóa món"
-                >
-                  <Trash2 size={13} style={{ color: '#ef4444' }} />
-                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 auto', minWidth: '140px' }}>
+                    <span style={{ fontWeight: 600, color: '#64748b' }}>Định lượng:</span>
+                    <input
+                      value={item.amount}
+                      onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'amount', e.target.value)}
+                      style={{
+                        flex: 1,
+                        minWidth: '100px',
+                        padding: '3px 8px',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: '#0f172a',
+                        background: '#ffffff',
+                      }}
+                      placeholder="VD: 150g thịt ức gà"
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                    {/* Protein (P) */}
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '5px',
+                        padding: '1px 5px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: '#1d4ed8',
+                      }}
+                      title="Chỉnh sửa lượng Protein (g)"
+                    >
+                      <span>P:</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={item.protein ?? 0}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const clean = e.target.value.replace(/[^0-9]/g, '');
+                          onUpdateItem(mealIdx, itemIdx, 'protein', clean === '' ? 0 : parseInt(clean, 10));
+                        }}
+                        style={{
+                          width: '26px',
+                          border: 'none',
+                          background: 'transparent',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          color: '#1d4ed8',
+                          textAlign: 'center',
+                          outline: 'none',
+                          padding: 0,
+                        }}
+                      />
+                      <span>g</span>
+                    </div>
+
+                    {/* Carbs (C) */}
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        background: '#fef3c7',
+                        border: '1px solid #fde68a',
+                        borderRadius: '5px',
+                        padding: '1px 5px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: '#b45309',
+                      }}
+                      title="Chỉnh sửa lượng Carbs (g)"
+                    >
+                      <span>C:</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={item.carbs ?? 0}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const clean = e.target.value.replace(/[^0-9]/g, '');
+                          onUpdateItem(mealIdx, itemIdx, 'carbs', clean === '' ? 0 : parseInt(clean, 10));
+                        }}
+                        style={{
+                          width: '26px',
+                          border: 'none',
+                          background: 'transparent',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          color: '#b45309',
+                          textAlign: 'center',
+                          outline: 'none',
+                          padding: 0,
+                        }}
+                      />
+                      <span>g</span>
+                    </div>
+
+                    {/* Fat (F) */}
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        background: '#fdf2f8',
+                        border: '1px solid #fbcfe8',
+                        borderRadius: '5px',
+                        padding: '1px 5px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        color: '#be185d',
+                      }}
+                      title="Chỉnh sửa lượng Fat (g)"
+                    >
+                      <span>F:</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={item.fat ?? 0}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const clean = e.target.value.replace(/[^0-9]/g, '');
+                          onUpdateItem(mealIdx, itemIdx, 'fat', clean === '' ? 0 : parseInt(clean, 10));
+                        }}
+                        style={{
+                          width: '26px',
+                          border: 'none',
+                          background: 'transparent',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          color: '#be185d',
+                          textAlign: 'center',
+                          outline: 'none',
+                          padding: 0,
+                        }}
+                      />
+                      <span>g</span>
+                    </div>
+                  </div>
+                </div>
+
+                {item.prepTip && (
+                  <div style={{ fontSize: '0.7rem', color: '#0284c7', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <span>🍳 Chế biến:</span>
+                    <input
+                      value={item.prepTip}
+                      onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'prepTip', e.target.value)}
+                      style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '0.7rem', color: '#0284c7', fontStyle: 'italic', outline: 'none' }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 auto', minWidth: '140px' }}>
-                <span style={{ fontWeight: 600, color: '#64748b' }}>Định lượng:</span>
-                <input
-                  value={item.amount}
-                  onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'amount', e.target.value)}
-                  style={{
-                    flex: 1,
-                    minWidth: '100px',
-                    padding: '3px 8px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    background: '#ffffff',
-                  }}
-                  placeholder="VD: 150g thịt ức gà"
-                />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-                {/* Protein (P) */}
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: '5px',
-                    padding: '1px 5px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    color: '#1d4ed8',
-                  }}
-                  title="Chỉnh sửa lượng Protein (g)"
-                >
-                  <span>P:</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={item.protein ?? 0}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => {
-                      const clean = e.target.value.replace(/[^0-9]/g, '');
-                      onUpdateItem(mealIdx, itemIdx, 'protein', clean === '' ? 0 : parseInt(clean, 10));
-                    }}
-                    style={{
-                      width: '26px',
-                      border: 'none',
-                      background: 'transparent',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      color: '#1d4ed8',
-                      textAlign: 'center',
-                      outline: 'none',
-                      padding: 0,
-                    }}
-                  />
-                  <span>g</span>
-                </div>
-
-                {/* Carbs (C) */}
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    background: '#fef3c7',
-                    border: '1px solid #fde68a',
-                    borderRadius: '5px',
-                    padding: '1px 5px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    color: '#b45309',
-                  }}
-                  title="Chỉnh sửa lượng Carbs (g)"
-                >
-                  <span>C:</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={item.carbs ?? 0}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => {
-                      const clean = e.target.value.replace(/[^0-9]/g, '');
-                      onUpdateItem(mealIdx, itemIdx, 'carbs', clean === '' ? 0 : parseInt(clean, 10));
-                    }}
-                    style={{
-                      width: '26px',
-                      border: 'none',
-                      background: 'transparent',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      color: '#b45309',
-                      textAlign: 'center',
-                      outline: 'none',
-                      padding: 0,
-                    }}
-                  />
-                  <span>g</span>
-                </div>
-
-                {/* Fat (F) */}
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    background: '#fdf2f8',
-                    border: '1px solid #fbcfe8',
-                    borderRadius: '5px',
-                    padding: '1px 5px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    color: '#be185d',
-                  }}
-                  title="Chỉnh sửa lượng Fat (g)"
-                >
-                  <span>F:</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={item.fat ?? 0}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => {
-                      const clean = e.target.value.replace(/[^0-9]/g, '');
-                      onUpdateItem(mealIdx, itemIdx, 'fat', clean === '' ? 0 : parseInt(clean, 10));
-                    }}
-                    style={{
-                      width: '26px',
-                      border: 'none',
-                      background: 'transparent',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      color: '#be185d',
-                      textAlign: 'center',
-                      outline: 'none',
-                      padding: 0,
-                    }}
-                  />
-                  <span>g</span>
-                </div>
-              </div>
-            </div>
-
-            {item.prepTip && (
-              <div style={{ fontSize: '0.7rem', color: '#0284c7', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                <span>🍳 Chế biến:</span>
-                <input
-                  value={item.prepTip}
-                  onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'prepTip', e.target.value)}
-                  style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '0.7rem', color: '#0284c7', fontStyle: 'italic', outline: 'none' }}
-                />
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Add item & AI Image buttons */}
@@ -464,13 +555,13 @@ export default function MealCardItem({
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <button
             type="button"
-            onClick={() => onGenerateImage(mealIdx)}
-            disabled={isGeneratingImg}
+            onClick={() => onGenerateAllMealItemsImages(mealIdx)}
+            disabled={isGeneratingAllItems}
             style={{
               background: '#f0fdf4',
               border: '1px solid #bbf7d0',
               borderRadius: '8px',
-              padding: '6px 10px',
+              padding: '6px 12px',
               fontSize: '0.75rem',
               color: '#166534',
               fontWeight: 800,
@@ -479,10 +570,10 @@ export default function MealCardItem({
               alignItems: 'center',
               gap: '4px',
             }}
-            title="Tạo ảnh món ăn minh họa bằng AI FLUX.2"
+            title="Tạo ảnh AI cho từng món ăn trong bữa"
           >
-            {isGeneratingImg ? <RefreshCw size={13} className="spin" /> : <Sparkles size={13} color="#16a34a" />}
-            {isGeneratingImg ? 'Đang vẽ...' : meal.imageUrl ? 'Vẽ lại ảnh' : 'Sinh ảnh AI'}
+            {isGeneratingAllItems ? <RefreshCw size={13} className="spin" /> : <Sparkles size={13} color="#16a34a" />}
+            {isGeneratingAllItems ? 'Đang tạo ảnh các món...' : 'Tạo ảnh tất cả món'}
           </button>
         </div>
       </div>

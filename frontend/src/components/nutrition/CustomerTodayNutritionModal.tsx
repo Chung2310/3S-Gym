@@ -9,6 +9,7 @@ import {
   Info,
   Sparkles,
 } from 'lucide-react';
+import MealImagePreviewModal from './MealImagePreviewModal';
 
 interface FoodItem {
   name: string;
@@ -18,6 +19,7 @@ interface FoodItem {
   carbs?: number;
   fat?: number;
   prepTip?: string;
+  imageUrl?: string;
 }
 
 interface Meal {
@@ -166,6 +168,7 @@ export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalPr
   const [showDaySelector, setShowDaySelector] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [expandedMeals, setExpandedMeals] = useState<Record<number, boolean>>({});
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
   // Phân tích khoảng thời gian (hh:mm - hh:mm)
   const parseTimeRange = (timeSlot?: string) => {
@@ -418,12 +421,16 @@ export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalPr
 
                   {/* Ảnh món nếu có */}
                   {currentMeal.imageUrl && (
-                    <div className="w-full h-44 bg-slate-900 relative overflow-hidden">
+                    <div
+                      className="w-full h-44 bg-slate-900 relative overflow-hidden cursor-pointer group"
+                      onClick={() => setPreviewImage({ url: currentMeal.imageUrl!, title: currentMeal.name })}
+                      title="Bấm để xem ảnh lớn"
+                    >
                       <img
                         src={currentMeal.imageUrl}
                         alt={currentMeal.name}
                         loading="lazy"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.display = 'none';
                         }}
@@ -442,9 +449,18 @@ export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalPr
                         {currentMeal.items.map((item, idx) => (
                           <div
                             key={idx}
-                            className="flex justify-between items-start gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors"
+                            className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors"
                           >
-                            <div className="min-w-0">
+                            {item.imageUrl && (
+                              <img
+                                src={item.imageUrl}
+                                alt={item.name}
+                                onClick={() => setPreviewImage({ url: item.imageUrl!, title: item.name })}
+                                className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200 cursor-pointer hover:opacity-90 hover:scale-105 transition-all"
+                                title="Bấm để xem ảnh món ăn chi tiết"
+                              />
+                            )}
+                            <div className="min-w-0 flex-1">
                               <div className="font-bold text-slate-800 text-sm">{item.name}</div>
                               {item.prepTip && (
                                 <div className="text-xs text-slate-500 italic mt-0.5 flex items-center gap-1">
@@ -578,12 +594,16 @@ export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalPr
                     {isExpanded && (
                       <div className="p-3 pt-0 border-t border-slate-100 bg-slate-50/50 space-y-2">
                         {meal.imageUrl && (
-                          <div className="w-full h-32 rounded-lg overflow-hidden bg-slate-900 border border-slate-200 mt-2">
+                          <div
+                            className="w-full h-32 rounded-lg overflow-hidden bg-slate-900 border border-slate-200 mt-2 cursor-pointer group"
+                            onClick={() => setPreviewImage({ url: meal.imageUrl!, title: meal.name })}
+                            title="Bấm để xem ảnh lớn"
+                          >
                             <img
                               src={meal.imageUrl}
                               alt={meal.name}
                               loading="lazy"
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
                         )}
@@ -593,9 +613,18 @@ export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalPr
                             {meal.items.map((item, iIdx) => (
                               <div
                                 key={iIdx}
-                                className="flex justify-between items-start gap-2 p-2 rounded bg-white border border-slate-200 text-xs"
+                                className="flex items-center gap-2.5 p-2 rounded bg-white border border-slate-200 text-xs"
                               >
-                                <div>
+                                {item.imageUrl && (
+                                  <img
+                                    src={item.imageUrl}
+                                    alt={item.name}
+                                    onClick={() => setPreviewImage({ url: item.imageUrl!, title: item.name })}
+                                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-slate-200 cursor-pointer hover:opacity-90 hover:scale-105 transition-all"
+                                    title="Bấm để xem ảnh món ăn chi tiết"
+                                  />
+                                )}
+                                <div className="min-w-0 flex-1">
                                   <div className="font-bold text-slate-800">{item.name}</div>
                                   {item.prepTip && (
                                     <div className="text-[11px] text-slate-500 italic mt-0.5">
@@ -667,6 +696,12 @@ export const CustomerTodayNutritionModal: React.FC<CustomerTodayNutritionModalPr
             Đóng
           </button>
         </div>
+
+        {/* Modal xem preview ảnh món ăn phóng to */}
+        <MealImagePreviewModal
+          previewImage={previewImage}
+          onClose={() => setPreviewImage(null)}
+        />
       </div>
     </div>
   );
