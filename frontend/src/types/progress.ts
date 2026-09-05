@@ -12,7 +12,12 @@ export interface WorkoutProgressPhotoDraft { id: string; file: File; previewUrl:
 export interface WorkoutProgressPhotoInput { photoUrl: string; angle: ProgressPhotoAngle }
 export interface WorkoutSetLog { reps?: number; weight?: number; rpe?: number; rir?: number; completed: boolean }
 export interface WorkoutExerciseLog { exerciseId?: string; name: string; trackingType?: SessionTrackingType; prescribedSnapshot?: TrackingPrescription; result?: TrackingResult; sets?: WorkoutSetLog[]; notes?: string }
-export interface WorkoutSessionDto { _id: string; performedAt: string; attendance: 'PRESENT' | 'ABSENT' | 'LATE'; absenceReason?: string; workoutPlanId?: string; workoutPlanVersion?: number; planSnapshot: { title?: string; session?: { name?: string } }; exerciseLogs: WorkoutExerciseLog[]; feeling?: string; notes?: string }
+export interface CustomerSignatureData {
+  signatureUrl: string;
+  signedAt: string;
+  signerName?: string;
+}
+export interface WorkoutSessionDto { _id: string; performedAt: string; attendance: 'PRESENT' | 'ABSENT' | 'LATE'; absenceReason?: string; workoutPlanId?: string; workoutPlanVersion?: number; planSnapshot: { title?: string; session?: { name?: string } }; exerciseLogs: WorkoutExerciseLog[]; feeling?: string; notes?: string; customerSignature?: CustomerSignatureData }
 export interface BodyMeasurementDto { _id: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements?: CircumferenceMeasurements }
 export type DataQualityLevel = 'COMPLETE' | 'PARTIAL' | 'INSUFFICIENT';
 export interface DataQuality { level: DataQualityLevel; reasons: string[] }
