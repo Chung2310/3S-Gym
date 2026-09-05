@@ -161,10 +161,10 @@ export default function MealCardItem({
           <RefreshCw size={26} className="spin" color="#16a34a" />
           <div>
             <div style={{ fontSize: '0.82rem', fontWeight: 800 }}>
-              FLUX.2 Klein 4B đang vẽ ảnh ẩm thực...
+              Đang tạo ảnh món ăn...
             </div>
             <div style={{ fontSize: '0.7rem', color: '#166534' }}>
-              Tạo ảnh chất lượng cao 4K cho món ăn trong bữa
+              Hệ thống đang chuẩn bị hình ảnh ẩm thực chất lượng cao
             </div>
           </div>
         </div>

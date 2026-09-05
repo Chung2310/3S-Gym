@@ -706,8 +706,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
 
     try {
       setGeneratingImageId(meal.id);
-      const foodDescriptions = meal.items.map((i) => `${i.name} (${i.amount})`).join(', ');
-      const prompt = `Professional food photography of a healthy fitness gym meal: ${meal.name}, containing ${foodDescriptions}. Beautifully arranged on a modern ceramic plate, warm natural restaurant lighting, fresh ingredients, appetizing, high detail 4k.`;
 
       const res = await api.post<{
         imageUrl: string;
@@ -719,7 +717,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       }>('/api/images/meal-image', {
         mealName: meal.name,
         items: meal.items.map((i) => i.name),
-        prompt,
         aspectRatio: '4:3',
       });
 
@@ -765,8 +762,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
     setGeneratingItemKey(itemKey);
 
     try {
-      const prompt = `Professional food photography of a delicious healthy fitness gym dish: ${cleanDishName}. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
-
       const res = await api.post<{
         imageUrl: string;
         name: string;
@@ -776,7 +771,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       }>('/api/images/meal-image', {
         mealName: cleanDishName,
         items: [cleanDishName],
-        prompt,
         aspectRatio: '4:3',
         forceRegenerate: force,
       });
@@ -838,8 +832,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       setGeneratingItemKey(itemKey);
 
       try {
-        const prompt = `Professional food photography of a delicious healthy fitness gym dish: ${cleanDishName}. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
-
         const res = await api.post<{
           imageUrl: string;
           name: string;
@@ -848,7 +840,6 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         }>('/api/images/meal-image', {
           mealName: cleanDishName,
           items: [cleanDishName],
-          prompt,
           aspectRatio: '4:3',
         });
 

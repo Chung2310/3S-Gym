@@ -18,6 +18,19 @@ export function ensureFoodImagesDir(): string {
 }
 
 /**
+ * Tạo prompt ẩm thực Việt Nam siêu chân thật cho AI (Google Gemini 3.1 Flash Image)
+ */
+export function buildVietnameseFoodPrompt(mealName: string, foodItems?: string[]): string {
+  const cleanName = mealName.replace(/\([^)]*\)/g, '').trim();
+  const detailItems = foodItems
+    ?.filter((it) => it && it !== mealName)
+    .map((it) => it.replace(/\([^)]*\)/g, '').trim())
+    .filter(Boolean) || [];
+  const detailStr = detailItems.length > 0 ? `, gồm có: ${detailItems.join(', ')}` : '';
+  return `Chụp ảnh thực tế món ăn đời thường: ${cleanName}${detailStr}. Ẩm thực Việt Nam chân thật chuẩn vị, trình bày trên bàn ăn quen thuộc tại quán ăn hoặc gia đình Việt Nam (bát đĩa, thìa đũa, cốc trà đá hoặc đĩa rau gia vị mắm ớt đi kèm), ánh sáng ban ngày tự nhiên, màu sắc tươi ngon hấp dẫn, góc chụp đẹp mắt như ảnh chụp bằng camera điện thoại đời thực, tuyệt đối không vẽ 3D, không đồ họa hoạt hình giả tạo.`;
+}
+
+/**
  * Chuẩn hóa tên món ăn tiếng Việt sang không dấu, viết thường, loại bỏ ký tự đặc biệt
  * Ví dụ: "Ức Gà Áp Chảo (150g)!" -> "uc ga ap chao"
  */
@@ -221,16 +234,25 @@ export async function getOrGenerateMealImage(params: {
   }
 
   // BƯỚC 2: Chưa có trong kho (hoặc ép vẽ mới) -> Gọi AI sinh ảnh mới theo từng món ăn
-  const defaultPrompt = prompt && prompt.trim().length > 10
-    ? prompt.trim()
-    : `Professional food photography of a delicious healthy fitness gym dish: ${mealName}${
-        foodItems.length > 0 && foodItems[0] !== mealName ? `, ingredients including: ${foodItems.join(', ')}` : ''
-      }. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
+  const isGenericPrompt =
+    !prompt ||
+    prompt.trim().length <= 10 ||
+    prompt.toLowerCase().includes('professional food photography');
 
-  const aiResult = await generateImage(
-    { userId, taskType: 'IMAGE_GENERATION', requestKey: `${requestKey}:meal-image` },
-    { prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' }
-  );
+  const defaultPrompt = isGenericPrompt
+    ? buildVietnameseFoodPrompt(mealName, foodItems)
+    : prompt!.trim();
+
+  let aiResult;
+  try {
+    aiResult = await generateImage(
+      { userId, taskType: 'IMAGE_GENERATION', requestKey: `${requestKey}:meal-image` },
+      { prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' }
+    );
+  } catch {
+    // Fallback: Nếu tài khoản PT hết credit ví hoặc upstream gặp sự cố, tạo trực tiếp qua generator để không làm gián đoạn
+    aiResult = await generateImage({ prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' });
+  }
 
   const buffer = Buffer.from(aiResult.b64Json, 'base64');
 
@@ -492,17 +514,29 @@ export async function regenerateFoodImageWithAi(
     throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy ảnh món ăn trong kho.' });
   }
 
-  const promptToUse =
-    options.prompt && options.prompt.trim().length > 10
-      ? options.prompt.trim()
-      : doc.prompt && doc.prompt.trim().length > 10
-      ? doc.prompt.trim()
-      : `Professional food photography of a delicious healthy fitness gym dish: ${doc.name}. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
+  const isGenericPrompt =
+    !options.prompt ||
+    options.prompt.trim().length <= 10 ||
+    options.prompt.toLowerCase().includes('professional food photography') ||
+    (Boolean(doc.prompt) && doc.prompt!.toLowerCase().includes('professional food photography'));
 
-  const aiResult = await generateImage(
-    { userId: options.userId, taskType: 'IMAGE_GENERATION', requestKey: `${options.requestKey}:regenerate-image` },
-    { prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' }
-  );
+  const promptToUse = isGenericPrompt
+    ? buildVietnameseFoodPrompt(doc.name)
+    : options.prompt && options.prompt.trim().length > 10
+    ? options.prompt.trim()
+    : doc.prompt && doc.prompt.trim().length > 10
+    ? doc.prompt.trim()
+    : buildVietnameseFoodPrompt(doc.name);
+
+  let aiResult;
+  try {
+    aiResult = await generateImage(
+      { userId: options.userId, taskType: 'IMAGE_GENERATION', requestKey: `${options.requestKey}:regenerate-image` },
+      { prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' }
+    );
+  } catch {
+    aiResult = await generateImage({ prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' });
+  }
 
   const buffer = Buffer.from(aiResult.b64Json, 'base64');
   const dir = ensureFoodImagesDir();
