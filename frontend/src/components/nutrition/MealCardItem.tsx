@@ -231,49 +231,38 @@ export default function MealCardItem({
                     <RefreshCw size={18} className="spin" />
                   </div>
                 ) : item.imageUrl ? (
-                  <div
-                    style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      position: 'relative',
-                      border: '1px solid #cbd5e1',
-                      cursor: 'pointer',
-                      background: '#0f172a',
-                    }}
-                    onClick={() => onPreviewImage({ url: item.imageUrl!, title: item.name })}
-                    title="Bấm để xem ảnh món ăn. Bấm nút nhỏ để vẽ lại."
-                  >
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
+                  <div className="w-16 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onGenerateItemImage(mealIdx, itemIdx, true);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: 2,
-                        right: 2,
-                        background: 'rgba(0,0,0,0.6)',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '3px',
-                        color: '#ffffff',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
+                      className="block h-16 w-full cursor-zoom-in overflow-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400"
+                      onClick={() => onPreviewImage({ url: item.imageUrl!, title: item.name })}
+                      aria-label={`Xem ảnh món ${item.name}`}
+                      title="Xem ảnh món ăn"
+                    >
+                      <img src={item.imageUrl} alt={item.name} className="block h-full w-full object-cover" />
+                    </button>
+                    <div className="grid grid-cols-2 gap-px border-t border-slate-100 bg-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => onGenerateItemImage(mealIdx, itemIdx, true)}
+                      disabled={isGeneratingAllItems}
+                      className="flex h-7 items-center justify-center bg-white text-slate-400 transition-colors hover:bg-sky-50 hover:text-sky-600 active:bg-sky-100 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                      aria-label={`Vẽ lại ảnh món ${item.name}`}
                       title="Vẽ lại ảnh món này"
                     >
-                      <RefreshCw size={10} />
+                      <RefreshCw size={12} />
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateItem(mealIdx, itemIdx, 'imageUrl', undefined)}
+                      disabled={isGeneratingAllItems}
+                      className="flex h-7 items-center justify-center bg-white text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 active:bg-rose-100 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rose-400 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
+                      aria-label={`Xóa ảnh món ${item.name} khỏi thực đơn`}
+                      title="Xóa ảnh khỏi thực đơn"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                    </div>
                   </div>
                 ) : (
                   <button
