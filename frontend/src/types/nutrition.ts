@@ -89,6 +89,8 @@ export interface FoodItem {
   fatPer100g: number;
   unit: string;
   defaultServingGrams: number;
+  servingLabel?: string;
+  prepTip?: string;
 }
 
 export interface MealDishPill {
