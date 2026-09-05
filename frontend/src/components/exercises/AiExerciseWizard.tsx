@@ -78,8 +78,12 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
     setError('');
     try {
       const result = await api.post<{ drafts: AiExerciseDraft[]; discardedCount: number }>('/api/ai/exercise-generations', payload);
-      setDrafts(result.data.drafts);
-      setSelected(new Set(result.data.drafts.map((_, index) => index)));
+      const sanitizedDrafts = (result.data.drafts || []).map((d) => ({
+        ...d,
+        name: d.name.replace(/[()[\]{}]/g, '').replace(/\s+/g, ' ').trim(),
+      }));
+      setDrafts(sanitizedDrafts);
+      setSelected(new Set(sanitizedDrafts.map((_, index) => index)));
       setDiscardedCount(result.data.discardedCount);
       setStep('REVIEW');
     } catch (cause) {
@@ -110,6 +114,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
         : draft.muscleGroup.split(',').map((s) => s.trim()).filter(Boolean);
       return {
         ...draft,
+        name: draft.name.replace(/[()[\]{}]/g, '').replace(/\s+/g, ' ').trim(),
         muscleGroups: groups,
         muscleGroup: groups.join(', '),
       };
@@ -170,8 +175,8 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
 
       {step === 'CONFIG' ? (
         <div className="grid gap-4">
-          <label className="module-field"><span>Yêu cầu tạo bài tập</span><textarea aria-label="Yêu cầu tạo bài tập" rows={5} placeholder="Ví dụ: Tạo 5 bài tập cơ bụng cho người mới, không cần dụng cụ (Tên bài tập sẽ tự động đặt bằng tiếng Anh)" value={prompt} disabled={loading} onChange={(event) => setPrompt(event.target.value)} required /></label>
-          <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700"><Sparkles className="mt-0.5 shrink-0 text-sky-600" size={18} /><p>Ghi số lượng từ 1 đến 10 ngay trong câu lệnh. AI sẽ tự động đặt <strong>tên bài tập chuẩn tiếng Anh</strong> (ví dụ: <em>Barbell Bench Press, Romanian Deadlift...</em>), đồng thời điền đầy đủ nhóm cơ, cấp độ, cách ghi nhận, thiết bị, mô tả và kỹ thuật bằng tiếng Việt. Video được bổ sung sau khi bạn duyệt bài.</p></div>
+          <label className="module-field"><span>Yêu cầu tạo bài tập</span><textarea aria-label="Yêu cầu tạo bài tập" rows={5} placeholder="Ví dụ: Tạo 5 bài tập cơ bụng cho người mới, không cần dụng cụ (Tên bài tập sẽ tự động đặt bằng tiếng Anh, không chứa dấu ngoặc)" value={prompt} disabled={loading} onChange={(event) => setPrompt(event.target.value)} required /></label>
+          <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700"><Sparkles className="mt-0.5 shrink-0 text-sky-600" size={18} /><p>Ghi số lượng từ 1 đến 10 ngay trong câu lệnh. AI sẽ tự động đặt <strong>tên bài tập 100% tiếng Anh chuẩn</strong> (không chứa dấu ngoặc đơn hoặc ngoặc vuông, ví dụ: <em>Barbell Bench Press, Romanian Deadlift...</em>), đồng thời điền đầy đủ nhóm cơ, cấp độ, cách ghi nhận, thiết bị, mô tả và kỹ thuật bằng tiếng Việt. Video được bổ sung sau khi bạn duyệt bài.</p></div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -185,7 +190,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
               <section key={index} className={`rounded-2xl border p-4 transition-colors ${selected.has(index) ? 'border-sky-300 bg-white' : 'border-slate-200 bg-slate-50 opacity-70'}`}>
                 <header className="mb-4 flex items-center justify-between gap-3"><label className="flex cursor-pointer items-center gap-2 font-bold text-primary"><input aria-label={`Chọn bài tập ${index + 1}`} type="checkbox" checked={selected.has(index)} onChange={() => toggle(index)} /> Bài tập {index + 1}</label>{selected.has(index) && <Check className="text-emerald-600" size={18} aria-hidden="true" />}</header>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <label className="module-field"><span>Tên bài tập</span><input aria-label={`Tên bài tập ${index + 1}`} placeholder="Nhập tên bài tập" value={draft.name} onChange={(event) => updateDraft(index, 'name', event.target.value)} /></label>
+                  <label className="module-field"><span>Tên bài tập (Tiếng Anh, không dấu ngoặc)</span><input aria-label={`Tên bài tập ${index + 1}`} placeholder="Nhập tên bài tập tiếng Anh" value={draft.name} onChange={(event) => updateDraft(index, 'name', event.target.value.replace(/[()[\]{}]/g, ''))} /></label>
                   <label className="module-field">
                     <span>Nhóm cơ</span>
                     <input
