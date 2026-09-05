@@ -98,13 +98,7 @@ async function list(user: AuthenticatedUser, query: Record<string, unknown>) {
   if (rawSearch) {
     const escaped = rawSearch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = { $regex: escaped, $options: 'i' } as unknown as string;
-    andClauses.push({
-      $or: [
-        { name: regex },
-        { muscleGroup: regex },
-        { equipment: regex },
-      ],
-    });
+    andClauses.push({ name: regex });
   }
 
   const filter: QueryFilter<IExercise> = andClauses.length > 0 ? { $and: andClauses } : {};
