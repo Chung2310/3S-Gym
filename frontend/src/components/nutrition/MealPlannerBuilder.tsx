@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
+  ArrowRightLeft,
   Calendar,
   Check,
   CheckCircle2,
@@ -23,6 +24,7 @@ import type { Customer, NutritionDraftPlan, CalculatedNutrition, AiNutritionAnal
 import MealAiConfigStudio, { DIET_STYLES } from './MealAiConfigStudio';
 import MealCardItem, { type MealBlock, type MealFoodItem } from './MealCardItem';
 import MealImagePreviewModal from './MealImagePreviewModal';
+import MealSwapperModal, { type SwapResultPayload } from './MealSwapperModal';
 import {
   VIETNAMESE_7DAYS_TEMPLATES,
   buildMealsFromTemplate,
@@ -436,6 +438,82 @@ export default function MealPlannerBuilder({
   const [generatingItemKey, setGeneratingItemKey] = useState<string | null>(null);
   const [generatingMealAllItemsId, setGeneratingMealAllItemsId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+  const [swapperOpen, setSwapperOpen] = useState(false);
+  const [swapperTarget, setSwapperTarget] = useState<{
+    mealIdx: number;
+    itemIdx?: number;
+    foodItem?: MealFoodItem;
+    mealName?: string;
+    foodName?: string;
+    amount?: string;
+    calories?: number;
+  } | null>(null);
+
+  const handleOpenSwapper = (mealIdx?: number, itemIdx?: number) => {
+    if (mealIdx !== undefined && itemIdx !== undefined) {
+      const m = meals[mealIdx];
+      const it = m?.items[itemIdx];
+      if (it) {
+        setSwapperTarget({
+          mealIdx,
+          itemIdx,
+          foodItem: it,
+          mealName: m.name,
+          foodName: it.name,
+          amount: it.amount,
+          calories: it.calories,
+        });
+        setSwapperOpen(true);
+        return;
+      }
+    } else if (mealIdx !== undefined) {
+      const m = meals[mealIdx];
+      const it = m?.items[0];
+      setSwapperTarget({
+        mealIdx,
+        itemIdx: it ? 0 : undefined,
+        foodItem: it,
+        mealName: m?.name,
+        foodName: it?.name,
+        amount: it?.amount,
+        calories: it?.calories,
+      });
+      setSwapperOpen(true);
+      return;
+    }
+    setSwapperTarget(null);
+    setSwapperOpen(true);
+  };
+
+  const handleApplySwap = (swapResult: SwapResultPayload) => {
+    if (swapperTarget && swapperTarget.mealIdx !== undefined && swapperTarget.itemIdx !== undefined) {
+      const { mealIdx, itemIdx } = swapperTarget;
+      updateActiveDayMeals((curr) => {
+        const next = [...curr];
+        const m = { ...next[mealIdx] };
+        const its = [...m.items];
+        its[itemIdx] = {
+          ...its[itemIdx],
+          name: swapResult.name,
+          amount: swapResult.amount,
+          calories: swapResult.calories,
+          protein: swapResult.protein,
+          carbs: swapResult.carbs,
+          fat: swapResult.fat,
+          prepTip: swapResult.prepTip || its[itemIdx]?.prepTip,
+          imageUrl: undefined,
+        };
+        m.items = its;
+        next[mealIdx] = m;
+        return next;
+      });
+      toast.success(`Đã đổi sang "${swapResult.name}" (${swapResult.amount})!`);
+    } else {
+      toast.success(`Đã tham khảo quy đổi: ${swapResult.name} (${swapResult.amount})`);
+    }
+    setSwapperOpen(false);
+    setSwapperTarget(null);
+  };
 
   // Animated Loading Progress Tracker
   useEffect(() => {
@@ -1172,6 +1250,29 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
             </button>
 
             {meals.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleOpenSwapper()}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: '8px',
+                  padding: '9px 14px',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                title="Tra cứu danh sách món ăn & gợi ý đổi món tương đương"
+              >
+                <ArrowRightLeft size={14} /> Đổi Món & Gợi Ý
+              </button>
+            )}
+
+            {meals.length > 0 && (
               isEditingExistingPlan ? (
                 <button
                   type="button"
@@ -1836,6 +1937,27 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
 
                 <button
                   type="button"
+                  onClick={() => handleOpenSwapper()}
+                  style={{
+                    background: '#f0fdf4',
+                    color: '#166534',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Tra cứu danh sách món ăn & công cụ đổi món tương đương"
+                >
+                  <ArrowRightLeft size={12} /> Đổi món tương đương
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleRandomizeActiveWeek}
                   style={{
                     background: '#faf5ff',
@@ -1901,7 +2023,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 105px), 1fr))', gap: '8px', width: '100%', minWidth: 0 }}>
               {activeWeek.days.map((d, dIdx) => {
                 const isSelected = dIdx === selectedDayIdx;
                 const dayKcal = d.meals.reduce((sum, m) => sum + (m.items.reduce((s, it) => s + (Number(it.calories) || 0), 0)), 0);
@@ -1969,7 +2091,17 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
 
       {/* Meals Grid (Bữa Sáng, Bữa Trưa, Bữa Phụ, Bữa Tối, v.v.) */}
       {hasAnyMeals && meals.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '16px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+            gap: '16px',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
+          }}
+        >
           {meals.map((meal, mealIdx) => (
             <MealCardItem
               key={meal.id}
@@ -1989,6 +2121,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
               onGenerateItemImage={(mIdx, itIdx, force) => void handleGenerateItemImage(mIdx, itIdx, force)}
               onGenerateAllMealItemsImages={(mIdx) => void handleGenerateAllMealItemsImages(mIdx)}
               onPreviewImage={(prev) => setPreviewImage(prev)}
+              onOpenSwapper={handleOpenSwapper}
             />
           ))}
         </div>
@@ -2123,6 +2256,39 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       <MealImagePreviewModal
         previewImage={previewImage}
         onClose={() => setPreviewImage(null)}
+      />
+
+      {/* Swapper Modal */}
+      <MealSwapperModal
+        open={swapperOpen}
+        onClose={() => {
+          setSwapperOpen(false);
+          setSwapperTarget(null);
+        }}
+        currentDish={
+          swapperTarget?.foodItem
+            ? {
+                name: swapperTarget.foodItem.name,
+                amount: swapperTarget.foodItem.amount,
+                calories: swapperTarget.foodItem.calories,
+                protein: swapperTarget.foodItem.protein,
+                carbs: swapperTarget.foodItem.carbs,
+                fat: swapperTarget.foodItem.fat,
+                prepTip: swapperTarget.foodItem.prepTip,
+                mealName: swapperTarget.mealName || (swapperTarget.mealIdx !== undefined ? meals[swapperTarget.mealIdx]?.name : undefined),
+              }
+            : undefined
+        }
+        initialFoodName={swapperTarget?.foodItem?.name || swapperTarget?.foodName}
+        initialGrams={swapperTarget?.foodItem?.amount || swapperTarget?.amount}
+        targetItemLabel={
+          swapperTarget?.foodItem?.name
+            ? `${swapperTarget.foodItem.name} (${swapperTarget.mealName || meals[swapperTarget.mealIdx]?.name || `Bữa ${swapperTarget.mealIdx + 1}`})`
+            : swapperTarget?.foodName
+            ? `${swapperTarget.foodName} (${meals[swapperTarget.mealIdx]?.name || `Bữa ${swapperTarget.mealIdx + 1}`})`
+            : undefined
+        }
+        onApplySwap={swapperTarget ? handleApplySwap : undefined}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import {
+  ArrowRightLeft,
   Clock,
   ExternalLink,
   Plus,
@@ -45,6 +46,7 @@ interface MealCardItemProps {
   onGenerateItemImage: (mealIdx: number, itemIdx: number, force?: boolean) => void;
   onGenerateAllMealItemsImages: (mealIdx: number) => void;
   onPreviewImage: (preview: { url: string; title: string }) => void;
+  onOpenSwapper?: (mealIdx: number, itemIdx?: number) => void;
 }
 
 export default function MealCardItem({
@@ -64,6 +66,7 @@ export default function MealCardItem({
   onGenerateItemImage,
   onGenerateAllMealItemsImages,
   onPreviewImage,
+  onOpenSwapper,
 }: MealCardItemProps) {
   const mealKcal = meal.items.reduce((s, i) => s + (i.calories || 0), 0);
   const mealP = meal.items.reduce((s, i) => s + (i.protein || 0), 0);
@@ -76,16 +79,20 @@ export default function MealCardItem({
         background: '#ffffff',
         border: '1px solid #e2e8f0',
         borderRadius: '14px',
-        padding: '16px',
+        padding: '14px',
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
         boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+        minWidth: 0,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
       }}
     >
       {/* Meal Card Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-        <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px', gap: '8px', minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <input
             value={meal.name}
             onChange={(e) => onUpdateMealName(mealIdx, e.target.value)}
@@ -97,6 +104,8 @@ export default function MealCardItem({
               color: '#003b70',
               outline: 'none',
               width: '100%',
+              minWidth: 0,
+              boxSizing: 'border-box',
             }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
@@ -112,13 +121,13 @@ export default function MealCardItem({
                 color: '#64748b',
                 fontWeight: 600,
                 outline: 'none',
-                width: '120px',
+                width: '110px',
               }}
             />
           </div>
         </div>
 
-        <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <div>
             <span style={{ fontWeight: 900, fontSize: '0.95rem', color: '#16a34a' }}>
               {mealKcal} kcal
@@ -140,37 +149,32 @@ export default function MealCardItem({
         </div>
       </div>
 
-      {/* AI Image Generation In-Progress Animation */}
+      {/* Generating AI Image Indicator */}
       {isGeneratingImg && (
         <div
           style={{
-            height: '140px',
-            borderRadius: '10px',
             background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-            border: '2px dashed #86efac',
+            border: '1px solid #bbf7d0',
+            borderRadius: '10px',
+            padding: '12px',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            color: '#15803d',
-            textAlign: 'center',
-            padding: '10px',
+            gap: '10px',
           }}
         >
-          <RefreshCw size={26} className="spin" color="#16a34a" />
+          <RefreshCw size={18} className="spin" color="#16a34a" />
           <div>
-            <div style={{ fontSize: '0.82rem', fontWeight: 800 }}>
-              Đang tạo ảnh món ăn...
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#15803d' }}>
+              FLUX.2 Klein 4B đang vẽ ảnh ẩm thực...
             </div>
             <div style={{ fontSize: '0.7rem', color: '#166534' }}>
-              Hệ thống đang chuẩn bị hình ảnh ẩm thực chất lượng cao
+              Tạo ảnh chất lượng cao 4K cho món ăn trong bữa
             </div>
           </div>
         </div>
       )}
 
-      {/* AI Meal Image Display (if generated - clean photo, no text overlay) */}
+      {/* AI Meal Image Display (if generated) */}
       {!isGeneratingImg && meal.imageUrl && (
         <div
           style={{
@@ -182,7 +186,6 @@ export default function MealCardItem({
             cursor: 'pointer',
           }}
           onClick={() => onPreviewImage({ url: meal.imageUrl!, title: meal.name })}
-          title="Bấm để xem ảnh lớn"
         >
           <img
             src={meal.imageUrl}
@@ -193,7 +196,7 @@ export default function MealCardItem({
       )}
 
       {/* Meal Food Items List */}
-      <div style={{ display: 'grid', gap: '8px' }}>
+      <div style={{ display: 'grid', gap: '8px', minWidth: 0 }}>
         {meal.items.map((item, itemIdx) => {
           const itemKey = `${meal.id || mealIdx}-${itemIdx}`;
           const isItemGenerating = generatingItemKey === itemKey;
@@ -205,14 +208,17 @@ export default function MealCardItem({
                 background: '#f8fafc',
                 border: '1px solid #f1f5f9',
                 borderRadius: '10px',
-                padding: '10px 12px',
+                padding: '10px',
                 display: 'flex',
-                gap: '12px',
+                gap: '10px',
                 alignItems: 'flex-start',
+                minWidth: 0,
+                maxWidth: '100%',
+                boxSizing: 'border-box',
               }}
             >
               {/* Dish Image Thumbnail / Generate Button */}
-              <div style={{ flexShrink: 0, marginTop: '2px' }}>
+              <div style={{ flexShrink: 0, width: '56px', marginTop: '2px' }}>
                 {isItemGenerating ? (
                   <div
                     style={{
@@ -231,37 +237,37 @@ export default function MealCardItem({
                     <RefreshCw size={18} className="spin" />
                   </div>
                 ) : item.imageUrl ? (
-                  <div className="w-16 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <div style={{ width: '56px', overflow: 'hidden', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff' }}>
                     <button
                       type="button"
-                      className="block h-16 w-full cursor-zoom-in overflow-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400"
+                      style={{ display: 'block', height: '56px', width: '100%', border: 'none', padding: 0, cursor: 'zoom-in', overflow: 'hidden' }}
                       onClick={() => onPreviewImage({ url: item.imageUrl!, title: item.name })}
                       aria-label={`Xem ảnh món ${item.name}`}
                       title="Xem ảnh món ăn"
                     >
-                      <img src={item.imageUrl} alt={item.name} className="block h-full w-full object-cover" />
+                      <img src={item.imageUrl} alt={item.name} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
                     </button>
-                    <div className="grid grid-cols-2 gap-px border-t border-slate-100 bg-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => onGenerateItemImage(mealIdx, itemIdx, true)}
-                      disabled={isGeneratingAllItems}
-                      className="flex h-7 items-center justify-center bg-white text-slate-400 transition-colors hover:bg-sky-50 hover:text-sky-600 active:bg-sky-100 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-sky-400 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
-                      aria-label={`Vẽ lại ảnh món ${item.name}`}
-                      title="Vẽ lại ảnh món này"
-                    >
-                      <RefreshCw size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onUpdateItem(mealIdx, itemIdx, 'imageUrl', undefined)}
-                      disabled={isGeneratingAllItems}
-                      className="flex h-7 items-center justify-center bg-white text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 active:bg-rose-100 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rose-400 disabled:cursor-not-allowed disabled:opacity-40 motion-reduce:transition-none"
-                      aria-label={`Xóa ảnh món ${item.name} khỏi thực đơn`}
-                      title="Xóa ảnh khỏi thực đơn"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', borderTop: '1px solid #f1f5f9', background: '#f1f5f9' }}>
+                      <button
+                        type="button"
+                        onClick={() => onGenerateItemImage(mealIdx, itemIdx, true)}
+                        disabled={isGeneratingAllItems}
+                        style={{ display: 'flex', height: '26px', alignItems: 'center', justifyContent: 'center', background: '#fff', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                        aria-label={`Vẽ lại ảnh món ${item.name}`}
+                        title="Vẽ lại ảnh món này"
+                      >
+                        <RefreshCw size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateItem(mealIdx, itemIdx, 'imageUrl', undefined)}
+                        disabled={isGeneratingAllItems}
+                        style={{ display: 'flex', height: '26px', alignItems: 'center', justifyContent: 'center', background: '#fff', border: 'none', cursor: 'pointer', color: '#64748b' }}
+                        aria-label={`Xóa ảnh món ${item.name} khỏi thực đơn`}
+                        title="Xóa ảnh khỏi thực đơn"
+                      >
+                        <Trash2 size={11} />
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -283,34 +289,36 @@ export default function MealCardItem({
                       cursor: 'pointer',
                       color: '#0284c7',
                       padding: 0,
-                      transition: 'all 0.15s ease',
                     }}
                     title="Tạo ảnh AI cho món này"
                   >
-                    <Sparkles size={14} color="#0284c7" />
-                    <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0369a1' }}>Tạo ảnh</span>
+                    <Sparkles size={14} />
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800 }}>Tạo ảnh</span>
                   </button>
                 )}
               </div>
 
               {/* Item Content (Inputs & Details) */}
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                {/* Row 1: Dish Name + Calories + Delete */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minWidth: 0 }}>
                   <input
                     value={item.name}
                     onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'name', e.target.value)}
                     style={{
+                      flex: 1,
+                      minWidth: 0,
                       width: '100%',
                       border: 'none',
                       background: 'transparent',
                       fontWeight: 800,
-                      fontSize: '0.84rem',
+                      fontSize: '0.86rem',
                       color: '#0f172a',
                       outline: 'none',
                     }}
                     placeholder="Tên món ăn..."
                   />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                     <div
                       style={{
                         display: 'inline-flex',
@@ -319,7 +327,7 @@ export default function MealCardItem({
                         background: '#f0fdf4',
                         border: '1px solid #bbf7d0',
                         borderRadius: '6px',
-                        padding: '2px 6px',
+                        padding: '2px 5px',
                       }}
                       title="Chỉnh sửa lượng calo"
                     >
@@ -333,10 +341,10 @@ export default function MealCardItem({
                           onUpdateItem(mealIdx, itemIdx, 'calories', clean === '' ? 0 : parseInt(clean, 10));
                         }}
                         style={{
-                          width: '42px',
+                          width: '36px',
                           border: 'none',
                           background: 'transparent',
-                          fontSize: '0.82rem',
+                          fontSize: '0.8rem',
                           fontWeight: 800,
                           color: '#16a34a',
                           textAlign: 'right',
@@ -344,7 +352,7 @@ export default function MealCardItem({
                           padding: 0,
                         }}
                       />
-                      <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#16a34a' }}>kcal</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a' }}>kcal</span>
                     </div>
                     <button
                       type="button"
@@ -357,27 +365,32 @@ export default function MealCardItem({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: '1 1 auto', minWidth: '140px' }}>
-                    <span style={{ fontWeight: 600, color: '#64748b' }}>Định lượng:</span>
-                    <input
-                      value={item.amount}
-                      onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'amount', e.target.value)}
-                      style={{
-                        flex: 1,
-                        minWidth: '100px',
-                        padding: '3px 8px',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: '#0f172a',
-                        background: '#ffffff',
-                      }}
-                      placeholder="VD: 150g thịt ức gà"
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                {/* Row 2: Amount */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#64748b', minWidth: 0 }}>
+                  <span style={{ fontWeight: 600, color: '#64748b', flexShrink: 0 }}>Định lượng:</span>
+                  <input
+                    value={item.amount}
+                    onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'amount', e.target.value)}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      width: '100%',
+                      padding: '3px 6px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      background: '#ffffff',
+                      boxSizing: 'border-box',
+                    }}
+                    placeholder="VD: 150g thịt ức gà"
+                  />
+                </div>
+
+                {/* Row 3: P / C / F + Đổi món button */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', flexWrap: 'wrap', marginTop: '2px', minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', minWidth: 0 }}>
                     {/* Protein (P) */}
                     <div
                       style={{
@@ -386,9 +399,9 @@ export default function MealCardItem({
                         gap: '2px',
                         background: '#eff6ff',
                         border: '1px solid #bfdbfe',
-                        borderRadius: '5px',
-                        padding: '1px 5px',
-                        fontSize: '0.72rem',
+                        borderRadius: '4px',
+                        padding: '1px 4px',
+                        fontSize: '0.7rem',
                         fontWeight: 700,
                         color: '#1d4ed8',
                       }}
@@ -405,10 +418,10 @@ export default function MealCardItem({
                           onUpdateItem(mealIdx, itemIdx, 'protein', clean === '' ? 0 : parseInt(clean, 10));
                         }}
                         style={{
-                          width: '26px',
+                          width: '22px',
                           border: 'none',
                           background: 'transparent',
-                          fontSize: '0.72rem',
+                          fontSize: '0.7rem',
                           fontWeight: 800,
                           color: '#1d4ed8',
                           textAlign: 'center',
@@ -427,9 +440,9 @@ export default function MealCardItem({
                         gap: '2px',
                         background: '#fef3c7',
                         border: '1px solid #fde68a',
-                        borderRadius: '5px',
-                        padding: '1px 5px',
-                        fontSize: '0.72rem',
+                        borderRadius: '4px',
+                        padding: '1px 4px',
+                        fontSize: '0.7rem',
                         fontWeight: 700,
                         color: '#b45309',
                       }}
@@ -446,10 +459,10 @@ export default function MealCardItem({
                           onUpdateItem(mealIdx, itemIdx, 'carbs', clean === '' ? 0 : parseInt(clean, 10));
                         }}
                         style={{
-                          width: '26px',
+                          width: '22px',
                           border: 'none',
                           background: 'transparent',
-                          fontSize: '0.72rem',
+                          fontSize: '0.7rem',
                           fontWeight: 800,
                           color: '#b45309',
                           textAlign: 'center',
@@ -468,9 +481,9 @@ export default function MealCardItem({
                         gap: '2px',
                         background: '#fdf2f8',
                         border: '1px solid #fbcfe8',
-                        borderRadius: '5px',
-                        padding: '1px 5px',
-                        fontSize: '0.72rem',
+                        borderRadius: '4px',
+                        padding: '1px 4px',
+                        fontSize: '0.7rem',
                         fontWeight: 700,
                         color: '#be185d',
                       }}
@@ -487,10 +500,10 @@ export default function MealCardItem({
                           onUpdateItem(mealIdx, itemIdx, 'fat', clean === '' ? 0 : parseInt(clean, 10));
                         }}
                         style={{
-                          width: '26px',
+                          width: '22px',
                           border: 'none',
                           background: 'transparent',
-                          fontSize: '0.72rem',
+                          fontSize: '0.7rem',
                           fontWeight: 800,
                           color: '#be185d',
                           textAlign: 'center',
@@ -501,15 +514,40 @@ export default function MealCardItem({
                       <span>g</span>
                     </div>
                   </div>
+
+                  {onOpenSwapper && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenSwapper(mealIdx, itemIdx)}
+                      style={{
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '6px',
+                        padding: '2px 7px',
+                        cursor: 'pointer',
+                        color: '#1d4ed8',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        flexShrink: 0,
+                        transition: 'all 0.15s ease',
+                      }}
+                      title={`Đổi món "${item.name}" sang món tương đương`}
+                    >
+                      <ArrowRightLeft size={11} /> Đổi món
+                    </button>
+                  )}
                 </div>
 
                 {item.prepTip && (
-                  <div style={{ fontSize: '0.7rem', color: '#0284c7', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                    <span>🍳 Chế biến:</span>
+                  <div style={{ fontSize: '0.7rem', color: '#0284c7', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', minWidth: 0 }}>
+                    <span style={{ flexShrink: 0 }}>🍳 Chế biến:</span>
                     <input
                       value={item.prepTip}
                       onChange={(e) => onUpdateItem(mealIdx, itemIdx, 'prepTip', e.target.value)}
-                      style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '0.7rem', color: '#0284c7', fontStyle: 'italic', outline: 'none' }}
+                      style={{ flex: 1, minWidth: 0, width: '100%', border: 'none', background: 'transparent', fontSize: '0.7rem', color: '#0284c7', fontStyle: 'italic', outline: 'none' }}
                     />
                   </div>
                 )}
@@ -542,6 +580,29 @@ export default function MealCardItem({
         </button>
 
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          {onOpenSwapper && (
+            <button
+              type="button"
+              onClick={() => onOpenSwapper(mealIdx)}
+              style={{
+                background: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontSize: '0.75rem',
+                color: '#0284c7',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              title="Xem danh sách món ăn & đổi món tương đương"
+            >
+              <ArrowRightLeft size={12} color="#0284c7" /> Đổi món / Gợi ý
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => onGenerateAllMealItemsImages(mealIdx)}
