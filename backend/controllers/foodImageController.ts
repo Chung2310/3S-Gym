@@ -183,16 +183,3 @@ export const deleteFoodImage = asyncHandler(async (req, res) => {
     data: { id },
   });
 });
-
-/**
- * POST /api/food-images/seed
- * Nạp bộ ảnh mẫu các món ăn thể hình thông dụng
- */
-export const seedFoodImages = asyncHandler(async (req, res) => {
-  const result = await foodImageService.seedStandardGymDishes(req.user!.id);
-
-  return success(res, {
-    message: result.message,
-    data: result,
-  });
-});

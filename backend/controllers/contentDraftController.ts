@@ -11,7 +11,7 @@ const nutrition = asyncHandler(async (req, res) =>
   success(res, {
     status: 201,
     message: 'AI đã tạo thực đơn nháp. PT cần kiểm tra trước khi sử dụng.',
-    data: await createNutritionDraft(req.user!, req.body.customerId, req.body.request, req.requestId!),
+    data: await createNutritionDraft(req.user!, req.body.customerId, req.body.request, req.requestId!, req.body.planId),
   })
 );
 

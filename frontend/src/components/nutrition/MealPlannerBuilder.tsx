@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   Calendar,
@@ -169,6 +169,17 @@ export default function MealPlannerBuilder({
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [mealCount, setMealCount] = useState<number>(4);
   const [targetKcalInput, setTargetKcalInput] = useState<string>('1850');
+
+  const effectiveCustomerId = customerId
+    || selectedCustomer?._id
+    || (typeof editingPlan?.customerId === 'object' && editingPlan?.customerId ? editingPlan.customerId._id : (editingPlan?.customerId as string | undefined));
+
+  const effectiveCustomerName = selectedCustomer?.fullName
+    || (typeof editingPlan?.customerId === 'object' && editingPlan?.customerId ? editingPlan.customerId.fullName : '')
+    || '';
+
+  const isEditingExistingPlan = Boolean(editingPlan?._id || editingPlan?.id);
+  const loadedPlanIdRef = useRef<string | null>(null);
 
   // Date Range / Duration State (max 31 days = 1 month)
   const computeEndDate = (startStr: string, days: number): string => {
@@ -448,116 +459,129 @@ export default function MealPlannerBuilder({
 
   // Sync editingPlan or new draft when props change
   useEffect(() => {
-    if (editingPlan) {
-      setCurrentPlanId(editingPlan._id || editingPlan.id || null);
-      if (editingPlan.title) setTitle(editingPlan.title);
-      if (editingPlan.notes) setDietAdviceNotes(editingPlan.notes);
-      if (editingPlan.targetCalories) setTargetKcalInput(String(editingPlan.targetCalories));
+    const editId = editingPlan?._id || editingPlan?.id || null;
+    if (editId) {
+      if (loadedPlanIdRef.current !== editId) {
+        loadedPlanIdRef.current = editId;
+        setCurrentPlanId(editId);
+        if (editingPlan.title) setTitle(editingPlan.title);
+        if (editingPlan.notes) setDietAdviceNotes(editingPlan.notes);
+        if (editingPlan.targetCalories) setTargetKcalInput(String(editingPlan.targetCalories));
 
-      let planStart = getTodayStr();
-      let planDuration = 7;
-      if (editingPlan.startDate) {
-        planStart = new Date(editingPlan.startDate).toISOString().split('T')[0];
-        setStartDate(planStart);
-        if (editingPlan.endDate) {
-          const e = new Date(editingPlan.endDate).toISOString().split('T')[0];
-          setEndDate(e);
-          const diff = Math.round((new Date(e).getTime() - new Date(planStart).getTime()) / 86400000) + 1;
-          planDuration = editingPlan.durationDays || Math.max(1, Math.min(31, diff));
-          setDurationDays(planDuration);
-        } else if (editingPlan.durationDays) {
-          planDuration = Math.max(1, Math.min(31, editingPlan.durationDays));
-          setDurationDays(planDuration);
-          setEndDate(computeEndDate(planStart, planDuration));
+        let planStart = getTodayStr();
+        let planDuration = 7;
+        if (editingPlan.startDate) {
+          planStart = new Date(editingPlan.startDate).toISOString().split('T')[0];
+          setStartDate(planStart);
+          if (editingPlan.endDate) {
+            const e = new Date(editingPlan.endDate).toISOString().split('T')[0];
+            setEndDate(e);
+            const diff = Math.round((new Date(e).getTime() - new Date(planStart).getTime()) / 86400000) + 1;
+            planDuration = editingPlan.durationDays || Math.max(1, Math.min(31, diff));
+            setDurationDays(planDuration);
+          } else if (editingPlan.durationDays) {
+            planDuration = Math.max(1, Math.min(31, editingPlan.durationDays));
+            setDurationDays(planDuration);
+            setEndDate(computeEndDate(planStart, planDuration));
+          }
         }
-      }
 
-      if (Array.isArray(editingPlan.menu) && editingPlan.menu.length > 0) {
-        // Check if hierarchical
-        if (editingPlan.menu[0]?.days) {
-          setWeeks(editingPlan.menu as WeekMenuPlan[]);
-          setSelectedWeekIdx(0);
-          setSelectedDayIdx(0);
-          setShowConfigStudio(false);
-        } else {
-          setMealCount(editingPlan.menu.length);
-          const parsedMeals: MealBlock[] = editingPlan.menu.map((m: any, idx: number) => {
-            const rawItems = Array.isArray(m.items) ? m.items : [];
-            const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
-              if (typeof it === 'object' && it !== null) {
+        if (Array.isArray(editingPlan.menu) && editingPlan.menu.length > 0) {
+          // Check if hierarchical
+          if (editingPlan.menu[0]?.days) {
+            setWeeks(editingPlan.menu as WeekMenuPlan[]);
+            setSelectedWeekIdx(0);
+            setSelectedDayIdx(0);
+            setShowConfigStudio(false);
+          } else {
+            setMealCount(editingPlan.menu.length);
+            const parsedMeals: MealBlock[] = editingPlan.menu.map((m: any, idx: number) => {
+              const rawItems = Array.isArray(m.items) ? m.items : [];
+              const mealFoods: MealFoodItem[] = rawItems.map((it: any) => {
+                if (typeof it === 'object' && it !== null) {
+                  return {
+                    name: it.name || 'Món ăn',
+                    amount: it.amount || '100g',
+                    calories: it.calories || 100,
+                    protein: it.protein || 10,
+                    carbs: it.carbs || 10,
+                    fat: it.fat || 3,
+                    prepTip: it.prepTip || undefined,
+                    imageUrl: it.imageUrl || undefined,
+                  };
+                }
+                const str = String(it);
                 return {
-                  name: it.name || 'Món ăn',
-                  amount: it.amount || '100g',
-                  calories: it.calories || 100,
-                  protein: it.protein || 10,
-                  carbs: it.carbs || 10,
-                  fat: it.fat || 3,
-                  prepTip: it.prepTip || undefined,
-                  imageUrl: it.imageUrl || undefined,
+                  name: str.split('(')[0]?.trim() || str,
+                  amount: '1 khẩu phần',
+                  calories: 120,
+                  protein: 15,
+                  carbs: 10,
+                  fat: 3,
                 };
-              }
-              const str = String(it);
+              });
+
               return {
-                name: str.split('(')[0]?.trim() || str,
-                amount: '1 khẩu phần',
-                calories: 120,
-                protein: 15,
-                carbs: 10,
-                fat: 3,
+                id: `meal_loaded_${idx + 1}`,
+                name: m.name || `Bữa ${idx + 1}`,
+                timeSlot: m.timeSlot || '08:00',
+                targetKcal: m.calories || 400,
+                items: mealFoods,
+                imageUrl: m.imageUrl || undefined,
               };
             });
-
-            return {
-              id: `meal_loaded_${idx + 1}`,
-              name: m.name || `Bữa ${idx + 1}`,
-              timeSlot: m.timeSlot || '08:00',
-              targetKcal: m.calories || 400,
-              items: mealFoods,
-              imageUrl: m.imageUrl || undefined,
-            };
-          });
-          const loadedWeeks = buildWeeksSchedule(planStart, planDuration, parsedMeals);
-          setWeeks(loadedWeeks);
-          setSelectedWeekIdx(0);
-          setSelectedDayIdx(0);
-          setShowConfigStudio(false);
+            const loadedWeeks = buildWeeksSchedule(planStart, planDuration, parsedMeals);
+            setWeeks(loadedWeeks);
+            setSelectedWeekIdx(0);
+            setSelectedDayIdx(0);
+            setShowConfigStudio(false);
+          }
         }
       }
     } else if (appliedAiAnalysis) {
-      setCurrentPlanId(null);
-      setTitle(`Thực Đơn ${appliedAiAnalysis.goalLabel} - ${selectedCustomer?.fullName || 'Học viên'}`);
-      setTargetKcalInput(String(appliedAiAnalysis.targetCalories));
-      if (appliedAiAnalysis.dietaryAdvice?.keyNotes) {
-        setDietAdviceNotes(appliedAiAnalysis.dietaryAdvice.keyNotes);
+      if (loadedPlanIdRef.current !== 'applied_ai') {
+        loadedPlanIdRef.current = 'applied_ai';
+        setCurrentPlanId(null);
+        setTitle(`Thực Đơn ${appliedAiAnalysis.goalLabel} - ${effectiveCustomerName || 'Học viên'}`);
+        setTargetKcalInput(String(appliedAiAnalysis.targetCalories));
+        if (appliedAiAnalysis.dietaryAdvice?.keyNotes) {
+          setDietAdviceNotes(appliedAiAnalysis.dietaryAdvice.keyNotes);
+        }
+        if (appliedAiAnalysis.timingStrategy && appliedAiAnalysis.timingStrategy.length > 0) {
+          setMealCount(appliedAiAnalysis.timingStrategy.length);
+          const timingMeals: MealBlock[] = appliedAiAnalysis.timingStrategy.map((ts: any, idx: number) => ({
+            id: `meal_ai_timing_${idx + 1}`,
+            name: `${ts.meal} (${ts.focus})`,
+            timeSlot: ts.time,
+            targetKcal: ts.calorieTarget,
+            items: [],
+          }));
+          setWeeks(buildWeeksSchedule(startDate, durationDays, timingMeals));
+        }
+        setShowConfigStudio(true);
       }
-      if (appliedAiAnalysis.timingStrategy && appliedAiAnalysis.timingStrategy.length > 0) {
-        setMealCount(appliedAiAnalysis.timingStrategy.length);
-        const timingMeals: MealBlock[] = appliedAiAnalysis.timingStrategy.map((ts, idx) => ({
-          id: `meal_ai_timing_${idx + 1}`,
-          name: `${ts.meal} (${ts.focus})`,
-          timeSlot: ts.time,
-          targetKcal: ts.calorieTarget,
-          items: [],
-        }));
-        setWeeks(buildWeeksSchedule(startDate, durationDays, timingMeals));
-      }
-      setShowConfigStudio(true);
     } else if (appliedNutrition) {
-      setCurrentPlanId(null);
-      setTitle(`Thực Đơn ${appliedNutrition.goalLabel} - ${selectedCustomer?.fullName || 'Học viên'}`);
-      setTargetKcalInput(String(appliedNutrition.targetCalories));
-      setShowConfigStudio(true);
-    } else {
-      setCurrentPlanId(null);
-      if (selectedCustomer?.fullName) {
-        setTitle(`Thực Đơn Dinh Dưỡng - ${selectedCustomer.fullName}`);
-      } else {
-        setTitle('Kế Hoạch Thực Đơn Dinh Dưỡng');
+      if (loadedPlanIdRef.current !== 'applied_nutrition') {
+        loadedPlanIdRef.current = 'applied_nutrition';
+        setCurrentPlanId(null);
+        setTitle(`Thực Đơn ${appliedNutrition.goalLabel} - ${effectiveCustomerName || 'Học viên'}`);
+        setTargetKcalInput(String(appliedNutrition.targetCalories));
+        setShowConfigStudio(true);
       }
-      setWeeks(buildWeeksSchedule(startDate, durationDays, []));
-      setShowConfigStudio(true);
+    } else {
+      if (loadedPlanIdRef.current !== 'new_blank') {
+        loadedPlanIdRef.current = 'new_blank';
+        setCurrentPlanId(null);
+        if (effectiveCustomerName) {
+          setTitle(`Thực Đơn Dinh Dưỡng - ${effectiveCustomerName}`);
+        } else {
+          setTitle('Kế Hoạch Thực Đơn Dinh Dưỡng');
+        }
+        setWeeks(buildWeeksSchedule(startDate, durationDays, []));
+        setShowConfigStudio(true);
+      }
     }
-  }, [editingPlan, appliedAiAnalysis, appliedNutrition, selectedCustomer]);
+  }, [editingPlan, appliedAiAnalysis, appliedNutrition, effectiveCustomerName]);
 
   // Total Macros Calculation
   const totalKcal = meals.reduce((sum, m) => sum + m.items.reduce((s, i) => s + (i.calories || 0), 0), 0);
@@ -573,11 +597,13 @@ export default function MealPlannerBuilder({
    * Handle Comprehensive AI Meal Generation
    */
   const handleAiGenerate = async () => {
-    const targetId = customerId || selectedCustomer?._id;
+    const targetId = effectiveCustomerId;
     if (!targetId) {
       toast.error('Vui lòng chọn học viên ở thanh tìm kiếm phía trên để AI cá nhân hóa chỉ số.');
       return;
     }
+
+    const existingPlanId = currentPlanId || editingPlan?._id || editingPlan?.id || undefined;
 
     try {
       setLoadingAi(true);
@@ -601,15 +627,19 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         {
           customerId: targetId,
           request: compositeRequest,
+          planId: existingPlanId,
         },
         { retries: 1, retryDelayMs: 1500 }
       );
 
       const draft = res.data;
       if (draft) {
-        const generatedId = (draft as any)._id || (draft as any).id;
-        if (generatedId) {
-          setCurrentPlanId(generatedId);
+        // Chỉ gán ID mới nếu trước đó chưa có kế hoạch nào (tạo mới hoàn toàn)
+        if (!existingPlanId) {
+          const generatedId = (draft as any)._id || (draft as any).id;
+          if (generatedId) {
+            setCurrentPlanId(generatedId);
+          }
         }
         if (draft.title) setTitle(draft.title);
         if ((draft as any).notes) setDietAdviceNotes((draft as any).notes);
@@ -873,8 +903,8 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
     }
   };
 
-  const handleSavePlan = async (publishToCustomer: boolean = false) => {
-    const targetId = customerId || selectedCustomer?._id;
+  const handleSavePlan = async (publishToCustomer?: boolean) => {
+    const targetId = effectiveCustomerId;
     if (!targetId) {
       toast.error('Vui lòng chọn học viên trước khi lưu thực đơn.');
       return;
@@ -883,6 +913,10 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       toast.error('Chưa có bữa ăn nào trong thực đơn. Vui lòng bấm AI Sinh Thực Đơn trước khi lưu.');
       return;
     }
+
+    const shouldPublish = publishToCustomer !== undefined
+      ? publishToCustomer
+      : (editingPlan?.status === 'PUBLISHED');
 
     try {
       setSaving(true);
@@ -917,7 +951,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
 
       const payload = {
         customerId: targetId,
-        title: title || `Thực Đơn ${durationDays} Ngày (${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)}) - ${selectedCustomer?.fullName || 'Học viên'}`,
+        title: title || `Thực Đơn ${durationDays} Ngày (${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)}) - ${effectiveCustomerName || 'Học viên'}`,
         startDate: startDate ? new Date(startDate).toISOString() : new Date().toISOString(),
         endDate: endDate ? new Date(endDate).toISOString() : new Date(Date.now() + 6 * 86400000).toISOString(),
         durationDays: durationDays || 7,
@@ -931,20 +965,32 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         notes: dietAdviceNotes || undefined,
       };
 
-      let planId = currentPlanId || editingPlan?._id || editingPlan?.id;
+      const existingPlanId = currentPlanId || editingPlan?._id || editingPlan?.id;
+      let planId = existingPlanId;
+
       if (planId) {
+        // CẬP NHẬT BẢN CÓ SẴN (PATCH) - TUYỆT ĐỐI KHÔNG TẠO BẢN MỚI
         await api.patch(`/api/nutrition-plans/${planId}`, payload);
       } else {
+        // CHỈ TẠO MỚI (POST) KHI ĐANG TẠO BẢN HOÀN TOÀN MỚI
         const res = await api.post<any>('/api/nutrition-plans', payload);
         planId = res.data?._id || res.data?.id;
         if (planId) setCurrentPlanId(planId);
       }
 
-      if (publishToCustomer && planId) {
+      if (shouldPublish && planId) {
         await api.patch(`/api/nutrition-plans/${planId}/publish`, { publish: true });
-        toast.success('Đã lưu vào cơ sở dữ liệu và CÔNG BỐ thành công cho học viên áp dụng!');
+        toast.success(
+          existingPlanId
+            ? 'Đã cập nhật thực đơn thành công!'
+            : 'Đã lưu vào cơ sở dữ liệu và CÔNG BỐ thành công cho học viên áp dụng!'
+        );
       } else {
-        toast.success('Đã lưu bản nháp thực đơn vào cơ sở dữ liệu thành công!');
+        toast.success(
+          existingPlanId
+            ? 'Đã cập nhật thực đơn thành công!'
+            : 'Đã lưu bản nháp thực đơn vào cơ sở dữ liệu thành công!'
+        );
       }
 
       if (onSaved) onSaved();
@@ -1080,6 +1126,11 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                 <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#38bdf8', fontWeight: 800 }}>
                   THIẾT KẾ THỰC ĐƠN CƠM VIỆT
                 </span>
+                {isEditingExistingPlan && (
+                  <span style={{ background: '#f59e0b', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
+                    ✏️ ĐANG CHỈNH SỬA BẢN CÓ SẴN
+                  </span>
+                )}
                 {meals.length > 0 && (
                   <span style={{ background: '#10b981', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '6px' }}>
                     {meals.length} Bữa Ăn • {totalKcal} kcal
@@ -1087,7 +1138,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                 )}
               </div>
               <h2 style={{ margin: '4px 0 0', fontSize: '1.25rem', color: '#ffffff', fontWeight: 800 }}>
-                {selectedCustomer ? `Thực Đơn: ${selectedCustomer.fullName}` : 'Thiết Kế Thực Đơn Dinh Dưỡng'}
+                {effectiveCustomerName ? `Thực Đơn: ${effectiveCustomerName}` : 'Thiết Kế Thực Đơn Dinh Dưỡng'}
               </h2>
               {meals.length > 0 && (
                 <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '0.76rem', color: '#93c5fd', flexWrap: 'wrap' }}>
@@ -1121,39 +1172,17 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
             </button>
 
             {meals.length > 0 && (
-              <>
+              isEditingExistingPlan ? (
                 <button
                   type="button"
                   disabled={saving}
-                  onClick={() => void handleSavePlan(false)}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.4)',
-                    borderRadius: '8px',
-                    padding: '9px 14px',
-                    fontWeight: 700,
-                    fontSize: '0.82rem',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                  title="Lưu bản nháp vào CSDL để chỉnh sửa tiếp"
-                >
-                  <Save size={14} /> {saving ? 'Lưu...' : 'Lưu Nháp'}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => void handleSavePlan(true)}
+                  onClick={() => void handleSavePlan()}
                   style={{
                     background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '8px',
-                    padding: '9px 16px',
+                    padding: '9px 18px',
                     fontWeight: 800,
                     fontSize: '0.82rem',
                     cursor: saving ? 'not-allowed' : 'pointer',
@@ -1162,11 +1191,58 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                     gap: '6px',
                     boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
                   }}
-                  title="Lưu vào CSDL và gửi trực tiếp cho học viên áp dụng trên Portal"
+                  title="Cập nhật thực đơn vào CSDL"
                 >
-                  <Send size={14} /> {saving ? 'Gửi...' : 'Lưu & Gửi Học Viên'}
+                  <Save size={14} /> {saving ? 'Đang Cập Nhật...' : 'Cập Nhật'}
                 </button>
-              </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void handleSavePlan(false)}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      color: '#ffffff',
+                      border: '1px solid rgba(255, 255, 255, 0.4)',
+                      borderRadius: '8px',
+                      padding: '9px 14px',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                    title="Lưu bản nháp vào CSDL để chỉnh sửa tiếp"
+                  >
+                    <Save size={14} /> {saving ? 'Đang Lưu...' : 'Lưu Nháp'}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void handleSavePlan(true)}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '9px 16px',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
+                    }}
+                    title="Lưu vào CSDL và gửi trực tiếp cho học viên áp dụng trên Portal"
+                  >
+                    <Send size={14} /> {saving ? 'Đang Gửi...' : 'Lưu & Gửi Học Viên'}
+                  </button>
+                </>
+              )
             )}
           </div>
         </div>
@@ -1354,7 +1430,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
               </label>
               <button
                 type="button"
-                onClick={() => setTitle(`Thực Đơn ${durationDays} Ngày (${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)}) - ${selectedCustomer?.fullName || 'Học viên'}`)}
+                onClick={() => setTitle(`Thực Đơn ${durationDays} Ngày (${formatDisplayDate(startDate)} - ${formatDisplayDate(endDate)}) - ${effectiveCustomerName || 'Học viên'}`)}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -1411,8 +1487,8 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
             disabled={saving}
             style={{ height: '42px', display: 'flex', alignItems: 'center', gap: '6px', padding: '0 20px', fontSize: '0.88rem', fontWeight: 800 }}
           >
-            {saving ? <RefreshCw size={15} className="spin" /> : <Check size={15} />}
-            Lưu Thực Đơn
+            {saving ? <RefreshCw size={15} className="spin" /> : <Save size={15} />}
+            {saving ? 'Đang Cập Nhật...' : (isEditingExistingPlan ? 'Cập Nhật' : 'Lưu Thực Đơn')}
           </button>
         </div>
       )}
@@ -1965,54 +2041,80 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                 Tổng Thực Đơn: <span style={{ color: '#4ade80' }}>{totalKcal} kcal</span> ({meals.length} bữa ăn)
               </div>
               <div style={{ fontSize: '0.76rem', color: '#93c5fd', marginTop: '2px' }}>
-                P: <strong>{totalProtein}g</strong> | C: <strong>{totalCarbs}g</strong> | F: <strong>{totalFat}g</strong> • Học viên: <strong>{selectedCustomer?.fullName || 'Chưa chọn'}</strong>
+                P: <strong>{totalProtein}g</strong> | C: <strong>{totalCarbs}g</strong> | F: <strong>{totalFat}g</strong> • Học viên: <strong>{effectiveCustomerName || 'Chưa chọn'}</strong>
               </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void handleSavePlan(false)}
-              style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '8px',
-                padding: '10px 18px',
-                fontWeight: 700,
-                fontSize: '0.84rem',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <Save size={15} /> {saving ? 'Đang Lưu...' : 'Lưu Bản Nháp'}
-            </button>
+            {isEditingExistingPlan ? (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void handleSavePlan()}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '10px 24px',
+                  fontWeight: 800,
+                  fontSize: '0.88rem',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.45)',
+                }}
+              >
+                <Save size={16} /> {saving ? 'Đang Cập Nhật...' : 'Cập Nhật'}
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleSavePlan(false)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    padding: '10px 18px',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Save size={15} /> {saving ? 'Đang Lưu...' : 'Lưu Bản Nháp'}
+                </button>
 
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => void handleSavePlan(true)}
-              style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '10px 22px',
-                fontWeight: 800,
-                fontSize: '0.86rem',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.45)',
-              }}
-            >
-              <Send size={15} /> {saving ? 'Đang Gửi...' : 'Lưu & Gửi Cho Học Viên Áp Dụng Ngay'}
-            </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void handleSavePlan(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '10px 22px',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.45)',
+                  }}
+                >
+                  <Send size={15} /> {saving ? 'Đang Gửi...' : 'Lưu & Gửi Cho Học Viên Áp Dụng Ngay'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
