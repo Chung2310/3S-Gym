@@ -6,17 +6,23 @@ import { withAiBilling } from './aiBillingService.js';
 import type { AiBillingContext, ProviderResult } from './creditTypes.js';
 
 /**
- * Image Generation Provider — FLUX.2 Klein 4B via OpenRouter Image API
+ * Image Generation Provider — Google Gemini 3.1 Flash Image via OpenRouter
  *
- * Endpoint: POST https://openrouter.ai/api/v1/images
- * Model:    black-forest-labs/flux.2-klein-4b
- * Docs:     https://openrouter.ai/black-forest-labs/flux.2-klein-4b/llms.txt
+ * Model chính: google/gemini-3.1-flash-image (Nano Banana 2)
+ * URL:         https://openrouter.ai/google/gemini-3.1-flash-image
+ * Đặc tính:    Tạo ảnh ẩm thực thuần Việt siêu chân thật, chuẩn xác từng món ăn đời thực
  *
- * Returns base64-encoded image bytes (PNG or JPEG).
+ * Cascading Fallbacks:
+ * 1. google/gemini-3.1-flash-image (Primary)
+ * 2. bytedance-seed/seedream-4.5 (Secondary)
+ * 3. black-forest-labs/flux.2-klein-4b (Tertiary)
+ * 4. pollinations-flux (Free zero-credit emergency fallback)
  */
 
-export const IMAGE_MODEL = 'black-forest-labs/flux.2-klein-4b';
-export const FALLBACK_IMAGE_MODEL = 'bytedance-seed/seedream-4.5';
+export const IMAGE_MODEL = 'google/gemini-3.1-flash-image';
+export const FALLBACK_IMAGE_MODEL_SEEDREAM = 'bytedance-seed/seedream-4.5';
+export const FALLBACK_IMAGE_MODEL_FLUX = 'black-forest-labs/flux.2-klein-4b';
+export const FALLBACK_IMAGE_MODEL = FALLBACK_IMAGE_MODEL_SEEDREAM;
 
 export type AspectRatio = '1:1' | '4:3' | '3:4' | '3:2' | '2:3' | '16:9' | '9:16' | '21:9' | 'auto';
 export type OutputFormat = 'png' | 'jpeg';
@@ -58,7 +64,77 @@ interface OpenRouterImageResponse {
 }
 
 /**
- * Gọi API OpenRouter Image với một model cụ thể (hỗ trợ FLUX.2 Klein 4B và ByteDance Seedream 4.5)
+ * Gọi API OpenRouter với Google Gemini 3.1 Flash Image qua chat completions (modalities: ['image', 'text'])
+ */
+async function callOpenRouterGeminiImage(
+  apiKey: string,
+  options: GenerateImageOptions
+): Promise<ProviderResult<GeneratedImage>> {
+  const model = 'google/gemini-3.1-flash-image';
+  const response = await fetchWithTimeout(
+    'https://openrouter.ai/api/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.APP_URL || 'http://3s.igentechsolutions.com',
+        'X-Title': '3S Gym & Wellness Fitness',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: options.prompt }],
+        modalities: ['image', 'text'],
+        max_tokens: 1500,
+      }),
+    },
+    getEnv().PROVIDER_TIMEOUT_MS,
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`OpenRouter Gemini 3.1 Flash Image trả về status ${response.status}: ${errorBody.slice(0, 300)}`);
+  }
+
+  const data = await response.json();
+  const choice = data.choices?.[0];
+  const imgObj = choice?.message?.images?.[0];
+  if (!imgObj) {
+    throw new Error('OpenRouter Gemini 3.1 Flash Image không trả về dữ liệu ảnh trong message.images.');
+  }
+
+  const url = typeof imgObj === 'string' ? imgObj : (imgObj.image_url?.url || imgObj.url || '');
+  if (!url || !url.startsWith('data:image/')) {
+    throw new Error('Dữ liệu ảnh từ Gemini 3.1 Flash Image không đúng định dạng base64.');
+  }
+
+  const mimeMatch = url.match(/^data:(image\/[a-zA-Z0-9.+_-]+);base64,/);
+  const mediaType = mimeMatch ? mimeMatch[1] : 'image/png';
+  const b64Json = url.replace(/^data:image\/[a-zA-Z0-9.+_-]+;base64,/, '');
+
+  const cost = Number(data.usage?.cost ?? 0.005);
+  const value: GeneratedImage = {
+    b64Json,
+    mediaType,
+    cost: Number.isFinite(cost) && cost >= 0 ? cost : 0,
+    completionTokens: data.usage?.completion_tokens ?? 0,
+  };
+
+  return {
+    value,
+    provider: 'openrouter',
+    model,
+    usage: {
+      inputTokens: data.usage?.prompt_tokens,
+      outputTokens: data.usage?.completion_tokens,
+      totalTokens: data.usage?.total_tokens,
+      providerCostMicrousd: Math.round(cost * 1_000_000),
+    },
+  };
+}
+
+/**
+ * Gọi API OpenRouter Image với một model cụ thể (hỗ trợ ByteDance Seedream 4.5 và FLUX.2 Klein 4B)
  */
 async function callOpenRouterImageModel(
   model: string,
@@ -80,7 +156,6 @@ async function callOpenRouterImageModel(
     body.seed = options.seed;
   }
 
-  // Model bytedance-seed/seedream-4.5 hỗ trợ resolution: "1K" | "2K" | "4K"
   if (model.includes('seedream')) {
     body.resolution = '2K';
   }
@@ -182,38 +257,48 @@ async function generateImageFallback(options: GenerateImageOptions): Promise<Pro
 }
 
 /**
- * Generate an image using 3-tier cascading fallback:
- * 1. Primary OpenRouter model: FLUX.2 Klein 4B (black-forest-labs/flux.2-klein-4b)
+ * Generate an image using 4-tier cascading fallback:
+ * 1. Primary: Google Gemini 3.1 Flash Image (google/gemini-3.1-flash-image) - Real photorealistic Vietnamese food
  * 2. Secondary OpenRouter model: ByteDance Seedream 4.5 (bytedance-seed/seedream-4.5)
- * 3. Final safety net fallback: Pollinations Flux (free, zero-credit dependency)
+ * 3. Tertiary OpenRouter model: FLUX.2 Klein 4B (black-forest-labs/flux.2-klein-4b)
+ * 4. Safety net fallback: Pollinations Flux (free, zero-credit dependency)
  */
 async function generateImageRaw(options: GenerateImageOptions): Promise<ProviderResult<GeneratedImage>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (apiKey) {
-    // TIER 1: Thử model chính FLUX.2 Klein 4B
-    const primaryModel = process.env.IMAGE_MODEL || IMAGE_MODEL;
+    // TIER 1: Model chính Google Gemini 3.1 Flash Image (đời thực, siêu chân thật, ẩm thực thuần Việt)
     try {
-      return await callOpenRouterImageModel(primaryModel, apiKey, options);
+      return await callOpenRouterGeminiImage(apiKey, options);
     } catch (err: any) {
       console.warn(
-        `[imageProvider] Model chính (${primaryModel}) gặp sự cố, tự động chuyển sang fallback model OpenRouter (${FALLBACK_IMAGE_MODEL}):`,
+        `[imageProvider] Model chính Google Gemini 3.1 Flash Image gặp sự cố hoặc hết credit, chuyển sang fallback Seedream 4.5:`,
         err?.message || err
       );
     }
 
-    // TIER 2: Thử model fallback OpenRouter ByteDance Seedream 4.5 (nếu FLUX.2 fail)
+    // TIER 2: Thử model fallback OpenRouter ByteDance Seedream 4.5
     try {
-      return await callOpenRouterImageModel(FALLBACK_IMAGE_MODEL, apiKey, options);
+      return await callOpenRouterImageModel(FALLBACK_IMAGE_MODEL_SEEDREAM, apiKey, options);
     } catch (err: any) {
       console.warn(
-        `[imageProvider] Model fallback OpenRouter (${FALLBACK_IMAGE_MODEL}) gặp sự cố hoặc hết credit, kích hoạt dự phòng an toàn Pollinations:`,
+        `[imageProvider] Model fallback OpenRouter (${FALLBACK_IMAGE_MODEL_SEEDREAM}) gặp sự cố, chuyển sang FLUX.2:`,
+        err?.message || err
+      );
+    }
+
+    // TIER 3: Thử model fallback OpenRouter FLUX.2 Klein 4B
+    try {
+      return await callOpenRouterImageModel(FALLBACK_IMAGE_MODEL_FLUX, apiKey, options);
+    } catch (err: any) {
+      console.warn(
+        `[imageProvider] Model OpenRouter (${FALLBACK_IMAGE_MODEL_FLUX}) gặp sự cố hoặc hết credit, kích hoạt dự phòng an toàn Pollinations:`,
         err?.message || err
       );
     }
   }
 
-  // TIER 3: Dự phòng miễn phí tốc độ cao (Pollinations) đảm bảo 100% không bao giờ gián đoạn hay lỗi 503
+  // TIER 4: Dự phòng miễn phí tốc độ cao (Pollinations) đảm bảo 100% không bao giờ gián đoạn hay lỗi 503
   try {
     return await generateImageFallback(options);
   } catch (cause) {
