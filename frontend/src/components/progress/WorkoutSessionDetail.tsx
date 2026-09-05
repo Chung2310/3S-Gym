@@ -1,4 +1,4 @@
-import { Calendar, Dumbbell, MessageSquare, StickyNote } from 'lucide-react';
+import { Calendar, Dumbbell, MessageSquare, PenLine, StickyNote } from 'lucide-react';
 import type { WorkoutSessionDto } from '../../types';
 import { formatWorkoutSessionTime } from '../../services/workoutSessionTime';
 import { exerciseRpes, exerciseVolume } from '../../utils/sessionTracking';
@@ -70,6 +70,36 @@ export default function WorkoutSessionDetail({ session }: { session: WorkoutSess
               <p className="text-slate-800 m-0">{session.notes}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Customer Signature Confirmation */}
+      {session.customerSignature?.signatureUrl && (
+        <div className="border-t border-slate-100 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+              <PenLine size={13} className="text-[#003b70]" />
+              <span>Chữ ký xác nhận của học viên</span>
+            </div>
+            {session.customerSignature.signedAt && (
+              <span className="text-[11px] font-medium text-slate-400">
+                Đã ký: {formatWorkoutSessionTime(session.customerSignature.signedAt)}
+              </span>
+            )}
+          </div>
+
+          <div className="inline-flex flex-col items-center rounded-xl border border-slate-200 bg-white p-2.5 shadow-2xs">
+            <img
+              src={session.customerSignature.signatureUrl}
+              alt="Chữ ký học viên"
+              className="max-h-20 max-w-[260px] object-contain select-none"
+            />
+            {session.customerSignature.signerName && (
+              <div className="mt-1.5 border-t border-dashed border-slate-200 pt-1 text-center text-xs font-semibold text-slate-700 w-full">
+                {session.customerSignature.signerName}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </article>

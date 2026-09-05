@@ -29,6 +29,7 @@ export default function WorkoutSessionModal({
       {journey ? (
         <WorkoutSessionLogger
           customerId={journey.customer._id}
+          customerName={item?.customer.fullName || journey.customer.fullName}
           activePlan={activePlan || null}
           onSaved={onSaved}
           onClose={onClose}
