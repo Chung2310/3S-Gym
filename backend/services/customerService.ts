@@ -129,7 +129,7 @@ async function getCustomer(user: AuthenticatedUser, id: string) {
 }
 
 async function createCustomer(user: AuthenticatedUser, payload: CustomerPayload) {
-  const assignedPtId = isAdminRole(user.role) ? payload.assignedPtId : user.id;
+  const assignedPtId = payload.assignedPtId || user.id;
   if (!assignedPtId) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng chọn PT phụ trách.' });
 
   const phone = payload.phone?.trim();

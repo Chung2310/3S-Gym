@@ -236,6 +236,13 @@ export default function NutritionPage() {
               onEditPlan={(plan) => {
                 setEditingPlan(plan);
                 setIsCreatingNew(false);
+                const cId = typeof plan.customerId === 'object' && plan.customerId ? plan.customerId._id : (plan.customerId as string);
+                if (cId) {
+                  setCustomerId(cId);
+                  if (typeof plan.customerId === 'object' && plan.customerId) {
+                    setSelectedCustomer(plan.customerId as Customer);
+                  }
+                }
               }}
             />
           )

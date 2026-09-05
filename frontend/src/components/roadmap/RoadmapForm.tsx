@@ -564,7 +564,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
       {/* 2. Goal & Roadmap Parameter Controls */}
       <div className="p-3.5 sm:p-5 rounded-xl border border-sky-200 bg-gradient-to-b from-sky-50 to-white max-w-full">
         <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 14px' }}>
-          <Target size={18} /> Thiết lập Thông số Mục tiêu (Goal Engine)
+          <Target size={18} /> Thiết lập Thông số Mục tiêu
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
@@ -680,7 +680,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             }}
           >
             <Sparkles size={18} />
-            {loadingAi ? 'AI đang suy nghĩ, phân tích...' : '⚡ Tạo Lộ trình với AI'}
+            {loadingAi ? 'AI đang suy nghĩ, phân tích...' : ' Tạo Lộ trình với AI'}
           </button>
         </div>
 
@@ -707,7 +707,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                 </div>
                 <div>
                   <strong style={{ fontSize: '0.95rem', color: '#f8fafc', display: 'block' }}>
-                    Đang xử lý & phân kỳ lộ trình bằng AI (Qwen 3.8 Flash)
+                    Đang xử lý & phân kỳ lộ trình bằng AI
                   </strong>
                   <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                     Kết hợp hồ sơ {customerMeta?.fullName || 'học viên'}, dữ liệu InBody và mục tiêu PT
@@ -785,7 +785,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             <div className="min-w-0">
               <h3 className="text-base sm:text-lg font-extrabold text-primary flex items-center gap-2 m-0">
                 <Zap className="w-5 h-5 text-amber-500 shrink-0" />
-                <span>Chiến lược Huấn luyện & Dinh dưỡng (Có thể tùy chỉnh)</span>
+                <span>Chiến lược Huấn luyện & Dinh dưỡng</span>
               </h3>
               <p className="m-0 mt-1 text-xs text-slate-500 leading-relaxed break-words">
                 Định hướng phương pháp huấn luyện, phân chia lịch tập, cardio, macro dinh dưỡng và các mốc kiểm tra.
@@ -1133,7 +1133,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
                 </div>
                 <div>
                   <h4 className="m-0 text-sm sm:text-base font-extrabold text-slate-900">
-                    Các mốc Đánh giá & Đo lường Thể chất (Checkpoints)
+                    Các mốc Đánh giá & Đo lường Thể chất
                   </h4>
                   <span className="text-xs text-slate-500">
                     Các cột mốc kiểm tra InBody, chụp ảnh vóc dáng và đánh giá mức độ thích nghi định kỳ
@@ -1257,11 +1257,10 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             >
               {/* Phase Card Header */}
               <div
-                className={`p-3 sm:px-4 sm:py-3.5 cursor-pointer select-none transition-colors border-b ${
-                  isExpanded
-                    ? 'bg-slate-100/90 border-slate-200'
-                    : 'bg-slate-50/70 border-transparent hover:bg-slate-100/60'
-                }`}
+                className={`p-3 sm:px-4 sm:py-3.5 cursor-pointer select-none transition-colors border-b ${isExpanded
+                  ? 'bg-slate-100/90 border-slate-200'
+                  : 'bg-slate-50/70 border-transparent hover:bg-slate-100/60'
+                  }`}
                 onClick={() => togglePhaseExpand(phaseIndex)}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">

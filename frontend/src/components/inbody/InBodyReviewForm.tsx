@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Layers, Sparkles, UserCheck } from 'lucide-react';
+import { ChevronDown, ChevronUp, Layers, Sparkles, UserCheck, UserPlus } from 'lucide-react';
 import { api } from '../../services/api';
-import { errorMessage } from '../../types';
+import { errorMessage, type Customer } from '../../types';
 import { useToast } from '../ui/ToastProvider';
 import CustomerSelect from '../ui/CustomerSelect';
+import QuickAddCustomerModal from './QuickAddCustomerModal';
 
 import type { InBodyOcrDraft } from '../../types/inbody';
 export type { InBodyOcrDraft };
@@ -46,6 +47,8 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(draft.customerId || '');
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [createdCustomer, setCreatedCustomer] = useState<Customer | null>(null);
   const [form, setForm] = useState({
     measurementDate: draft.measurementDate.slice(0, 10),
     weight: draft.weight?.toString() ?? '',
@@ -131,7 +134,13 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
     }
   };
 
-  const warnings = draft.ocrWarnings?.length ? draft.ocrWarnings : draft.warnings ?? [];
+  const rawWarnings = draft.ocrWarnings?.length ? draft.ocrWarnings : draft.warnings ?? [];
+  const warnings = rawWarnings.filter(
+    (w) =>
+      !w.includes('Tên đọc được trên phiếu') &&
+      !w.includes('Đã tự động nhận diện học viên') &&
+      !w.toLowerCase().includes('khớp chính xác học viên')
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px 0 16px' }}>
@@ -213,45 +222,67 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
             </strong>
           </div>
 
-          {draft.detectedCustomerName && (
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: '#f0f9ff',
-                border: '1px solid #bae6fd',
-                padding: '3px 10px',
-                borderRadius: '20px',
-                fontSize: '0.78rem',
-                color: '#0369a1',
-              }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {draft.detectedCustomerName && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  padding: '3px 10px',
+                  borderRadius: '20px',
+                  fontSize: '0.78rem',
+                  color: '#0369a1',
+                }}
+              >
+                <Sparkles size={13} color="#0284c7" />
+                <span>
+                  Tên đọc từ phiếu: <strong>{draft.detectedCustomerName}</strong>
+                </span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowQuickAdd(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 active:bg-sky-200 border border-sky-300 rounded-lg transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+              title="Thêm nhanh học viên mới vào hệ thống"
             >
-              <Sparkles size={13} color="#0284c7" />
-              <span>
-                Tên đọc từ phiếu: <strong>{draft.detectedCustomerName}</strong>
-              </span>
-            </div>
-          )}
+              <UserPlus size={14} className="text-sky-600" />
+              <span>Thêm nhanh học viên</span>
+            </button>
+          </div>
         </div>
 
-        <div>
-          <CustomerSelect
-            label=""
-            name="reviewCustomerId"
-            ariaLabel="Học viên áp dụng kết quả đo"
-            value={selectedCustomerId}
-            onChange={(selectedId) => setSelectedCustomerId(selectedId)}
-            required
-            placeholder="Tìm và chọn học viên áp dụng kết quả InBody này..."
-          />
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <CustomerSelect
+              label=""
+              name="reviewCustomerId"
+              ariaLabel="Học viên áp dụng kết quả đo"
+              value={selectedCustomerId}
+              onChange={(selectedId) => setSelectedCustomerId(selectedId)}
+              extraCustomer={createdCustomer}
+              required
+              placeholder="Tìm và chọn học viên áp dụng kết quả InBody này..."
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowQuickAdd(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:bg-sky-800 rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+            title="Thêm nhanh học viên mới vào hệ thống"
+          >
+            <UserPlus size={15} />
+            <span>Thêm mới</span>
+          </button>
         </div>
 
-        {draft.detectedCustomerName && (
-          <p style={{ margin: 0, fontSize: '0.76rem', color: selectedCustomerId ? '#16a34a' : '#b45309', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {selectedCustomerId
-              ? '✓ Đã ghép nối học viên tương ứng. Bạn có thể kiểm tra hoặc chọn học viên khác nếu cần.'
-              : '⚠️ Chưa tự động ghép được học viên. Vui lòng chọn học viên từ danh sách trên để lưu kết quả.'}
+        {draft.detectedCustomerName && selectedCustomerId && (
+          <p style={{ margin: 0, fontSize: '0.76rem', color: '#16a34a', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            ✓ Đã ghép nối học viên tương ứng. Bạn có thể kiểm tra hoặc chọn học viên khác nếu cần.
           </p>
         )}
       </div>
@@ -531,6 +562,21 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           {loading ? 'Đang xác nhận...' : 'Xác nhận dữ liệu'}
         </button>
       </div>
+
+      <QuickAddCustomerModal
+        open={showQuickAdd}
+        initialData={{
+          fullName: draft.detectedCustomerName,
+          height: form.height ? Number(form.height) : draft.height,
+          initialWeight: form.weight ? Number(form.weight) : draft.weight,
+          assignedPtId: draft.ptId,
+        }}
+        onClose={() => setShowQuickAdd(false)}
+        onCreated={(newCustomer) => {
+          setCreatedCustomer(newCustomer);
+          setSelectedCustomerId(newCustomer._id || newCustomer.id || '');
+        }}
+      />
     </div>
   );
 }

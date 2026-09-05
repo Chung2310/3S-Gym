@@ -12,7 +12,7 @@ export const createConversationSchema: RequestValidationSchema = { body: Joi.obj
 export const addConversationMessageSchema: RequestValidationSchema = { params: idParams(), body: Joi.object({ content: Joi.string().trim().required(), requestType: Joi.string().trim().required() }).messages(commonMessages) };
 export const createSuggestionSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.allow('', null), scenario: Joi.string().trim().required(), requestType: Joi.string().trim().required() }).messages(commonMessages) };
 export const listSuggestionsSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, customerId: objectId.allow('', null), reviewStatus: Joi.string().valid('PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED') }).messages(commonMessages) };
-export const contentDraftSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), request: Joi.string().trim().min(10).required() }).messages(commonMessages) };
+export const contentDraftSchema: RequestValidationSchema = { body: Joi.object({ customerId: objectId.required(), request: Joi.string().trim().min(10).required(), planId: objectId.allow('', null) }).messages(commonMessages) };
 export const nutritionAnalysisSchema: RequestValidationSchema = {
   body: Joi.object({
     customerId: objectId.allow('', null),
