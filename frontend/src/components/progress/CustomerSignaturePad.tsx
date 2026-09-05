@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  ArrowLeft,
   Check,
   CheckCircle2,
   CircleDot,
@@ -15,7 +16,6 @@ import {
   Minimize2,
   PenLine,
   RotateCcw,
-  Smartphone,
   Undo2,
   User,
 } from 'lucide-react';
@@ -176,7 +176,7 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
     }
   }, []);
 
-  // Resize fullscreen canvas
+  // Resize fullscreen canvas to 100% full screen
   const resizeFullscreenCanvas = useCallback(() => {
     const canvas = fullscreenCanvasRef.current;
     const container = fullscreenContainerRef.current;
@@ -184,7 +184,7 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
 
     const rect = container.getBoundingClientRect();
     const width = Math.max(rect.width, 300);
-    const height = Math.max(rect.height, 240);
+    const height = Math.max(rect.height, 200);
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = width * dpr;
@@ -207,30 +207,76 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
     return () => window.removeEventListener('resize', handleResize);
   }, [resizeInlineCanvas, resizeFullscreenCanvas, isFullscreen]);
 
+  // Fullscreen open & close handlers with native browser fullscreen API support
+  const openFullscreen = useCallback(() => {
+    setIsFullscreen(true);
+    try {
+      const el = document.documentElement as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void>;
+      };
+      if (el.requestFullscreen) {
+        void el.requestFullscreen().catch(() => {});
+      } else if (el.webkitRequestFullscreen) {
+        void el.webkitRequestFullscreen();
+      }
+    } catch {}
+  }, []);
+
+  const closeFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+    try {
+      const doc = document as Document & {
+        webkitFullscreenElement?: Element;
+        webkitExitFullscreen?: () => Promise<void>;
+      };
+      if (document.fullscreenElement) {
+        void document.exitFullscreen().catch(() => {});
+      } else if (doc.webkitFullscreenElement && doc.webkitExitFullscreen) {
+        void doc.webkitExitFullscreen();
+      }
+    } catch {}
+  }, []);
+
   // Lock body scroll and handle ESC key during fullscreen
   useEffect(() => {
     if (!isFullscreen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    // Delay resize so container is mounted in DOM
-    const timer = setTimeout(() => {
+    const resizeFs = () => {
       resizeFullscreenCanvas();
-    }, 60);
+    };
+
+    resizeFs();
+    const rafId = requestAnimationFrame(resizeFs);
+    const timer1 = setTimeout(resizeFs, 40);
+    const timer2 = setTimeout(resizeFs, 150);
+
+    let ro: ResizeObserver | null = null;
+    if (fullscreenContainerRef.current && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => resizeFs());
+      ro.observe(fullscreenContainerRef.current);
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsFullscreen(false);
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        closeFullscreen();
+      }
     };
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
-      clearTimeout(timer);
+      cancelAnimationFrame(rafId);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      ro?.disconnect();
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-      // Redraw inline canvas when exiting fullscreen
+      window.removeEventListener('keydown', handleKeyDown, true);
       setTimeout(() => resizeInlineCanvas(), 60);
     };
-  }, [isFullscreen, resizeFullscreenCanvas, resizeInlineCanvas]);
+  }, [isFullscreen, resizeFullscreenCanvas, resizeInlineCanvas, closeFullscreen]);
 
   const notifyChange = useCallback(() => {
     const count = strokesRef.current.length;
@@ -256,7 +302,6 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
 
   const toDataUrl = useCallback((): string | null => {
     if (isEmpty()) return null;
-    // Export from a standardized canvas to ensure consistent image proportions
     const exportCanvas = document.createElement('canvas');
     const width = 600;
     const height = 260;
@@ -370,9 +415,9 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
 
   const hasSigned = strokeCount > 0;
 
-  // Reusable Toolbar Component
-  const renderToolbar = (isFs = false) => (
-    <div className="flex flex-wrap items-center gap-2">
+  // Reusable Paint Tools Palette
+  const renderPaintTools = () => (
+    <div className="flex items-center gap-1.5 sm:gap-2">
       {/* Colors */}
       <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
         {INK_COLORS.map((c) => (
@@ -400,7 +445,7 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
             type="button"
             title={`Nét ${w.label}`}
             onClick={() => setSelectedWidth(w.value)}
-            className={`px-2 py-1 text-[11px] font-bold rounded-lg transition ${
+            className={`px-2 py-1 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-bold rounded-lg transition ${
               selectedWidth === w.value
                 ? 'bg-[#003b70] text-white'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -416,7 +461,7 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
         type="button"
         disabled={!hasSigned}
         onClick={undo}
-        className="inline-flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="inline-flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         title="Hoàn tác nét vẽ"
       >
         <Undo2 size={13} />
@@ -428,35 +473,12 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
         type="button"
         disabled={!hasSigned}
         onClick={clear}
-        className="inline-flex h-8 items-center gap-1 rounded-xl border border-rose-200 bg-rose-50/60 px-2.5 text-xs font-bold text-rose-700 shadow-2xs transition hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="inline-flex h-8 items-center gap-1 rounded-xl border border-rose-200 bg-rose-50/60 px-2.5 text-xs font-bold text-rose-700 shadow-2xs transition hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         title="Xóa trắng bảng vẽ"
       >
         <RotateCcw size={13} />
         <span>Ký lại</span>
       </button>
-
-      {/* Fullscreen Toggle */}
-      {!isFs ? (
-        <button
-          type="button"
-          onClick={() => setIsFullscreen(true)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-2.5 text-xs font-bold text-[#003b70] shadow-2xs transition hover:bg-sky-100 active:scale-95"
-          title="Phóng to toàn màn hình để ký trên điện thoại"
-        >
-          <Maximize2 size={13} />
-          <span>Phóng to</span>
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setIsFullscreen(false)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-100"
-          title="Thu nhỏ lại"
-        >
-          <Minimize2 size={13} />
-          <span className="hidden sm:inline">Thu nhỏ</span>
-        </button>
-      )}
     </div>
   );
 
@@ -498,7 +520,24 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
         </div>
 
         {/* Inline Toolbar */}
-        {renderToolbar(false)}
+        <div className="flex flex-wrap items-center gap-2">
+          {renderPaintTools()}
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openFullscreen();
+            }}
+            className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-2.5 text-xs font-bold text-[#003b70] shadow-2xs transition hover:bg-sky-100 active:scale-95 cursor-pointer"
+            title="Mở toàn màn hình để ký rộng hơn trên điện thoại"
+          >
+            <Maximize2 size={13} />
+            <span>Phóng to</span>
+          </button>
+        </div>
       </div>
 
       {/* Inline Canvas Drawing Area */}
@@ -520,8 +559,14 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
         {/* Quick Fullscreen Button Overlay on Canvas */}
         <button
           type="button"
-          onClick={() => setIsFullscreen(true)}
-          className="absolute top-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white/95 px-2.5 py-1 text-xs font-bold text-[#003b70] shadow-xs backdrop-blur-xs transition hover:bg-sky-50 active:scale-95"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openFullscreen();
+          }}
+          className="absolute top-2.5 right-2.5 z-20 inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white/95 px-2.5 py-1 text-xs font-bold text-[#003b70] shadow-xs backdrop-blur-xs transition hover:bg-sky-50 active:scale-95 cursor-pointer"
           title="Phóng to toàn màn hình để ký dễ hơn trên điện thoại"
         >
           <Maximize2 size={13} className="text-sky-600" />
@@ -567,122 +612,131 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
         />
       </div>
 
-      {/* FULLSCREEN MODAL OVERLAY (Specifically optimized for mobile screens) */}
+      {/* TRUE 100% EDGE-TO-EDGE FULLSCREEN SIGNATURE APP (No margins, no popup borders) */}
       {isFullscreen &&
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex flex-col bg-slate-950/80 p-2 sm:p-4 backdrop-blur-xs animate-in fade-in duration-150"
+            className="fixed inset-0 z-[100001] w-full h-full h-[100dvh] flex flex-col bg-white overflow-hidden select-none m-0 p-0 rounded-none border-none animate-in fade-in duration-100"
             role="dialog"
             aria-modal="true"
             aria-label="Ký tên toàn màn hình"
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col h-full w-full max-w-5xl mx-auto rounded-2xl bg-white shadow-2xl overflow-hidden border border-slate-200">
-              {/* Top Header */}
-              <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-5 sm:py-3.5 border-b border-slate-200 bg-slate-50/90">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-[#003b70]">
-                    <PenLine size={18} />
+            {/* Top Navigation Bar */}
+            <div className="flex items-center justify-between gap-2 px-3 py-2 sm:px-5 sm:py-2.5 border-b border-slate-200 bg-slate-50/95 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  type="button"
+                  onClick={closeFullscreen}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 active:scale-95 shadow-2xs"
+                  title="Quay lại form ghi nhận"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm sm:text-base font-bold text-[#003b70] truncate m-0">
+                      Ký tên xác nhận buổi tập
+                    </h4>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        hasSigned
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {hasSigned ? 'Đã có chữ ký' : 'Chờ khách ký'}
+                    </span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm sm:text-base font-bold text-slate-800 truncate m-0">
-                        Ký tên xác nhận buổi tập
-                      </h4>
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          hasSigned
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {hasSigned ? 'Đã có chữ ký' : 'Chờ khách ký'}
-                      </span>
-                    </div>
-                    <p className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
-                      <Smartphone size={12} className="shrink-0 text-sky-600 hidden sm:inline" />
-                      <span className="hidden sm:inline">
-                        Gợi ý: Xoay ngang điện thoại để có không gian ký thoải mái nhất
-                      </span>
-                      <span className="sm:hidden">Dùng ngón tay hoặc bút cảm ứng để ký</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setIsFullscreen(false)}
-                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#003b70] px-4 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-[#002f5a] active:scale-95"
-                  >
-                    <Check size={16} />
-                    <span>Xong & Áp dụng</span>
-                  </button>
                 </div>
               </div>
 
-              {/* Fullscreen Canvas Area */}
-              <div
-                ref={fullscreenContainerRef}
-                className="relative flex-1 w-full bg-white overflow-hidden cursor-crosshair select-none"
-                style={{ touchAction: 'none' }}
-              >
-                <canvas
-                  ref={fullscreenCanvasRef}
-                  onPointerDown={fullscreenHandlers.onPointerDown}
-                  onPointerMove={fullscreenHandlers.onPointerMove}
-                  onPointerUp={fullscreenHandlers.onPointerUp}
-                  onPointerCancel={fullscreenHandlers.onPointerCancel}
-                  className="block w-full h-full cursor-crosshair select-none"
-                  style={{ touchAction: 'none' }}
-                />
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={closeFullscreen}
+                  className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-[#003b70] px-4 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-[#002f5a] active:scale-95 cursor-pointer"
+                >
+                  <Check size={16} />
+                  <span>Xong & Áp dụng</span>
+                </button>
+              </div>
+            </div>
 
-                {/* Baseline Guide */}
-                <div className="pointer-events-none absolute bottom-8 left-8 right-8 flex items-center gap-2 opacity-40">
-                  <span className="text-sm font-bold text-slate-400">✕</span>
-                  <div className="h-[1px] flex-1 border-b-2 border-dashed border-slate-300" />
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                    Dòng ký tên
+            {/* Edge-to-Edge Fullscreen Canvas */}
+            <div
+              ref={fullscreenContainerRef}
+              className="relative flex-1 w-full h-full min-h-0 bg-white overflow-hidden cursor-crosshair select-none"
+              style={{ touchAction: 'none' }}
+            >
+              <canvas
+                ref={fullscreenCanvasRef}
+                onPointerDown={fullscreenHandlers.onPointerDown}
+                onPointerMove={fullscreenHandlers.onPointerMove}
+                onPointerUp={fullscreenHandlers.onPointerUp}
+                onPointerCancel={fullscreenHandlers.onPointerCancel}
+                className="block w-full h-full cursor-crosshair select-none"
+                style={{ touchAction: 'none' }}
+              />
+
+              {/* Baseline Guide */}
+              <div className="pointer-events-none absolute bottom-10 left-6 right-6 sm:left-12 sm:right-12 flex items-center gap-2 opacity-35">
+                <span className="text-sm font-bold text-slate-400">✕</span>
+                <div className="h-[1px] flex-1 border-b-2 border-dashed border-slate-300" />
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                  Dòng ký tên
+                </span>
+              </div>
+
+              {/* Watermark Placeholder */}
+              {!hasSigned && (
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center p-4 text-slate-300 select-none">
+                  <PenLine size={52} className="opacity-30 mb-2 animate-pulse" />
+                  <span className="text-sm sm:text-base font-semibold text-slate-400">
+                    Chạm ngón tay hoặc bút cảm ứng vào đây để ký tên
+                  </span>
+                  <span className="text-xs text-slate-400 mt-1">
+                    (Có thể xoay ngang màn hình điện thoại để ký rộng hơn)
                   </span>
                 </div>
+              )}
+            </div>
 
-                {/* Watermark Placeholder */}
-                {!hasSigned && (
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center p-4 text-slate-300 select-none">
-                    <PenLine size={48} className="opacity-35 mb-2 animate-pulse" />
-                    <span className="text-sm font-semibold text-slate-400">
-                      Chạm ngón tay hoặc bút cảm ứng vào đây để ký tên
-                    </span>
-                    <span className="text-xs text-slate-400 mt-1">
-                      (Có thể xoay ngang màn hình điện thoại)
-                    </span>
-                  </div>
-                )}
+            {/* Bottom Control Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2.5 border-t border-slate-200 bg-slate-50/95 shrink-0">
+              {/* Signer Name Input */}
+              <div className="flex items-center gap-2 flex-1 min-w-[180px] max-w-sm">
+                <label
+                  htmlFor="fs-signer-input"
+                  className="flex shrink-0 items-center gap-1 text-xs font-bold text-slate-700"
+                >
+                  <User size={13} />
+                  <span>Người ký:</span>
+                </label>
+                <input
+                  id="fs-signer-input"
+                  type="text"
+                  value={signerName}
+                  onChange={(e) => onSignerNameChange(e.target.value)}
+                  placeholder={placeholderName}
+                  className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                />
               </div>
 
-              {/* Bottom Control Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 sm:p-3.5 border-t border-slate-200 bg-slate-50/95">
-                {/* Signer Name Input */}
-                <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md">
-                  <label
-                    htmlFor="fs-signer-input"
-                    className="flex shrink-0 items-center gap-1 text-xs font-bold text-slate-700"
-                  >
-                    <User size={13} />
-                    <span>Người ký:</span>
-                  </label>
-                  <input
-                    id="fs-signer-input"
-                    type="text"
-                    value={signerName}
-                    onChange={(e) => onSignerNameChange(e.target.value)}
-                    placeholder={placeholderName}
-                    className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
-                  />
-                </div>
-
-                {/* Fullscreen Paint Tools */}
-                {renderToolbar(true)}
+              {/* Tools */}
+              <div className="flex items-center gap-2">
+                {renderPaintTools()}
+                <button
+                  type="button"
+                  onClick={closeFullscreen}
+                  className="inline-flex h-8 items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-100 cursor-pointer"
+                  title="Thu nhỏ lại"
+                >
+                  <Minimize2 size={13} />
+                  <span className="hidden sm:inline">Thu nhỏ</span>
+                </button>
               </div>
             </div>
           </div>,
