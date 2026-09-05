@@ -83,10 +83,10 @@ export const FoodImagePreviewModal: React.FC<FoodImagePreviewModalProps> = ({
             </div>
           ) : null}
 
-          {/* Mô tả / Gợi ý nếu có */}
-          {item.prompt && (
+          {/* Mô tả / Gợi ý nếu có (chỉ hiển thị ghi chú thực tế, ẩn prompt kỹ thuật tiếng Anh) */}
+          {item.prompt && !item.prompt.toLowerCase().includes('professional food photography') && (
             <div className="mt-3 text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
-              {item.prompt}
+              💡 {item.prompt}
             </div>
           )}
 

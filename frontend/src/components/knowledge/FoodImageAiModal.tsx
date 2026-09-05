@@ -88,7 +88,7 @@ export const FoodImageAiModal: React.FC<FoodImageAiModalProps> = ({
             </label>
             <textarea
               rows={3}
-              placeholder="Để trống để hệ thống tự tạo prompt chuẩn ẩm thực thể hình cao cấp (4K, đĩa gốm hiện đại, ánh sáng ấm áp)..."
+              placeholder="Để trống để hệ thống tự động tạo ảnh ẩm thực dinh dưỡng chất lượng cao (4K, bài trí đẹp mắt, ánh sáng ấm áp)..."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="w-full py-2 px-3 rounded-lg border border-slate-300 text-xs outline-none focus:border-purple-500"
@@ -98,7 +98,7 @@ export const FoodImageAiModal: React.FC<FoodImageAiModalProps> = ({
           <div className="bg-purple-50/70 p-3 rounded-lg border border-purple-200 mb-5 text-xs text-purple-900 flex gap-2 items-start">
             <Sparkles size={16} className="shrink-0 mt-0.5 text-purple-600" />
             <div>
-              <strong>Cơ chế tự động:</strong> AI (FLUX.2 Klein 4B) sẽ vẽ ảnh món ăn theo đúng tiêu chuẩn thực phẩm thể thao, sau đó tự động lưu file vào folder <code>uploads/food-images</code>. Từ lần sau, bất kỳ PT nào thiết kế món này sẽ được tự động lấy ảnh ngay từ kho.
+              <strong>Cơ chế tự động:</strong> Hệ thống AI sẽ tạo ảnh món ăn theo đúng tiêu chuẩn thực phẩm thể thao và tự động lưu vào Kho thư viện. Từ lần sau, bất kỳ thực đơn nào có món này sẽ được tự động lấy ảnh ngay từ kho.
             </div>
           </div>
 
