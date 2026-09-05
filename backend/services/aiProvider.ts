@@ -216,7 +216,7 @@ export function generateNutritionDraft(prompt: string): Promise<string>;
 export async function generateNutritionDraft(context: AiBillingContext | string, prompt?: string): Promise<string> {
   return billOrLegacy(context, prompt, {
     temperature: 0.1,
-    maxTokens: 16384,
+    maxTokens: 8192,
     reasoningEffort: 'none',
     jsonMode: true,
   });

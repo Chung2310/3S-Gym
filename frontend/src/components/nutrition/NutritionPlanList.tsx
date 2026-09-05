@@ -3,6 +3,8 @@ import {
   ArrowRight,
   Calendar,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Eye,
   FileText,
@@ -83,6 +85,15 @@ export default function NutritionPlanList({
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<NutritionPlanItem | null>(null);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+
+  const toggleNoteExpand = (planId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedNotes((prev) => ({
+      ...prev,
+      [planId]: !prev[planId],
+    }));
+  };
 
   const loadPlans = useCallback(
     async (page = 1) => {
@@ -469,26 +480,85 @@ export default function NutritionPlanList({
                     </div>
                   </div>
 
-                  {plan.notes && (
-                    <div
-                      style={{
-                        fontSize: '0.73rem',
-                        color: '#64748b',
-                        background: '#fefce8',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid #fef08a',
-                        marginTop: '8px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                      }}
-                    >
-                      💡 <strong>Lời khuyên:</strong> {plan.notes}
-                    </div>
-                  )}
+                  {plan.notes && (() => {
+                    const cleanNotes = plan.notes
+                      .replace(/^(?:💡\s*)?(?:Lời khuyên(?:\s+dinh dưỡng)?|Ghi chú|Lưu ý)\s*:\s*/i, '')
+                      .trim() || plan.notes;
+                    const isLong = cleanNotes.length > 80 || cleanNotes.includes('\n');
+                    const isExpanded = Boolean(expandedNotes[plan._id]);
+
+                    return (
+                      <div
+                        onClick={(e) => {
+                          if (isLong) toggleNoteExpand(plan._id, e);
+                        }}
+                        title={isLong ? (isExpanded ? 'Bấm để thu gọn' : 'Bấm để xem đầy đủ lời khuyên') : undefined}
+                        style={{
+                          fontSize: '0.74rem',
+                          color: '#475569',
+                          background: isExpanded ? '#fef9c3' : '#fefce8',
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          border: isExpanded ? '1px solid #fde047' : '1px solid #fef08a',
+                          marginTop: '8px',
+                          cursor: isLong ? 'pointer' : 'default',
+                          transition: 'all 0.2s ease',
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                          <div
+                            style={{
+                              flex: 1,
+                              overflow: isExpanded ? 'visible' : 'hidden',
+                              textOverflow: isExpanded ? 'clip' : 'ellipsis',
+                              display: isExpanded ? 'block' : '-webkit-box',
+                              WebkitLineClamp: isExpanded ? 'unset' : 2,
+                              WebkitBoxOrient: 'vertical',
+                              whiteSpace: isExpanded ? 'pre-line' : 'normal',
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            <span style={{ color: '#854d0e', fontWeight: 800 }}>💡 Lời khuyên: </span>
+                            <span>{cleanNotes}</span>
+                          </div>
+
+                          {isLong && (
+                            <button
+                              type="button"
+                              onClick={(e) => toggleNoteExpand(plan._id, e)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                padding: '1px 4px',
+                                color: '#0284c7',
+                                fontWeight: 700,
+                                fontSize: '0.7rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                                flexShrink: 0,
+                                marginTop: '1px',
+                                borderRadius: '4px',
+                              }}
+                              title={isExpanded ? 'Thu gọn lời khuyên' : 'Xem đầy đủ lời khuyên'}
+                            >
+                              {isExpanded ? (
+                                <>
+                                  Thu gọn <ChevronUp size={12} />
+                                </>
+                              ) : (
+                                <>
+                                  Xem thêm <ChevronDown size={12} />
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Bottom Actions Row */}

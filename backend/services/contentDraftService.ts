@@ -128,36 +128,30 @@ export async function createNutritionDraft(user: AuthenticatedUser, customerId: 
   const customerBf = latestInBody?.bodyFatPercentage ? `${latestInBody.bodyFatPercentage}%` : 'Chưa có';
   const customerBmr = latestInBody?.bmr ? `${latestInBody.bmr} kcal` : 'Chưa có';
 
-  const prompt = `Bạn là Chuyên gia dinh dưỡng thể hình & Đầu bếp dinh dưỡng thể thao hàng đầu tại Việt Nam (3S Wellness Fitness & Yoga).
-Nhiệm vụ của bạn là thiết kế THỰC ĐƠN MÓN ĂN THỰC TẾ 100% CƠM VIỆT CHO 7 NGÀY KHÁC NHAU TRONG TUẦN cho học viên ${customer.fullName}.
+  const prompt = `Bạn là Chuyên gia dinh dưỡng thể thao 3S Gym & Wellness.
+Nhiệm vụ: Thiết kế THỰC ĐƠN CƠM VIỆT CHO 7 NGÀY (Thứ Hai đến Chủ Nhật) cho học viên ${customer.fullName}.
 
 THÔNG TIN HỌC VIÊN:
-- Họ và tên: ${customer.fullName}
-- Giới tính: ${customerGender}
-- Chiều cao: ${customerHeight} cm, Cân nặng hiện tại: ${customerWeight} kg
-- Body fat: ${customerBf} | BMR đo thực tế: ${customerBmr}
-- Mục tiêu thể hình: ${customerGoal}
-- Tiền sử sức khỏe & Bệnh lý: ${customer.medicalNotes || 'Bình thường'}
+- Họ tên: ${customer.fullName} | Giới tính: ${customerGender} | Chiều cao: ${customerHeight} cm | Cân nặng: ${customerWeight} kg
+- Body fat: ${customerBf} | BMR: ${customerBmr} | Mục tiêu: ${customerGoal}
+- Tiền sử sức khỏe: ${customer.medicalNotes || 'Bình thường'}
 
-YÊU CẦU CHI TIẾT TỪ PT VÀ NHU CẦU HỌC VIÊN (BẮT BUỘC TUÂN THỦ):
+YÊU CẦU TỪ PT:
 ${request}
 
-MỆNH LỆNH BẮT BUỘC ĐỐI VỚI CÁC DỮ KIỆN TỪ GIAO DIỆN:
-1. SỐ BỮA ĂN: BẮT BUỘC sinh đúng số lượng bữa ăn/ngày theo yêu cầu trong mục "YÊU CẦU CHI TIẾT TỪ PT" ở trên.
-2. PHẠM VI DỮ LIỆU JSON: BẮT BUỘC SINH 7 BỘ THỰC ĐƠN KHÁC NHAU CHO 7 NGÀY TRONG TUẦN (Thứ Hai, Thứ Ba, Thứ Tư, Thứ Năm, Thứ Sáu, Thứ Bảy, Chủ Nhật). Mỗi ngày PHẢI CÓ NGUỒN ĐẠM CHÍNH KHÁC NHAU (VD: Thứ Hai = Ức gà, Thứ Ba = Cá hồi, Thứ Tư = Tôm, Thứ Năm = Bò, Thứ Sáu = Heo nạc, Thứ Bảy = Cá lóc, Chủ Nhật = Trứng/Mực). CÁC MÓN ĂN GIỮA CÁC NGÀY KHÔNG ĐƯỢC TRÙNG LẶP. Hệ thống sẽ tự lặp lại chu kỳ 7 ngày này cho các tuần tiếp theo.
-3. CALO MỤC TIÊU (targetCalories): BẮT BUỘC gán giá trị "targetCalories" bằng đúng con số Calo mục tiêu được nêu trong yêu cầu của PT. Tổng calories của tất cả các bữa ăn trong MỖI NGÀY PHẢI CỘNG LẠI XẤP XỈ HOẶC BẰNG CHÍNH XÁC "targetCalories"!
-4. DỊ ỨNG & KIÊNG KỴ: TUYỆT ĐỐI LOẠI BỎ 100% CÁC THỰC PHẨM TRONG DANH SÁCH DỊ ỨNG/KIÊNG KỴ ĐÃ NÊU (Ví dụ: nếu kiêng hải sản thì KHÔNG CÓ tôm, cua, cá biển; nếu ăn chay thì 100% thực vật đậu phụ nấm).
-5. PHONG CÁCH & LỊCH TRÌNH: Phân bổ giờ ăn ("timeSlot") và món ăn phù hợp với lịch tập và phong cách ẩm thực được yêu cầu.
+MỆNH LỆNH BẮT BUỘC:
+1. SỐ BỮA ĂN: Sinh đúng số lượng bữa ăn/ngày theo yêu cầu trên.
+2. CẤU TRÚC 7 NGÀY: "dailyPlans" gồm đúng 7 ngày (Thứ Hai, Thứ Ba, Thứ Tư, Thứ Năm, Thứ Sáu, Thứ Bảy, Chủ Nhật). Mỗi ngày luân phiên đổi nguồn đạm chính (Ức gà, Cá, Tôm, Bò, Heo nạc, Trứng...) để món ăn không bị lặp.
+3. CALO & MACRO: Gán đúng "targetCalories" từ yêu cầu của PT. Tổng calories các bữa mỗi ngày xấp xỉ "targetCalories".
+4. DỊ ỨNG & KIÊNG KỴ: TUYỆT ĐỐI không dùng các thực phẩm thuộc danh sách dị ứng/kiêng kỵ.
+5. CẤU TRÚC MÓN CƠM VIỆT THỰC TẾ:
+   - Bữa chính (Trưa/Tối): 3 món (1 Món đạm chính + 1 Món tinh bột + 1 Canh/Rau xanh).
+   - Bữa sáng: 2-3 món quen thuộc (Bánh mì đen trứng, Phở bò, Cháo yến mạch...).
+   - Bữa phụ: 1-2 món tinh gọn (Whey, Chuối, Sữa chua Hy Lạp...).
+   - Không tách dầu ăn/nước mắm thành món riêng. Toàn bộ gia vị ghi vào prepTip của món chính.
+   - ⚡ QUAN TRỌNG: Trường "prepTip" viết cực ngắn dưới 8 từ (VD: "Áp chảo không dầu", "Luộc chín tới", "Ăn trực tiếp") hoặc bỏ trống để tối ưu tốc độ xử lý.
 
-QUY TẮC CẤU TRÚC MÓN ĂN THỰC TẾ:
-- Mỗi bữa chính (Trưa, Tối) CHỈ GỒM ĐÚNG 3 MÓN CHUẨN CƠM VIỆT: 1 Món đạm chính (Ức gà, Bò, Cá, Heo nạc, Tôm, Trứng) + 1 Món tinh bột (Cơm gạo lứt, Khoai lang, Cơm trắng) + 1 Món canh/rau xanh (Canh cải, Canh bí đỏ, Rau muống luộc, Bông cải).
-- Bữa sáng: 2-3 món quen thuộc (Bánh mì đen trứng ốp la, Phở bò nạc, Cháo yến mạch ức gà + Chuối hoặc Sữa hạt).
-- Bữa phụ: 1-2 món tinh gọn (Whey Protein, Chuối, Khoai lang, Sữa chua Hy Lạp).
-- ❌ CẤM TÁCH SỐT, DẦU ĂN, GIA VỊ THÀNH 1 MÓN ĂN RIÊNG. Toàn bộ gia vị/sốt ghi vào mục "prepTip" (cách chế biến) của món chính!
-- ❌ CẤM BỊA MÓN LẠ ĐỜI, CHẮP VÁ GƯỢNG ÉP.
-- Tính toán Macro chuẩn xác (Rau xanh Fat = 0, Carbs thấp; Thịt nạc Carbs = 0; Tinh bột giàu Carbs, Fat = 0).
-
-Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown giải thích ngoài JSON theo đúng mẫu schema sau:
+Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown theo schema:
 {
   "title": "Thực Đơn Dinh Dưỡng - ${customer.fullName}",
   "bmr": 1550,
@@ -173,17 +167,15 @@ Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown giải thí
           "timeSlot": "07:00 - 07:45",
           "calories": 450,
           "items": [
-            { "name": "Bánh mì đen kẹp trứng ốp la", "amount": "2 lát + 2 trứng", "calories": 300, "protein": 18, "carbs": 25, "fat": 12, "prepTip": "Chiên áp chảo không dầu mỡ" },
-            { "name": "Sữa chua Hy Lạp hạt chia", "amount": "100g", "calories": 150, "protein": 10, "carbs": 12, "fat": 4, "prepTip": "Ăn kèm trực tiếp" }
+            { "name": "Bánh mì đen kẹp trứng ốp la", "amount": "2 lát + 2 trứng", "calories": 300, "protein": 18, "carbs": 25, "fat": 12, "prepTip": "Chiên không dầu" },
+            { "name": "Sữa chua Hy Lạp", "amount": "100g", "calories": 150, "protein": 10, "carbs": 12, "fat": 4, "prepTip": "Ăn trực tiếp" }
           ]
         }
       ]
     }
   ],
-  "notes": "Lời khuyên dinh dưỡng, chế biến và thời điểm uống nước..."
-}
-
-LƯU Ý QUAN TRỌNG: Mảng "dailyPlans" PHẢI chứa đủ 7 phần tử cho 7 ngày: "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật". Mỗi ngày đều có danh sách bữa ăn (meals) đầy đủ số lượng bữa theo yêu cầu.`;
+  "notes": "Lời khuyên dinh dưỡng, thời điểm uống nước và lưu ý chế biến..."
+}`;
 
   const raw = await generateNutritionDraft({ userId: user.id, taskType: 'TEXT_NUTRITION', requestKey: `${requestKey}:text-nutrition` }, prompt);
   const generated = parseJson(raw);

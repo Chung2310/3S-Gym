@@ -10,7 +10,7 @@ import type { AspectRatio } from '../services/imageProvider.js';
  * Lấy ảnh món ăn từ kho (nếu có sẵn) hoặc tự động dùng AI sinh ảnh mới và lưu vào kho.
  */
 export const getOrGenerateMealImage = asyncHandler(async (req, res) => {
-  const { mealName, items, prompt, aspectRatio } = req.body;
+  const { mealName, items, prompt, aspectRatio, forceRegenerate } = req.body;
 
   if (!mealName || typeof mealName !== 'string' || !mealName.trim()) {
     throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng cung cấp tên bữa ăn hoặc món ăn.' });
@@ -23,6 +23,7 @@ export const getOrGenerateMealImage = asyncHandler(async (req, res) => {
     userId: req.user!.id,
     requestKey: `${req.requestId}:meal-image`,
     aspectRatio: (aspectRatio as AspectRatio) || '4:3',
+    forceRegenerate: Boolean(forceRegenerate),
   });
 
   return success(res, {
