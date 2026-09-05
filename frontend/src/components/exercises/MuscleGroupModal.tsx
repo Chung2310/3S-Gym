@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { Layers, Plus, Trash2 } from 'lucide-react';
 import FormModal from '../ui/FormModal';
 import { useToast } from '../ui/ToastProvider';
@@ -22,6 +22,13 @@ export default function MuscleGroupModal({
   const [newGroupName, setNewGroupName] = useState('');
   const [adding, setAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Sắp xếp danh sách nhóm cơ theo bảng chữ cái A - Z (tiếng Việt)
+  const sortedMuscleGroups = useMemo(() => {
+    return [...muscleGroups].sort((a, b) =>
+      a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }),
+    );
+  }, [muscleGroups]);
 
   const handleCreate = async () => {
     const trimmed = newGroupName.trim();
@@ -92,11 +99,12 @@ export default function MuscleGroupModal({
         </div>
 
         <div className="muscle-group-header-info">
-          <span>Danh sách nhóm cơ đã lưu ({muscleGroups.length})</span>
+          <span>Danh sách nhóm cơ đã lưu ({sortedMuscleGroups.length})</span>
+          <span className="text-slate-400 font-medium text-xs">Theo thứ tự A - Z</span>
         </div>
 
         <div className="muscle-group-list" role="list">
-          {muscleGroups.map((group) => (
+          {sortedMuscleGroups.map((group) => (
             <div key={group._id} className="muscle-group-item" role="listitem">
               <div className="muscle-group-item-main">
                 <Layers size={16} className="muscle-group-icon" aria-hidden="true" />
