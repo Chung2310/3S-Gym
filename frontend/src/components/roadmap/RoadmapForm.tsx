@@ -613,6 +613,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="number"
+                aria-label="Chỉ số mục tiêu"
                 step="0.5"
                 min="0.5"
                 max="50"
