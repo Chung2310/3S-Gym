@@ -175,9 +175,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
 
       {step === 'CONFIG' ? (
         <div className="grid gap-4">
-          <label className="module-field"><span>Yêu cầu tạo bài tập</span><textarea aria-label="Yêu cầu tạo bài tập" rows={5} placeholder="Ví dụ: Tạo 5 bài tập cơ bụng cho người mới, không cần dụng cụ (Tên bài tập sẽ tự động đặt bằng tiếng Anh, không chứa dấu ngoặc)" value={prompt} disabled={loading} onChange={(event) => setPrompt(event.target.value)} required /></label>
-          <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700"><Sparkles className="mt-0.5 shrink-0 text-sky-600" size={18} /><p>Ghi số lượng từ 1 đến 10 ngay trong câu lệnh. AI sẽ tự động đặt <strong>tên bài tập 100% tiếng Anh chuẩn</strong> (không chứa dấu ngoặc đơn hoặc ngoặc vuông, ví dụ: <em>Barbell Bench Press, Romanian Deadlift...</em>), đồng thời điền đầy đủ nhóm cơ, cấp độ, cách ghi nhận, thiết bị, mô tả và kỹ thuật bằng tiếng Việt. Video được bổ sung sau khi bạn duyệt bài.</p></div>
-        </div>
+          <label className="module-field"><span>Yêu cầu tạo bài tập</span><textarea aria-label="Yêu cầu tạo bài tập" rows={5} placeholder="Ví dụ: Tạo 5 bài tập cơ bụng cho người mới, không cần dụng cụ (Tên bài tập sẽ tự động đặt bằng tiếng Anh, không chứa dấu ngoặc)" value={prompt} disabled={loading} onChange={(event) => setPrompt(event.target.value)} required /></label>        </div>
       ) : (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
