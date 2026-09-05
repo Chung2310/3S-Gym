@@ -7561,6 +7561,7 @@ a {
   min-width: 520px;
   min-height: 1920px;
   height: 1920px;
+  margin-top: 8px;
   margin-left: 0;
   border: 0;
   background: #f8fbfc;
@@ -7594,6 +7595,11 @@ a {
   color: inherit;
   text-align: right;
   transform: translateY(-50%);
+}
+
+.studio-hour:first-child span {
+  top: 2px;
+  transform: none;
 }
 
 .studio-scheduled-item {
