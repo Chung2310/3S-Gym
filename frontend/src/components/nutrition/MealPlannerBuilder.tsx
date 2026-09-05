@@ -1908,9 +1908,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                 <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#0284c7', fontWeight: 800 }}>
                   2. PHÂN CẤP THEO NGÀY TRONG {activeWeek.name}
                 </span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  • Bấm từng ngày để chỉnh sửa bữa ăn
-                </span>
+
               </div>
 
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -1935,26 +1933,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                   <Sparkles size={12} /> 🎲 Đổi món ngày này
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenSwapper()}
-                  style={{
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    border: '1px solid #bbf7d0',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                  title="Tra cứu danh sách món ăn & công cụ đổi món tương đương"
-                >
-                  <ArrowRightLeft size={12} /> Đổi món tương đương
-                </button>
+
 
                 <button
                   type="button"
@@ -2268,15 +2247,15 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
         currentDish={
           swapperTarget?.foodItem
             ? {
-                name: swapperTarget.foodItem.name,
-                amount: swapperTarget.foodItem.amount,
-                calories: swapperTarget.foodItem.calories,
-                protein: swapperTarget.foodItem.protein,
-                carbs: swapperTarget.foodItem.carbs,
-                fat: swapperTarget.foodItem.fat,
-                prepTip: swapperTarget.foodItem.prepTip,
-                mealName: swapperTarget.mealName || (swapperTarget.mealIdx !== undefined ? meals[swapperTarget.mealIdx]?.name : undefined),
-              }
+              name: swapperTarget.foodItem.name,
+              amount: swapperTarget.foodItem.amount,
+              calories: swapperTarget.foodItem.calories,
+              protein: swapperTarget.foodItem.protein,
+              carbs: swapperTarget.foodItem.carbs,
+              fat: swapperTarget.foodItem.fat,
+              prepTip: swapperTarget.foodItem.prepTip,
+              mealName: swapperTarget.mealName || (swapperTarget.mealIdx !== undefined ? meals[swapperTarget.mealIdx]?.name : undefined),
+            }
             : undefined
         }
         initialFoodName={swapperTarget?.foodItem?.name || swapperTarget?.foodName}
@@ -2285,8 +2264,8 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
           swapperTarget?.foodItem?.name
             ? `${swapperTarget.foodItem.name} (${swapperTarget.mealName || meals[swapperTarget.mealIdx]?.name || `Bữa ${swapperTarget.mealIdx + 1}`})`
             : swapperTarget?.foodName
-            ? `${swapperTarget.foodName} (${meals[swapperTarget.mealIdx]?.name || `Bữa ${swapperTarget.mealIdx + 1}`})`
-            : undefined
+              ? `${swapperTarget.foodName} (${meals[swapperTarget.mealIdx]?.name || `Bữa ${swapperTarget.mealIdx + 1}`})`
+              : undefined
         }
         onApplySwap={swapperTarget ? handleApplySwap : undefined}
       />

@@ -580,28 +580,6 @@ export default function MealCardItem({
         </button>
 
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          {onOpenSwapper && (
-            <button
-              type="button"
-              onClick={() => onOpenSwapper(mealIdx)}
-              style={{
-                background: '#f0f9ff',
-                border: '1px solid #bae6fd',
-                borderRadius: '8px',
-                padding: '6px 12px',
-                fontSize: '0.75rem',
-                color: '#0284c7',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-              title="Xem danh sách món ăn & đổi món tương đương"
-            >
-              <ArrowRightLeft size={12} color="#0284c7" /> Đổi món / Gợi ý
-            </button>
-          )}
 
           <button
             type="button"

@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, useMemo, type FormEvent } from 'react';
 import {
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -32,6 +33,7 @@ import {
   type RoadmapStrategyProposal,
   type RoadmapWeekProposal,
 } from '../../services/roadmapGenerator';
+import { evaluateGoalFeasibility } from '../../services/goalFeasibilityService';
 import CustomerSelect from '../ui/CustomerSelect';
 import CustomSelect from '../ui/CustomSelect';
 import { useToast } from '../ui/ToastProvider';
@@ -77,6 +79,19 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
   const [durationWeeks, setDurationWeeks] = useState<number>(12);
   const [sessionsPerWeek, setSessionsPerWeek] = useState<number>(3);
   const [customNotes, setCustomNotes] = useState<string>('');
+
+  // Realtime AI Goal Feasibility Assessment (Tư vấn tính khả thi của mục tiêu)
+  const feasibility = useMemo(() => {
+    return evaluateGoalFeasibility({
+      goalType,
+      targetValue,
+      targetUnit,
+      durationWeeks,
+      sessionsPerWeek,
+      customerMeta,
+      latestInbody,
+    });
+  }, [goalType, targetValue, targetUnit, durationWeeks, sessionsPerWeek, customerMeta, latestInbody]);
 
   // UI Accordion toggles
   const [expandedPhases, setExpandedPhases] = useState<Record<number, boolean>>({ 0: true });
@@ -199,6 +214,13 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
     if (!customerId) {
       toast.error('Vui lòng chọn học viên trước khi tạo đề xuất lộ trình.');
       return;
+    }
+
+    if (feasibility.status === 'INFEASIBLE') {
+      const confirmed = window.confirm(
+        `[CẢNH BÁO TÍNH KHẢ THI TỪ AI]\n\nMục tiêu "${targetValue} ${targetUnit} trong ${durationWeeks} tuần" được đánh giá là BẤT KHẢ THI về mặt sinh lý học thể thao.\n\n${feasibility.headline}\n\nBạn có chắc chắn muốn AI tiếp tục tạo lộ trình với thông số này không?`
+      );
+      if (!confirmed) return;
     }
 
     setLoadingAi(true);
@@ -591,6 +613,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="number"
+                aria-label="Chỉ số mục tiêu"
                 step="0.5"
                 min="0.5"
                 max="50"
@@ -649,6 +672,175 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
               ]}
             />
           </div>
+        </div>
+
+        {/* Realtime AI Feasibility Advisory Card */}
+        <div
+          data-testid="feasibility-card"
+          style={{
+            marginTop: '16px',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            border:
+              feasibility.status === 'INFEASIBLE'
+                ? '2px solid #ef4444'
+                : feasibility.status === 'CHALLENGING'
+                ? '1.5px solid #f59e0b'
+                : '1.5px solid #10b981',
+            background:
+              feasibility.status === 'INFEASIBLE'
+                ? 'linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)'
+                : feasibility.status === 'CHALLENGING'
+                ? 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)'
+                : 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {feasibility.status === 'INFEASIBLE' ? (
+                <AlertTriangle size={20} color="#ef4444" />
+              ) : feasibility.status === 'CHALLENGING' ? (
+                <AlertCircle size={20} color="#f59e0b" />
+              ) : (
+                <CheckCircle2 size={20} color="#10b981" />
+              )}
+              <strong
+                style={{
+                  fontSize: '0.92rem',
+                  color:
+                    feasibility.status === 'INFEASIBLE'
+                      ? '#991b1b'
+                      : feasibility.status === 'CHALLENGING'
+                      ? '#92400e'
+                      : '#065f46',
+                }}
+              >
+                {feasibility.status === 'INFEASIBLE'
+                  ? 'AI CẢNH BÁO: MỤC TIÊU BẤT KHẢ THI'
+                  : feasibility.status === 'CHALLENGING'
+                  ? 'AI TƯ VẤN: MỤC TIÊU KHÁ THÁCH THỨC'
+                  : 'AI TƯ VẤN: MỤC TIÊU HOÀN TOÀN KHẢ THI'}
+              </strong>
+            </div>
+
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '3px 10px',
+                borderRadius: '6px',
+                background: feasibility.badgeColor,
+                color: '#ffffff',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}
+            >
+              {feasibility.badgeLabel}
+            </span>
+          </div>
+
+          <p
+            style={{
+              margin: '0 0 10px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              color:
+                feasibility.status === 'INFEASIBLE'
+                  ? '#b91c1c'
+                  : feasibility.status === 'CHALLENGING'
+                  ? '#b45309'
+                  : '#047857',
+            }}
+          >
+            {feasibility.headline}
+          </p>
+
+          {/* Reasons List */}
+          <ul style={{ margin: '0 0 10px', paddingLeft: '18px', fontSize: '0.8rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {feasibility.reasons.map((r, idx) => (
+              <li key={idx}>{r}</li>
+            ))}
+          </ul>
+
+          {/* Risks if Infeasible */}
+          {feasibility.risks && feasibility.risks.length > 0 && (
+            <div style={{ marginBottom: '10px', background: '#fee2e2', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fca5a5' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#991b1b', marginBottom: '3px' }}>
+                Cảnh báo nguy cơ sức khỏe:
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.76rem', color: '#b91c1c' }}>
+                {feasibility.risks.map((rk, idx) => (
+                  <li key={idx}>{rk}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Quick-Fix One-Click Action Buttons for Infeasible / Challenging */}
+          {(feasibility.recommendedWeeks || feasibility.recommendedTarget) && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
+                marginTop: '10px',
+                paddingTop: '10px',
+                borderTop: '1px dashed rgba(0,0,0,0.1)',
+              }}
+            >
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>
+                💡 Gợi ý điều chỉnh 1-chạm từ AI:
+              </span>
+
+              {feasibility.recommendedWeeks && (
+                <button
+                  type="button"
+                  onClick={() => setDurationWeeks(feasibility.recommendedWeeks!)}
+                  style={{
+                    background: '#ffffff',
+                    color: '#0284c7',
+                    border: '1.5px solid #0284c7',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Áp dụng thời lượng an toàn theo khuyến nghị của AI"
+                >
+                  <Clock size={13} /> Giãn thời gian: {feasibility.recommendedWeeks} tuần
+                </button>
+              )}
+
+              {feasibility.recommendedTarget && (
+                <button
+                  type="button"
+                  onClick={() => setTargetValue(feasibility.recommendedTarget!)}
+                  style={{
+                    background: '#ffffff',
+                    color: '#059669',
+                    border: '1.5px solid #059669',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Áp dụng mức mục tiêu khả thi theo thời gian hiện tại"
+                >
+                  <Target size={13} /> Đặt mục tiêu khả thi: {feasibility.recommendedTarget} {targetUnit}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <label className="field" style={{ marginTop: '12px' }}>
