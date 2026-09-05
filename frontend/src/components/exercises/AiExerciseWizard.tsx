@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { ArrowLeft, Check, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import FormModal from '../ui/FormModal';
 import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
