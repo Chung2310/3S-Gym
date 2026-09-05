@@ -6,6 +6,7 @@ import {
   RotateCcw,
   Salad,
   Sparkles,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -18,8 +19,9 @@ import ActivityLibraryCalculator from '../../components/nutrition/ActivityLibrar
 import MealPlannerBuilder from '../../components/nutrition/MealPlannerBuilder';
 import NutritionPlanList, { type NutritionPlanItem } from '../../components/nutrition/NutritionPlanList';
 import NutritionLogForm from '../../components/nutrition/NutritionLogForm';
+import MealLibraryManager from '../../components/nutrition/MealLibraryManager';
 
-type NutritionTab = 'macro_calculator' | 'activity_library' | 'meal_swapper' | 'logs_balance';
+type NutritionTab = 'macro_calculator' | 'meal_swapper' | 'meal_manager' | 'activity_library' | 'logs_balance';
 
 export default function NutritionPage() {
   const toast = useToast();
@@ -179,11 +181,20 @@ export default function NutritionPage() {
 
         <button
           type="button"
+          className={activeTab === 'meal_manager' ? 'active' : ''}
+          onClick={() => setActiveTab('meal_manager')}
+        >
+          <UtensilsCrossed size={15} style={{ display: 'inline', marginRight: '6px', color: '#10b981' }} />
+          3. Quản Lý Kho Món Ăn
+        </button>
+
+        <button
+          type="button"
           className={activeTab === 'activity_library' ? 'active' : ''}
           onClick={() => setActiveTab('activity_library')}
         >
           <Activity size={15} style={{ display: 'inline', marginRight: '6px' }} />
-          3. Tiêu Hao Vận Động
+          4. Tiêu Hao Vận Động
         </button>
 
         <button
@@ -192,7 +203,7 @@ export default function NutritionPage() {
           onClick={() => setActiveTab('logs_balance')}
         >
           <Salad size={15} style={{ display: 'inline', marginRight: '6px' }} />
-          4. Nhật Ký Calo In / Out
+          5. Nhật Ký Calo In / Out
         </button>
       </div>
 
@@ -248,12 +259,17 @@ export default function NutritionPage() {
           )
         )}
 
-        {/* Tab 3: Activity Calorie Library */}
+        {/* Tab 3: Meal Library Manager (Kho Món Ăn Thêm / Sửa / Xóa) */}
+        {activeTab === 'meal_manager' && (
+          <MealLibraryManager />
+        )}
+
+        {/* Tab 4: Activity Calorie Library */}
         {activeTab === 'activity_library' && (
           <ActivityLibraryCalculator selectedCustomer={selectedCustomer} onLogged={() => void load()} />
         )}
 
-        {/* Tab 4: Logs & Calorie Balance */}
+        {/* Tab 5: Logs & Calorie Balance */}
         {activeTab === 'logs_balance' && (
           <div style={{ display: 'grid', gap: '20px' }}>
             {/* Calories In / Out Summary Cards */}
