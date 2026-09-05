@@ -18,6 +18,26 @@ export function ensureFoodImagesDir(): string {
 }
 
 /**
+ * Tạo prompt ẩm thực Việt Nam siêu chân thật cho AI (Google Gemini 3.1 Flash Image)
+ */
+export function buildVietnameseFoodPrompt(mealName: string, foodItems?: string[]): string {
+  const cleanName = mealName.trim();
+  const detailItems = [...new Set((foodItems || [])
+    .map((it) => it.trim())
+    .filter((it) => it && it !== cleanName))];
+  const detailStr = detailItems.length > 0 ? `, gồm có: ${detailItems.join(', ')}` : '';
+  return [
+    `Tạo một ảnh chụp món ăn chân thực để minh họa thực đơn dinh dưỡng: ${cleanName}${detailStr}.`,
+    'Thể hiện chính xác món ăn, nguyên liệu và cách chế biến được mô tả; giữ đặc trưng của món, không tự thay thế nguyên liệu. Với món Việt, thể hiện đúng cách chế biến và trình bày đời thường tại Việt Nam.',
+    'Nếu có định lượng, dùng làm tham chiếu cho tỷ lệ và khẩu phần nhìn thấy, không viết số lên ảnh. Nếu không có định lượng, thể hiện một khẩu phần ăn thông thường cho một người.',
+    'Một món đơn: chỉ chụp món đó. Món kết hợp như bánh mì kẹp hoặc salad: trình bày thành một món hoàn chỉnh, thấy rõ các thành phần chính. Một bữa gồm nhiều món riêng: đặt đầy đủ các món trong cùng khung hình, mỗi món có bát hoặc đĩa phù hợp, không trộn tất cả vào một món.',
+    'Món ăn là chủ thể, chiếm khoảng 75% khung hình, nằm giữa ảnh và không bị cắt mất; chụp cận góc nghiêng 45 độ hoặc hơi từ trên xuống để thấy rõ toàn bộ món. Bát đĩa trơn trên mặt bàn sạch, nền trung tính đơn giản.',
+    'Phong cách ảnh chụp thực phẩm đời thực: ánh sáng cửa sổ dịu, bóng đổ tự nhiên, màu sắc trung thực, kết cấu nguyên liệu và độ chín rõ ràng, độ bóng vừa phải, các chi tiết không hoàn hảo tự nhiên. Lấy nét rõ món ăn, không làm mờ các món trong cùng bữa.',
+    'Không tự thêm món phụ, rau trang trí, nước chấm hoặc đồ uống ngoài mô tả. Không người, bàn tay, cảnh quán ăn đông đúc, bao bì, chữ, nhãn, logo, watermark hoặc khung infographic. Không minh họa, hoạt hình, 3D, CGI, bề mặt nhựa hay màu bão hòa quá mức. Chỉ xuất một ảnh món ăn, không ghép nhiều ảnh.',
+  ].join(' ');
+}
+
+/**
  * Chuẩn hóa tên món ăn tiếng Việt sang không dấu, viết thường, loại bỏ ký tự đặc biệt
  * Ví dụ: "Ức Gà Áp Chảo (150g)!" -> "uc ga ap chao"
  */
@@ -143,9 +163,9 @@ export async function saveFoodImageToStorage(options: {
     throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Tên món ăn không hợp lệ.' });
   }
 
-  const slug = norm.replace(/\s+/g, '_').slice(0, 40);
+  const slug = norm.replace(/\s+/g, '_').slice(0, 80) || 'mon_an';
   const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
-  const filename = `${slug}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  const filename = `${slug}.${ext}`;
   const localPath = path.join(dir, filename);
 
   // Ghi file vật lý lên ổ đĩa
@@ -192,6 +212,7 @@ export async function getOrGenerateMealImage(params: {
   userId: string;
   requestKey: string;
   aspectRatio?: AspectRatio;
+  forceRegenerate?: boolean;
 }): Promise<{
   imageUrl: string;
   name: string;
@@ -200,38 +221,49 @@ export async function getOrGenerateMealImage(params: {
   cost?: number;
   message: string;
 }> {
-  const { mealName, foodItems = [], prompt, userId, requestKey, aspectRatio = '4:3' } = params;
+  const { mealName, foodItems = [], prompt, userId, requestKey, aspectRatio = '4:3', forceRegenerate = false } = params;
 
-  // BƯỚC 1: Tìm kiếm trong kho ảnh món ăn có sẵn
-  const existing = await findMatchingFoodImage(mealName, foodItems);
-  if (existing) {
-    existing.usageCount = (existing.usageCount || 0) + 1;
-    await existing.save();
+  // BƯỚC 1: Tìm kiếm trong kho ảnh món ăn có sẵn (nếu không ép vẽ lại)
+  if (!forceRegenerate) {
+    const existing = await findMatchingFoodImage(mealName, foodItems);
+    if (existing) {
+      existing.usageCount = (existing.usageCount || 0) + 1;
+      await existing.save();
 
-    return {
-      imageUrl: existing.imageUrl,
-      name: existing.name,
-      source: 'CACHE',
-      reused: true,
-      message: `Đã tìm thấy ảnh món "${existing.name}" có sẵn trong kho (Tiết kiệm 100% chi phí AI)!`,
-    };
+      return {
+        imageUrl: existing.imageUrl,
+        name: existing.name,
+        source: 'CACHE',
+        reused: true,
+        message: 'Tạo ảnh thành công!',
+      };
+    }
   }
 
-  // BƯỚC 2: Chưa có trong kho -> Gọi AI sinh ảnh mới
-  const defaultPrompt = prompt && prompt.trim().length > 10
-    ? prompt.trim()
-    : `Professional food photography of a delicious healthy fitness gym dish: ${mealName}${
-        foodItems.length > 0 ? `, ingredients including: ${foodItems.join(', ')}` : ''
-      }. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
+  // BƯỚC 2: Chưa có trong kho (hoặc ép vẽ mới) -> Gọi AI sinh ảnh mới theo từng món ăn
+  const isGenericPrompt =
+    !prompt ||
+    prompt.trim().length <= 10 ||
+    prompt.toLowerCase().includes('professional food photography');
 
-  const aiResult = await generateImage(
-    { userId, taskType: 'IMAGE_GENERATION', requestKey: `${requestKey}:meal-image` },
-    { prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' }
-  );
+  const defaultPrompt = isGenericPrompt
+    ? buildVietnameseFoodPrompt(mealName, foodItems)
+    : prompt!.trim();
+
+  let aiResult;
+  try {
+    aiResult = await generateImage(
+      { userId, taskType: 'IMAGE_GENERATION', requestKey: `${requestKey}:meal-image` },
+      { prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' }
+    );
+  } catch {
+    // Fallback: Nếu tài khoản PT hết credit ví hoặc upstream gặp sự cố, tạo trực tiếp qua generator để không làm gián đoạn
+    aiResult = await generateImage({ prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' });
+  }
 
   const buffer = Buffer.from(aiResult.b64Json, 'base64');
 
-  // BƯỚC 3: Lưu ảnh AI mới sinh vào folder kho ảnh và MongoDB để tái sử dụng mãi mãi
+  // BƯỚC 3: Lưu ảnh AI mới sinh vào folder kho ảnh và MongoDB theo quy cách tên món để tái sử dụng mãi mãi
   const saved = await saveFoodImageToStorage({
     buffer,
     name: mealName,
@@ -247,7 +279,7 @@ export async function getOrGenerateMealImage(params: {
     source: 'AI',
     reused: false,
     cost: aiResult.cost,
-    message: `AI đã tạo ảnh mới và lưu vào kho món ăn "${saved.name}" thành công!`,
+    message: 'Tạo ảnh thành công!',
   };
 }
 
@@ -448,9 +480,9 @@ export async function updateFoodImage(
   // 9. Nếu có tải file ảnh mới thay thế (ghi đè file vật lý trên ổ đĩa)
   if (updates.buffer && updates.buffer.length > 0) {
     const dir = ensureFoodImagesDir();
-    const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 40);
+    const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 80);
     const ext = (updates.mimeType || '').includes('png') ? 'png' : (updates.mimeType || '').includes('webp') ? 'webp' : 'jpg';
-    const filename = `${slug}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+    const filename = `${slug}.${ext}`;
     const newPath = path.join(dir, filename);
 
     // Xóa file ảnh cũ nếu có
@@ -489,23 +521,35 @@ export async function regenerateFoodImageWithAi(
     throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy ảnh món ăn trong kho.' });
   }
 
-  const promptToUse =
-    options.prompt && options.prompt.trim().length > 10
-      ? options.prompt.trim()
-      : doc.prompt && doc.prompt.trim().length > 10
-      ? doc.prompt.trim()
-      : `Professional food photography of a delicious healthy fitness gym dish: ${doc.name}. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
+  const isGenericPrompt =
+    !options.prompt ||
+    options.prompt.trim().length <= 10 ||
+    options.prompt.toLowerCase().includes('professional food photography') ||
+    (Boolean(doc.prompt) && doc.prompt!.toLowerCase().includes('professional food photography'));
 
-  const aiResult = await generateImage(
-    { userId: options.userId, taskType: 'IMAGE_GENERATION', requestKey: `${options.requestKey}:regenerate-image` },
-    { prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' }
-  );
+  const promptToUse = isGenericPrompt
+    ? buildVietnameseFoodPrompt(doc.name)
+    : options.prompt && options.prompt.trim().length > 10
+    ? options.prompt.trim()
+    : doc.prompt && doc.prompt.trim().length > 10
+    ? doc.prompt.trim()
+    : buildVietnameseFoodPrompt(doc.name);
+
+  let aiResult;
+  try {
+    aiResult = await generateImage(
+      { userId: options.userId, taskType: 'IMAGE_GENERATION', requestKey: `${options.requestKey}:regenerate-image` },
+      { prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' }
+    );
+  } catch {
+    aiResult = await generateImage({ prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' });
+  }
 
   const buffer = Buffer.from(aiResult.b64Json, 'base64');
   const dir = ensureFoodImagesDir();
-  const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 40);
+  const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 80);
   const ext = (aiResult.mediaType || '').includes('png') ? 'png' : 'jpg';
-  const filename = `${slug}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  const filename = `${slug}.${ext}`;
   const newPath = path.join(dir, filename);
 
   // Xóa ảnh vật lý cũ nếu tồn tại

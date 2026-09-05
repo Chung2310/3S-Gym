@@ -7,7 +7,7 @@ import * as controller from '../controllers/imageController.js';
 const router = express.Router();
 const env = getEnv();
 
-// POST /api/images/generate — Sinh ảnh AI (FLUX.2 Klein 4B)
+// POST /api/images/generate — Sinh ảnh AI (Gemini)
 // Rate limited: AI_RATE_LIMIT_PER_MINUTE (default 10) per minute
 router.post(
   '/generate',

@@ -5,17 +5,11 @@ import { requestOpenRouter } from './openRouterRequest.js';
 import { withAiBilling } from './aiBillingService.js';
 import type { AiBillingContext, ProviderResult } from './creditTypes.js';
 
-/**
- * Image Generation Provider — FLUX.2 Klein 4B via OpenRouter Image API
- *
- * Endpoint: POST https://openrouter.ai/api/v1/images
- * Model:    black-forest-labs/flux.2-klein-4b
- * Docs:     https://openrouter.ai/black-forest-labs/flux.2-klein-4b/llms.txt
- *
- * Returns base64-encoded image bytes (PNG or JPEG).
- */
-
-export const IMAGE_MODEL = 'black-forest-labs/flux.2-klein-4b';
+/** Gemini-only image generation via OpenRouter, in fallback order. */
+export const IMAGE_MODEL = 'google/gemini-3.1-flash-image';
+export const FALLBACK_IMAGE_MODEL = 'google/gemini-3.1-flash-lite-image';
+export const FALLBACK_IMAGE_MODEL_FLASH = 'google/gemini-2.5-flash-image';
+const IMAGE_MODELS = [IMAGE_MODEL, FALLBACK_IMAGE_MODEL, FALLBACK_IMAGE_MODEL_FLASH];
 
 export type AspectRatio = '1:1' | '4:3' | '3:4' | '3:2' | '2:3' | '16:9' | '9:16' | '21:9' | 'auto';
 export type OutputFormat = 'png' | 'jpeg';
@@ -42,99 +36,96 @@ export interface GeneratedImage {
   completionTokens: number;
 }
 
-interface OpenRouterImageResponse {
-  created: number;
-  data: Array<{
-    b64_json: string;
-    media_type: string;
-  }>;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-    cost: number;
+async function callOpenRouterGeminiImage(
+  model: string,
+  apiKey: string,
+  options: GenerateImageOptions
+): Promise<ProviderResult<GeneratedImage>> {
+  const { data } = await requestOpenRouter<any>(
+    'https://openrouter.ai/api/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.APP_URL || 'http://3s.igentechsolutions.com',
+        'X-Title': '3S Gym & Wellness Fitness',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: options.prompt }],
+        modalities: ['image', 'text'],
+        ...(options.aspectRatio && options.aspectRatio !== 'auto'
+          ? { image_config: { aspect_ratio: options.aspectRatio } } : {}),
+        ...(options.seed !== undefined ? { seed: options.seed } : {}),
+      }),
+    },
+    getEnv().PROVIDER_TIMEOUT_MS,
+  );
+
+  const choice = data.choices?.[0];
+  const imgObj = choice?.message?.images?.[0];
+  if (!imgObj) {
+    throw new Error('OpenRouter Gemini không trả về dữ liệu ảnh trong message.images.');
+  }
+
+  const url = typeof imgObj === 'string' ? imgObj : (imgObj.image_url?.url || imgObj.url || '');
+  if (!url || !url.startsWith('data:image/')) {
+    throw new Error('Dữ liệu ảnh từ Gemini không đúng định dạng base64.');
+  }
+
+  const mimeMatch = url.match(/^data:(image\/[a-zA-Z0-9.+_-]+);base64,/);
+  const mediaType = mimeMatch ? mimeMatch[1] : 'image/png';
+  const b64Json = url.replace(/^data:image\/[a-zA-Z0-9.+_-]+;base64,/, '');
+
+  const cost = Number(data.usage?.cost ?? 0.005);
+  const value: GeneratedImage = {
+    b64Json,
+    mediaType,
+    cost: Number.isFinite(cost) && cost >= 0 ? cost : 0,
+    completionTokens: data.usage?.completion_tokens ?? 0,
+  };
+
+  return {
+    value,
+    provider: 'openrouter',
+    model,
+    usage: {
+      inputTokens: data.usage?.prompt_tokens,
+      outputTokens: data.usage?.completion_tokens,
+      totalTokens: data.usage?.total_tokens,
+      providerCostMicrousd: Math.round(cost * 1_000_000),
+    },
   };
 }
 
-/**
- * Generate an image using FLUX.2 Klein 4B via the OpenRouter Image API.
- *
- * @throws AppError 503 if OPENROUTER_API_KEY is not configured
- * @throws AppError 502 if the upstream provider fails
- */
+/** Try only Gemini image models; surface an error if all are unavailable. */
 async function generateImageRaw(options: GenerateImageOptions): Promise<ProviderResult<GeneratedImage>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new AppError({
       status: 503,
       code: ERROR_CODES.UNAVAILABLE,
-      message: 'Dịch vụ tạo ảnh AI chưa được cấu hình (thiếu OPENROUTER_API_KEY).',
+      message: 'Dịch vụ tạo ảnh Gemini chưa được cấu hình.',
     });
   }
 
-  const model = process.env.IMAGE_MODEL || IMAGE_MODEL;
-
-  const body: Record<string, unknown> = {
-    model,
-    prompt: options.prompt,
-    n: 1,
-    output_format: options.outputFormat || 'jpeg',
-  };
-
-  if (options.aspectRatio) {
-    body.aspect_ratio = options.aspectRatio;
-  }
-
-  if (options.seed !== undefined) {
-    body.seed = options.seed;
-  }
-
-  try {
-    const { data } = await requestOpenRouter<OpenRouterImageResponse>(
-      'https://openrouter.ai/api/v1/images',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.APP_URL || 'http://3s.igentechsolutions.com',
-          'X-Title': '3S Gym & Wellness Fitness',
-        },
-        body: JSON.stringify(body),
-      },
-      getEnv().PROVIDER_TIMEOUT_MS,
-    );
-
-    if (!data.data?.length || !data.data[0].b64_json) {
-      throw new Error('OpenRouter Image API không trả về ảnh.');
+  let cause: unknown;
+  for (const model of IMAGE_MODELS) {
+    try {
+      return await callOpenRouterGeminiImage(model, apiKey, options);
+    } catch (error) {
+      cause = error;
+      console.warn(`[imageProvider] Gemini image model (${model}) failed:`, error instanceof Error ? error.message : error);
     }
-
-    const cost = Number(data.usage?.cost ?? 0);
-    if (!Number.isFinite(cost) || cost < 0) throw new Error('OpenRouter Image API trả về chi phí không hợp lệ.');
-    const value = {
-      b64Json: data.data[0].b64_json,
-      mediaType: data.data[0].media_type || 'image/jpeg',
-      cost,
-      completionTokens: data.usage?.completion_tokens ?? 0,
-    };
-    return {
-      value, provider: 'openrouter', model,
-      usage: {
-        inputTokens: data.usage?.prompt_tokens,
-        outputTokens: data.usage?.completion_tokens,
-        totalTokens: data.usage?.total_tokens,
-        providerCostMicrousd: Math.round(cost * 1_000_000),
-      },
-    };
-  } catch (cause) {
-    if (cause instanceof AppError) throw cause;
-    throw new AppError({
-      status: 502,
-      code: ERROR_CODES.EXTERNAL,
-      message: 'Dịch vụ tạo ảnh AI tạm thời không phản hồi. Vui lòng thử lại sau.',
-      cause,
-    });
   }
+  if (cause instanceof AppError) throw cause;
+  throw new AppError({
+    status: 502,
+    code: ERROR_CODES.EXTERNAL,
+    message: 'Dịch vụ tạo ảnh AI tạm thời không phản hồi. Vui lòng thử lại sau.',
+    cause,
+  });
 }
 
 export function generateImage(context: AiBillingContext, options: GenerateImageOptions): Promise<GeneratedImage>;

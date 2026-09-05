@@ -226,7 +226,7 @@ export const FoodImageEditModal: React.FC<FoodImageEditModalProps> = ({
                   disabled={regeneratingAi}
                   onClick={handleRegenerateAi}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-purple-50 text-purple-700 border border-purple-300 text-xs font-bold cursor-pointer hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="AI sẽ dùng prompt/tên món để vẽ ảnh mới và thay thế ảnh trong kho"
+                  title="Hệ thống sẽ dùng tên món để vẽ lại ảnh mới và cập nhật vào kho"
                 >
                   {regeneratingAi ? (
                     <>
@@ -350,10 +350,10 @@ export const FoodImageEditModal: React.FC<FoodImageEditModalProps> = ({
             </div>
           </div>
 
-          {/* MÔ TẢ / PROMPT AI */}
+          {/* MÔ TẢ MÓN ĂN */}
           <div className="mb-5">
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Gợi ý mô tả món ăn / Prompt AI (Tùy chọn):
+              Gợi ý mô tả món ăn (Tùy chọn):
             </label>
             <textarea
               rows={2}

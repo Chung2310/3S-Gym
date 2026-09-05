@@ -35,7 +35,7 @@ export default function MealImagePreviewModal({ previewImage, onClose }: MealIma
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#1e293b' }}>
-          <strong style={{ color: '#ffffff', fontSize: '0.9rem' }}>{previewImage.title} — Ảnh AI (FLUX.2)</strong>
+          <strong style={{ color: '#ffffff', fontSize: '0.9rem' }}>{previewImage.title}</strong>
           <div style={{ display: 'flex', gap: '8px' }}>
             <a
               href={previewImage.url}

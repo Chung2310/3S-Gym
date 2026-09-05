@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Image as ImageIcon, FileText, RefreshCw, UploadCloud, Sparkles } from 'lucide-react';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
-import { errorMessage } from '../../types';
+import { errorMessage, type PaginationMeta } from '../../types';
 import type { FoodImageItem, FoodImageSummary, KnowledgeDocument } from '../../types/knowledge';
 import {
   FoodImageStats,
@@ -31,13 +32,11 @@ export default function AdminKnowledgePage() {
   const [sourceFilter, setSourceFilter] = useState<string>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(16);
-  const [pagination, setPagination] = useState<{
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  } | null>(null);
+  const [pageSize, setPageSize] = useState(16);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+
+  const [deleteImageTarget, setDeleteImageTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deletingImage, setDeletingImage] = useState(false);
 
   // Modals state
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -52,6 +51,12 @@ export default function AdminKnowledgePage() {
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [showDocModal, setShowDocModal] = useState(false);
   const [editingDoc, setEditingDoc] = useState<KnowledgeDocument | null>(null);
+  const [docsSearchQuery, setDocsSearchQuery] = useState('');
+  const [docsTopicFilter, setDocsTopicFilter] = useState<string>('ALL');
+  const [docsStatusFilter, setDocsStatusFilter] = useState<string>('ALL');
+  const [docsCurrentPage, setDocsCurrentPage] = useState(1);
+  const [docsPageSize, setDocsPageSize] = useState(10);
+  const [docsPagination, setDocsPagination] = useState<PaginationMeta | null>(null);
 
   // ==========================================
   // API LOADERS
@@ -84,14 +89,24 @@ export default function AdminKnowledgePage() {
   const loadDocs = useCallback(async () => {
     try {
       setLoadingDocs(true);
-      const res = await api.get<KnowledgeDocument[]>('/api/knowledge?limit=50');
+      const params = new URLSearchParams();
+      if (docsSearchQuery.trim()) params.append('search', docsSearchQuery.trim());
+      if (docsTopicFilter !== 'ALL') params.append('topic', docsTopicFilter);
+      if (docsStatusFilter !== 'ALL') params.append('status', docsStatusFilter);
+      params.append('page', String(docsCurrentPage));
+      params.append('limit', String(docsPageSize));
+
+      const res = await api.get<KnowledgeDocument[]>(`/api/knowledge?${params.toString()}`);
       setDocs(res.data || []);
+      if (res.meta) {
+        setDocsPagination(res.meta);
+      }
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
       setLoadingDocs(false);
     }
-  }, [toast]);
+  }, [docsSearchQuery, docsTopicFilter, docsStatusFilter, docsCurrentPage, docsPageSize, toast]);
 
   useEffect(() => {
     if (activeTab === 'images') {
@@ -104,14 +119,21 @@ export default function AdminKnowledgePage() {
   // ==========================================
   // HANDLERS: KHO ẢNH MÓN ĂN
   // ==========================================
-  const handleDeleteImage = async (id: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ảnh của món "${name}" khỏi kho không?`)) return;
+  const handleDeleteImage = async () => {
+    if (!deleteImageTarget || deletingImage) return;
+    const { id, name } = deleteImageTarget;
+    setDeletingImage(true);
     try {
       await api.delete(`/api/food-images/${id}`);
       toast.success(`Đã xóa ảnh món "${name}" khỏi kho.`);
-      void loadImages();
+      setDeleteImageTarget(null);
+      if (previewImage?._id === id) setPreviewImage(null);
+      if (images.length === 1 && currentPage > 1) setCurrentPage((page) => page - 1);
+      else void loadImages();
     } catch (err) {
       toast.error(errorMessage(err));
+    } finally {
+      setDeletingImage(false);
     }
   };
 
@@ -283,19 +305,25 @@ export default function AdminKnowledgePage() {
                     item={item}
                     onPreview={(dish) => setPreviewImage(dish)}
                     onEdit={(dish) => setEditingImage(dish)}
-                    onDelete={handleDeleteImage}
+                    onDelete={(id, name) => setDeleteImageTarget({ id, name })}
                   />
                 ))}
               </div>
 
-              {/* PHÂN TRANG */}
+              {/* PHÂN TRANG ẢNH MÓN ĂN */}
               {pagination && (
                 <FoodImagePagination
                   currentPage={pagination.page}
                   totalPages={pagination.totalPages}
                   totalItems={pagination.total}
-                  pageSize={pagination.limit}
+                  pageSize={pageSize}
                   onPageChange={(p) => setCurrentPage(p)}
+                  onPageSizeChange={(sz) => {
+                    setPageSize(sz);
+                    setCurrentPage(1);
+                  }}
+                  pageSizeOptions={[12, 16, 24, 48]}
+                  itemLabel="ảnh món"
                 />
               )}
             </>
@@ -314,12 +342,46 @@ export default function AdminKnowledgePage() {
           onTogglePublishDoc={handleTogglePublishDoc}
           onDeleteDoc={handleDeleteDoc}
           onSeedDocs={handleSeedDocs}
+          searchQuery={docsSearchQuery}
+          onSearchChange={(val) => {
+            setDocsSearchQuery(val);
+            setDocsCurrentPage(1);
+          }}
+          topicFilter={docsTopicFilter}
+          onTopicFilterChange={(val) => {
+            setDocsTopicFilter(val);
+            setDocsCurrentPage(1);
+          }}
+          statusFilter={docsStatusFilter}
+          onStatusFilterChange={(val) => {
+            setDocsStatusFilter(val);
+            setDocsCurrentPage(1);
+          }}
+          pagination={docsPagination}
+          pageSize={docsPageSize}
+          onPageChange={(p) => setDocsCurrentPage(p)}
+          onPageSizeChange={(sz) => {
+            setDocsPageSize(sz);
+            setDocsCurrentPage(1);
+          }}
         />
       )}
 
       {/* ========================================== */}
       {/* MODALS CONTAINER                           */}
       {/* ========================================== */}
+      <ConfirmModal
+        open={Boolean(deleteImageTarget)}
+        title="Xóa ảnh món ăn?"
+        description={`Bạn có chắc muốn xóa ảnh món "${deleteImageTarget?.name || ''}" khỏi kho? Ảnh đã xóa không thể khôi phục.`}
+        confirmLabel="Xóa ảnh"
+        cancelLabel="Hủy"
+        danger
+        loading={deletingImage}
+        onClose={() => { if (!deletingImage) setDeleteImageTarget(null); }}
+        onConfirm={handleDeleteImage}
+      />
+
       <FoodImageUploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
