@@ -1,45 +1,29 @@
 import React, { useState } from 'react';
+import { useMealImageFallback } from '../hooks/useMealImageFallback';
 
 export interface MealDish { id: number; title: string; image?: string | null; leftPills?: Array<{ label: string; weight: string }>; rightPills?: Array<{ label: string; val: string; highlight?: boolean }> }
-interface DishImageProps { src?: string | null; alt: string; fallback?: string }
+interface DishImageProps { src?: string | null; alt: string }
 interface MealInfographicPosterProps { titleTag?: string; subTitle?: string; timeframeText?: string; dishes?: MealDish[] }
 
-const DishImage = ({ src, alt, fallback }: DishImageProps) => {
-  const [loaded, setLoaded] = useState(false);
-  const [imgSrc, setImgSrc] = useState<string | null | undefined>(src);
-
-  const fallbackImage = fallback || 'https://images.unsplash.com/photo-1543339308-43e59d6b73a6?auto=format&fit=crop&w=800&q=80';
-  const effectiveSrc = imgSrc || fallbackImage;
-  const isBase64 = effectiveSrc.startsWith('data:');
-
+const DishImage = ({ src, alt }: DishImageProps) => {
+  const { imageSrc, failed, onImageError } = useMealImageFallback(src, alt);
+  const [loadedSrc, setLoadedSrc] = useState<string>();
+  const loaded = imageSrc && loadedSrc === imageSrc;
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', background: '#f0f9ff' }}>
-      {/* Loading spinner - shown while URL image is loading */}
-      {!isBase64 && !loaded && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'linear-gradient(135deg, #e0f2fe, #f0fdf4)' }}>
-          <div style={{ width: '30px', height: '30px', border: '3px solid #e0f2fe', borderTop: '3px solid #00a4e4', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <span style={{ fontSize: '0.55rem', color: '#94a3b8', fontWeight: 700 }}>AI đang vẽ...</span>
+    <div className="relative h-full w-full bg-sky-50">
+      {!loaded && (
+        <div role="status" className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-xs text-slate-500">
+          {!failed && <div className="h-7 w-7 animate-spin rounded-full border-2 border-sky-100 border-t-secondary motion-reduce:animate-none" />}
+          <span>{failed ? 'Không tải được ảnh' : 'Đang tải ảnh...'}</span>
         </div>
       )}
-
-      <img
-        src={effectiveSrc}
+      {imageSrc && !failed && <img
+        src={imageSrc}
         alt={alt}
-        onLoad={() => setLoaded(true)}
-        onError={() => {
-          if (imgSrc !== fallbackImage) {
-            setImgSrc(fallbackImage);
-            setLoaded(true);
-          }
-        }}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          opacity: (isBase64 || loaded) ? 1 : 0,
-          transition: 'opacity 0.4s ease'
-        }}
-      />
+        onLoad={() => setLoadedSrc(imageSrc)}
+        onError={onImageError}
+        className={`h-full w-full object-cover transition-opacity motion-reduce:transition-none ${loaded ? 'opacity-100' : 'opacity-0'}`}
+      />}
     </div>
   );
 };
