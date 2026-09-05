@@ -40,23 +40,6 @@ export default function ExercisePalette(props: Props) {
 
   return (
     <aside role="search" aria-label="Tìm bài tập trong Studio" className="studio-palette">
-      {props.activeDay && (
-        <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 mb-3 flex items-center justify-between gap-2 shadow-xs">
-          <div className="text-xs">
-            <span className="text-slate-500">Đang chọn bài cho: </span>
-            <strong className="text-[#003b70] font-bold text-sm">Ngày {props.activeDay}</strong>
-          </div>
-          {props.onClose && (
-            <button
-              type="button"
-              className="button button-primary py-1 px-3 text-xs min-h-[32px] font-bold shadow-xs cursor-pointer"
-              onClick={props.onClose}
-            >
-              Xong · Xem lịch tập
-            </button>
-          )}
-        </div>
-      )}
       {/* Header */}
       <div className="studio-palette-header">
         <div className="studio-palette-heading">
@@ -78,7 +61,7 @@ export default function ExercisePalette(props: Props) {
           <Search className="studio-palette-search-icon" aria-hidden="true" />
           <input
             aria-label="Tìm bài tập"
-            placeholder="Tìm theo tên hoặc nhóm cơ..."
+            placeholder="Tìm theo tên bài tập..."
             value={props.query}
             onChange={(event) => props.onQueryChange(event.target.value)}
           />

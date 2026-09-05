@@ -69,7 +69,7 @@ export default function MuscleGroupModal({
         <div className="muscle-group-add-form">
           <input
             aria-label="Tên nhóm cơ mới"
-            placeholder="Nhập tên nhóm cơ mới (ví dụ: Cẳng tay, Cơ liên sườn...)"
+            placeholder="Nhập tên nhóm cơ mới (ví dụ: Cẳng tay...)"
             value={newGroupName}
             onChange={(e) => setNewGroupName(e.target.value)}
             onKeyDown={(e) => {
@@ -100,7 +100,7 @@ export default function MuscleGroupModal({
             <div key={group._id} className="muscle-group-item" role="listitem">
               <div className="muscle-group-item-main">
                 <Layers size={16} className="muscle-group-icon" aria-hidden="true" />
-                <span className="muscle-group-item-name">{group.name}</span>
+                <span className="muscle-group-item-name" title={group.name}>{group.name}</span>
                 {group.isDefault && (
                   <span className="muscle-group-tag">Hệ thống</span>
                 )}

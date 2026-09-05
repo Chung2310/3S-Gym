@@ -423,26 +423,6 @@ export default function CustomerDetailModal({
                     <Pencil size={13} style={{ marginRight: '4px' }} /> Sửa thông tin
                   </button>
                 )}
-                {detail && !hasAccount && onGrantAccount && (
-                  <button
-                    type="button"
-                    className="button button-primary"
-                    style={{
-                      fontSize: '0.82rem',
-                      background: '#00a4e4',
-                      padding: '7px 14px',
-                      borderRadius: '8px',
-                      fontWeight: 700,
-                      boxShadow: '0 2px 8px rgba(0, 164, 228, 0.35)',
-                    }}
-                    onClick={() => {
-                      onClose();
-                      onGrantAccount(detail);
-                    }}
-                  >
-                    Cấp tài khoản
-                  </button>
-                )}
               </div>
             </div>
 
@@ -686,54 +666,7 @@ export default function CustomerDetailModal({
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div
-                    style={{
-                      background: 'linear-gradient(135deg, #fefce8 0%, #fffbeb 100%)',
-                      padding: '16px 20px',
-                      borderRadius: '12px',
-                      border: '1px solid #fef08a',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: '12px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: '#fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <UserPlus size={18} style={{ color: '#854d0e' }} />
-                      </div>
-                      <div>
-                        <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#854d0e' }}>Khách hàng chưa được cấp tài khoản ứng dụng</h4>
-                        <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#a16207' }}>
-                          Cấp tài khoản để học viên tự đăng nhập theo dõi lịch tập, kết quả InBody, giáo án và tiến độ.
-                        </p>
-                      </div>
-                    </div>
-                    {onGrantAccount && (
-                      <button
-                        type="button"
-                        className="button button-primary"
-                        onClick={() => {
-                          onClose();
-                          onGrantAccount(detail);
-                        }}
-                        style={{
-                          fontSize: '0.82rem',
-                          padding: '7px 14px',
-                          fontWeight: 700,
-                          background: '#00a4e4',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                        }}
-                      >
-                        <UserPlus size={14} /> Cấp tài khoản ngay
-                      </button>
-                    )}
-                  </div>
-                )}
+                ) : null}
 
                 {/* Goal & Notes Section */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
