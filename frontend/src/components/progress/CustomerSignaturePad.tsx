@@ -213,24 +213,57 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    // Delay resize so container is mounted in DOM
-    const timer = setTimeout(() => {
-      resizeFullscreenCanvas();
-    }, 60);
+    const resizeFs = () => {
+      const canvas = fullscreenCanvasRef.current;
+      const container = fullscreenContainerRef.current;
+      if (!canvas || !container) return;
+
+      const rect = container.getBoundingClientRect();
+      const width = Math.max(rect.width, 300);
+      const height = Math.max(rect.height, 200);
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      if (fullscreenCanvasRef.current) {
+        drawStrokesToCanvas(fullscreenCanvasRef.current, strokesRef.current, currentStrokeRef.current);
+      }
+    };
+
+    // Perform initial resize and on subsequent frames/intervals
+    resizeFs();
+    const rafId = requestAnimationFrame(resizeFs);
+    const timer1 = setTimeout(resizeFs, 40);
+    const timer2 = setTimeout(resizeFs, 150);
+
+    let ro: ResizeObserver | null = null;
+    if (fullscreenContainerRef.current && typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => resizeFs());
+      ro.observe(fullscreenContainerRef.current);
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsFullscreen(false);
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        setIsFullscreen(false);
+      }
     };
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
-      clearTimeout(timer);
+      cancelAnimationFrame(rafId);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      ro?.disconnect();
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-      // Redraw inline canvas when exiting fullscreen
+      window.removeEventListener('keydown', handleKeyDown, true);
       setTimeout(() => resizeInlineCanvas(), 60);
     };
-  }, [isFullscreen, resizeFullscreenCanvas, resizeInlineCanvas]);
+  }, [isFullscreen, resizeInlineCanvas]);
 
   const notifyChange = useCallback(() => {
     const count = strokesRef.current.length;
@@ -439,8 +472,14 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
       {!isFs ? (
         <button
           type="button"
-          onClick={() => setIsFullscreen(true)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-2.5 text-xs font-bold text-[#003b70] shadow-2xs transition hover:bg-sky-100 active:scale-95"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsFullscreen(true);
+          }}
+          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-2.5 text-xs font-bold text-[#003b70] shadow-2xs transition hover:bg-sky-100 active:scale-95 cursor-pointer"
           title="Phóng to toàn màn hình để ký trên điện thoại"
         >
           <Maximize2 size={13} />
@@ -449,8 +488,14 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
       ) : (
         <button
           type="button"
-          onClick={() => setIsFullscreen(false)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-100"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsFullscreen(false);
+          }}
+          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-100 cursor-pointer"
           title="Thu nhỏ lại"
         >
           <Minimize2 size={13} />
@@ -520,8 +565,14 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
         {/* Quick Fullscreen Button Overlay on Canvas */}
         <button
           type="button"
-          onClick={() => setIsFullscreen(true)}
-          className="absolute top-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white/95 px-2.5 py-1 text-xs font-bold text-[#003b70] shadow-xs backdrop-blur-xs transition hover:bg-sky-50 active:scale-95"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsFullscreen(true);
+          }}
+          className="absolute top-2.5 right-2.5 z-20 inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white/95 px-2.5 py-1 text-xs font-bold text-[#003b70] shadow-xs backdrop-blur-xs transition hover:bg-sky-50 active:scale-95 cursor-pointer"
           title="Phóng to toàn màn hình để ký dễ hơn trên điện thoại"
         >
           <Maximize2 size={13} className="text-sky-600" />
@@ -572,10 +623,12 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex flex-col bg-slate-950/80 p-2 sm:p-4 backdrop-blur-xs animate-in fade-in duration-150"
+            className="fixed inset-0 z-[100001] flex flex-col bg-slate-950/85 p-2 sm:p-4 backdrop-blur-sm animate-in fade-in duration-150"
             role="dialog"
             aria-modal="true"
             aria-label="Ký tên toàn màn hình"
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col h-full w-full max-w-5xl mx-auto rounded-2xl bg-white shadow-2xl overflow-hidden border border-slate-200">
               {/* Top Header */}
