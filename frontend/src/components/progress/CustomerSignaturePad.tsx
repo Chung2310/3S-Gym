@@ -6,7 +6,19 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Check, CheckCircle2, CircleDot, PenLine, RotateCcw, Undo2, User } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import {
+  Check,
+  CheckCircle2,
+  CircleDot,
+  Maximize2,
+  Minimize2,
+  PenLine,
+  RotateCcw,
+  Smartphone,
+  Undo2,
+  User,
+} from 'lucide-react';
 
 export interface CustomerSignaturePadHandle {
   isEmpty: () => boolean;
@@ -15,13 +27,13 @@ export interface CustomerSignaturePadHandle {
   clear: () => void;
 }
 
-interface StrokePoint {
-  x: number;
-  y: number;
+interface NormalizedPoint {
+  nx: number;
+  ny: number;
 }
 
 interface Stroke {
-  points: StrokePoint[];
+  points: NormalizedPoint[];
   color: string;
   width: number;
 }
@@ -45,79 +57,113 @@ const STROKE_WIDTHS = [
   { id: 'thick', label: 'Đậm', value: 5.5 },
 ] as const;
 
+function drawStrokesToCanvas(
+  canvas: HTMLCanvasElement,
+  strokes: Stroke[],
+  currentStroke: Stroke | null,
+) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const width = canvas.width / dpr;
+  const height = canvas.height / dpr;
+
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.scale(dpr, dpr);
+
+  const allStrokes = [...strokes];
+  if (currentStroke) allStrokes.push(currentStroke);
+
+  for (const stroke of allStrokes) {
+    const { points, color, width: strokeW } = stroke;
+    if (points.length === 0) continue;
+
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = strokeW;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const p0x = points[0].nx * width;
+    const p0y = points[0].ny * height;
+
+    if (points.length === 1) {
+      ctx.arc(p0x, p0y, strokeW / 2, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      continue;
+    }
+
+    ctx.moveTo(p0x, p0y);
+
+    for (let i = 1; i < points.length - 1; i++) {
+      const p1x = points[i].nx * width;
+      const p1y = points[i].ny * height;
+      const p2x = points[i + 1].nx * width;
+      const p2y = points[i + 1].ny * height;
+      const xc = (p1x + p2x) / 2;
+      const yc = (p1y + p2y) / 2;
+      ctx.quadraticCurveTo(p1x, p1y, xc, yc);
+    }
+
+    const last = points[points.length - 1];
+    const secondLast = points[points.length - 2];
+    ctx.quadraticCurveTo(
+      secondLast.nx * width,
+      secondLast.ny * height,
+      last.nx * width,
+      last.ny * height,
+    );
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(function CustomerSignaturePad(
   { signerName, onSignerNameChange, onSignatureChange, placeholderName = 'Họ và tên khách hàng' },
   ref,
 ) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Inline canvas refs
+  const inlineContainerRef = useRef<HTMLDivElement>(null);
+  const inlineCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Fullscreen canvas refs
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null);
+  const fullscreenCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Shared strokes data (normalized coordinates 0..1)
   const strokesRef = useRef<Stroke[]>([]);
   const currentStrokeRef = useRef<Stroke | null>(null);
+
+  // State
   const [strokeCount, setStrokeCount] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string>(INK_COLORS[0].hex);
   const [selectedWidth, setSelectedWidth] = useState<number>(STROKE_WIDTHS[1].value);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Redraw all strokes onto the canvas
+  // Redraw both canvases if present
   const redraw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.scale(dpr, dpr);
-
-    const allStrokes = [...strokesRef.current];
-    if (currentStrokeRef.current) {
-      allStrokes.push(currentStrokeRef.current);
+    if (inlineCanvasRef.current) {
+      drawStrokesToCanvas(inlineCanvasRef.current, strokesRef.current, currentStrokeRef.current);
     }
-
-    for (const stroke of allStrokes) {
-      const { points, color, width } = stroke;
-      if (points.length === 0) continue;
-
-      ctx.beginPath();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      if (points.length === 1) {
-        ctx.arc(points[0].x, points[0].y, width / 2, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        continue;
-      }
-
-      ctx.moveTo(points[0].x, points[0].y);
-
-      for (let i = 1; i < points.length - 1; i++) {
-        const xc = (points[i].x + points[i + 1].x) / 2;
-        const yc = (points[i].y + points[i + 1].y) / 2;
-        ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
-      }
-
-      const last = points[points.length - 1];
-      const secondLast = points[points.length - 2];
-      ctx.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
-      ctx.stroke();
+    if (fullscreenCanvasRef.current) {
+      drawStrokesToCanvas(fullscreenCanvasRef.current, strokesRef.current, currentStrokeRef.current);
     }
-
-    ctx.restore();
   }, []);
 
-  // Resize canvas according to container dimensions and DPR
-  const resizeCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
+  // Resize inline canvas
+  const resizeInlineCanvas = useCallback(() => {
+    const canvas = inlineCanvasRef.current;
+    const container = inlineContainerRef.current;
     if (!canvas || !container) return;
 
     const rect = container.getBoundingClientRect();
-    const width = Math.max(rect.width, 280);
-    const height = 180; // Standard comfortable signature height
+    const width = Math.max(rect.width, 260);
+    const height = 180;
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = width * dpr;
@@ -125,14 +171,66 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
 
-    redraw();
-  }, [redraw]);
+    if (inlineCanvasRef.current) {
+      drawStrokesToCanvas(inlineCanvasRef.current, strokesRef.current, currentStrokeRef.current);
+    }
+  }, []);
+
+  // Resize fullscreen canvas
+  const resizeFullscreenCanvas = useCallback(() => {
+    const canvas = fullscreenCanvasRef.current;
+    const container = fullscreenContainerRef.current;
+    if (!canvas || !container) return;
+
+    const rect = container.getBoundingClientRect();
+    const width = Math.max(rect.width, 300);
+    const height = Math.max(rect.height, 240);
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+
+    if (fullscreenCanvasRef.current) {
+      drawStrokesToCanvas(fullscreenCanvasRef.current, strokesRef.current, currentStrokeRef.current);
+    }
+  }, []);
 
   useEffect(() => {
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    return () => window.removeEventListener('resize', resizeCanvas);
-  }, [resizeCanvas]);
+    resizeInlineCanvas();
+    const handleResize = () => {
+      resizeInlineCanvas();
+      if (isFullscreen) resizeFullscreenCanvas();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [resizeInlineCanvas, resizeFullscreenCanvas, isFullscreen]);
+
+  // Lock body scroll and handle ESC key during fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    // Delay resize so container is mounted in DOM
+    const timer = setTimeout(() => {
+      resizeFullscreenCanvas();
+    }, 60);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+      // Redraw inline canvas when exiting fullscreen
+      setTimeout(() => resizeInlineCanvas(), 60);
+    };
+  }, [isFullscreen, resizeFullscreenCanvas, resizeInlineCanvas]);
 
   const notifyChange = useCallback(() => {
     const count = strokesRef.current.length;
@@ -158,19 +256,32 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
 
   const toDataUrl = useCallback((): string | null => {
     if (isEmpty()) return null;
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-
-    return canvas.toDataURL('image/png');
+    // Export from a standardized canvas to ensure consistent image proportions
+    const exportCanvas = document.createElement('canvas');
+    const width = 600;
+    const height = 260;
+    exportCanvas.width = width * 2;
+    exportCanvas.height = height * 2;
+    const ctx = exportCanvas.getContext('2d');
+    if (ctx) {
+      drawStrokesToCanvas(exportCanvas, strokesRef.current, null);
+      return exportCanvas.toDataURL('image/png');
+    }
+    const canvas = inlineCanvasRef.current || fullscreenCanvasRef.current;
+    return canvas ? canvas.toDataURL('image/png') : null;
   }, [isEmpty]);
 
   const toBlob = useCallback(async (): Promise<Blob | null> => {
     if (isEmpty()) return null;
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
+    const exportCanvas = document.createElement('canvas');
+    const width = 600;
+    const height = 260;
+    exportCanvas.width = width * 2;
+    exportCanvas.height = height * 2;
+    drawStrokesToCanvas(exportCanvas, strokesRef.current, null);
 
     return new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), 'image/png');
+      exportCanvas.toBlob((blob) => resolve(blob), 'image/png');
     });
   }, [isEmpty]);
 
@@ -185,65 +296,169 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
     [isEmpty, toDataUrl, toBlob, clear],
   );
 
-  // Pointer event handlers
-  const getCanvasCoords = (e: React.PointerEvent<HTMLCanvasElement>): StrokePoint => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
+  // Helper to convert pointer event to normalized coordinates (0..1)
+  const getNormalizedPoint = (
+    e: React.PointerEvent<HTMLCanvasElement>,
+    canvas: HTMLCanvasElement,
+  ): NormalizedPoint => {
     const rect = canvas.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      nx: rect.width > 0 ? x / rect.width : 0,
+      ny: rect.height > 0 ? y / rect.height : 0,
     };
   };
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.setPointerCapture(e.pointerId);
+  // Pointer event handlers factory
+  const createPointerHandlers = (getCanvas: () => HTMLCanvasElement | null) => {
+    const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+      e.preventDefault();
+      const canvas = getCanvas();
+      if (!canvas) return;
+      canvas.setPointerCapture(e.pointerId);
 
-    const point = getCanvasCoords(e);
-    currentStrokeRef.current = {
-      points: [point],
-      color: selectedColor,
-      width: selectedWidth,
+      const pt = getNormalizedPoint(e, canvas);
+      currentStrokeRef.current = {
+        points: [pt],
+        color: selectedColor,
+        width: selectedWidth,
+      };
+      redraw();
     };
-    redraw();
-  };
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!currentStrokeRef.current) return;
-    e.preventDefault();
-    const point = getCanvasCoords(e);
-    currentStrokeRef.current.points.push(point);
-    redraw();
-  };
+    const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!currentStrokeRef.current) return;
+      e.preventDefault();
+      const canvas = getCanvas();
+      if (!canvas) return;
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!currentStrokeRef.current) return;
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    if (canvas && canvas.hasPointerCapture(e.pointerId)) {
-      canvas.releasePointerCapture(e.pointerId);
-    }
-    strokesRef.current.push(currentStrokeRef.current);
-    currentStrokeRef.current = null;
-    notifyChange();
-    redraw();
-  };
+      const pt = getNormalizedPoint(e, canvas);
+      currentStrokeRef.current.points.push(pt);
+      redraw();
+    };
 
-  const handlePointerCancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (currentStrokeRef.current) {
-      const canvas = canvasRef.current;
+    const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!currentStrokeRef.current) return;
+      e.preventDefault();
+      const canvas = getCanvas();
       if (canvas && canvas.hasPointerCapture(e.pointerId)) {
         canvas.releasePointerCapture(e.pointerId);
       }
+      strokesRef.current.push(currentStrokeRef.current);
       currentStrokeRef.current = null;
+      notifyChange();
       redraw();
-    }
+    };
+
+    const onPointerCancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (currentStrokeRef.current) {
+        const canvas = getCanvas();
+        if (canvas && canvas.hasPointerCapture(e.pointerId)) {
+          canvas.releasePointerCapture(e.pointerId);
+        }
+        currentStrokeRef.current = null;
+        redraw();
+      }
+    };
+
+    return { onPointerDown, onPointerMove, onPointerUp, onPointerCancel };
   };
 
+  const inlineHandlers = createPointerHandlers(() => inlineCanvasRef.current);
+  const fullscreenHandlers = createPointerHandlers(() => fullscreenCanvasRef.current);
+
   const hasSigned = strokeCount > 0;
+
+  // Reusable Toolbar Component
+  const renderToolbar = (isFs = false) => (
+    <div className="flex flex-wrap items-center gap-2">
+      {/* Colors */}
+      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
+        {INK_COLORS.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            title={c.label}
+            onClick={() => setSelectedColor(c.hex)}
+            className={`relative flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg transition-transform ${c.bgClass} ${
+              selectedColor === c.hex
+                ? 'scale-110 ring-2 ring-sky-500 ring-offset-1'
+                : 'opacity-85 hover:opacity-100'
+            }`}
+          >
+            {selectedColor === c.hex && <Check size={12} className="text-white drop-shadow-xs" />}
+          </button>
+        ))}
+      </div>
+
+      {/* Stroke Widths */}
+      <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
+        {STROKE_WIDTHS.map((w) => (
+          <button
+            key={w.id}
+            type="button"
+            title={`Nét ${w.label}`}
+            onClick={() => setSelectedWidth(w.value)}
+            className={`px-2 py-1 text-[11px] font-bold rounded-lg transition ${
+              selectedWidth === w.value
+                ? 'bg-[#003b70] text-white'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            {w.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Undo */}
+      <button
+        type="button"
+        disabled={!hasSigned}
+        onClick={undo}
+        className="inline-flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
+        title="Hoàn tác nét vẽ"
+      >
+        <Undo2 size={13} />
+        <span className="hidden xs:inline sm:inline">Hoàn tác</span>
+      </button>
+
+      {/* Clear */}
+      <button
+        type="button"
+        disabled={!hasSigned}
+        onClick={clear}
+        className="inline-flex h-8 items-center gap-1 rounded-xl border border-rose-200 bg-rose-50/60 px-2.5 text-xs font-bold text-rose-700 shadow-2xs transition hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed"
+        title="Xóa trắng bảng vẽ"
+      >
+        <RotateCcw size={13} />
+        <span>Ký lại</span>
+      </button>
+
+      {/* Fullscreen Toggle */}
+      {!isFs ? (
+        <button
+          type="button"
+          onClick={() => setIsFullscreen(true)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-2.5 text-xs font-bold text-[#003b70] shadow-2xs transition hover:bg-sky-100 active:scale-95"
+          title="Phóng to toàn màn hình để ký trên điện thoại"
+        >
+          <Maximize2 size={13} />
+          <span>Phóng to</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsFullscreen(false)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-100"
+          title="Thu nhỏ lại"
+        >
+          <Minimize2 size={13} />
+          <span className="hidden sm:inline">Thu nhỏ</span>
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition duration-200 hover:border-slate-300">
@@ -282,87 +497,36 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
           </div>
         </div>
 
-        {/* Paint-like Tools: Color, Stroke size, Undo, Clear */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Colors */}
-          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
-            {INK_COLORS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                title={c.label}
-                onClick={() => setSelectedColor(c.hex)}
-                className={`relative flex h-6 w-6 items-center justify-center rounded-lg transition-transform ${c.bgClass} ${
-                  selectedColor === c.hex
-                    ? 'scale-110 ring-2 ring-sky-500 ring-offset-1'
-                    : 'opacity-85 hover:opacity-100'
-                }`}
-              >
-                {selectedColor === c.hex && <Check size={12} className="text-white drop-shadow-xs" />}
-              </button>
-            ))}
-          </div>
-
-          {/* Stroke Widths */}
-          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
-            {STROKE_WIDTHS.map((w) => (
-              <button
-                key={w.id}
-                type="button"
-                title={`Nét ${w.label}`}
-                onClick={() => setSelectedWidth(w.value)}
-                className={`px-2 py-1 text-[11px] font-bold rounded-lg transition ${
-                  selectedWidth === w.value
-                    ? 'bg-[#003b70] text-white'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Undo */}
-          <button
-            type="button"
-            disabled={!hasSigned}
-            onClick={undo}
-            className="inline-flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Hoàn tác nét vẽ"
-          >
-            <Undo2 size={13} />
-            <span>Hoàn tác</span>
-          </button>
-
-          {/* Clear */}
-          <button
-            type="button"
-            disabled={!hasSigned}
-            onClick={clear}
-            className="inline-flex h-8 items-center gap-1 rounded-xl border border-rose-200 bg-rose-50/60 px-2.5 text-xs font-bold text-rose-700 shadow-2xs transition hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Xóa trắng bảng vẽ"
-          >
-            <RotateCcw size={13} />
-            <span>Ký lại</span>
-          </button>
-        </div>
+        {/* Inline Toolbar */}
+        {renderToolbar(false)}
       </div>
 
-      {/* Canvas Drawing Area */}
+      {/* Inline Canvas Drawing Area */}
       <div
-        ref={containerRef}
+        ref={inlineContainerRef}
         className="relative mt-3 w-full overflow-hidden rounded-xl border-2 border-dashed border-slate-300 bg-white shadow-inner"
         style={{ touchAction: 'none' }}
       >
         <canvas
-          ref={canvasRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
+          ref={inlineCanvasRef}
+          onPointerDown={inlineHandlers.onPointerDown}
+          onPointerMove={inlineHandlers.onPointerMove}
+          onPointerUp={inlineHandlers.onPointerUp}
+          onPointerCancel={inlineHandlers.onPointerCancel}
           className="block w-full cursor-crosshair select-none"
           style={{ touchAction: 'none' }}
         />
+
+        {/* Quick Fullscreen Button Overlay on Canvas */}
+        <button
+          type="button"
+          onClick={() => setIsFullscreen(true)}
+          className="absolute top-2.5 right-2.5 inline-flex items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white/95 px-2.5 py-1 text-xs font-bold text-[#003b70] shadow-xs backdrop-blur-xs transition hover:bg-sky-50 active:scale-95"
+          title="Phóng to toàn màn hình để ký dễ hơn trên điện thoại"
+        >
+          <Maximize2 size={13} className="text-sky-600" />
+          <span>Ký toàn màn hình</span>
+        </button>
 
         {/* Decorative baseline guide */}
         <div className="pointer-events-none absolute bottom-5 left-8 right-8 flex items-center gap-2 opacity-35">
@@ -402,6 +566,128 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
           className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20"
         />
       </div>
+
+      {/* FULLSCREEN MODAL OVERLAY (Specifically optimized for mobile screens) */}
+      {isFullscreen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex flex-col bg-slate-950/80 p-2 sm:p-4 backdrop-blur-xs animate-in fade-in duration-150"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Ký tên toàn màn hình"
+          >
+            <div className="flex flex-col h-full w-full max-w-5xl mx-auto rounded-2xl bg-white shadow-2xl overflow-hidden border border-slate-200">
+              {/* Top Header */}
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-5 sm:py-3.5 border-b border-slate-200 bg-slate-50/90">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-[#003b70]">
+                    <PenLine size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm sm:text-base font-bold text-slate-800 truncate m-0">
+                        Ký tên xác nhận buổi tập
+                      </h4>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          hasSigned
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {hasSigned ? 'Đã có chữ ký' : 'Chờ khách ký'}
+                      </span>
+                    </div>
+                    <p className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5">
+                      <Smartphone size={12} className="shrink-0 text-sky-600 hidden sm:inline" />
+                      <span className="hidden sm:inline">
+                        Gợi ý: Xoay ngang điện thoại để có không gian ký thoải mái nhất
+                      </span>
+                      <span className="sm:hidden">Dùng ngón tay hoặc bút cảm ứng để ký</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsFullscreen(false)}
+                    className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#003b70] px-4 text-xs sm:text-sm font-bold text-white shadow-sm transition hover:bg-[#002f5a] active:scale-95"
+                  >
+                    <Check size={16} />
+                    <span>Xong & Áp dụng</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Fullscreen Canvas Area */}
+              <div
+                ref={fullscreenContainerRef}
+                className="relative flex-1 w-full bg-white overflow-hidden cursor-crosshair select-none"
+                style={{ touchAction: 'none' }}
+              >
+                <canvas
+                  ref={fullscreenCanvasRef}
+                  onPointerDown={fullscreenHandlers.onPointerDown}
+                  onPointerMove={fullscreenHandlers.onPointerMove}
+                  onPointerUp={fullscreenHandlers.onPointerUp}
+                  onPointerCancel={fullscreenHandlers.onPointerCancel}
+                  className="block w-full h-full cursor-crosshair select-none"
+                  style={{ touchAction: 'none' }}
+                />
+
+                {/* Baseline Guide */}
+                <div className="pointer-events-none absolute bottom-8 left-8 right-8 flex items-center gap-2 opacity-40">
+                  <span className="text-sm font-bold text-slate-400">✕</span>
+                  <div className="h-[1px] flex-1 border-b-2 border-dashed border-slate-300" />
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                    Dòng ký tên
+                  </span>
+                </div>
+
+                {/* Watermark Placeholder */}
+                {!hasSigned && (
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center p-4 text-slate-300 select-none">
+                    <PenLine size={48} className="opacity-35 mb-2 animate-pulse" />
+                    <span className="text-sm font-semibold text-slate-400">
+                      Chạm ngón tay hoặc bút cảm ứng vào đây để ký tên
+                    </span>
+                    <span className="text-xs text-slate-400 mt-1">
+                      (Có thể xoay ngang màn hình điện thoại)
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Control Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 sm:p-3.5 border-t border-slate-200 bg-slate-50/95">
+                {/* Signer Name Input */}
+                <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md">
+                  <label
+                    htmlFor="fs-signer-input"
+                    className="flex shrink-0 items-center gap-1 text-xs font-bold text-slate-700"
+                  >
+                    <User size={13} />
+                    <span>Người ký:</span>
+                  </label>
+                  <input
+                    id="fs-signer-input"
+                    type="text"
+                    value={signerName}
+                    onChange={(e) => onSignerNameChange(e.target.value)}
+                    placeholder={placeholderName}
+                    className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20"
+                  />
+                </div>
+
+                {/* Fullscreen Paint Tools */}
+                {renderToolbar(true)}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 });
