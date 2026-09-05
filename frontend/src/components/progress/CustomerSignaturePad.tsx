@@ -123,6 +123,116 @@ function drawStrokesToCanvas(
   ctx.restore();
 }
 
+/**
+ * Attaches native Touch (with non-passive preventDefault) and Mouse events
+ * directly to the canvas to guarantee drawing works on all touch devices (iOS/Android)
+ */
+function bindCanvasEvents(
+  canvas: HTMLCanvasElement,
+  onStart: (pt: NormalizedPoint) => void,
+  onMove: (pt: NormalizedPoint) => void,
+  onEnd: () => void,
+) {
+  let isInteracting = false;
+  let activeTouchId: number | null = null;
+
+  const getPt = (clientX: number, clientY: number): NormalizedPoint => {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    const y = Math.max(0, Math.min(clientY - rect.top, rect.height));
+    return {
+      nx: rect.width > 0 ? x / rect.width : 0,
+      ny: rect.height > 0 ? y / rect.height : 0,
+    };
+  };
+
+  // 1. TOUCH EVENTS (Mobile Phones & Tablets - iOS Safari, Chrome Android)
+  const onTouchStart = (e: TouchEvent) => {
+    if (activeTouchId !== null || e.changedTouches.length === 0) return;
+    if (e.cancelable) e.preventDefault();
+    e.stopPropagation();
+
+    const t = e.changedTouches[0];
+    activeTouchId = t.identifier;
+    isInteracting = true;
+    onStart(getPt(t.clientX, t.clientY));
+  };
+
+  const onTouchMove = (e: TouchEvent) => {
+    if (!isInteracting || activeTouchId === null) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier === activeTouchId) {
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+        onMove(getPt(t.clientX, t.clientY));
+        break;
+      }
+    }
+  };
+
+  const onTouchEnd = (e: TouchEvent) => {
+    if (!isInteracting) return;
+    let isCurrentTouch = false;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === activeTouchId) {
+        isCurrentTouch = true;
+        break;
+      }
+    }
+    // End stroke if the active finger lifted, or all touches ended
+    if (isCurrentTouch || e.touches.length === 0) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      isInteracting = false;
+      activeTouchId = null;
+      onEnd();
+    }
+  };
+
+  // 2. MOUSE EVENTS (Computers & Laptops)
+  const onMouseDown = (e: MouseEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    isInteracting = true;
+    onStart(getPt(e.clientX, e.clientY));
+  };
+
+  const onMouseMove = (e: MouseEvent) => {
+    if (!isInteracting) return;
+    e.preventDefault();
+    onMove(getPt(e.clientX, e.clientY));
+  };
+
+  const onMouseUp = (e: MouseEvent) => {
+    if (!isInteracting) return;
+    isInteracting = false;
+    onEnd();
+  };
+
+  // Native touch listeners with { passive: false } are mandatory for mobile touchscreens!
+  canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+  canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+  canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+  // Native mouse listeners
+  canvas.addEventListener('mousedown', onMouseDown);
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup', onMouseUp);
+
+  return () => {
+    canvas.removeEventListener('touchstart', onTouchStart);
+    canvas.removeEventListener('touchmove', onTouchMove);
+    canvas.removeEventListener('touchend', onTouchEnd);
+    canvas.removeEventListener('touchcancel', onTouchEnd);
+
+    canvas.removeEventListener('mousedown', onMouseDown);
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+  };
+}
+
 const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(function CustomerSignaturePad(
   { signerName, onSignerNameChange, onSignatureChange, placeholderName = 'Họ và tên khách hàng' },
   ref,
@@ -145,6 +255,13 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
   const [selectedWidth, setSelectedWidth] = useState<number>(STROKE_WIDTHS[1].value);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Keep refs in sync for event listeners
+  const selectedColorRef = useRef(selectedColor);
+  selectedColorRef.current = selectedColor;
+
+  const selectedWidthRef = useRef(selectedWidth);
+  selectedWidthRef.current = selectedWidth;
+
   // Redraw both canvases if present
   const redraw = useCallback(() => {
     if (inlineCanvasRef.current) {
@@ -154,6 +271,57 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
       drawStrokesToCanvas(fullscreenCanvasRef.current, strokesRef.current, currentStrokeRef.current);
     }
   }, []);
+
+  // Stroke event handlers
+  const handleStrokeStart = useCallback(
+    (pt: NormalizedPoint) => {
+      currentStrokeRef.current = {
+        points: [pt],
+        color: selectedColorRef.current,
+        width: selectedWidthRef.current,
+      };
+      redraw();
+    },
+    [redraw],
+  );
+
+  const handleStrokeMove = useCallback(
+    (pt: NormalizedPoint) => {
+      if (!currentStrokeRef.current) return;
+      currentStrokeRef.current.points.push(pt);
+      redraw();
+    },
+    [redraw],
+  );
+
+  const notifyChange = useCallback(() => {
+    const count = strokesRef.current.length;
+    setStrokeCount(count);
+    onSignatureChange?.(count > 0);
+  }, [onSignatureChange]);
+
+  const handleStrokeEnd = useCallback(() => {
+    if (!currentStrokeRef.current) return;
+    strokesRef.current.push(currentStrokeRef.current);
+    currentStrokeRef.current = null;
+    notifyChange();
+    redraw();
+  }, [notifyChange, redraw]);
+
+  // Attach native touch & mouse events to inline canvas
+  useEffect(() => {
+    const canvas = inlineCanvasRef.current;
+    if (!canvas) return;
+    return bindCanvasEvents(canvas, handleStrokeStart, handleStrokeMove, handleStrokeEnd);
+  }, [handleStrokeStart, handleStrokeMove, handleStrokeEnd]);
+
+  // Attach native touch & mouse events to fullscreen canvas when active
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const canvas = fullscreenCanvasRef.current;
+    if (!canvas) return;
+    return bindCanvasEvents(canvas, handleStrokeStart, handleStrokeMove, handleStrokeEnd);
+  }, [isFullscreen, handleStrokeStart, handleStrokeMove, handleStrokeEnd]);
 
   // Resize inline canvas
   const resizeInlineCanvas = useCallback(() => {
@@ -278,12 +446,6 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
     };
   }, [isFullscreen, resizeFullscreenCanvas, resizeInlineCanvas, closeFullscreen]);
 
-  const notifyChange = useCallback(() => {
-    const count = strokesRef.current.length;
-    setStrokeCount(count);
-    onSignatureChange?.(count > 0);
-  }, [onSignatureChange]);
-
   const clear = useCallback(() => {
     strokesRef.current = [];
     currentStrokeRef.current = null;
@@ -340,78 +502,6 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
     }),
     [isEmpty, toDataUrl, toBlob, clear],
   );
-
-  // Helper to convert pointer event to normalized coordinates (0..1)
-  const getNormalizedPoint = (
-    e: React.PointerEvent<HTMLCanvasElement>,
-    canvas: HTMLCanvasElement,
-  ): NormalizedPoint => {
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-    const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
-    return {
-      nx: rect.width > 0 ? x / rect.width : 0,
-      ny: rect.height > 0 ? y / rect.height : 0,
-    };
-  };
-
-  // Pointer event handlers factory
-  const createPointerHandlers = (getCanvas: () => HTMLCanvasElement | null) => {
-    const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-      e.preventDefault();
-      const canvas = getCanvas();
-      if (!canvas) return;
-      canvas.setPointerCapture(e.pointerId);
-
-      const pt = getNormalizedPoint(e, canvas);
-      currentStrokeRef.current = {
-        points: [pt],
-        color: selectedColor,
-        width: selectedWidth,
-      };
-      redraw();
-    };
-
-    const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!currentStrokeRef.current) return;
-      e.preventDefault();
-      const canvas = getCanvas();
-      if (!canvas) return;
-
-      const pt = getNormalizedPoint(e, canvas);
-      currentStrokeRef.current.points.push(pt);
-      redraw();
-    };
-
-    const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!currentStrokeRef.current) return;
-      e.preventDefault();
-      const canvas = getCanvas();
-      if (canvas && canvas.hasPointerCapture(e.pointerId)) {
-        canvas.releasePointerCapture(e.pointerId);
-      }
-      strokesRef.current.push(currentStrokeRef.current);
-      currentStrokeRef.current = null;
-      notifyChange();
-      redraw();
-    };
-
-    const onPointerCancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (currentStrokeRef.current) {
-        const canvas = getCanvas();
-        if (canvas && canvas.hasPointerCapture(e.pointerId)) {
-          canvas.releasePointerCapture(e.pointerId);
-        }
-        currentStrokeRef.current = null;
-        redraw();
-      }
-    };
-
-    return { onPointerDown, onPointerMove, onPointerUp, onPointerCancel };
-  };
-
-  const inlineHandlers = createPointerHandlers(() => inlineCanvasRef.current);
-  const fullscreenHandlers = createPointerHandlers(() => fullscreenCanvasRef.current);
 
   const hasSigned = strokeCount > 0;
 
@@ -544,16 +634,22 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
       <div
         ref={inlineContainerRef}
         className="relative mt-3 w-full overflow-hidden rounded-xl border-2 border-dashed border-slate-300 bg-white shadow-inner"
-        style={{ touchAction: 'none' }}
+        style={{
+          touchAction: 'none',
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          userSelect: 'none',
+        }}
       >
         <canvas
           ref={inlineCanvasRef}
-          onPointerDown={inlineHandlers.onPointerDown}
-          onPointerMove={inlineHandlers.onPointerMove}
-          onPointerUp={inlineHandlers.onPointerUp}
-          onPointerCancel={inlineHandlers.onPointerCancel}
           className="block w-full cursor-crosshair select-none"
-          style={{ touchAction: 'none' }}
+          style={{
+            touchAction: 'none',
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            userSelect: 'none',
+          }}
         />
 
         {/* Quick Fullscreen Button Overlay on Canvas */}
@@ -587,7 +683,7 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center p-4 text-slate-300 select-none">
             <PenLine size={32} className="opacity-40 mb-1 animate-pulse" />
             <span className="text-xs font-semibold text-slate-400">
-              Chạm hoặc rê chuột vào đây để ký tên
+              Chạm ngón tay hoặc rê chuột vào đây để ký tên
             </span>
           </div>
         )}
@@ -669,16 +765,22 @@ const CustomerSignaturePad = forwardRef<CustomerSignaturePadHandle, Props>(funct
             <div
               ref={fullscreenContainerRef}
               className="relative flex-1 w-full h-full min-h-0 bg-white overflow-hidden cursor-crosshair select-none"
-              style={{ touchAction: 'none' }}
+              style={{
+                touchAction: 'none',
+                WebkitTouchCallout: 'none',
+                WebkitUserSelect: 'none',
+                userSelect: 'none',
+              }}
             >
               <canvas
                 ref={fullscreenCanvasRef}
-                onPointerDown={fullscreenHandlers.onPointerDown}
-                onPointerMove={fullscreenHandlers.onPointerMove}
-                onPointerUp={fullscreenHandlers.onPointerUp}
-                onPointerCancel={fullscreenHandlers.onPointerCancel}
                 className="block w-full h-full cursor-crosshair select-none"
-                style={{ touchAction: 'none' }}
+                style={{
+                  touchAction: 'none',
+                  WebkitTouchCallout: 'none',
+                  WebkitUserSelect: 'none',
+                  userSelect: 'none',
+                }}
               />
 
               {/* Baseline Guide */}
