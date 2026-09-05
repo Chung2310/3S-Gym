@@ -16,6 +16,7 @@ import type { AiBillingContext, ProviderResult } from './creditTypes.js';
  */
 
 export const IMAGE_MODEL = 'black-forest-labs/flux.2-klein-4b';
+export const FALLBACK_IMAGE_MODEL = 'bytedance-seed/seedream-4.5';
 
 export type AspectRatio = '1:1' | '4:3' | '3:4' | '3:2' | '2:3' | '16:9' | '9:16' | '21:9' | 'auto';
 export type OutputFormat = 'png' | 'jpeg';
@@ -53,6 +54,80 @@ interface OpenRouterImageResponse {
     completion_tokens: number;
     total_tokens: number;
     cost: number;
+  };
+}
+
+/**
+ * Gọi API OpenRouter Image với một model cụ thể (hỗ trợ FLUX.2 Klein 4B và ByteDance Seedream 4.5)
+ */
+async function callOpenRouterImageModel(
+  model: string,
+  apiKey: string,
+  options: GenerateImageOptions
+): Promise<ProviderResult<GeneratedImage>> {
+  const body: Record<string, unknown> = {
+    model,
+    prompt: options.prompt,
+    n: 1,
+    output_format: options.outputFormat || 'jpeg',
+  };
+
+  if (options.aspectRatio) {
+    body.aspect_ratio = options.aspectRatio;
+  }
+
+  if (options.seed !== undefined) {
+    body.seed = options.seed;
+  }
+
+  // Model bytedance-seed/seedream-4.5 hỗ trợ resolution: "1K" | "2K" | "4K"
+  if (model.includes('seedream')) {
+    body.resolution = '2K';
+  }
+
+  const response = await fetchWithTimeout(
+    'https://openrouter.ai/api/v1/images',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.APP_URL || 'http://3s.igentechsolutions.com',
+        'X-Title': '3S Gym & Wellness Fitness',
+      },
+      body: JSON.stringify(body),
+    },
+    getEnv().PROVIDER_TIMEOUT_MS,
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`OpenRouter Image API (${model}) trả về status ${response.status}: ${errorBody.slice(0, 200)}`);
+  }
+
+  const data = (await response.json()) as OpenRouterImageResponse;
+  if (!data.data?.length || !data.data[0].b64_json) {
+    throw new Error(`OpenRouter Image API (${model}) không trả về dữ liệu ảnh hợp lệ.`);
+  }
+
+  const cost = Number(data.usage?.cost ?? 0);
+  const value = {
+    b64Json: data.data[0].b64_json,
+    mediaType: data.data[0].media_type || 'image/jpeg',
+    cost: Number.isFinite(cost) && cost >= 0 ? cost : 0,
+    completionTokens: data.usage?.completion_tokens ?? 0,
+  };
+
+  return {
+    value,
+    provider: 'openrouter',
+    model,
+    usage: {
+      inputTokens: data.usage?.prompt_tokens,
+      outputTokens: data.usage?.completion_tokens,
+      totalTokens: data.usage?.total_tokens,
+      providerCostMicrousd: Math.round(cost * 1_000_000),
+    },
   };
 }
 
@@ -107,79 +182,38 @@ async function generateImageFallback(options: GenerateImageOptions): Promise<Pro
 }
 
 /**
- * Generate an image using FLUX.2 Klein 4B via the OpenRouter Image API.
- * Tự động chuyển đổi sang Pollinations fallback nếu OpenRouter hết credit (402) hoặc gặp sự cố.
+ * Generate an image using 3-tier cascading fallback:
+ * 1. Primary OpenRouter model: FLUX.2 Klein 4B (black-forest-labs/flux.2-klein-4b)
+ * 2. Secondary OpenRouter model: ByteDance Seedream 4.5 (bytedance-seed/seedream-4.5)
+ * 3. Final safety net fallback: Pollinations Flux (free, zero-credit dependency)
  */
 async function generateImageRaw(options: GenerateImageOptions): Promise<ProviderResult<GeneratedImage>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (apiKey) {
-    const model = process.env.IMAGE_MODEL || IMAGE_MODEL;
-
-    const body: Record<string, unknown> = {
-      model,
-      prompt: options.prompt,
-      n: 1,
-      output_format: options.outputFormat || 'jpeg',
-    };
-
-    if (options.aspectRatio) {
-      body.aspect_ratio = options.aspectRatio;
-    }
-
-    if (options.seed !== undefined) {
-      body.seed = options.seed;
-    }
-
+    // TIER 1: Thử model chính FLUX.2 Klein 4B
+    const primaryModel = process.env.IMAGE_MODEL || IMAGE_MODEL;
     try {
-      const response = await fetchWithTimeout(
-        'https://openrouter.ai/api/v1/images',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.APP_URL || 'http://3s.igentechsolutions.com',
-            'X-Title': '3S Gym & Wellness Fitness',
-          },
-          body: JSON.stringify(body),
-        },
-        getEnv().PROVIDER_TIMEOUT_MS,
-      );
-
-      if (response.ok) {
-        const data = (await response.json()) as OpenRouterImageResponse;
-
-        if (data.data?.length && data.data[0].b64_json) {
-          const cost = Number(data.usage?.cost ?? 0);
-          const value = {
-            b64Json: data.data[0].b64_json,
-            mediaType: data.data[0].media_type || 'image/jpeg',
-            cost: Number.isFinite(cost) && cost >= 0 ? cost : 0,
-            completionTokens: data.usage?.completion_tokens ?? 0,
-          };
-          return {
-            value,
-            provider: 'openrouter',
-            model,
-            usage: {
-              inputTokens: data.usage?.prompt_tokens,
-              outputTokens: data.usage?.completion_tokens,
-              totalTokens: data.usage?.total_tokens,
-              providerCostMicrousd: Math.round(cost * 1_000_000),
-            },
-          };
-        }
-      }
+      return await callOpenRouterImageModel(primaryModel, apiKey, options);
     } catch (err: any) {
       console.warn(
-        '[imageProvider] OpenRouter image generation gặp sự cố hoặc hết credit (402), tự động kích hoạt fallback provider:',
+        `[imageProvider] Model chính (${primaryModel}) gặp sự cố, tự động chuyển sang fallback model OpenRouter (${FALLBACK_IMAGE_MODEL}):`,
+        err?.message || err
+      );
+    }
+
+    // TIER 2: Thử model fallback OpenRouter ByteDance Seedream 4.5 (nếu FLUX.2 fail)
+    try {
+      return await callOpenRouterImageModel(FALLBACK_IMAGE_MODEL, apiKey, options);
+    } catch (err: any) {
+      console.warn(
+        `[imageProvider] Model fallback OpenRouter (${FALLBACK_IMAGE_MODEL}) gặp sự cố hoặc hết credit, kích hoạt dự phòng an toàn Pollinations:`,
         err?.message || err
       );
     }
   }
 
-  // Tự động chuyển sang fallback provider khi OpenRouter hết credit hoặc lỗi
+  // TIER 3: Dự phòng miễn phí tốc độ cao (Pollinations) đảm bảo 100% không bao giờ gián đoạn hay lỗi 503
   try {
     return await generateImageFallback(options);
   } catch (cause) {
