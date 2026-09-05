@@ -1,7 +1,7 @@
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { getEnv } from '../config/env.js';
-import { fetchWithTimeout } from './providerRequest.js';
+import { requestOpenRouter } from './openRouterRequest.js';
 import { withAiBilling } from './aiBillingService.js';
 import type { AiBillingContext, ProviderResult } from './creditTypes.js';
 
@@ -71,7 +71,7 @@ async function callOpenRouterGeminiImage(
   options: GenerateImageOptions
 ): Promise<ProviderResult<GeneratedImage>> {
   const model = 'google/gemini-3.1-flash-image';
-  const response = await fetchWithTimeout(
+  const { data } = await requestOpenRouter<any>(
     'https://openrouter.ai/api/v1/chat/completions',
     {
       method: 'POST',
@@ -91,12 +91,6 @@ async function callOpenRouterGeminiImage(
     getEnv().PROVIDER_TIMEOUT_MS,
   );
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`OpenRouter Gemini 3.1 Flash Image trả về status ${response.status}: ${errorBody.slice(0, 300)}`);
-  }
-
-  const data = await response.json();
   const choice = data.choices?.[0];
   const imgObj = choice?.message?.images?.[0];
   if (!imgObj) {
@@ -160,7 +154,7 @@ async function callOpenRouterImageModel(
     body.resolution = '2K';
   }
 
-  const response = await fetchWithTimeout(
+  const { data } = await requestOpenRouter<OpenRouterImageResponse>(
     'https://openrouter.ai/api/v1/images',
     {
       method: 'POST',
@@ -175,12 +169,6 @@ async function callOpenRouterImageModel(
     getEnv().PROVIDER_TIMEOUT_MS,
   );
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`OpenRouter Image API (${model}) trả về status ${response.status}: ${errorBody.slice(0, 200)}`);
-  }
-
-  const data = (await response.json()) as OpenRouterImageResponse;
   if (!data.data?.length || !data.data[0].b64_json) {
     throw new Error(`OpenRouter Image API (${model}) không trả về dữ liệu ảnh hợp lệ.`);
   }
