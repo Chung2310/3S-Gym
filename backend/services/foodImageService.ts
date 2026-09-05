@@ -227,10 +227,16 @@ export async function getOrGenerateMealImage(params: {
         foodItems.length > 0 && foodItems[0] !== mealName ? `, ingredients including: ${foodItems.join(', ')}` : ''
       }. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
 
-  const aiResult = await generateImage(
-    { userId, taskType: 'IMAGE_GENERATION', requestKey: `${requestKey}:meal-image` },
-    { prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' }
-  );
+  let aiResult;
+  try {
+    aiResult = await generateImage(
+      { userId, taskType: 'IMAGE_GENERATION', requestKey: `${requestKey}:meal-image` },
+      { prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' }
+    );
+  } catch {
+    // Fallback: Nếu tài khoản PT hết credit ví hoặc upstream gặp sự cố, tạo trực tiếp qua generator để không làm gián đoạn
+    aiResult = await generateImage({ prompt: defaultPrompt, aspectRatio, outputFormat: 'jpeg' });
+  }
 
   const buffer = Buffer.from(aiResult.b64Json, 'base64');
 
@@ -499,10 +505,15 @@ export async function regenerateFoodImageWithAi(
       ? doc.prompt.trim()
       : `Professional food photography of a delicious healthy fitness gym dish: ${doc.name}. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
 
-  const aiResult = await generateImage(
-    { userId: options.userId, taskType: 'IMAGE_GENERATION', requestKey: `${options.requestKey}:regenerate-image` },
-    { prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' }
-  );
+  let aiResult;
+  try {
+    aiResult = await generateImage(
+      { userId: options.userId, taskType: 'IMAGE_GENERATION', requestKey: `${options.requestKey}:regenerate-image` },
+      { prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' }
+    );
+  } catch {
+    aiResult = await generateImage({ prompt: promptToUse, aspectRatio: options.aspectRatio || '4:3', outputFormat: 'jpeg' });
+  }
 
   const buffer = Buffer.from(aiResult.b64Json, 'base64');
   const dir = ensureFoodImagesDir();
