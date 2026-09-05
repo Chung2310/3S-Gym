@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Image as ImageIcon, FileText, RefreshCw, UploadCloud, Sparkles } from 'lucide-react';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
 import { errorMessage, type PaginationMeta } from '../../types';
@@ -33,6 +34,9 @@ export default function AdminKnowledgePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(16);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+
+  const [deleteImageTarget, setDeleteImageTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deletingImage, setDeletingImage] = useState(false);
 
   // Modals state
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -115,14 +119,21 @@ export default function AdminKnowledgePage() {
   // ==========================================
   // HANDLERS: KHO ẢNH MÓN ĂN
   // ==========================================
-  const handleDeleteImage = async (id: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ảnh của món "${name}" khỏi kho không?`)) return;
+  const handleDeleteImage = async () => {
+    if (!deleteImageTarget || deletingImage) return;
+    const { id, name } = deleteImageTarget;
+    setDeletingImage(true);
     try {
       await api.delete(`/api/food-images/${id}`);
       toast.success(`Đã xóa ảnh món "${name}" khỏi kho.`);
-      void loadImages();
+      setDeleteImageTarget(null);
+      if (previewImage?._id === id) setPreviewImage(null);
+      if (images.length === 1 && currentPage > 1) setCurrentPage((page) => page - 1);
+      else void loadImages();
     } catch (err) {
       toast.error(errorMessage(err));
+    } finally {
+      setDeletingImage(false);
     }
   };
 
@@ -294,7 +305,7 @@ export default function AdminKnowledgePage() {
                     item={item}
                     onPreview={(dish) => setPreviewImage(dish)}
                     onEdit={(dish) => setEditingImage(dish)}
-                    onDelete={handleDeleteImage}
+                    onDelete={(id, name) => setDeleteImageTarget({ id, name })}
                   />
                 ))}
               </div>
@@ -359,6 +370,18 @@ export default function AdminKnowledgePage() {
       {/* ========================================== */}
       {/* MODALS CONTAINER                           */}
       {/* ========================================== */}
+      <ConfirmModal
+        open={Boolean(deleteImageTarget)}
+        title="Xóa ảnh món ăn?"
+        description={`Bạn có chắc muốn xóa ảnh món "${deleteImageTarget?.name || ''}" khỏi kho? Ảnh đã xóa không thể khôi phục.`}
+        confirmLabel="Xóa ảnh"
+        cancelLabel="Hủy"
+        danger
+        loading={deletingImage}
+        onClose={() => { if (!deletingImage) setDeleteImageTarget(null); }}
+        onConfirm={handleDeleteImage}
+      />
+
       <FoodImageUploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}

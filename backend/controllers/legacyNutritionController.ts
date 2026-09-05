@@ -70,7 +70,6 @@ export const mealImage = asyncHandler(async (req, res) => {
   const prompt = typeof req.query.prompt === 'string' ? req.query.prompt : 'Full healthy meal platter set with dishes on table';
   const seed = typeof req.query.seed === 'string' ? req.query.seed : '3s-gym';
   const image = await getMealImage(prompt, seed);
-  if (image.redirectUrl) return res.redirect(image.redirectUrl);
   res.setHeader('Content-Type', image.contentType || 'image/jpeg');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   return res.end(image.buffer);

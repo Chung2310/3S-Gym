@@ -21,13 +21,20 @@ export function ensureFoodImagesDir(): string {
  * Tạo prompt ẩm thực Việt Nam siêu chân thật cho AI (Google Gemini 3.1 Flash Image)
  */
 export function buildVietnameseFoodPrompt(mealName: string, foodItems?: string[]): string {
-  const cleanName = mealName.replace(/\([^)]*\)/g, '').trim();
-  const detailItems = foodItems
-    ?.filter((it) => it && it !== mealName)
-    .map((it) => it.replace(/\([^)]*\)/g, '').trim())
-    .filter(Boolean) || [];
+  const cleanName = mealName.trim();
+  const detailItems = [...new Set((foodItems || [])
+    .map((it) => it.trim())
+    .filter((it) => it && it !== cleanName))];
   const detailStr = detailItems.length > 0 ? `, gồm có: ${detailItems.join(', ')}` : '';
-  return `Chụp ảnh thực tế món ăn đời thường: ${cleanName}${detailStr}. Ẩm thực Việt Nam chân thật chuẩn vị, trình bày trên bàn ăn quen thuộc tại quán ăn hoặc gia đình Việt Nam (bát đĩa, thìa đũa, cốc trà đá hoặc đĩa rau gia vị mắm ớt đi kèm), ánh sáng ban ngày tự nhiên, màu sắc tươi ngon hấp dẫn, góc chụp đẹp mắt như ảnh chụp bằng camera điện thoại đời thực, tuyệt đối không vẽ 3D, không đồ họa hoạt hình giả tạo.`;
+  return [
+    `Tạo một ảnh chụp món ăn chân thực để minh họa thực đơn dinh dưỡng: ${cleanName}${detailStr}.`,
+    'Thể hiện chính xác món ăn, nguyên liệu và cách chế biến được mô tả; giữ đặc trưng của món, không tự thay thế nguyên liệu. Với món Việt, thể hiện đúng cách chế biến và trình bày đời thường tại Việt Nam.',
+    'Nếu có định lượng, dùng làm tham chiếu cho tỷ lệ và khẩu phần nhìn thấy, không viết số lên ảnh. Nếu không có định lượng, thể hiện một khẩu phần ăn thông thường cho một người.',
+    'Một món đơn: chỉ chụp món đó. Món kết hợp như bánh mì kẹp hoặc salad: trình bày thành một món hoàn chỉnh, thấy rõ các thành phần chính. Một bữa gồm nhiều món riêng: đặt đầy đủ các món trong cùng khung hình, mỗi món có bát hoặc đĩa phù hợp, không trộn tất cả vào một món.',
+    'Món ăn là chủ thể, chiếm khoảng 75% khung hình, nằm giữa ảnh và không bị cắt mất; chụp cận góc nghiêng 45 độ hoặc hơi từ trên xuống để thấy rõ toàn bộ món. Bát đĩa trơn trên mặt bàn sạch, nền trung tính đơn giản.',
+    'Phong cách ảnh chụp thực phẩm đời thực: ánh sáng cửa sổ dịu, bóng đổ tự nhiên, màu sắc trung thực, kết cấu nguyên liệu và độ chín rõ ràng, độ bóng vừa phải, các chi tiết không hoàn hảo tự nhiên. Lấy nét rõ món ăn, không làm mờ các món trong cùng bữa.',
+    'Không tự thêm món phụ, rau trang trí, nước chấm hoặc đồ uống ngoài mô tả. Không người, bàn tay, cảnh quán ăn đông đúc, bao bì, chữ, nhãn, logo, watermark hoặc khung infographic. Không minh họa, hoạt hình, 3D, CGI, bề mặt nhựa hay màu bão hòa quá mức. Chỉ xuất một ảnh món ăn, không ghép nhiều ảnh.',
+  ].join(' ');
 }
 
 /**
