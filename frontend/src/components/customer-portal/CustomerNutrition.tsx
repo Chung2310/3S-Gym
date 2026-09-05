@@ -13,6 +13,7 @@ import {
   Utensils,
   Zap,
 } from 'lucide-react';
+import MealImagePreviewModal from '../nutrition/MealImagePreviewModal';
 import type { CustomerJourneyDto, CustomerNutritionPlanDto, NutritionPlanMenuItem } from '../../types';
 
 interface CustomerNutritionProps {
@@ -40,6 +41,7 @@ export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const [selectedPortalWeek, setSelectedPortalWeek] = useState<number>(0);
   const [selectedPortalDay, setSelectedPortalDay] = useState<number>(0);
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
   // Meal breakdown & Hierarchical Detection
   const rawMenu = activeNutrition?.menu;
@@ -296,8 +298,16 @@ export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
                           )}
 
                           {meal.imageUrl && (
-                            <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
-                              <img src={meal.imageUrl} alt={meal.name} className="h-36 w-full object-cover" />
+                            <div
+                              className="mt-3 overflow-hidden rounded-lg border border-slate-200 cursor-pointer group"
+                              onClick={() => setPreviewImage({ url: meal.imageUrl!, title: meal.name })}
+                              title="Bấm để xem ảnh lớn"
+                            >
+                              <img
+                                src={meal.imageUrl}
+                                alt={meal.name}
+                                className="h-36 w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
                             </div>
                           )}
 
@@ -308,11 +318,22 @@ export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
                                   key={itemIdx}
                                   className="flex items-center justify-between rounded-lg bg-white p-2.5 text-xs border border-slate-100"
                                 >
-                                  <div>
-                                    <div className="font-semibold text-slate-800">{item.name}</div>
-                                    {item.prepTip && (
-                                      <div className="text-[10px] text-slate-500 italic mt-0.5">{item.prepTip}</div>
+                                  <div className="flex items-center gap-2.5">
+                                    {item.imageUrl && (
+                                      <img
+                                        src={item.imageUrl}
+                                        alt={item.name}
+                                        onClick={() => setPreviewImage({ url: item.imageUrl!, title: item.name })}
+                                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-slate-200 cursor-pointer hover:opacity-90 hover:scale-105 transition-all"
+                                        title="Bấm để xem ảnh chi tiết"
+                                      />
                                     )}
+                                    <div>
+                                      <div className="font-semibold text-slate-800">{item.name}</div>
+                                      {item.prepTip && (
+                                        <div className="text-[10px] text-slate-500 italic mt-0.5">{item.prepTip}</div>
+                                      )}
+                                    </div>
                                   </div>
                                   <div className="flex items-center gap-2 font-mono text-slate-600">
                                     {item.amount && <span>{item.amount}</span>}
@@ -368,7 +389,18 @@ export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
                             key={itemIdx}
                             className="flex items-center justify-between rounded-lg bg-white p-2.5 text-xs border border-slate-100"
                           >
-                            <div className="font-semibold text-slate-800">{item.name}</div>
+                            <div className="flex items-center gap-2.5">
+                              {(item as any).imageUrl && (
+                                <img
+                                  src={(item as any).imageUrl}
+                                  alt={item.name}
+                                  onClick={() => setPreviewImage({ url: (item as any).imageUrl, title: item.name })}
+                                  className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-slate-200 cursor-pointer hover:opacity-90 hover:scale-105 transition-all"
+                                  title="Bấm để xem ảnh chi tiết"
+                                />
+                              )}
+                              <div className="font-semibold text-slate-800">{item.name}</div>
+                            </div>
                             <div className="flex items-center gap-2 font-mono text-slate-600">
                               {item.weightGrams && <span>{item.weightGrams}g</span>}
                               {item.calories && <span className="text-amber-600 font-bold">{item.calories} kcal</span>}
@@ -467,6 +499,12 @@ export default function CustomerNutrition({ journey }: CustomerNutritionProps) {
           </p>
         </div>
       )}
+
+      {/* Modal xem preview ảnh món ăn phóng to */}
+      <MealImagePreviewModal
+        previewImage={previewImage}
+        onClose={() => setPreviewImage(null)}
+      />
     </div>
   );
 }

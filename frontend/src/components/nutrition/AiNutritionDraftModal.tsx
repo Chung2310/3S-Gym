@@ -28,7 +28,11 @@ export default function AiNutritionDraftModal({ open, customerId, customerName, 
   const generate = async () => {
     try {
       setLoading(true);
-      const result = await api.post<NutritionDraftPlan>('/api/content-drafts/nutrition', { customerId, request });
+      const result = await api.post<NutritionDraftPlan>(
+        '/api/content-drafts/nutrition',
+        { customerId, request },
+        { retries: 1, retryDelayMs: 1500 }
+      );
       
       // Enhance draft with visual poster dishes if menu exists
       const d = result.data;

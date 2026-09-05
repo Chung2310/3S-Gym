@@ -6,7 +6,7 @@ import {
   CheckCircle2,
   Copy,
   Info,
-  Layers,
+  Pencil,
   Plus,
   RefreshCw,
   Salad,
@@ -20,7 +20,7 @@ import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
 import type { Customer, NutritionDraftPlan, CalculatedNutrition, AiNutritionAnalysisResult } from '../../types';
-import MealAiConfigStudio, { DIET_STYLES, ALLERGY_CHIPS } from './MealAiConfigStudio';
+import MealAiConfigStudio, { DIET_STYLES } from './MealAiConfigStudio';
 import MealCardItem, { type MealBlock, type MealFoodItem } from './MealCardItem';
 import MealImagePreviewModal from './MealImagePreviewModal';
 import {
@@ -165,6 +165,7 @@ export default function MealPlannerBuilder({
   const toast = useToast();
   const [title, setTitle] = useState('');
   const [dietAdviceNotes, setDietAdviceNotes] = useState('');
+  const [isEditingAdvice, setIsEditingAdvice] = useState(false);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [mealCount, setMealCount] = useState<number>(4);
   const [targetKcalInput, setTargetKcalInput] = useState<string>('1850');
@@ -421,6 +422,8 @@ export default function MealPlannerBuilder({
   const [mealAiStage, setMealAiStage] = useState<number>(0);
   const [saving, setSaving] = useState(false);
   const [generatingImageId, setGeneratingImageId] = useState<string | null>(null);
+  const [generatingItemKey, setGeneratingItemKey] = useState<string | null>(null);
+  const [generatingMealAllItemsId, setGeneratingMealAllItemsId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
 
   // Animated Loading Progress Tracker
@@ -490,6 +493,7 @@ export default function MealPlannerBuilder({
                   carbs: it.carbs || 10,
                   fat: it.fat || 3,
                   prepTip: it.prepTip || undefined,
+                  imageUrl: it.imageUrl || undefined,
                 };
               }
               const str = String(it);
@@ -592,10 +596,14 @@ YÊU CẦU THIẾT KẾ THỰC ĐƠN:
 ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       `.trim();
 
-      const res = await api.post<NutritionDraftPlan>('/api/content-drafts/nutrition', {
-        customerId: targetId,
-        request: compositeRequest,
-      });
+      const res = await api.post<NutritionDraftPlan>(
+        '/api/content-drafts/nutrition',
+        {
+          customerId: targetId,
+          request: compositeRequest,
+        },
+        { retries: 1, retryDelayMs: 1500 }
+      );
 
       const draft = res.data;
       if (draft) {
@@ -624,6 +632,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
                 carbs: it.carbs || 20,
                 fat: it.fat || 5,
                 prepTip: it.prepTip || undefined,
+                imageUrl: it.imageUrl || undefined,
               };
             }
             return {
@@ -724,11 +733,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
           return next;
         });
 
-        if (res.data.reused) {
-          toast.success(`🎉 ${res.data.message || `Đã lấy ảnh từ kho cho ${meal.name} (Tiết kiệm chi phí)!`}`);
-        } else {
-          toast.success(`✨ ${res.data.message || `AI đã tạo ảnh mới và lưu vào kho cho ${meal.name}!`}`);
-        }
+        toast.success('Tạo ảnh thành công!');
       }
     } catch (err: any) {
       const msg = errorMessage(err);
@@ -739,6 +744,141 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       }
     } finally {
       setGeneratingImageId(null);
+    }
+  };
+
+  /**
+   * Sinh ảnh AI cho từng món ăn cụ thể:
+   * Quy cách đặt tên trùng tên món ăn và lưu vào kho DB để sau này tự động tái sử dụng
+   */
+  const handleGenerateItemImage = async (mealIdx: number, itemIdx: number, force: boolean = false) => {
+    const meal = meals[mealIdx];
+    if (!meal) return;
+    const item = meal.items[itemIdx];
+    if (!item || !item.name.trim()) {
+      toast.error('Vui lòng nhập tên món ăn trước khi tạo ảnh.');
+      return;
+    }
+
+    const cleanDishName = item.name.replace(/\([^)]*\)/g, '').trim() || item.name.trim();
+    const itemKey = `${meal.id || mealIdx}-${itemIdx}`;
+    setGeneratingItemKey(itemKey);
+
+    try {
+      const prompt = `Professional food photography of a delicious healthy fitness gym dish: ${cleanDishName}. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
+
+      const res = await api.post<{
+        imageUrl: string;
+        name: string;
+        source: 'CACHE' | 'AI';
+        reused: boolean;
+        message: string;
+      }>('/api/images/meal-image', {
+        mealName: cleanDishName,
+        items: [cleanDishName],
+        prompt,
+        aspectRatio: '4:3',
+        forceRegenerate: force,
+      });
+
+      if (res.data?.imageUrl) {
+        updateActiveDayMeals((curr) => {
+          const next = [...curr];
+          const m = { ...next[mealIdx] };
+          const its = [...m.items];
+          its[itemIdx] = {
+            ...its[itemIdx],
+            imageUrl: res.data.imageUrl,
+          };
+          m.items = its;
+          next[mealIdx] = m;
+          return next;
+        });
+
+        toast.success('Tạo ảnh thành công!');
+      }
+    } catch (err: any) {
+      const msg = errorMessage(err);
+      if (msg.includes('402') || msg.includes('credit') || msg.includes('Insufficient') || msg.includes('OpenRouter')) {
+        toast.error('Hệ thống gặp sự cố. Vui lòng liên hệ quản trị viên để được hỗ trợ');
+      } else {
+        toast.error(`Không thể tạo ảnh: ${msg}`);
+      }
+    } finally {
+      setGeneratingItemKey(null);
+    }
+  };
+
+  /**
+   * Sinh ảnh cho tất cả các món ăn trong một bữa:
+   * Lần lượt sinh hoặc lấy từ kho ảnh cho từng món ăn
+   */
+  const handleGenerateAllMealItemsImages = async (mealIdx: number) => {
+    const meal = meals[mealIdx];
+    if (!meal || meal.items.length === 0) {
+      toast.error('Vui lòng thêm các món ăn vào bữa trước khi tạo ảnh.');
+      return;
+    }
+
+    const validItems = meal.items
+      .map((it, idx) => ({ it, idx }))
+      .filter(({ it }) => it.name.trim().length > 0);
+
+    if (validItems.length === 0) {
+      toast.error('Vui lòng nhập tên món ăn hợp lệ.');
+      return;
+    }
+
+    setGeneratingMealAllItemsId(meal.id || String(mealIdx));
+
+    let successCount = 0;
+    for (const { it, idx } of validItems) {
+      const cleanDishName = it.name.replace(/\([^)]*\)/g, '').trim() || it.name.trim();
+      const itemKey = `${meal.id || mealIdx}-${idx}`;
+      setGeneratingItemKey(itemKey);
+
+      try {
+        const prompt = `Professional food photography of a delicious healthy fitness gym dish: ${cleanDishName}. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
+
+        const res = await api.post<{
+          imageUrl: string;
+          name: string;
+          source: 'CACHE' | 'AI';
+          reused: boolean;
+        }>('/api/images/meal-image', {
+          mealName: cleanDishName,
+          items: [cleanDishName],
+          prompt,
+          aspectRatio: '4:3',
+        });
+
+        if (res.data?.imageUrl) {
+          updateActiveDayMeals((curr) => {
+            const next = [...curr];
+            const m = { ...next[mealIdx] };
+            const its = [...m.items];
+            its[idx] = {
+              ...its[idx],
+              imageUrl: res.data.imageUrl,
+            };
+            m.items = its;
+            next[mealIdx] = m;
+            return next;
+          });
+          successCount++;
+        }
+      } catch (err) {
+        console.error(`Error generating image for dish: ${cleanDishName}`, err);
+      }
+    }
+
+    setGeneratingItemKey(null);
+    setGeneratingMealAllItemsId(null);
+
+    if (successCount > 0) {
+      toast.success('Tạo ảnh thành công!');
+    } else {
+      toast.error('Không thể tạo ảnh món ăn. Vui lòng thử lại.');
     }
   };
 
@@ -777,6 +917,7 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
               carbs: i.carbs || 0,
               fat: i.fat || 0,
               prepTip: i.prepTip || undefined,
+              imageUrl: i.imageUrl || undefined,
             })),
             imageUrl: m.imageUrl || undefined,
           })),
@@ -1287,9 +1428,76 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
 
       {/* Advice Note banner if available */}
       {dietAdviceNotes && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', fontSize: '0.82rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Info size={16} color="#16a34a" />
-          <span><strong>Lời khuyên từ Chuyên Gia AI:</strong> {dietAdviceNotes}</span>
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', fontSize: '0.82rem', color: '#166534', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', flex: 1 }}>
+            <Info size={16} color="#16a34a" style={{ marginTop: '2px', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 800, color: '#14532d', marginBottom: '2px' }}>Lời khuyên dinh dưỡng từ Chuyên Gia / Huấn luyện viên:</div>
+              {isEditingAdvice ? (
+                <div style={{ marginTop: '6px' }}>
+                  <textarea
+                    value={dietAdviceNotes}
+                    onChange={(e) => setDietAdviceNotes(e.target.value)}
+                    rows={3}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #86efac',
+                      fontSize: '0.82rem',
+                      fontFamily: 'inherit',
+                      resize: 'vertical',
+                      background: '#ffffff',
+                      color: '#1e293b',
+                    }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingAdvice(false)}
+                      style={{
+                        background: '#16a34a',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '4px 12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Xong
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ whiteSpace: 'pre-line', lineHeight: 1.5, color: '#166534' }}>{dietAdviceNotes}</div>
+              )}
+            </div>
+          </div>
+          {!isEditingAdvice && (
+            <button
+              type="button"
+              onClick={() => setIsEditingAdvice(true)}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #bbf7d0',
+                color: '#15803d',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: '6px',
+                flexShrink: 0,
+              }}
+              title="Chỉnh sửa lời khuyên"
+            >
+              <Pencil size={12} /> Sửa
+            </button>
+          )}
         </div>
       )}
 
@@ -1702,6 +1910,8 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
               mealIdx={mealIdx}
               mealsCount={meals.length}
               isGeneratingImg={generatingImageId === meal.id}
+              isGeneratingAllItems={generatingMealAllItemsId === (meal.id || String(mealIdx))}
+              generatingItemKey={generatingItemKey}
               onUpdateMealName={handleUpdateMealName}
               onUpdateMealTimeSlot={handleUpdateMealTimeSlot}
               onRemoveMeal={handleRemoveMealBlock}
@@ -1709,6 +1919,8 @@ ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
               onRemoveItem={handleRemoveItem}
               onUpdateItem={handleUpdateItem}
               onGenerateImage={(idx) => void handleGenerateMealImage(idx)}
+              onGenerateItemImage={(mIdx, itIdx, force) => void handleGenerateItemImage(mIdx, itIdx, force)}
+              onGenerateAllMealItemsImages={(mIdx) => void handleGenerateAllMealItemsImages(mIdx)}
               onPreviewImage={(prev) => setPreviewImage(prev)}
             />
           ))}

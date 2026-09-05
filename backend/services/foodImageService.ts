@@ -143,9 +143,9 @@ export async function saveFoodImageToStorage(options: {
     throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Tên món ăn không hợp lệ.' });
   }
 
-  const slug = norm.replace(/\s+/g, '_').slice(0, 40);
+  const slug = norm.replace(/\s+/g, '_').slice(0, 80) || 'mon_an';
   const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
-  const filename = `${slug}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  const filename = `${slug}.${ext}`;
   const localPath = path.join(dir, filename);
 
   // Ghi file vật lý lên ổ đĩa
@@ -192,6 +192,7 @@ export async function getOrGenerateMealImage(params: {
   userId: string;
   requestKey: string;
   aspectRatio?: AspectRatio;
+  forceRegenerate?: boolean;
 }): Promise<{
   imageUrl: string;
   name: string;
@@ -200,28 +201,30 @@ export async function getOrGenerateMealImage(params: {
   cost?: number;
   message: string;
 }> {
-  const { mealName, foodItems = [], prompt, userId, requestKey, aspectRatio = '4:3' } = params;
+  const { mealName, foodItems = [], prompt, userId, requestKey, aspectRatio = '4:3', forceRegenerate = false } = params;
 
-  // BƯỚC 1: Tìm kiếm trong kho ảnh món ăn có sẵn
-  const existing = await findMatchingFoodImage(mealName, foodItems);
-  if (existing) {
-    existing.usageCount = (existing.usageCount || 0) + 1;
-    await existing.save();
+  // BƯỚC 1: Tìm kiếm trong kho ảnh món ăn có sẵn (nếu không ép vẽ lại)
+  if (!forceRegenerate) {
+    const existing = await findMatchingFoodImage(mealName, foodItems);
+    if (existing) {
+      existing.usageCount = (existing.usageCount || 0) + 1;
+      await existing.save();
 
-    return {
-      imageUrl: existing.imageUrl,
-      name: existing.name,
-      source: 'CACHE',
-      reused: true,
-      message: `Đã tìm thấy ảnh món "${existing.name}" có sẵn trong kho (Tiết kiệm 100% chi phí AI)!`,
-    };
+      return {
+        imageUrl: existing.imageUrl,
+        name: existing.name,
+        source: 'CACHE',
+        reused: true,
+        message: 'Tạo ảnh thành công!',
+      };
+    }
   }
 
-  // BƯỚC 2: Chưa có trong kho -> Gọi AI sinh ảnh mới
+  // BƯỚC 2: Chưa có trong kho (hoặc ép vẽ mới) -> Gọi AI sinh ảnh mới theo từng món ăn
   const defaultPrompt = prompt && prompt.trim().length > 10
     ? prompt.trim()
     : `Professional food photography of a delicious healthy fitness gym dish: ${mealName}${
-        foodItems.length > 0 ? `, ingredients including: ${foodItems.join(', ')}` : ''
+        foodItems.length > 0 && foodItems[0] !== mealName ? `, ingredients including: ${foodItems.join(', ')}` : ''
       }. Beautiful modern ceramic tableware, soft warm restaurant lighting, crisp culinary presentation, high resolution 4k.`;
 
   const aiResult = await generateImage(
@@ -231,7 +234,7 @@ export async function getOrGenerateMealImage(params: {
 
   const buffer = Buffer.from(aiResult.b64Json, 'base64');
 
-  // BƯỚC 3: Lưu ảnh AI mới sinh vào folder kho ảnh và MongoDB để tái sử dụng mãi mãi
+  // BƯỚC 3: Lưu ảnh AI mới sinh vào folder kho ảnh và MongoDB theo quy cách tên món để tái sử dụng mãi mãi
   const saved = await saveFoodImageToStorage({
     buffer,
     name: mealName,
@@ -247,7 +250,7 @@ export async function getOrGenerateMealImage(params: {
     source: 'AI',
     reused: false,
     cost: aiResult.cost,
-    message: `AI đã tạo ảnh mới và lưu vào kho món ăn "${saved.name}" thành công!`,
+    message: 'Tạo ảnh thành công!',
   };
 }
 
@@ -448,9 +451,9 @@ export async function updateFoodImage(
   // 9. Nếu có tải file ảnh mới thay thế (ghi đè file vật lý trên ổ đĩa)
   if (updates.buffer && updates.buffer.length > 0) {
     const dir = ensureFoodImagesDir();
-    const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 40);
+    const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 80);
     const ext = (updates.mimeType || '').includes('png') ? 'png' : (updates.mimeType || '').includes('webp') ? 'webp' : 'jpg';
-    const filename = `${slug}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+    const filename = `${slug}.${ext}`;
     const newPath = path.join(dir, filename);
 
     // Xóa file ảnh cũ nếu có
@@ -503,9 +506,9 @@ export async function regenerateFoodImageWithAi(
 
   const buffer = Buffer.from(aiResult.b64Json, 'base64');
   const dir = ensureFoodImagesDir();
-  const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 40);
+  const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 80);
   const ext = (aiResult.mediaType || '').includes('png') ? 'png' : 'jpg';
-  const filename = `${slug}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+  const filename = `${slug}.${ext}`;
   const newPath = path.join(dir, filename);
 
   // Xóa ảnh vật lý cũ nếu tồn tại
