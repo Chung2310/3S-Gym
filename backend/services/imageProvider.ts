@@ -1,7 +1,7 @@
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { getEnv } from '../config/env.js';
-import { fetchWithTimeout } from './providerRequest.js';
+import { requestOpenRouter } from './openRouterRequest.js';
 import { withAiBilling } from './aiBillingService.js';
 import type { AiBillingContext, ProviderResult } from './creditTypes.js';
 
@@ -90,7 +90,7 @@ async function generateImageRaw(options: GenerateImageOptions): Promise<Provider
   }
 
   try {
-    const response = await fetchWithTimeout(
+    const { data } = await requestOpenRouter<OpenRouterImageResponse>(
       'https://openrouter.ai/api/v1/images',
       {
         method: 'POST',
@@ -104,13 +104,6 @@ async function generateImageRaw(options: GenerateImageOptions): Promise<Provider
       },
       getEnv().PROVIDER_TIMEOUT_MS,
     );
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`OpenRouter Image API trả về ${response.status}: ${errorBody.slice(0, 200)}`);
-    }
-
-    const data = (await response.json()) as OpenRouterImageResponse;
 
     if (!data.data?.length || !data.data[0].b64_json) {
       throw new Error('OpenRouter Image API không trả về ảnh.');

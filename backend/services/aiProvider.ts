@@ -1,7 +1,7 @@
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { getEnv } from '../config/env.js';
-import { fetchWithTimeout } from './providerRequest.js';
+import { OpenRouterRequestError, requestOpenRouter } from './openRouterRequest.js';
 import { withAiBilling } from './aiBillingService.js';
 import { logger } from '../config/logger.js';
 import type { AiBillingContext, ProviderResult, ProviderUsage } from './creditTypes.js';
@@ -70,7 +70,7 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
         responseFormat: options.jsonMode ? 'json_object' : 'text',
       }, 'Bắt đầu gọi OpenRouter');
 
-      const response = await fetchWithTimeout(
+      const { response, data: payload } = await requestOpenRouter(
         'https://openrouter.ai/api/v1/chat/completions',
         {
           method: 'POST',
@@ -82,10 +82,11 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
           },
           body: JSON.stringify(bodyPayload),
         },
-        getEnv().PROVIDER_TIMEOUT_MS
+        getEnv().PROVIDER_TIMEOUT_MS,
+        1,
       );
 
-      const data = (await response.json()) as {
+      const data = payload as {
         id?: string;
         provider?: string;
         model?: string;
@@ -94,25 +95,8 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
           native_finish_reason?: string;
           message?: { content?: string; reasoning?: string };
         }>;
-        error?: { message?: string; code?: number | string };
         usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown; cost?: unknown };
       };
-
-      if (!response.ok || data.error) {
-        const errMsg = data.error?.message || `AI Provider phản hồi mã lỗi HTTP ${response.status}`;
-        if (
-          response.status === 402
-          || data.error?.code === 402
-          || /credit|balance|insufficient|payment|quota/i.test(errMsg)
-        ) {
-          throw new AppError({
-            status: 503,
-            code: ERROR_CODES.UNAVAILABLE,
-            message: 'Hệ thống gặp sự cố. Vui lòng liên hệ quản trị viên để được hỗ trợ',
-          });
-        }
-        throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: errMsg });
-      }
 
       const choiceMsg = data.choices?.[0]?.message;
       let content = choiceMsg?.content;
@@ -174,16 +158,17 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
       return { value: content.trim(), provider: 'openrouter', model, usage: normalizedUsage(data.usage) };
     } catch (err: any) {
       lastError = err;
-      const isRetryable = err?.status === 503 || err?.status === 502 || err?.code === ERROR_CODES.UNAVAILABLE || err?.code === ERROR_CODES.EXTERNAL;
+      const retryDelay = Math.max(1500 * attempt, err instanceof OpenRouterRequestError ? err.retryAfterMs : 0);
+      const isRetryable = (err instanceof OpenRouterRequestError ? err.retryable : err?.status === 503 || err?.status === 502 || err?.code === ERROR_CODES.UNAVAILABLE || err?.code === ERROR_CODES.EXTERNAL) && retryDelay <= getEnv().PROVIDER_TIMEOUT_MS;
       logger.warn({
         context: 'AI_PROVIDER', provider: 'openrouter', model, attempt,
         requestKey: options.requestKey, taskType: options.taskType,
         durationMs: Date.now() - startedAt, retryable: isRetryable,
-        willRetry: isRetryable && attempt < 3 && process.env.NODE_ENV !== 'test',
+        willRetry: isRetryable && attempt < 3,
         err,
       }, 'Lỗi khi gọi OpenRouter');
-      if (isRetryable && attempt < 3 && process.env.NODE_ENV !== 'test') {
-        await new Promise((r) => setTimeout(r, 1500 * attempt));
+      if (isRetryable && attempt < 3) {
+        await new Promise((r) => setTimeout(r, retryDelay));
         continue;
       }
       break;
