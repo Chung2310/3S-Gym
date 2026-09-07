@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import FormModal from '../ui/FormModal';
 import { useToast } from '../ui/ToastProvider';
 import { api } from '../../services/api';
+import { useExerciseDuplicates } from '../../hooks/useExerciseDuplicates';
 import {
   errorMessage,
   type AiExerciseDraft,
@@ -51,6 +52,15 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [discardedCount, setDiscardedCount] = useState(0);
+  const duplicates = useExerciseDuplicates(drafts.map((draft) => draft.name), open && step === 'REVIEW');
+  const duplicateKey = JSON.stringify(duplicates.reasons.map(Boolean));
+  useEffect(() => {
+    if (!duplicates.ready) return;
+    const blocked = JSON.parse(duplicateKey) as boolean[];
+    setSelected((current) => new Set([...current].filter((index) => !blocked[index])));
+  }, [duplicateKey, duplicates.ready]);
+  const selectable = drafts.map((_, index) => index).filter((index) => !duplicates.reasons[index]);
+  const selectedCount = selectable.filter((index) => selected.has(index)).length;
 
   const reset = () => {
     setPrompt('');
@@ -98,6 +108,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
   };
 
   const toggle = (index: number) => {
+    if (!duplicates.ready || duplicates.reasons[index] || loading) return;
     setSelected((current) => {
       const next = new Set(current);
       if (next.has(index)) next.delete(index);
@@ -107,7 +118,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
   };
 
   const selectedDrafts = drafts
-    .filter((draft, index) => selected.has(index) && isValidDraft(draft))
+    .filter((draft, index) => selected.has(index) && !duplicates.reasons[index] && isValidDraft(draft))
     .map((draft) => {
       const groups = draft.muscleGroups && draft.muscleGroups.length > 0
         ? draft.muscleGroups
@@ -119,10 +130,11 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
         muscleGroup: groups.join(', '),
       };
     });
-  const selectedInvalid = drafts.some((draft, index) => selected.has(index) && !isValidDraft(draft));
+  const selectedInvalid = drafts.some((draft, index) => selected.has(index) && !duplicates.reasons[index] && !isValidDraft(draft));
 
   const save = async () => {
-    if (!selected.size) {
+    if (!duplicates.ready || loading) return;
+    if (!selectedCount) {
       setError('Vui lòng chọn ít nhất một bài tập.');
       return;
     }
@@ -139,6 +151,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
       onSaved();
     } catch (cause) {
       setError(errorMessage(cause));
+      duplicates.retry();
     } finally {
       setLoading(false);
     }
@@ -150,7 +163,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
     else void save();
   };
 
-  const saveLabel = `Lưu ${selected.size} bài tập`;
+  const saveLabel = `Lưu ${selectedCount} bài tập`;
 
   return (
     <FormModal
@@ -162,7 +175,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
       dirty={Boolean(prompt || drafts.length)}
       loading={loading}
       submitLabel={step === 'CONFIG' ? 'Tạo bản nháp' : saveLabel}
-      submitDisabled={step === 'REVIEW' && (!selected.size || selectedInvalid)}
+      submitDisabled={step === 'REVIEW' && (!duplicates.ready || !selectedCount || selectedInvalid)}
       onClose={close}
       onSubmit={submit}
     >
@@ -180,13 +193,16 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button type="button" className="button button-secondary" disabled={loading} onClick={() => { setError(''); setStep('CONFIG'); }}><ArrowLeft size={16} /> Quay lại cấu hình</button>
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={selected.size === drafts.length && drafts.length > 0} onChange={(event) => setSelected(event.target.checked ? new Set(drafts.map((_, index) => index)) : new Set())} /> Chọn tất cả</label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" disabled={loading || !duplicates.ready || selectable.length === 0} checked={selectedCount === selectable.length && selectable.length > 0} onChange={(event) => setSelected(event.target.checked ? new Set(selectable) : new Set())} /> Chọn tất cả</label>
           </div>
+          {!duplicates.ready && !duplicates.error && <p role="status" className="text-sm text-slate-600">Đang kiểm tra bài tập trong thư viện…</p>}
+          {duplicates.error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">Không thể kiểm tra bài trùng: {duplicates.error} <button type="button" className="font-semibold underline hover:no-underline focus-visible:outline-2" onClick={duplicates.retry}>Thử lại</button></div>}
+          {duplicates.ready && duplicates.reasons.some(Boolean) && <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Đã bỏ chọn {duplicates.reasons.filter(Boolean).length} bài trùng. {selectable.length ? 'Bạn có thể lưu các bài mới còn lại.' : 'Tất cả bài tập đều bị trùng. Bạn có thể quay lại cấu hình để tạo bài khác.'}</p>}
           {discardedCount > 0 && <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">AI có {discardedCount} kết quả không hợp lệ đã được loại bỏ.</p>}
           <div className="space-y-4">
             {drafts.map((draft, index) => (
               <section key={index} className={`rounded-2xl border p-4 transition-colors ${selected.has(index) ? 'border-sky-300 bg-white' : 'border-slate-200 bg-slate-50 opacity-70'}`}>
-                <header className="mb-4 flex items-center justify-between gap-3"><label className="flex cursor-pointer items-center gap-2 font-bold text-primary"><input aria-label={`Chọn bài tập ${index + 1}`} type="checkbox" checked={selected.has(index)} onChange={() => toggle(index)} /> Bài tập {index + 1}</label>{selected.has(index) && <Check className="text-emerald-600" size={18} aria-hidden="true" />}</header>
+                <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><label className="flex cursor-pointer items-center gap-2 font-bold text-primary"><input aria-label={`Chọn bài tập ${index + 1}`} type="checkbox" disabled={loading || !duplicates.ready || Boolean(duplicates.reasons[index])} checked={selected.has(index) && !duplicates.reasons[index]} onChange={() => toggle(index)} /> Bài tập {index + 1}</label>{duplicates.reasons[index] ? <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">{duplicates.reasons[index]}</span> : selected.has(index) && <Check className="text-emerald-600" size={18} aria-hidden="true" />}</header>
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="module-field"><span>Tên bài tập</span><input aria-label={`Tên bài tập ${index + 1}`} placeholder="Nhập tên bài tập tiếng Anh" value={draft.name} onChange={(event) => updateDraft(index, 'name', event.target.value.replace(/[()[\]{}]/g, ''))} /></label>
                   <label className="module-field">
