@@ -33,6 +33,11 @@ export interface AiExerciseGenerationRequest {
   prompt: string;
 }
 
+export interface ExerciseDuplicateCheckResult {
+  key: string;
+  names: string[];
+}
+
 export interface MuscleGroupItem {
   _id: string;
   name: string;

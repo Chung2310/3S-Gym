@@ -59,12 +59,8 @@ async function createBulk(user: AuthenticatedUser, payloads: Partial<IExercise>[
   }
   if (duplicates.size) throw duplicateNameError([...duplicates]);
 
-  const patterns = [...names.values()].map((name) => {
-    const pattern = name.split(/\s+/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+');
-    return new RegExp(`^\\s*${pattern}\\s*$`, 'i');
-  });
-  const existing = patterns.length ? await Exercise.find({ name: { $in: patterns } }).select('name').lean() : [];
-  if (existing.length) throw duplicateNameError(existing.map((exercise) => exercise.name));
+  const existing = await findDuplicateNames([...names.values()]);
+  if (existing.length) throw duplicateNameError(existing);
 
   const session = await mongoose.startSession();
   let created: Array<mongoose.HydratedDocument<IExercise>> = [];
@@ -79,6 +75,15 @@ async function createBulk(user: AuthenticatedUser, payloads: Partial<IExercise>[
     await session.endSession();
   }
   return created.map((exercise) => normalizeExerciseVideos(user, exercise));
+}
+
+export async function findDuplicateNames(names: string[]): Promise<string[]> {
+  const patterns = [...new Set(names.map(normalizedName))].filter(Boolean).map((name) => {
+    const pattern = name.split(/\s+/).map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+');
+    return new RegExp(`^\\s*${pattern}\\s*$`, 'i');
+  });
+  const existing = patterns.length ? await Exercise.find({ name: { $in: patterns } }).select('name').lean() : [];
+  return existing.map((exercise) => exercise.name);
 }
 async function list(user: AuthenticatedUser, query: Record<string, unknown>) {
   const page = Number(query.page || 1);
