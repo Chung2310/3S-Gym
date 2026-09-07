@@ -188,7 +188,7 @@ export default function AiExerciseWizard({ open, onClose, onSaved }: Props) {
               <section key={index} className={`rounded-2xl border p-4 transition-colors ${selected.has(index) ? 'border-sky-300 bg-white' : 'border-slate-200 bg-slate-50 opacity-70'}`}>
                 <header className="mb-4 flex items-center justify-between gap-3"><label className="flex cursor-pointer items-center gap-2 font-bold text-primary"><input aria-label={`Chọn bài tập ${index + 1}`} type="checkbox" checked={selected.has(index)} onChange={() => toggle(index)} /> Bài tập {index + 1}</label>{selected.has(index) && <Check className="text-emerald-600" size={18} aria-hidden="true" />}</header>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <label className="module-field"><span>Tên bài tập (Tiếng Anh, không dấu ngoặc)</span><input aria-label={`Tên bài tập ${index + 1}`} placeholder="Nhập tên bài tập tiếng Anh" value={draft.name} onChange={(event) => updateDraft(index, 'name', event.target.value.replace(/[()[\]{}]/g, ''))} /></label>
+                  <label className="module-field"><span>Tên bài tập</span><input aria-label={`Tên bài tập ${index + 1}`} placeholder="Nhập tên bài tập tiếng Anh" value={draft.name} onChange={(event) => updateDraft(index, 'name', event.target.value.replace(/[()[\]{}]/g, ''))} /></label>
                   <label className="module-field">
                     <span>Nhóm cơ</span>
                     <input
