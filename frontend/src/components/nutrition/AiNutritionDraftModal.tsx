@@ -33,7 +33,7 @@ export default function AiNutritionDraftModal({ open, customerId, customerName, 
         { customerId, request },
         { retries: 1, retryDelayMs: 1500 }
       );
-      
+
       // Enhance draft with visual poster dishes if menu exists
       const d = result.data;
       if (d && Array.isArray(d.menu) && d.menu.length > 0) {
@@ -43,9 +43,9 @@ export default function AiNutritionDraftModal({ open, customerId, customerName, 
           image: m.imageUrl || null,
           leftPills: Array.isArray(m.items)
             ? m.items.slice(0, 3).map((item: any) => ({
-                label: typeof item === 'string' ? item : item.name || 'Món ăn',
-                weight: typeof item === 'object' && item.amount ? String(item.amount) : '150g',
-              }))
+              label: typeof item === 'string' ? item : item.name || 'Món ăn',
+              weight: typeof item === 'object' && item.amount ? String(item.amount) : '150g',
+            }))
             : [{ label: 'Đạm + Tinh bột sạch + Xơ', weight: 'Khẩu phần chuẩn' }],
           rightPills: [
             { label: 'Calo Bữa', val: `${m.calories || Math.round(d.targetCalories / d.menu.length)} Kcal`, highlight: true },

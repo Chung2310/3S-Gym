@@ -108,7 +108,12 @@ export default function PtProgressWorkspace({
       )}
       {tab === 'Buổi tập' && (
         <div className="space-y-4">
-          <WorkoutSessionLogger customerId={journey.customer._id} activePlan={activePlan} onSaved={onRefresh} />
+          <WorkoutSessionLogger
+            customerId={journey.customer._id}
+            customerName={journey.customer.fullName}
+            activePlan={activePlan}
+            onSaved={onRefresh}
+          />
           {journey.sessions.map((session) => <WorkoutSessionDetail session={session} key={session._id} />)}
         </div>
       )}

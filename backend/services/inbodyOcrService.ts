@@ -97,13 +97,6 @@ async function createOcrDraft(
       const matched = findMatchingCustomer(extracted.customerName, customers);
       if (matched) {
         targetCustomer = matched;
-        warnings.unshift(
-          `✨ Đã tự động nhận diện học viên: ${matched.fullName} (tên đọc trên phiếu: "${extracted.customerName}").`
-        );
-      } else {
-        warnings.unshift(
-          `ℹ️ Tên đọc được trên phiếu là "${extracted.customerName}" nhưng chưa khớp chính xác học viên nào. Vui lòng chọn học viên áp dụng ở bước này.`
-        );
       }
     }
   }

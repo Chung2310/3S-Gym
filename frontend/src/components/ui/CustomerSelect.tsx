@@ -16,6 +16,7 @@ export interface CustomerSelectProps {
   className?: string;
   ariaLabel?: string;
   customers?: Customer[];
+  extraCustomer?: Customer | null;
   onSelectCustomer?: (customer: Customer | null) => void;
 }
 
@@ -32,6 +33,7 @@ export default function CustomerSelect({
   className = '',
   ariaLabel,
   customers: initialCustomers,
+  extraCustomer,
   onSelectCustomer,
 }: CustomerSelectProps) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers || []);
@@ -53,6 +55,17 @@ export default function CustomerSelect({
       setHasLoaded(true);
     }
   }, [initialCustomers]);
+
+  // Sync extraCustomer if provided
+  useEffect(() => {
+    if (extraCustomer) {
+      setCustomers((prev) => {
+        const id = extraCustomer._id || extraCustomer.id;
+        if (!id || prev.some((c) => (c._id || c.id) === id)) return prev;
+        return [extraCustomer, ...prev];
+      });
+    }
+  }, [extraCustomer]);
 
   // Load customers from API automatically on mount or when opened
   useEffect(() => {

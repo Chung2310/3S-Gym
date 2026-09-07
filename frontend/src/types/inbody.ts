@@ -123,6 +123,7 @@ export interface InBodyAnalysisResult {
 export interface InBodyOcrDraft {
   _id: string;
   customerId?: string | null;
+  ptId?: string | null;
   detectedCustomerName?: string | null;
   measurementDate: string;
   weight?: number;

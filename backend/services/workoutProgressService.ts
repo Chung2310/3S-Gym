@@ -19,6 +19,7 @@ interface SessionPayload {
   idempotencyKey: string; exerciseResults?: Array<{ exerciseId?: string; exerciseIndex: number; result: Record<string, unknown>; notes?: string }>; absenceReason?: string; feeling?: string; notes?: string;
   bodyMeasurement?: Omit<MeasurementPayload, 'customerId' | 'measuredAt'>;
   progressPhotos?: Array<{ photoUrl: string; angle: PhotoAngle }>;
+  customerSignature?: { signatureUrl: string; signedAt?: string | Date; signerName?: string };
 }
 interface MeasurementPayload { customerId: string; measuredAt: string; weight?: number; bodyFatPercentage?: number; muscleMass?: number; measurements?: Record<string, number> }
 
@@ -119,6 +120,11 @@ async function createSession(user: AuthenticatedUser, payload: SessionPayload) {
         customerId, ptId, workoutPlanId: plan._id, workoutPlanVersion: plan.version, performedAt: payload.performedAt,
         attendance: payload.attendance, absenceReason: payload.absenceReason, feeling: payload.feeling, notes: payload.notes, idempotencyKey: payload.idempotencyKey,
         planSnapshot: { workoutPlanId: plan._id, title: plan.title, version: plan.version, sessionIndex: payload.sessionIndex, session: selectedSession }, exerciseLogs,
+        customerSignature: payload.attendance === 'ABSENT' ? undefined : (payload.customerSignature ? {
+          signatureUrl: payload.customerSignature.signatureUrl,
+          signedAt: payload.customerSignature.signedAt ? new Date(payload.customerSignature.signedAt) : new Date(),
+          signerName: payload.customerSignature.signerName || '',
+        } : undefined),
       }], { session: mongoSession });
       if (payload.bodyMeasurement && payload.attendance !== 'ABSENT') {
         const measurement = normalizeMeasurementPayload({

@@ -109,7 +109,7 @@ export function parseJson(text: string): Record<string, unknown> {
 /**
  * 1. TÁC VỤ RIÊNG BIỆT: TẠO THỰC ĐƠN DINH DƯỠNG CHI TIẾT
  */
-export async function createNutritionDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string) {
+export async function createNutritionDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string, planId?: string) {
   const customer = await CustomerProfile.findById(customerId).lean();
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
   if (String(customer.assignedPtId) !== user.id && !isAdminRole(user.role)) {
@@ -180,6 +180,24 @@ Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown theo schema
   const raw = await generateNutritionDraft({ userId: user.id, taskType: 'TEXT_NUTRITION', requestKey: `${requestKey}:text-nutrition` }, prompt);
   const generated = parseJson(raw);
   const rawDailyPlans = Array.isArray(generated.dailyPlans) ? (generated.dailyPlans as any[]) : [];
+
+  if (planId) {
+    const existing = await NutritionPlan.findById(planId);
+    if (existing) {
+      if (String(existing.customerId) !== String(customer._id) && !isAdminRole(user.role)) {
+        throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Bạn không có quyền quản lý thực đơn này.' });
+      }
+      existing.set({
+        ...generated,
+        menu: (rawDailyPlans[0]?.meals as any[]) || (Array.isArray(generated.menu) ? generated.menu : []),
+        dailyPlans: rawDailyPlans.length > 0 ? rawDailyPlans : undefined,
+        createdByAi: true,
+        reviewStatus: 'PT_REVIEW_REQUIRED' as const,
+      });
+      return existing.save();
+    }
+  }
+
   const plan = {
     ...generated,
     menu: (rawDailyPlans[0]?.meals as any[]) || (Array.isArray(generated.menu) ? generated.menu : []),

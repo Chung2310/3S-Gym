@@ -61,7 +61,7 @@ export async function listMuscleGroups() {
   await ensureDefaultMuscleGroups();
 
   const [groups, allExercises] = await Promise.all([
-    MuscleGroup.find().sort({ order: 1, name: 1 }).lean(),
+    MuscleGroup.find().lean(),
     Exercise.find().select('muscleGroup muscleGroups').lean(),
   ]);
 
@@ -78,12 +78,17 @@ export async function listMuscleGroups() {
     }
   }
 
-  return groups.map((g) => ({
+  const result = groups.map((g) => ({
     _id: String(g._id),
     name: g.name,
     isDefault: Boolean(g.isDefault),
     exerciseCount: countMap.get(g.name.trim().toLocaleLowerCase('vi')) || 0,
   }));
+
+  // Sắp xếp danh sách nhóm cơ theo bảng chữ cái tiếng Việt (A - Z)
+  result.sort((a, b) => a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }));
+
+  return result;
 }
 
 

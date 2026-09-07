@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Camera, CheckCircle2, ClipboardList, Dumbbell, MessageSquare, Scale, Sparkles } from 'lucide-react';
+import { Camera, CheckCircle2, ClipboardList, Dumbbell, MessageSquare, PenLine, Scale, Sparkles } from 'lucide-react';
 import { api } from '../../services/api';
 import { buildBodyMeasurementInput } from '../../services/bodyMeasurement';
 import { uploadWorkoutProgressPhotos } from '../../services/progressPhotos';
@@ -33,6 +33,7 @@ import MobilityResultEditor from './tracking/MobilityResultEditor';
 import StrengthResultEditor from './tracking/StrengthResultEditor';
 import WorkoutMeasurementFields from './WorkoutMeasurementFields';
 import WorkoutProgressPhotoFields from './WorkoutProgressPhotoFields';
+import CustomerSignaturePad, { type CustomerSignaturePadHandle } from './CustomerSignaturePad';
 
 interface PlannedExercise {
   exerciseId?: string;
@@ -50,6 +51,7 @@ export interface WorkoutLoggerActivePlan {
 
 interface Props {
   customerId: string;
+  customerName?: string;
   activePlan: WorkoutLoggerActivePlan | null;
   onSaved: () => void;
   onClose?: () => void;
@@ -145,6 +147,7 @@ function resultEditor(
 
 export default function WorkoutSessionLogger({
   customerId,
+  customerName,
   activePlan,
   onSaved,
   onClose,
@@ -152,6 +155,9 @@ export default function WorkoutSessionLogger({
   const toast = useToast();
   const idempotencyKey = useRef(key());
   const submitting = useRef(false);
+  const signaturePadRef = useRef<CustomerSignaturePadHandle>(null);
+  const [signerName, setSignerName] = useState(customerName || '');
+  const [_hasSignature, setHasSignature] = useState(false);
   const [sessionIndex, setSessionIndex] = useState(0);
   const [recordedAt, setRecordedAt] = useState(localWorkoutSessionTime);
   const [attendance, setAttendance] = useState<'PRESENT' | 'LATE' | 'ABSENT'>('PRESENT');
@@ -176,7 +182,9 @@ export default function WorkoutSessionLogger({
     setSessionIndex(0);
     setEditedResults({});
     setRecordedAt(localWorkoutSessionTime());
-  }, [customerId, activePlan?._id, activePlan?.version]);
+    signaturePadRef.current?.clear();
+    setSignerName(customerName || '');
+  }, [customerId, customerName, activePlan?._id, activePlan?.version]);
 
   if (!activePlan) {
     return (
@@ -241,6 +249,40 @@ export default function WorkoutSessionLogger({
       const uploadedPhotos =
         attendance === 'ABSENT' ? [] : await uploadWorkoutProgressPhotos(progressPhotos);
 
+      let customerSignature: { signatureUrl: string; signedAt: string; signerName?: string } | undefined;
+      if (attendance !== 'ABSENT' && signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+        try {
+          const blob = await signaturePadRef.current.toBlob();
+          let sigUrl = '';
+          if (blob) {
+            const file = new File([blob], `signature-${customerId}-${Date.now()}.png`, { type: 'image/png' });
+            const formData = new FormData();
+            formData.append('image', file);
+            const uploadRes = await api.upload<{ url: string }>('/api/upload/image', formData);
+            sigUrl = uploadRes.data?.url || '';
+          }
+          if (!sigUrl) {
+            sigUrl = signaturePadRef.current.toDataUrl() || '';
+          }
+          if (sigUrl) {
+            customerSignature = {
+              signatureUrl: sigUrl,
+              signedAt: new Date().toISOString(),
+              ...(signerName.trim() ? { signerName: signerName.trim() } : {}),
+            };
+          }
+        } catch {
+          const dataUrl = signaturePadRef.current.toDataUrl();
+          if (dataUrl) {
+            customerSignature = {
+              signatureUrl: dataUrl,
+              signedAt: new Date().toISOString(),
+              ...(signerName.trim() ? { signerName: signerName.trim() } : {}),
+            };
+          }
+        }
+      }
+
       const result = await api.post('/api/workout-sessions', {
         customerId,
         workoutPlanId: activePlan._id,
@@ -253,9 +295,11 @@ export default function WorkoutSessionLogger({
         notes,
         idempotencyKey: idempotencyKey.current,
         ...(bodyMeasurement ? { bodyMeasurement } : {}),
-        ...(uploadedPhotos.length > 0 ? { progressPhotos: uploadedPhotos } : {})
+        ...(uploadedPhotos.length > 0 ? { progressPhotos: uploadedPhotos } : {}),
+        ...(customerSignature ? { customerSignature } : {})
       });
       toast.success(result.message);
+      signaturePadRef.current?.clear();
       onSaved();
       idempotencyKey.current = key();
     } catch (error) {
@@ -441,6 +485,23 @@ export default function WorkoutSessionLogger({
           </div>
         </div>
       </section>
+
+      {/* 6. Chữ ký xác nhận của khách hàng */}
+      {attendance !== 'ABSENT' && (
+        <section className="profile-form-section">
+          <h3>
+            <PenLine size={16} />
+            <span>Chữ ký xác nhận của khách hàng</span>
+          </h3>
+          <CustomerSignaturePad
+            ref={signaturePadRef}
+            signerName={signerName}
+            onSignerNameChange={setSignerName}
+            onSignatureChange={setHasSignature}
+            placeholderName={customerName || 'Họ và tên khách hàng'}
+          />
+        </section>
+      )}
 
       {/* 5. Action Buttons — sticky bottom để luôn thấy nút thao tác trên mobile */}
       <div className="profile-form-actions sticky bottom-0 z-20 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-6 border-t border-slate-200 bg-white/95 backdrop-blur-xs p-3.5 sm:p-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] flex items-center justify-end gap-2.5">

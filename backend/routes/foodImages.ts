@@ -20,6 +20,5 @@ router.patch('/food-images/:id', authenticate, authorize('ADMIN'), upload.single
 router.post('/food-images/:id/regenerate-ai', authenticate, authorize('ADMIN'), controller.regenerateAiImage);
 router.post('/food-images/ai-generate', authenticate, authorize('ADMIN'), controller.createAiFoodImage);
 router.delete('/food-images/:id', authenticate, authorize('ADMIN'), controller.deleteFoodImage);
-router.post('/food-images/seed', authenticate, authorize('ADMIN'), controller.seedFoodImages);
 
 export default router;
