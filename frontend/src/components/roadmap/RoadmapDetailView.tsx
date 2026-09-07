@@ -50,6 +50,17 @@ export default function RoadmapDetailView({ roadmap, hideBaseline }: RoadmapDeta
 
   return (
     <div className="flex flex-col gap-4">
+      {strategy?.generationSource && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          <strong>{strategy.generationSource === 'AI' ? 'Nguồn đề xuất: AI' : 'Nguồn đề xuất: bản mẫu theo quy tắc'}</strong>
+          {strategy.assumptions?.map((note, index) => <p key={index} className="mt-1">{note}</p>)}
+        </div>
+      )}
+      {strategy?.sessionBudget && (
+        <p className="rounded-lg border border-slate-200 p-3 text-sm text-slate-700">
+          Phân bổ mỗi buổi: khởi động {strategy.sessionBudget.warmupMinutes} phút · kháng lực {strategy.sessionBudget.strengthMinutes} phút · cardio {strategy.sessionBudget.cardioMinutes} phút · hồi phục {strategy.sessionBudget.cooldownMinutes} phút.
+        </p>
+      )}
       {/* ── Top Key Metrics Banner ── */}
       {strategy && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

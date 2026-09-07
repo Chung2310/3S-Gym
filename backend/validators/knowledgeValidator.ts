@@ -30,3 +30,12 @@ export const nutritionAnalysisSchema: RequestValidationSchema = {
   }).messages(commonMessages),
 };
 
+
+export const roadmapDraftSchema: RequestValidationSchema = { body: Joi.object({
+  goalType: Joi.string().valid('WEIGHT_LOSS', 'FAT_LOSS', 'WEIGHT_GAIN', 'MUSCLE_GAIN', 'RECOMPOSITION', 'FITNESS', 'STRENGTH'),
+  targetValue: Joi.number().min(0), targetUnit: Joi.string().max(30),
+  sessionDurationMinutes: Joi.number().integer().min(20).max(180),
+  customerId: objectId.required(), request: Joi.string().trim().min(10).max(10000).required(),
+  durationWeeks: Joi.number().integer().min(4).max(24).required(),
+  sessionsPerWeek: Joi.number().integer().min(2).max(6).required(),
+}).messages(commonMessages) };

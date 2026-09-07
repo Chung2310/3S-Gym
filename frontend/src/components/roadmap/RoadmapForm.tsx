@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, type FormEvent } from 'react';
+import { useEffect, useState, useMemo, useRef, type FormEvent } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -20,7 +20,7 @@ import {
   Utensils,
   Zap,
 } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, ApiError } from '../../services/api';
 import { errorMessage } from '../../types';
 import type { InBodyRecordData } from '../../types/inbody';
 import {
@@ -31,13 +31,13 @@ import {
   type RoadmapNutritionStrategy,
   type RoadmapPhaseProposal,
   type RoadmapStrategyProposal,
-  type RoadmapWeekProposal,
 } from '../../services/roadmapGenerator';
 import { evaluateGoalFeasibility } from '../../services/goalFeasibilityService';
 import CustomerSelect from '../ui/CustomerSelect';
 import CustomSelect from '../ui/CustomSelect';
 import { useToast } from '../ui/ToastProvider';
 import type { Roadmap } from '../../types/roadmap';
+import InfeasibleGoalModal from './InfeasibleGoalModal';
 
 export type { Roadmap };
 
@@ -57,6 +57,8 @@ const newPhase = (order: number): RoadmapPhaseProposal => ({
 
 export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapFormProps) {
   const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   // Core Form State
   const [customerId, setCustomerId] = useState(initialData?.customerId || '');
@@ -71,6 +73,9 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
   const [customerMeta, setCustomerMeta] = useState<RoadmapCustomerMeta | null>(null);
   const [latestInbody, setLatestInbody] = useState<InBodyRecordData | null>(null);
   const [loadingContext, setLoadingContext] = useState(false);
+  const [contextCustomerId, setContextCustomerId] = useState('');
+  const generationRef = useRef<AbortController | null>(null);
+  const contextReady = Boolean(customerId && contextCustomerId === customerId && !loadingContext);
 
   // Smart Proposal Generator Controls
   const [goalType, setGoalType] = useState<RoadmapGoalType>('FAT_LOSS');
@@ -79,6 +84,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
   const [durationWeeks, setDurationWeeks] = useState<number>(12);
   const [sessionsPerWeek, setSessionsPerWeek] = useState<number>(3);
   const [customNotes, setCustomNotes] = useState<string>('');
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState(60);
 
   // Realtime AI Goal Feasibility Assessment (Tư vấn tính khả thi của mục tiêu)
   const feasibility = useMemo(() => {
@@ -92,6 +98,21 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
       latestInbody,
     });
   }, [goalType, targetValue, targetUnit, durationWeeks, sessionsPerWeek, customerMeta, latestInbody]);
+
+  // Modal cảnh báo mục tiêu bất khả thi
+  const [showInfeasibleModal, setShowInfeasibleModal] = useState(false);
+
+  const handleApplyRecommendedWeeks = (weeks: number) => {
+    setDurationWeeks(weeks);
+    setShowInfeasibleModal(false);
+    toast.success(`Đã đổi thời gian thành ${weeks} tuần!`);
+  };
+
+  const handleApplyRecommendedTarget = (target: number) => {
+    setTargetValue(target);
+    setShowInfeasibleModal(false);
+    toast.success(`Đã đổi mục tiêu thành ${target} ${targetUnit}!`);
+  };
 
   // UI Accordion toggles
   const [expandedPhases, setExpandedPhases] = useState<Record<number, boolean>>({ 0: true });
@@ -132,57 +153,73 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
     return () => clearInterval(timer);
   }, [loadingAi]);
 
-  // 1. Fetch Customer Profile & Latest InBody when customer is selected
+  // Reset context before loading another customer; late responses cannot replace current data.
   useEffect(() => {
-    if (!customerId) {
-      setCustomerMeta(null);
-      setLatestInbody(null);
-      return;
+    let active = true;
+    const controller = new AbortController();
+    generationRef.current?.abort();
+    generationRef.current = null;
+    setLoadingAi(false);
+    setCustomerMeta(null);
+    setLatestInbody(null);
+    setContextCustomerId('');
+    setCustomNotes('');
+    setSessionDurationMinutes(60);
+    setGoalType('FAT_LOSS');
+    setTargetValue(5);
+    setTargetUnit('kg');
+    setDurationWeeks(12);
+    setSessionsPerWeek(3);
+    setLoadingContext(Boolean(customerId));
+    if (customerId) {
+      void Promise.all([
+        api.get<RoadmapCustomerMeta>(`/api/customers/${customerId}`, { signal: controller.signal }),
+        api.get<InBodyRecordData[]>(`/api/inbody?customerId=${customerId}&limit=1`, { signal: controller.signal }),
+        api.get<Array<{ type?: RoadmapGoalType; targetValue?: number; targetUnit?: string; sessionsPerWeek?: number }>>(`/api/goals?customerId=${customerId}&limit=1`, { signal: controller.signal }),
+      ]).then(([customer, inbody, goals]) => {
+        if (!active) return;
+        setCustomerMeta(customer.data);
+        setLatestInbody(inbody.data[0] ?? null);
+        setCustomNotes(customer.data.medicalNotes || '');
+        const goal = goals.data[0];
+        if (goal?.type) setGoalType(goal.type);
+        if (goal?.targetValue != null) setTargetValue(Number(goal.targetValue));
+        if (goal?.targetUnit) setTargetUnit(goal.targetUnit);
+        if (goal?.sessionsPerWeek) setSessionsPerWeek(Number(goal.sessionsPerWeek));
+        setContextCustomerId(customerId);
+      }).catch((err: unknown) => {
+        if (active) toastRef.current.error(`Không tải được hồ sơ học viên: ${errorMessage(err)}`);
+      }).finally(() => {
+        if (active) setLoadingContext(false);
+      });
     }
-
-    let isMounted = true;
-    const fetchContext = async () => {
-      setLoadingContext(true);
-      try {
-        // Fetch Customer Info
-        const custRes = await api.get<any>(`/api/customers/${customerId}`).catch(() => null);
-        if (isMounted && custRes?.data) {
-          setCustomerMeta(custRes.data);
-          if (custRes.data.medicalNotes) {
-            setCustomNotes((prev) => prev || custRes.data.medicalNotes || '');
-          }
-        }
-
-        // Fetch Latest InBody
-        const inbodyRes = await api.get<InBodyRecordData[]>(`/api/inbody?customerId=${customerId}&limit=1`).catch(() => null);
-        if (isMounted && inbodyRes?.data && inbodyRes.data.length > 0) {
-          setLatestInbody(inbodyRes.data[0]);
-        }
-
-        // Fetch Active Goal if any
-        const goalRes = await api.get<any[]>(`/api/goals?customerId=${customerId}&limit=1`).catch(() => null);
-        if (isMounted && goalRes?.data && goalRes.data.length > 0) {
-          const activeGoal = goalRes.data[0];
-          if (activeGoal.type) setGoalType(activeGoal.type as RoadmapGoalType);
-          if (activeGoal.targetValue) setTargetValue(Number(activeGoal.targetValue));
-          if (activeGoal.targetUnit) setTargetUnit(activeGoal.targetUnit);
-          if (activeGoal.sessionsPerWeek) setSessionsPerWeek(Number(activeGoal.sessionsPerWeek));
-        }
-      } catch (err) {
-        console.error('Error fetching customer context:', err);
-      } finally {
-        if (isMounted) setLoadingContext(false);
-      }
-    };
-
-    void fetchContext();
     return () => {
-      isMounted = false;
+      active = false;
+      controller.abort();
+      generationRef.current?.abort();
     };
   }, [customerId]);
 
+  const changeCustomer = (id: string) => {
+    if (id === customerId) return;
+    generationRef.current?.abort();
+    setContextCustomerId('');
+    setTitle('');
+    setStrategy(null);
+    setBaseline({});
+    setPhases([newPhase(1)]);
+    setPhaseError('');
+    setCustomerId(id);
+  };
+
   // Fast Instant Sports Science Roadmap Generation
   const applyInstantSportsScienceRoadmap = () => {
+    if (!contextReady) return;
+    if (feasibility.status === 'INFEASIBLE') {
+      setShowInfeasibleModal(true);
+      return;
+    }
+
     const fallbackProposal = generateSmartRoadmap(
       customerMeta || { _id: customerId, fullName: 'Học viên' },
       latestInbody,
@@ -193,6 +230,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
         durationWeeks,
         sessionsPerWeek,
         customNotes,
+        sessionDurationMinutes,
       }
     );
 
@@ -209,100 +247,62 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
     setLoadingAi(false);
   };
 
-  // 2. Trigger Real AI Proposal Generation with Strict 20s Timeout
+  // Generate with cancellation on timeout, customer change and unmount.
   const handleGenerateSmartProposal = async () => {
-    if (!customerId) {
-      toast.error('Vui lòng chọn học viên trước khi tạo đề xuất lộ trình.');
+    if (!Number.isInteger(sessionDurationMinutes) || sessionDurationMinutes < 20 || sessionDurationMinutes > 180) {
+      toast.error('Thời lượng mỗi buổi phải từ 20 đến 180 phút.');
+      return;
+    }
+    if (!contextReady || loadingAi) {
+      toast.error('Vui lòng chọn học viên và chờ tải đầy đủ hồ sơ trước khi tạo lộ trình.');
       return;
     }
 
     if (feasibility.status === 'INFEASIBLE') {
-      const confirmed = window.confirm(
-        `[CẢNH BÁO TÍNH KHẢ THI TỪ AI]\n\nMục tiêu "${targetValue} ${targetUnit} trong ${durationWeeks} tuần" được đánh giá là BẤT KHẢ THI về mặt sinh lý học thể thao.\n\n${feasibility.headline}\n\nBạn có chắc chắn muốn AI tiếp tục tạo lộ trình với thông số này không?`
-      );
-      if (!confirmed) return;
+      setShowInfeasibleModal(true);
+      return;
     }
 
     setLoadingAi(true);
-    const requestText = `Mục tiêu chính: ${goalType}, Số lượng/Chỉ số: ${targetValue} ${targetUnit}, Thời lượng: ${durationWeeks} tuần, Tần suất: ${sessionsPerWeek} buổi/tuần. Ghi chú & Yêu cầu riêng: ${customNotes || 'Tối ưu hóa thể hình và sức khỏe toàn diện'}`;
+    const requestText = `Mục tiêu chính: ${goalType}, Số lượng/Chỉ số: ${targetValue} ${targetUnit}, Thời lượng: ${durationWeeks} tuần, Tần suất: ${sessionsPerWeek} buổi/tuần, tối đa ${sessionDurationMinutes} phút/buổi. Ghi chú & Yêu cầu riêng: ${customNotes || 'Tối ưu hóa thể hình và sức khỏe toàn diện'}`;
 
+    const controller = new AbortController();
+    generationRef.current = controller;
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 180_000);
     try {
-      // Race between AI backend call and 180-second timeout (3 phút)
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('AI_TIMEOUT_EXCEEDED')), 180000)
-      );
-
-      const aiCallPromise = api.post<{
-        title: string;
-        strategy: RoadmapStrategyProposal;
-        phases: RoadmapPhaseProposal[];
-        baseline?: Record<string, number>;
+      const result = await api.post<{
+        title: string; strategy: RoadmapStrategyProposal; phases: RoadmapPhaseProposal[];
+        baseline: Record<string, number>;
       }>('/api/content-drafts/roadmap', {
-        customerId,
-        request: requestText,
-      });
-
-      const result = await Promise.race([aiCallPromise, timeoutPromise]);
+        customerId, request: requestText, durationWeeks, sessionsPerWeek, goalType, targetValue, targetUnit, sessionDurationMinutes,
+      }, { signal: controller.signal });
+      if (controller.signal.aborted || generationRef.current !== controller) return;
       const proposal = result.data;
-      if (proposal) {
-        if (proposal.title) setTitle(proposal.title);
-        if (proposal.strategy) setStrategy(proposal.strategy);
-        if (proposal.phases && Array.isArray(proposal.phases)) {
-          let weekCounter = 1;
-          const normalizedPhases = proposal.phases.map((p, pIdx) => {
-            const duration = p.durationWeeks || (p.weeks ? p.weeks.length : 4);
-            const existing = Array.isArray(p.weeks) ? p.weeks : [];
-            const fullWeeks: RoadmapWeekProposal[] = [];
-
-            for (let w = 0; w < duration; w++) {
-              const weekNum = weekCounter + w;
-              const match = existing.find((ew) => ew.week === weekNum || ew.week === (w + 1)) || existing[w];
-              if (match) {
-                fullWeeks.push({
-                  ...match,
-                  week: weekNum,
-                  sessionTargets: match.sessionTargets || sessionsPerWeek,
-                  sessions: Array.isArray(match.sessions) && match.sessions.length > 0 ? match.sessions : (existing[0]?.sessions || []),
-                });
-              } else {
-                fullWeeks.push({
-                  week: weekNum,
-                  focus: `Tuần ${weekNum}: Phân kỳ huấn luyện theo ${p.name || `Phase ${pIdx + 1}`}`,
-                  sessionTargets: sessionsPerWeek,
-                  sessions: existing[0]?.sessions || [],
-                });
-              }
-            }
-            weekCounter += duration;
-            return {
-              ...p,
-              order: pIdx + 1,
-              durationWeeks: duration,
-              weeks: fullWeeks,
-            };
-          });
-          setPhases(normalizedPhases);
-        }
-        if (proposal.baseline) setBaseline(proposal.baseline);
-
-        const expandedMap: Record<number, boolean> = {};
-        (proposal.phases || []).forEach((_, idx) => {
-          expandedMap[idx] = true;
-        });
-        setExpandedPhases(expandedMap);
-        toast.success(result.message || 'AI đã tạo lộ trình Roadmap thành công!');
-        return;
+      if (!proposal?.title || !proposal.strategy || !Array.isArray(proposal.phases) || !proposal.phases.length) {
+        throw new ApiError('Phản hồi lộ trình không hợp lệ. Vui lòng thử lại.', 502);
       }
-    } catch (err: any) {
-      // Fallback tự động nếu backend AI provider quá thời gian hoặc gặp lỗi mạng
-      applyInstantSportsScienceRoadmap();
-      if (err?.message === 'AI_TIMEOUT_EXCEEDED') {
-        toast.info('Quá thời gian chờ AI (>180s). Đã tự động tạo lộ trình tức thì theo Khoa học Thể thao & InBody!');
+      setTitle(proposal.title);
+      setStrategy(proposal.strategy);
+      setPhases(proposal.phases);
+      setBaseline(proposal.baseline || {});
+      setExpandedPhases(Object.fromEntries(proposal.phases.map((_, i) => [i, true])));
+      toast.success(result.message || 'AI đã tạo bản nháp lộ trình. PT cần kiểm tra trước khi lưu.');
+    } catch (err: unknown) {
+      if (generationRef.current !== controller || (controller.signal.aborted && !timedOut)) return;
+      const canUseTemplate = timedOut || err instanceof TypeError || (err instanceof ApiError && [408, 502, 503, 504].includes(err.status));
+      if (canUseTemplate) {
+        applyInstantSportsScienceRoadmap();
+        toast.info(`${timedOut ? 'Hết thời gian chờ AI.' : errorMessage(err)} Đã tạo BẢN MẪU theo quy tắc, không phải kết quả AI. PT cần kiểm tra và chỉnh sửa.`);
       } else {
-        toast.info('Đã tự động khởi tạo lộ trình chuẩn theo Khoa học Thể thao & InBody!');
+        toast.error(errorMessage(err));
       }
     } finally {
-      setLoadingAi(false);
+      clearTimeout(timer);
+      if (generationRef.current === controller) {
+        generationRef.current = null;
+        setLoadingAi(false);
+      }
     }
   };
 
@@ -317,37 +317,33 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
     );
   };
 
+  const applyPhaseStructure = (next: RoadmapPhaseProposal[]) => {
+    let week = 1;
+    const updated = next.map((phase, i) => ({ ...phase, order: i + 1,
+      durationWeeks: phase.weeks.length || 1,
+      weeks: phase.weeks.map((item) => ({ ...item, week: week++ })),
+    }));
+    setPhases(updated);
+    setStrategy((prev) => prev ? { ...prev, estimatedWeeks: updated.reduce((sum, phase) => sum + phase.durationWeeks, 0) } : null);
+  };
+
   const removePhase = (index: number) => {
     if (phases.length <= 1) {
       toast.error('Lộ trình phải có ít nhất 1 giai đoạn (Phase).');
       return;
     }
-    setPhases((current) => current.filter((_, idx) => idx !== index).map((p, idx) => ({ ...p, order: idx + 1 })));
+    applyPhaseStructure(phases.filter((_, i) => i !== index));
   };
 
   const addPhase = () => {
-    setPhases((current) => [...current, newPhase(current.length + 1)]);
+    applyPhaseStructure([...phases, { ...newPhase(phases.length + 1), weeks: [{ week: 1, focus: '', sessionTargets: sessionsPerWeek, sessions: [] }] }]);
     setExpandedPhases((prev) => ({ ...prev, [phases.length]: true }));
   };
 
   const addWeek = (phaseIndex: number) => {
-    setPhases((current) =>
-      current.map((phase, idx) => {
-        if (idx !== phaseIndex) return phase;
-        const nextWeekNum = phase.weeks.length + 1;
-        const newWeek: RoadmapWeekProposal = {
-          week: nextWeekNum,
-          focus: '',
-          sessionTargets: sessionsPerWeek,
-          sessions: [],
-        };
-        return {
-          ...phase,
-          durationWeeks: Math.max(phase.durationWeeks, nextWeekNum),
-          weeks: [...phase.weeks, newWeek],
-        };
-      })
-    );
+    applyPhaseStructure(phases.map((phase, i) => i === phaseIndex
+      ? { ...phase, weeks: [...phase.weeks, { week: 1, focus: '', sessionTargets: sessionsPerWeek, sessions: [] }] }
+      : phase));
   };
 
   const updateWeekFocus = (phaseIndex: number, weekIndex: number, focus: string) => {
@@ -363,18 +359,10 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
   };
 
   const removeWeek = (phaseIndex: number, weekIndex: number) => {
-    setPhases((current) =>
-      current.map((phase, pIdx) => {
-        if (pIdx !== phaseIndex) return phase;
-        if (phase.weeks.length <= 1) return phase;
-        const newWeeks = phase.weeks.filter((_, wIdx) => wIdx !== weekIndex).map((w, i) => ({ ...w, week: i + 1 }));
-        return {
-          ...phase,
-          durationWeeks: Math.max(1, newWeeks.length),
-          weeks: newWeeks,
-        };
-      })
-    );
+    if (phases[phaseIndex].weeks.length <= 1) return;
+    applyPhaseStructure(phases.map((phase, i) => i === phaseIndex
+      ? { ...phase, weeks: phase.weeks.filter((_, w) => w !== weekIndex) }
+      : phase));
   };
 
   const addPhaseGoal = (phaseIndex: number) => {
@@ -459,6 +447,14 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
   // Submit Handler
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!contextReady || loadingAi) {
+      toast.error('Vui lòng chờ tải hồ sơ và hoàn tất tạo lộ trình trước khi lưu.');
+      return;
+    }
+    if (feasibility.status === 'INFEASIBLE') {
+      setShowInfeasibleModal(true);
+      return;
+    }
     if (new Set(phases.map((phase) => phase.order)).size !== phases.length) {
       setPhaseError('Thứ tự phase không được trùng.');
       return;
@@ -503,6 +499,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
   };
 
   return (
+    <>
     <form className="panel p-3.5 sm:p-6 flex flex-col gap-4 sm:gap-5 max-w-full" onSubmit={submit}>
       {/* Header Banner */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
@@ -516,6 +513,18 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
         </div>
       </div>
 
+      {strategy?.generationSource && (
+        <div role="status" className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+          <strong>{strategy.generationSource === 'AI' ? 'Bản nháp do AI tạo — cần PT duyệt' : 'Bản mẫu theo quy tắc — không phải kết quả AI'}</strong>
+          {strategy.assumptions?.map((note, i) => <p key={i} className="mt-1">{note}</p>)}
+        </div>
+      )}
+
+      {strategy?.sessionBudget && (
+        <p className="rounded-lg border border-slate-200 p-3 text-sm text-slate-700">
+          Phân bổ mỗi buổi: khởi động {strategy.sessionBudget.warmupMinutes} phút · kháng lực {strategy.sessionBudget.strengthMinutes} phút · cardio {strategy.sessionBudget.cardioMinutes} phút · hồi phục {strategy.sessionBudget.cooldownMinutes} phút.
+        </p>
+      )}
       {/* 1. Customer Selector & Quick Baseline Card */}
       <div className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 max-w-full">
         <div className="form-grid" style={{ marginBottom: '12px' }}>
@@ -523,7 +532,8 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             label="Học viên / Khách hàng"
             name="customerId"
             value={customerId}
-            onChange={setCustomerId}
+            onChange={changeCustomer}
+            disabled={loadingAi || loading || Boolean(initialData)}
             required
             placeholder="Chọn hoặc tìm học viên..."
           />
@@ -675,173 +685,239 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
         </div>
 
         {/* Realtime AI Feasibility Advisory Card */}
-        <div
-          data-testid="feasibility-card"
-          style={{
-            marginTop: '16px',
-            borderRadius: '12px',
-            padding: '14px 16px',
-            border:
-              feasibility.status === 'INFEASIBLE'
-                ? '2px solid #ef4444'
-                : feasibility.status === 'CHALLENGING'
-                ? '1.5px solid #f59e0b'
-                : '1.5px solid #10b981',
-            background:
-              feasibility.status === 'INFEASIBLE'
-                ? 'linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)'
-                : feasibility.status === 'CHALLENGING'
-                ? 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)'
-                : 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {feasibility.status === 'INFEASIBLE' ? (
-                <AlertTriangle size={20} color="#ef4444" />
-              ) : feasibility.status === 'CHALLENGING' ? (
-                <AlertCircle size={20} color="#f59e0b" />
-              ) : (
-                <CheckCircle2 size={20} color="#10b981" />
-              )}
-              <strong
-                style={{
-                  fontSize: '0.92rem',
-                  color:
-                    feasibility.status === 'INFEASIBLE'
-                      ? '#991b1b'
-                      : feasibility.status === 'CHALLENGING'
-                      ? '#92400e'
-                      : '#065f46',
-                }}
-              >
-                {feasibility.status === 'INFEASIBLE'
-                  ? 'AI CẢNH BÁO: MỤC TIÊU BẤT KHẢ THI'
-                  : feasibility.status === 'CHALLENGING'
-                  ? 'AI TƯ VẤN: MỤC TIÊU KHÁ THÁCH THỨC'
-                  : 'AI TƯ VẤN: MỤC TIÊU HOÀN TOÀN KHẢ THI'}
-              </strong>
-            </div>
-
-            <span
-              style={{
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                padding: '3px 10px',
-                borderRadius: '6px',
-                background: feasibility.badgeColor,
-                color: '#ffffff',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
-              {feasibility.badgeLabel}
-            </span>
-          </div>
-
-          <p
+        {feasibility.status === 'INFEASIBLE' ? (
+          <div
+            data-testid="feasibility-card"
             style={{
-              margin: '0 0 10px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color:
-                feasibility.status === 'INFEASIBLE'
-                  ? '#b91c1c'
-                  : feasibility.status === 'CHALLENGING'
-                  ? '#b45309'
-                  : '#047857',
+              marginTop: '16px',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              border: '1.5px solid #fca5a5',
+              background: 'linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
             }}
           >
-            {feasibility.headline}
-          </p>
-
-          {/* Reasons List */}
-          <ul style={{ margin: '0 0 10px', paddingLeft: '18px', fontSize: '0.8rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {feasibility.reasons.map((r, idx) => (
-              <li key={idx}>{r}</li>
-            ))}
-          </ul>
-
-          {/* Risks if Infeasible */}
-          {feasibility.risks && feasibility.risks.length > 0 && (
-            <div style={{ marginBottom: '10px', background: '#fee2e2', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fca5a5' }}>
-              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#991b1b', marginBottom: '3px' }}>
-                Cảnh báo nguy cơ sức khỏe:
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '240px', flex: '1 1 auto' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: '#fee2e2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <AlertTriangle size={20} color="#ef4444" />
               </div>
-              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.76rem', color: '#b91c1c' }}>
-                {feasibility.risks.map((rk, idx) => (
-                  <li key={idx}>{rk}</li>
-                ))}
-              </ul>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#991b1b' }}>
+                    AI Cảnh Báo: Mục Tiêu Bất Khả Thi
+                  </strong>
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      background: '#ef4444',
+                      color: '#ffffff',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    BẤT KHẢ THI
+                  </span>
+                </div>
+                <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#b91c1c', fontWeight: 500 }}>
+                  {feasibility.headline}
+                </p>
+              </div>
             </div>
-          )}
 
-          {/* Quick-Fix One-Click Action Buttons for Infeasible / Challenging */}
-          {(feasibility.recommendedWeeks || feasibility.recommendedTarget) && (
-            <div
+            <button
+              type="button"
+              onClick={() => setShowInfeasibleModal(true)}
               style={{
-                display: 'flex',
+                background: '#ffffff',
+                color: '#dc2626',
+                border: '1.5px solid #fca5a5',
+                borderRadius: '8px',
+                padding: '7px 14px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
-                flexWrap: 'wrap',
-                marginTop: '10px',
-                paddingTop: '10px',
-                borderTop: '1px dashed rgba(0,0,0,0.1)',
+                gap: '6px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
+            >
+              <AlertCircle size={15} />
+              Xem chi tiết cảnh báo & gợi ý khắc phục →
+            </button>
+          </div>
+        ) : (
+          <div
+            data-testid="feasibility-card"
+            style={{
+              marginTop: '16px',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              border:
+                feasibility.status === 'CHALLENGING'
+                  ? '1.5px solid #f59e0b'
+                  : '1.5px solid #10b981',
+              background:
+                feasibility.status === 'CHALLENGING'
+                  ? 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)'
+                  : 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {feasibility.status === 'CHALLENGING' ? (
+                  <AlertCircle size={20} color="#f59e0b" />
+                ) : (
+                  <CheckCircle2 size={20} color="#10b981" />
+                )}
+                <strong
+                  style={{
+                    fontSize: '0.92rem',
+                    color:
+                      feasibility.status === 'CHALLENGING'
+                        ? '#92400e'
+                        : '#065f46',
+                  }}
+                >
+                  {feasibility.status === 'CHALLENGING'
+                    ? 'AI TƯ VẤN: MỤC TIÊU KHÁ THÁCH THỨC'
+                    : 'AI TƯ VẤN: MỤC TIÊU HOÀN TOÀN KHẢ THI'}
+                </strong>
+              </div>
+
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  background: feasibility.badgeColor,
+                  color: '#ffffff',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                {feasibility.badgeLabel}
+              </span>
+            </div>
+
+            <p
+              style={{
+                margin: '0 0 10px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color:
+                  feasibility.status === 'CHALLENGING'
+                    ? '#b45309'
+                    : '#047857',
               }}
             >
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>
-                💡 Gợi ý điều chỉnh 1-chạm từ AI:
-              </span>
+              {feasibility.headline}
+            </p>
 
-              {feasibility.recommendedWeeks && (
-                <button
-                  type="button"
-                  onClick={() => setDurationWeeks(feasibility.recommendedWeeks!)}
-                  style={{
-                    background: '#ffffff',
-                    color: '#0284c7',
-                    border: '1.5px solid #0284c7',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                  title="Áp dụng thời lượng an toàn theo khuyến nghị của AI"
-                >
-                  <Clock size={13} /> Giãn thời gian: {feasibility.recommendedWeeks} tuần
-                </button>
-              )}
+            {/* Reasons List */}
+            <ul style={{ margin: '0 0 10px', paddingLeft: '18px', fontSize: '0.8rem', color: '#334155', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {feasibility.reasons.map((r, idx) => (
+                <li key={idx}>{r}</li>
+              ))}
+            </ul>
 
-              {feasibility.recommendedTarget && (
-                <button
-                  type="button"
-                  onClick={() => setTargetValue(feasibility.recommendedTarget!)}
-                  style={{
-                    background: '#ffffff',
-                    color: '#059669',
-                    border: '1.5px solid #059669',
-                    borderRadius: '6px',
-                    padding: '4px 10px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                  title="Áp dụng mức mục tiêu khả thi theo thời gian hiện tại"
-                >
-                  <Target size={13} /> Đặt mục tiêu khả thi: {feasibility.recommendedTarget} {targetUnit}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+            {/* Quick-Fix One-Click Action Buttons for Challenging */}
+            {(feasibility.recommendedWeeks || feasibility.recommendedTarget) && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  marginTop: '10px',
+                  paddingTop: '10px',
+                  borderTop: '1px dashed rgba(0,0,0,0.1)',
+                }}
+              >
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>
+                  💡 Gợi ý điều chỉnh 1-chạm từ AI:
+                </span>
+
+                {feasibility.recommendedWeeks && (
+                  <button
+                    type="button"
+                    onClick={() => setDurationWeeks(feasibility.recommendedWeeks!)}
+                    style={{
+                      background: '#ffffff',
+                      color: '#0284c7',
+                      border: '1.5px solid #0284c7',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Áp dụng thời lượng an toàn theo khuyến nghị của AI"
+                  >
+                    <Clock size={13} /> Giãn thời gian: {feasibility.recommendedWeeks} tuần
+                  </button>
+                )}
+
+                {feasibility.recommendedTarget && (
+                  <button
+                    type="button"
+                    onClick={() => setTargetValue(feasibility.recommendedTarget!)}
+                    style={{
+                      background: '#ffffff',
+                      color: '#059669',
+                      border: '1.5px solid #059669',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    title="Áp dụng mức mục tiêu khả thi theo thời gian hiện tại"
+                  >
+                    <Target size={13} /> Đặt mục tiêu khả thi: {feasibility.recommendedTarget} {targetUnit}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <label className="field">
+          <span>Thời lượng tối đa mỗi buổi (phút)</span>
+          <input type="number" min={20} max={180} step={5} required placeholder="Ví dụ: 60"
+            value={sessionDurationMinutes} disabled={loadingAi}
+            onChange={(event) => setSessionDurationMinutes(Number(event.target.value))}
+            className="rounded-lg border border-slate-300 p-2 focus-visible:outline-2 focus-visible:outline-sky-500 disabled:opacity-50" />
+        </label>
 
         <label className="field" style={{ marginTop: '12px' }}>
           <span style={{ fontWeight: 700 }}>Ghi chú cá nhân hóa / Yêu cầu riêng của học viên</span>
@@ -857,13 +933,19 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             type="button"
             className="button button-primary w-full sm:w-auto justify-center"
             onClick={handleGenerateSmartProposal}
-            disabled={loadingAi}
+            disabled={loadingAi || loading || !contextReady}
             style={{
-              background: 'linear-gradient(135deg, #0284c7 0%, #003b70 100%)',
+              background:
+                feasibility.status === 'INFEASIBLE'
+                  ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)'
+                  : 'linear-gradient(135deg, #0284c7 0%, #003b70 100%)',
               padding: '10px 22px',
               fontSize: '0.95rem',
               fontWeight: 800,
-              boxShadow: '0 4px 14px rgba(2,132,199,0.35)',
+              boxShadow:
+                feasibility.status === 'INFEASIBLE'
+                  ? '0 4px 14px rgba(220,38,38,0.25)'
+                  : '0 4px 14px rgba(2,132,199,0.35)',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -871,8 +953,16 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
               opacity: loadingAi ? 0.75 : 1,
             }}
           >
-            <Sparkles size={18} />
-            {loadingAi ? 'AI đang suy nghĩ, phân tích...' : ' Tạo Lộ trình với AI'}
+            {feasibility.status === 'INFEASIBLE' ? (
+              <AlertTriangle size={18} />
+            ) : (
+              <Sparkles size={18} />
+            )}
+            {loadingAi
+              ? 'AI đang suy nghĩ, phân tích...'
+              : feasibility.status === 'INFEASIBLE'
+              ? 'Xem cảnh báo mục tiêu bất khả thi'
+              : 'Tạo Lộ trình với AI'}
           </button>
         </div>
 
@@ -1685,12 +1775,25 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
         <button
           className="button button-primary"
           type="submit"
-          disabled={loading}
+          disabled={loading || loadingAi || !contextReady}
           style={{ minWidth: '140px', fontWeight: 800 }}
         >
           {loading ? 'Đang lưu...' : initialData ? 'Cập nhật Roadmap' : 'Lưu roadmap'}
         </button>
       </div>
     </form>
+
+    {/* Popup Cảnh Báo Mục Tiêu Bất Khả Thi */}
+    <InfeasibleGoalModal
+      open={showInfeasibleModal}
+      onClose={() => setShowInfeasibleModal(false)}
+      feasibility={feasibility}
+      targetUnit={targetUnit}
+      currentWeeks={durationWeeks}
+      currentTarget={targetValue}
+      onApplyRecommendedWeeks={handleApplyRecommendedWeeks}
+      onApplyRecommendedTarget={handleApplyRecommendedTarget}
+    />
+    </>
   );
 }

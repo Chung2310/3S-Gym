@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
 import type { FoodImageItem } from '../../types/knowledge';
 
 interface FoodImageCardProps {
@@ -26,6 +26,7 @@ export const FoodImageCard: React.FC<FoodImageCardProps> = ({
   onDelete,
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs flex flex-col hover:-translate-y-0.5 hover:shadow-md transition-all">
@@ -36,38 +37,40 @@ export const FoodImageCard: React.FC<FoodImageCardProps> = ({
         title="Bấm để xem ảnh chi tiết"
       >
         {/* Skeleton placeholder while image is lazy-loading */}
-        {!isLoaded && (
+        {!isLoaded && !hasError && (
           <div className="absolute inset-0 bg-slate-200 animate-pulse" />
         )}
 
-        <img
-          src={item.imageUrl}
-          alt={item.name}
-          loading="lazy"
-          decoding="async"
-          onLoad={() => setIsLoaded(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${
-            isLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-          onError={(e) => {
-            setIsLoaded(true);
-            (e.target as HTMLImageElement).src =
-              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
-          }}
-        />
+        {hasError ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 text-slate-400 gap-1 p-2 text-center">
+            <ImageIcon size={26} className="text-slate-300" />
+            <span className="text-[11px] font-medium text-slate-400">Không có ảnh</span>
+          </div>
+        ) : (
+          <img
+            src={item.imageUrl}
+            alt={item.name}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setIsLoaded(true)}
+            onError={() => {
+              setIsLoaded(true);
+              setHasError(true);
+            }}
+            className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${
+              isLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        )}
 
         {/* SOURCE BADGE */}
         <div className="absolute top-2 left-2 flex gap-1 z-10">
           <span
             className={`text-[10.5px] font-extrabold px-2 py-0.5 rounded-md text-white shadow-xs ${
-              item.source === 'AI'
-                ? 'bg-purple-600'
-                : item.source === 'UPLOAD'
-                ? 'bg-emerald-600'
-                : 'bg-amber-600'
+              item.source === 'AI' ? 'bg-purple-600' : 'bg-emerald-600'
             }`}
           >
-            {item.source === 'AI' ? '✨ AI Tạo' : item.source === 'UPLOAD' ? '📤 Tải Lên' : '⭐ Mẫu'}
+            {item.source === 'AI' ? '✨ AI Tạo' : '📤 Tải Lên'}
           </span>
         </div>
 

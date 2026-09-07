@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { getEnv } from '../config/env.js';
@@ -7,6 +8,8 @@ import { logger } from '../config/logger.js';
 import type { AiBillingContext, ProviderResult, ProviderUsage } from './creditTypes.js';
 
 interface AiCallOptions {
+  signal?: AbortSignal;
+  maxAttempts?: number;
   temperature?: number;
   maxTokens?: number;
   reasoningEffort?: 'none' | 'low' | 'medium' | 'high';
@@ -46,7 +49,8 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
 
   let lastError: unknown = null;
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= (options.maxAttempts ?? 3); attempt++) {
+    if (options.signal?.aborted) throw new AppError({ status: 504, code: ERROR_CODES.EXTERNAL, message: 'Đã dừng yêu cầu AI.' });
     const startedAt = Date.now();
     try {
       const bodyPayload: Record<string, any> = {
@@ -74,6 +78,7 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
         'https://openrouter.ai/api/v1/chat/completions',
         {
           method: 'POST',
+          signal: options.signal,
           headers: {
             Authorization: `Bearer ${key}`,
             'Content-Type': 'application/json',
@@ -157,6 +162,7 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
 
       return { value: content.trim(), provider: 'openrouter', model, usage: normalizedUsage(data.usage) };
     } catch (err: any) {
+      if (options.signal?.aborted) throw new AppError({ status: 504, code: ERROR_CODES.EXTERNAL, message: 'Đã dừng yêu cầu AI do hết thời gian hoặc kết nối đã đóng.', cause: err });
       lastError = err;
       const retryDelay = Math.max(1500 * attempt, err instanceof OpenRouterRequestError ? err.retryAfterMs : 0);
       const isRetryable = (err instanceof OpenRouterRequestError ? err.retryable : err?.status === 503 || err?.status === 502 || err?.code === ERROR_CODES.UNAVAILABLE || err?.code === ERROR_CODES.EXTERNAL) && retryDelay <= getEnv().PROVIDER_TIMEOUT_MS;
@@ -164,11 +170,13 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
         context: 'AI_PROVIDER', provider: 'openrouter', model, attempt,
         requestKey: options.requestKey, taskType: options.taskType,
         durationMs: Date.now() - startedAt, retryable: isRetryable,
-        willRetry: isRetryable && attempt < 3,
+        willRetry: isRetryable && attempt < (options.maxAttempts ?? 3),
         err,
       }, 'Lỗi khi gọi OpenRouter');
-      if (isRetryable && attempt < 3) {
-        await new Promise((r) => setTimeout(r, retryDelay));
+      if (isRetryable && attempt < (options.maxAttempts ?? 3)) {
+        try { await delay(retryDelay, undefined, { signal: options.signal }); } catch (cause) {
+          throw new AppError({ status: 504, code: ERROR_CODES.EXTERNAL, message: 'Đã dừng yêu cầu AI.', cause });
+        }
         continue;
       }
       break;
@@ -237,10 +245,13 @@ export async function generateWorkoutDraft(context: AiBillingContext | string, p
 /**
  * 4. Tác vụ chuyên biệt: Sinh Lộ Trình Huấn Luyện Dài Hạn (Roadmap)
  */
-export function generateRoadmapDraft(context: AiBillingContext, prompt: string): Promise<string>;
+export function generateRoadmapDraft(context: AiBillingContext, prompt: string, signal?: AbortSignal): Promise<string>;
 export function generateRoadmapDraft(prompt: string): Promise<string>;
-export async function generateRoadmapDraft(context: AiBillingContext | string, prompt?: string): Promise<string> {
+export async function generateRoadmapDraft(context: AiBillingContext | string, prompt?: string, signal?: AbortSignal): Promise<string> {
   return billOrLegacy(context, prompt, {
+    signal,
+    maxAttempts: 1,
+    jsonMode: true,
     temperature: 0.1,
     maxTokens: 8192,
     reasoningEffort: 'none',

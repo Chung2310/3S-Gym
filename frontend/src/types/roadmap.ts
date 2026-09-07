@@ -41,6 +41,9 @@ export interface RoadmapPhase {
 }
 
 export interface RoadmapStrategy {
+  sessionBudget?: { warmupMinutes: number; strengthMinutes: number; cardioMinutes: number; cooldownMinutes: number };
+  generationSource?: 'AI' | 'TEMPLATE';
+  assumptions?: string[];
   targetSummary?: string;
   estimatedWeeks?: number;
   sessionsPerWeek?: number;

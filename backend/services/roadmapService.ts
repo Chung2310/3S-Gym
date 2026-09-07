@@ -1,3 +1,4 @@
+import { assertRoadmapConsistency } from './roadmapValidation.js';
 import { Types, type QueryFilter } from 'mongoose';
 import Roadmap, { type IRoadmap } from '../models/Roadmap.js';
 import CustomerProfile from '../models/CustomerProfile.js';
@@ -17,6 +18,7 @@ async function assertCustomer(user: AuthenticatedUser, customerId: string | Type
 
 async function create(user: AuthenticatedUser, payload: Omit<IRoadmap, 'ptId' | 'status' | 'version' | 'publishedAt'>) {
   await assertCustomer(user, payload.customerId);
+  assertRoadmapConsistency(payload);
   return Roadmap.create({ ...payload, ptId: user.id, status: 'DRAFT', version: 1, publishedAt: null });
 }
 
@@ -30,6 +32,7 @@ async function getOwned(user: AuthenticatedUser, id: string) {
 async function update(user: AuthenticatedUser, id: string, payload: Partial<IRoadmap>) {
   const roadmap = await getOwned(user, id);
   for (const field of ['title', 'baseline', 'strategy', 'phases'] as const) if (payload[field] !== undefined) roadmap.set(field, payload[field]);
+  assertRoadmapConsistency(roadmap.toObject());
   if (roadmap.status === 'PUBLISHED') { roadmap.status = 'DRAFT'; roadmap.publishedAt = null; roadmap.version += 1; }
   return roadmap.save();
 }
@@ -47,6 +50,7 @@ async function remove(user: AuthenticatedUser, id: string) {
 
 async function setPublished(user: AuthenticatedUser, id: string, publish: boolean) {
   const roadmap = await getOwned(user, id);
+  if (publish) assertRoadmapConsistency(roadmap.toObject());
   roadmap.status = publish ? 'PUBLISHED' : 'DRAFT'; roadmap.publishedAt = publish ? new Date() : null;
   const saved = await roadmap.save();
   await recordAudit({ actor: user, action: publish ? 'ROADMAP_PUBLISHED' : 'ROADMAP_UNPUBLISHED', resourceType: 'roadmaps', resourceId: id, customerId: roadmap.customerId });
