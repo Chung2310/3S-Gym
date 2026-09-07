@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { QueryFilter } from 'mongoose';
 import FoodImage, { type IFoodImage } from '../models/FoodImage.js';
 import { generateImage, type AspectRatio } from './imageProvider.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
+import { isCloudinaryConfigured, uploadFoodImageToCloudinary } from './cloudinaryService.js';
 
 export const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads/food-images');
 
@@ -73,6 +75,14 @@ export function extractKeywords(str: string): string[] {
 }
 
 /**
+ * Bộ lọc loại bỏ toàn bộ dữ liệu ảnh mock, ảnh seed cũ không có thực
+ */
+const NOT_MOCK_IMAGE_FILTER: QueryFilter<IFoodImage> = {
+  source: { $ne: 'SEED' },
+  imageUrl: { $not: /^\/images\/dishes|unsplash\.com/i },
+};
+
+/**
  * Tìm ảnh món ăn trong kho dựa theo tên món ăn hoặc các món con trong bữa
  */
 export async function findMatchingFoodImage(
@@ -83,12 +93,13 @@ export async function findMatchingFoodImage(
 
   // 1. Khớp chính xác tên bữa ăn / tên món chính
   if (normMeal) {
-    const exact = await FoodImage.findOne({ normalizedName: normMeal });
+    const exact = await FoodImage.findOne({ normalizedName: normMeal, ...NOT_MOCK_IMAGE_FILTER });
     if (exact) return exact;
 
     // 2. Tìm kiếm chứa cụm từ chính
     const regexMatch = await FoodImage.findOne({
       normalizedName: { $regex: new RegExp(`(^|\\s)${normMeal}(\\s|$)`, 'i') },
+      ...NOT_MOCK_IMAGE_FILTER,
     }).sort({ usageCount: -1 });
     if (regexMatch) return regexMatch;
   }
@@ -99,12 +110,13 @@ export async function findMatchingFoodImage(
     if (!normItem || normItem.length < 3) continue;
 
     // Tìm món khớp chính xác
-    const itemExact = await FoodImage.findOne({ normalizedName: normItem });
+    const itemExact = await FoodImage.findOne({ normalizedName: normItem, ...NOT_MOCK_IMAGE_FILTER });
     if (itemExact) return itemExact;
 
     // Tìm món chứa tên
     const itemPartial = await FoodImage.findOne({
       normalizedName: { $regex: new RegExp(normItem, 'i') },
+      ...NOT_MOCK_IMAGE_FILTER,
     }).sort({ usageCount: -1 });
     if (itemPartial) return itemPartial;
   }
@@ -118,6 +130,7 @@ export async function findMatchingFoodImage(
   if (allKeywords.length > 0) {
     const keywordMatch = await FoodImage.findOne({
       keywords: { $in: allKeywords },
+      ...NOT_MOCK_IMAGE_FILTER,
     }).sort({ usageCount: -1 });
     if (keywordMatch) return keywordMatch;
   }
@@ -126,7 +139,7 @@ export async function findMatchingFoodImage(
 }
 
 /**
- * Lưu Buffer ảnh vào folder vật lý uploads/food-images và lưu bản ghi vào MongoDB
+ * Lưu Buffer ảnh vào Cloudinary (hoặc folder vật lý nếu dev offline) và lưu bản ghi vào MongoDB
  */
 export async function saveFoodImageToStorage(options: {
   buffer: Buffer;
@@ -156,7 +169,6 @@ export async function saveFoodImageToStorage(options: {
     keywords: customKeywords,
     userId,
   } = options;
-  const dir = ensureFoodImagesDir();
 
   const norm = normalizeFoodName(name);
   if (!norm) {
@@ -164,14 +176,23 @@ export async function saveFoodImageToStorage(options: {
   }
 
   const slug = norm.replace(/\s+/g, '_').slice(0, 80) || 'mon_an';
-  const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
-  const filename = `${slug}.${ext}`;
-  const localPath = path.join(dir, filename);
+  let imageUrl: string;
+  let localPath: string | undefined;
 
-  // Ghi file vật lý lên ổ đĩa
-  fs.writeFileSync(localPath, buffer);
+  // Đẩy thẳng lên Cloudinary nếu đã cấu hình (môi trường Production / Staging)
+  if (isCloudinaryConfigured()) {
+    const uploadRes = await uploadFoodImageToCloudinary(buffer, slug);
+    imageUrl = uploadRes.secure_url;
+  } else {
+    // Dự phòng lưu cục bộ cho môi trường dev offline khi chưa có Cloudinary credentials
+    const dir = ensureFoodImagesDir();
+    const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+    const filename = `${slug}_${Date.now()}.${ext}`;
+    localPath = path.join(dir, filename);
+    fs.writeFileSync(localPath, buffer);
+    imageUrl = `/uploads/food-images/${filename}`;
+  }
 
-  const imageUrl = `/uploads/food-images/${filename}`;
   const autoKeywords = extractKeywords(name);
   const combinedKeywords = Array.from(new Set([...autoKeywords, ...(customKeywords || [])]));
 
@@ -184,7 +205,7 @@ export async function saveFoodImageToStorage(options: {
       keywords: combinedKeywords,
       category: category.toUpperCase(),
       imageUrl,
-      localPath,
+      ...(localPath ? { localPath } : { $unset: { localPath: 1 } }),
       fileSize: buffer.length,
       mimeType,
       source,
@@ -201,6 +222,7 @@ export async function saveFoodImageToStorage(options: {
 
   return foodImage;
 }
+
 
 /**
  * Lấy ảnh món ăn từ kho (nếu đã có) HOẶC gọi AI tạo mới và lưu vào kho (nếu chưa có)
@@ -297,8 +319,13 @@ export async function listFoodImages(query: {
   const limit = Math.min(100, Math.max(1, Number(query.limit || 24)));
   const filter: Record<string, any> = {};
 
-  if (query.source && ['AI', 'UPLOAD', 'SEED'].includes(query.source.toUpperCase())) {
+  // Luôn lọc bỏ dữ liệu mock / seed cũ nếu không được chỉ định rõ ràng
+  if (!query.source || query.source.toUpperCase() === 'ALL') {
+    filter.source = { $ne: 'SEED' };
+    filter.imageUrl = { $not: /^\/images\/dishes|unsplash\.com/i };
+  } else if (['AI', 'UPLOAD'].includes(query.source.toUpperCase())) {
     filter.source = query.source.toUpperCase();
+    filter.imageUrl = { $not: /^\/images\/dishes|unsplash\.com/i };
   }
 
   if (query.category && query.category.toUpperCase() !== 'ALL') {
@@ -322,6 +349,7 @@ export async function listFoodImages(query: {
       .lean(),
     FoodImage.countDocuments(filter),
     FoodImage.aggregate([
+      { $match: { source: { $ne: 'SEED' }, imageUrl: { $not: /^\/images\/dishes|unsplash\.com/i } } },
       {
         $group: {
           _id: null,
@@ -329,7 +357,6 @@ export async function listFoodImages(query: {
           totalUsage: { $sum: '$usageCount' },
           aiCount: { $sum: { $cond: [{ $eq: ['$source', 'AI'] }, 1, 0] } },
           uploadCount: { $sum: { $cond: [{ $eq: ['$source', 'UPLOAD'] }, 1, 0] } },
-          seedCount: { $sum: { $cond: [{ $eq: ['$source', 'SEED'] }, 1, 0] } },
         },
       },
     ]),
@@ -340,7 +367,6 @@ export async function listFoodImages(query: {
     totalUsage: 0,
     aiCount: 0,
     uploadCount: 0,
-    seedCount: 0,
   };
 
   // Ước tính chi phí AI tiết kiệm được: mỗi lượt tái sử dụng ~500đ / 0.02$
@@ -477,27 +503,40 @@ export async function updateFoodImage(
     doc.source = updates.source.toUpperCase() as 'AI' | 'UPLOAD' | 'SEED';
   }
 
-  // 9. Nếu có tải file ảnh mới thay thế (ghi đè file vật lý trên ổ đĩa)
+  // 9. Nếu có tải file ảnh mới thay thế (đẩy lên Cloudinary hoặc ghi đè file vật lý trên ổ đĩa)
   if (updates.buffer && updates.buffer.length > 0) {
-    const dir = ensureFoodImagesDir();
     const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 80);
-    const ext = (updates.mimeType || '').includes('png') ? 'png' : (updates.mimeType || '').includes('webp') ? 'webp' : 'jpg';
-    const filename = `${slug}.${ext}`;
-    const newPath = path.join(dir, filename);
 
-    // Xóa file ảnh cũ nếu có
-    if (doc.localPath && fs.existsSync(doc.localPath)) {
-      try {
-        fs.unlinkSync(doc.localPath);
-      } catch {}
+    if (isCloudinaryConfigured()) {
+      const uploadRes = await uploadFoodImageToCloudinary(updates.buffer, slug);
+      doc.imageUrl = uploadRes.secure_url;
+      doc.fileSize = updates.buffer.length;
+      doc.mimeType = updates.mimeType || 'image/jpeg';
+      doc.source = 'UPLOAD';
+      if (doc.localPath && fs.existsSync(doc.localPath)) {
+        try { fs.unlinkSync(doc.localPath); } catch {}
+        doc.localPath = undefined;
+      }
+    } else {
+      const dir = ensureFoodImagesDir();
+      const ext = (updates.mimeType || '').includes('png') ? 'png' : (updates.mimeType || '').includes('webp') ? 'webp' : 'jpg';
+      const filename = `${slug}_${Date.now()}.${ext}`;
+      const newPath = path.join(dir, filename);
+
+      // Xóa file ảnh cũ nếu có
+      if (doc.localPath && fs.existsSync(doc.localPath)) {
+        try {
+          fs.unlinkSync(doc.localPath);
+        } catch {}
+      }
+
+      fs.writeFileSync(newPath, updates.buffer);
+      doc.imageUrl = `/uploads/food-images/${filename}`;
+      doc.localPath = newPath;
+      doc.fileSize = updates.buffer.length;
+      doc.mimeType = updates.mimeType || 'image/jpeg';
+      doc.source = 'UPLOAD';
     }
-
-    fs.writeFileSync(newPath, updates.buffer);
-    doc.imageUrl = `/uploads/food-images/${filename}`;
-    doc.localPath = newPath;
-    doc.fileSize = updates.buffer.length;
-    doc.mimeType = updates.mimeType || 'image/jpeg';
-    doc.source = 'UPLOAD';
   }
 
   await doc.save();
@@ -546,28 +585,44 @@ export async function regenerateFoodImageWithAi(
   }
 
   const buffer = Buffer.from(aiResult.b64Json, 'base64');
-  const dir = ensureFoodImagesDir();
   const slug = (doc.normalizedName || 'food').replace(/\s+/g, '_').slice(0, 80);
-  const ext = (aiResult.mediaType || '').includes('png') ? 'png' : 'jpg';
-  const filename = `${slug}.${ext}`;
-  const newPath = path.join(dir, filename);
 
-  // Xóa ảnh vật lý cũ nếu tồn tại
-  if (doc.localPath && fs.existsSync(doc.localPath)) {
-    try {
-      fs.unlinkSync(doc.localPath);
-    } catch {}
+  if (isCloudinaryConfigured()) {
+    const uploadRes = await uploadFoodImageToCloudinary(buffer, slug);
+    doc.imageUrl = uploadRes.secure_url;
+    doc.fileSize = buffer.length;
+    doc.mimeType = aiResult.mediaType || 'image/jpeg';
+    doc.source = 'AI';
+    doc.prompt = promptToUse;
+
+    if (doc.localPath && fs.existsSync(doc.localPath)) {
+      try { fs.unlinkSync(doc.localPath); } catch {}
+      doc.localPath = undefined;
+    }
+  } else {
+    const dir = ensureFoodImagesDir();
+    const ext = (aiResult.mediaType || '').includes('png') ? 'png' : 'jpg';
+    const filename = `${slug}_${Date.now()}.${ext}`;
+    const newPath = path.join(dir, filename);
+
+    // Xóa ảnh vật lý cũ nếu tồn tại
+    if (doc.localPath && fs.existsSync(doc.localPath)) {
+      try {
+        fs.unlinkSync(doc.localPath);
+      } catch {}
+    }
+
+    fs.writeFileSync(newPath, buffer);
+
+    doc.imageUrl = `/uploads/food-images/${filename}`;
+    doc.localPath = newPath;
+    doc.fileSize = buffer.length;
+    doc.mimeType = aiResult.mediaType || 'image/jpeg';
+    doc.source = 'AI';
+    doc.prompt = promptToUse;
   }
-
-  fs.writeFileSync(newPath, buffer);
-
-  doc.imageUrl = `/uploads/food-images/${filename}`;
-  doc.localPath = newPath;
-  doc.fileSize = buffer.length;
-  doc.mimeType = aiResult.mediaType || 'image/jpeg';
-  doc.source = 'AI';
-  doc.prompt = promptToUse;
 
   await doc.save();
   return doc;
 }
+

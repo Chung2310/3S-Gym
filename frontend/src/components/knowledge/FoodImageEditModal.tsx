@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Pencil, X, Sparkles, RefreshCw, UploadCloud } from 'lucide-react';
+import { Pencil, X, Sparkles, RefreshCw } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
@@ -31,6 +31,7 @@ export const FoodImageEditModal: React.FC<FoodImageEditModalProps> = ({
   const [imageMode, setImageMode] = useState<'KEEP' | 'UPLOAD'>('KEEP');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [hasImgError, setHasImgError] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [regeneratingAi, setRegeneratingAi] = useState(false);
@@ -47,6 +48,7 @@ export const FoodImageEditModal: React.FC<FoodImageEditModalProps> = ({
       setImageMode('KEEP');
       setFile(null);
       setPreviewUrl(null);
+      setHasImgError(false);
     }
   }, [item]);
 
@@ -57,6 +59,7 @@ export const FoodImageEditModal: React.FC<FoodImageEditModalProps> = ({
     if (!selected) return;
     setFile(selected);
     setPreviewUrl(URL.createObjectURL(selected));
+    setHasImgError(false);
     setImageMode('UPLOAD');
   };
 
@@ -70,6 +73,7 @@ export const FoodImageEditModal: React.FC<FoodImageEditModalProps> = ({
       const updated = res.data;
       if (updated?.imageUrl) {
         setPreviewUrl(updated.imageUrl);
+        setHasImgError(false);
       }
       toast.success(res.message || 'AI đã tái tạo ảnh mới cho món ăn thành công!');
       onSaved();
@@ -101,17 +105,8 @@ export const FoodImageEditModal: React.FC<FoodImageEditModalProps> = ({
         formData.append('source', 'UPLOAD');
         formData.append('image', file);
 
-        const token = localStorage.getItem('token');
-        const res = await fetch(`/api/food-images/${item._id}`, {
-          method: 'PATCH',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok || data.success === false) {
-          throw new Error(data.message || 'Không thể cập nhật ảnh món ăn.');
-        }
-        toast.success(data.message || `Đã cập nhật thông tin món "${name}" thành công!`);
+        const res = await api.uploadPatch<any>(`/api/food-images/${item._id}`, formData);
+        toast.success(res.message || `Đã cập nhật thông tin món "${name}" thành công!`);
       } else {
         const payload: Record<string, any> = {
           name: name.trim(),
@@ -168,15 +163,18 @@ export const FoodImageEditModal: React.FC<FoodImageEditModalProps> = ({
           <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 mb-4">
             <div className="flex gap-3.5 items-start flex-wrap">
               <div className="relative w-32 h-24 rounded-lg overflow-hidden shrink-0 bg-slate-900 border border-slate-300">
-                <img
-                  src={previewUrl || item.imageUrl}
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
-                  }}
-                />
+                {hasImgError && !previewUrl ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-slate-400 text-xs text-center p-1">
+                    <span>Không có ảnh</span>
+                  </div>
+                ) : (
+                  <img
+                    src={previewUrl || item.imageUrl}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                    onError={() => setHasImgError(true)}
+                  />
+                )}
                 <span className="absolute bottom-1 left-1 text-[10px] font-extrabold bg-slate-900/80 text-white px-1.5 py-0.5 rounded">
                   {item.source === 'AI' ? 'AI' : 'Tải lên'}
                 </span>
