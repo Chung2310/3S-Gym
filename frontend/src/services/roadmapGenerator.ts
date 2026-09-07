@@ -13,6 +13,7 @@ export interface RoadmapCustomerMeta {
   _id?: string;
   fullName?: string;
   gender?: string;
+  dateOfBirth?: string | null;
   height?: number;
   initialWeight?: number;
   medicalNotes?: string;
@@ -26,6 +27,7 @@ export interface RoadmapGoalInput {
   durationWeeks?: number; // 4, 8, 12, 16, 24 (default 12)
   sessionsPerWeek?: number; // 3, 4, 5, 6 (default 3 or 4)
   customNotes?: string;
+  sessionDurationMinutes?: number;
 }
 
 export interface RoadmapSessionProposal {
@@ -69,6 +71,9 @@ export interface RoadmapEvaluationCheckpoint {
 }
 
 export interface RoadmapStrategyProposal {
+  sessionBudget?: { warmupMinutes: number; strengthMinutes: number; cardioMinutes: number; cooldownMinutes: number };
+  generationSource?: 'AI' | 'TEMPLATE';
+  assumptions?: string[];
   targetSummary: string;
   estimatedWeeks: number;
   sessionsPerWeek: number;
@@ -87,11 +92,11 @@ export interface GeneratedRoadmapProposal {
 }
 
 // BMR Formula (Mifflin-St Jeor)
-function calculateBmr(weight: number, heightCm: number, isFemale: boolean): number {
+function calculateBmr(weight: number, heightCm: number, isFemale: boolean, age: number): number {
   if (isFemale) {
-    return Math.round(10 * weight + 6.25 * heightCm - 5 * 28 - 161);
+    return Math.round(10 * weight + 6.25 * heightCm - 5 * age - 161);
   }
-  return Math.round(10 * weight + 6.25 * heightCm - 5 * 28 + 5);
+  return Math.round(10 * weight + 6.25 * heightCm - 5 * age + 5);
 }
 
 // TDEE Multiplier
@@ -109,27 +114,36 @@ export function generateSmartRoadmap(
   input?: RoadmapGoalInput
 ): GeneratedRoadmapProposal {
   const goalType: RoadmapGoalType = input?.type || 'FAT_LOSS';
-  const durationWeeks = Math.max(4, Math.min(24, Number(input?.durationWeeks) || 12));
-  const sessionsPerWeek = Math.max(2, Math.min(6, Number(input?.sessionsPerWeek) || 3));
+  const durationWeeks = Math.max(4, Math.min(24, Math.trunc(Number(input?.durationWeeks)) || 12));
+  const sessionsPerWeek = Math.max(2, Math.min(6, Math.trunc(Number(input?.sessionsPerWeek)) || 3));
   const targetValue = input?.targetValue != null ? Number(input.targetValue) : 5;
-  const targetUnit = input?.targetUnit || (['FAT_LOSS'].includes(goalType) && targetValue <= 15 ? 'kg' : 'kg');
+  const targetUnit = input?.targetUnit || 'kg';
   const customNotes = (input?.customNotes || '').trim();
 
   const gender = customer.gender || (typeof inbody?.customerId === 'object' && inbody?.customerId?.gender) || 'MALE';
   const isFemale = gender.toUpperCase() === 'FEMALE' || gender.toUpperCase() === 'NỮ';
   const currentWeight = inbody?.weight || customer.initialWeight || (isFemale ? 55 : 70);
   const heightCm = customer.height || 170;
-  const bodyFat = inbody?.bodyFatPercentage || (isFemale ? 28 : 20);
-  const muscleMass = inbody?.muscleMass || (isFemale ? 22 : 32);
 
-  const bmr = inbody?.bmr || calculateBmr(currentWeight, heightCm, isFemale);
+  const assumptions = ['Bản mẫu theo quy tắc, không phải kết quả AI; chỉ tiêu dinh dưỡng là ước lượng cần PT kiểm tra.'];
+  const birthDate = customer.dateOfBirth ? new Date(customer.dateOfBirth) : null;
+  const now = new Date();
+  const ageFromBirth = birthDate && Number.isFinite(birthDate.getTime())
+    ? now.getUTCFullYear() - birthDate.getUTCFullYear() - Number(now.getUTCMonth() < birthDate.getUTCMonth() || (now.getUTCMonth() === birthDate.getUTCMonth() && now.getUTCDate() < birthDate.getUTCDate()))
+    : null;
+  const age = ageFromBirth !== null && ageFromBirth > 0 && ageFromBirth < 120 ? ageFromBirth : 28;
+  if (!inbody?.bmr && ageFromBirth !== age) assumptions.push('Thiếu ngày sinh hợp lệ: tạm dùng tuổi 28 để ước lượng BMR.');
+  if (!customer.height) assumptions.push('Thiếu chiều cao: tạm dùng 170 cm để tính toán.');
+  if (!inbody?.weight && !customer.initialWeight) assumptions.push(`Thiếu cân nặng: tạm dùng ${currentWeight} kg để tính toán, không lưu vào baseline.`);
+  if (!customer.gender || !['MALE', 'FEMALE'].includes(gender.toUpperCase())) assumptions.push('Chưa có giới tính phù hợp công thức BMR: tạm dùng hệ số nam.');
+  if (customer.medicalNotes || customNotes) assumptions.push('Bản mẫu chưa tự điều chỉnh theo ghi chú sức khỏe/yêu cầu riêng; PT cần rà soát trước khi áp dụng.');
+  const bmr = inbody?.bmr || calculateBmr(currentWeight, heightCm, isFemale, age);
   const tdee = calculateTdee(bmr, sessionsPerWeek);
 
   // 1. Calculate Nutrition Strategy based on Goal
   let targetCalories = tdee;
   let calorieDelta = 0;
   let proteinPerKg = 1.8;
-  let cardioDesc = '';
   let trainingMethod = '';
   let trainingSplit = '';
   let goalLabel = '';
@@ -142,8 +156,7 @@ export function generateSmartRoadmap(
       proteinPerKg = 2.0; // High protein to preserve LBM during deficit
       goalLabel = `Giảm mỡ & Giảm ${targetValue}${targetUnit}`;
       trainingMethod = 'Kháng lực Hypertrophy + Tối ưu hóa tiêu hao năng lượng qua RPE 7-8 và thâm hụt calo';
-      trainingSplit = sessionsPerWeek >= 4 ? 'Upper / Lower Split (Thân Trên / Thân Dưới)' : 'Full Body 3 buổi/tuần';
-      cardioDesc = 'Cardio Zone 2 (Đi bộ dốc / Đạp xe tốc độ ổn định nhịp tim 120-135 bpm) 20-30 phút cuối buổi tạ + 1 buổi LISS 45 phút vào ngày nghỉ.';
+      trainingSplit = sessionsPerWeek >= 4 ? 'Upper / Lower Split (Thân Trên / Thân Dưới)' : `Full Body ${sessionsPerWeek} buổi/tuần`;
       break;
     }
     case 'MUSCLE_GAIN':
@@ -154,7 +167,6 @@ export function generateSmartRoadmap(
       goalLabel = `Tăng cơ nạc & Tăng ${targetValue}${targetUnit}`;
       trainingMethod = 'Tăng tiến áp lực (Progressive Overload) + Tập trung thời gian chịu tải (TUT 3-0-1-0) với RPE 8-9';
       trainingSplit = sessionsPerWeek >= 4 ? 'Push - Pull - Legs (Đẩy - Kéo - Chân)' : 'Upper - Lower - Fullbody';
-      cardioDesc = 'Cardio duy trì tim mạch nhẹ nhàng 15 phút (Zone 1-2) 2 lần/tuần sau buổi tập, tránh tiêu hao quá nhiều calo thặng dư.';
       break;
     }
     case 'RECOMPOSITION': {
@@ -164,7 +176,6 @@ export function generateSmartRoadmap(
       goalLabel = `Tái cấu trúc vóc dáng (Giảm ${targetValue}% mỡ & Tăng cơ)`;
       trainingMethod = 'Tập kháng lực nặng các bài tập đa khớp (Compound Lifts) kết hợp luân phiên thâm hụt calo ngày tập và ngày nghỉ';
       trainingSplit = sessionsPerWeek >= 4 ? 'Upper / Lower kết hợp Strength & Hypertrophy' : 'Full Body Compound';
-      cardioDesc = 'Tích hợp 15 phút HIIT (Chèo thuyền Concept2 / Battle Rope / Đạp xe nước rút) xen kẽ 2 buổi tạ.';
       break;
     }
     case 'FITNESS':
@@ -176,16 +187,16 @@ export function generateSmartRoadmap(
       goalLabel = `Cải thiện Thể lực, Sức bền & Sức mạnh toàn diện`;
       trainingMethod = 'Tăng cường sức mạnh nền tảng (Squat, Deadlift, Bench Press, Overhead Press) + Circuit Conditioning';
       trainingSplit = 'Toàn thân (Full Body Functional Split)';
-      cardioDesc = 'Cardio phối hợp chức năng (Rowing, SkiErg, Sled Push, Kettlebell Swing) 25 phút mỗi buổi tập.';
       break;
     }
   }
 
   // Macro Calculation (Protein 4kcal/g, Fat 9kcal/g, Carb 4kcal/g)
-  const proteinGrams = Math.round(currentWeight * proteinPerKg);
+  calorieDelta = targetCalories - tdee;
+  const proteinGrams = Math.min(Math.round(currentWeight * proteinPerKg), Math.floor(targetCalories * 0.75 / 4));
   const fatGrams = Math.round((targetCalories * 0.25) / 9);
   const remainingCalories = targetCalories - (proteinGrams * 4 + fatGrams * 9);
-  const carbsGrams = Math.max(50, Math.round(remainingCalories / 4));
+  const carbsGrams = Math.max(0, Math.round(remainingCalories / 4));
   const waterLiters = Number(((currentWeight * 0.04) + (sessionsPerWeek >= 4 ? 0.5 : 0.3)).toFixed(1));
 
   // 2. Build Strategy Proposal
@@ -210,13 +221,18 @@ export function generateSmartRoadmap(
     }
   }
 
+  const sessionMinutes = Math.max(20, Math.min(180, Math.trunc(input?.sessionDurationMinutes || 60)));
+  const cardioMinutes = Math.min(10, sessionMinutes - 11);
   const strategy: RoadmapStrategyProposal = {
-    targetSummary: `${goalLabel} trong ${durationWeeks} tuần (Tần suất ${sessionsPerWeek} buổi/tuần). Thể trạng: Cân nặng ${currentWeight}kg, % Mỡ ${bodyFat}%, Cơ ${muscleMass}kg.${customNotes ? ` Ghi chú: ${customNotes}` : ''}`,
+    sessionBudget: { warmupMinutes: 5, strengthMinutes: sessionMinutes - 10 - cardioMinutes, cardioMinutes, cooldownMinutes: 5 },
+    generationSource: 'TEMPLATE',
+    assumptions,
+    targetSummary: `${goalLabel} trong ${durationWeeks} tuần (Tần suất ${sessionsPerWeek} buổi/tuần). Thể trạng: Cân nặng ${inbody?.weight || customer.initialWeight || 'chưa có'}kg, % Mỡ ${inbody?.bodyFatPercentage || 'chưa có'}%, Cơ ${inbody?.muscleMass || 'chưa có'}kg.${customNotes ? ` Ghi chú: ${customNotes}` : ''}`,
     estimatedWeeks: durationWeeks,
     sessionsPerWeek,
     trainingMethod,
     trainingSplit,
-    cardioProtocol: cardioDesc,
+    cardioProtocol: `${cardioMinutes} phút cardio trong mỗi buổi, tính trong tổng ${sessionMinutes} phút. PT chọn hình thức và cường độ phù hợp hồ sơ.`,
     nutrition: {
       bmr,
       tdee,
@@ -316,13 +332,9 @@ export function generateSmartRoadmap(
     strategy,
     phases,
     baseline: {
-      initialWeight: currentWeight,
-      initialBodyFat: bodyFat,
-      initialMuscleMass: muscleMass,
-      targetCalories,
-      sessionsPerWeek,
-      bmr,
-      tdee,
+      ...((inbody?.weight || customer.initialWeight) ? { initialWeight: currentWeight } : {}),
+      ...(inbody?.bodyFatPercentage ? { initialBodyFat: inbody.bodyFatPercentage } : {}),
+      ...(inbody?.muscleMass ? { initialMuscleMass: inbody.muscleMass } : {}),
     },
   };
 }
