@@ -357,7 +357,6 @@ async function updateSelfProfile(actor: AuthenticatedUser, payload: UpdateSelfPr
     if (!isCurrentValid) {
       throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Mật khẩu hiện tại không chính xác.' });
     }
-    assertSixDigitPassword(payload.password);
     user.password = await bcrypt.hash(payload.password, 10);
   }
 

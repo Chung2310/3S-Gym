@@ -38,7 +38,7 @@ export const updateSelfProfileSchema: RequestValidationSchema = {
     bio: profileFields.bio,
     address: profileFields.address,
     specialization: profileFields.specialization,
-    password: sixDigitPassword.allow('', null),
+    password: Joi.string().allow('', null).messages(commonMessages),
     currentPassword: Joi.string().allow('', null).messages(commonMessages),
     role: Joi.forbidden(),
     status: Joi.forbidden(),
