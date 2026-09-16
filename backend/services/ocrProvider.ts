@@ -84,24 +84,27 @@ function normalizeInBodyWarning(warning: string): string {
   return w;
 }
 
-async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResult<InBodyExtraction>> {
+async function extractInBodyRaw(fileOrFiles: Express.Multer.File | Express.Multer.File[]): Promise<ProviderResult<InBodyExtraction>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Dịch vụ OCR InBody chưa được cấu hình.' });
   const ocrModel = getEnv().OCR_MODEL;
   try {
-    const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
-    const fileContent = isPdf
-      ? {
-          type: 'file',
-          file: {
-            filename: file.originalname || 'inbody.pdf',
-            file_data: `data:application/pdf;base64,${file.buffer.toString('base64')}`,
-          },
-        }
-      : {
-          type: 'image_url',
-          image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` },
-        };
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+    const fileContents = files.map((file) => {
+      const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+      return isPdf
+        ? {
+            type: 'file' as const,
+            file: {
+              filename: file.originalname || 'inbody.pdf',
+              file_data: `data:application/pdf;base64,${file.buffer.toString('base64')}`,
+            },
+          }
+        : {
+            type: 'image_url' as const,
+            image_url: { url: `data:${file.mimetype};base64,${file.buffer.toString('base64')}` },
+          };
+    });
 
     const { data: payload } = await requestOpenRouter<{ usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown; cost?: unknown } }>('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -112,7 +115,7 @@ async function extractInBodyRaw(file: Express.Multer.File): Promise<ProviderResu
           {
             type: 'text',
             text: `Bạn là chuyên gia thị giác máy tính OCR phân tích phiếu đo thể trạng InBody (InBody 270, 370S, 570, 770, Tanita, Accuniq).
-Hãy đọc kỹ hình ảnh hoặc tài liệu phiếu đo và trích xuất dữ liệu thành đúng 1 JSON object thuần túy theo cấu trúc sau:
+Hãy đọc kỹ hình ảnh hoặc tài liệu phiếu đo (nếu có nhiều ảnh hoặc nhiều trang, hãy tổng hợp thông tin từ tất cả các ảnh/trang của cùng phiếu đo) và trích xuất dữ liệu thành đúng 1 JSON object thuần túy theo cấu trúc sau:
 
 1. customerName: Họ tên hoặc ID học viên/khách hàng in trên phiếu (thường ở góc trên cùng, gần nhãn 'ID', 'Name', 'User', 'Họ tên'). Ví dụ: "NGUYEN VAN AN". Hãy loại bỏ các tiền tố như "Name:", "ID:", "Sex:". Nếu không có tên hoặc không đọc được, trả về null.
 2. measurementDate: Ngày đo trên phiếu (gần nhãn 'Test Date', 'Date / Time', 'Ngày đo'), chuẩn hóa về chuỗi định dạng YYYY-MM-DD. Nếu không thấy, trả về null.
@@ -135,7 +138,7 @@ Hãy đọc kỹ hình ảnh hoặc tài liệu phiếu đo và trích xuất d�
 
 LƯU Ý: Nếu chỉ số nào không có trên phiếu, hãy gán null. Chỉ trả về JSON thuần túy, không kèm bất kỳ giải thích nào.`,
           },
-          fileContent,
+          ...fileContents,
         ] }],
       }),
     }, getEnv().PROVIDER_TIMEOUT_MS);
@@ -211,9 +214,9 @@ LƯU Ý: Nếu chỉ số nào không có trên phiếu, hãy gán null. Chỉ t
   }
 }
 
-export function extractInBody(context: AiBillingContext, file: Express.Multer.File): Promise<InBodyExtraction>;
-export function extractInBody(file: Express.Multer.File): Promise<InBodyExtraction>;
-export async function extractInBody(context: AiBillingContext | Express.Multer.File, file?: Express.Multer.File): Promise<InBodyExtraction> {
-  if ('buffer' in context) return (await extractInBodyRaw(context)).value;
-  return withAiBilling(context, () => extractInBodyRaw(file!));
+export function extractInBody(context: AiBillingContext, file: Express.Multer.File | Express.Multer.File[]): Promise<InBodyExtraction>;
+export function extractInBody(file: Express.Multer.File | Express.Multer.File[]): Promise<InBodyExtraction>;
+export async function extractInBody(context: AiBillingContext | Express.Multer.File | Express.Multer.File[], file?: Express.Multer.File | Express.Multer.File[]): Promise<InBodyExtraction> {
+  if (Array.isArray(context) || 'buffer' in context) return (await extractInBodyRaw(context)).value;
+  return withAiBilling(context as AiBillingContext, () => extractInBodyRaw(file!));
 }

@@ -34,7 +34,9 @@ function validate(schema: ValidationSchema | RequestValidationSchema): RequestHa
       for (const segment of segments) {
         const segmentSchema = schema[segment];
         if (!segmentSchema) continue;
-        const source = segment === 'file' ? req.file : req[segment];
+        const source = segment === 'file'
+          ? (Array.isArray(req.files) && req.files.length > 0 ? req.files : req.file)
+          : req[segment];
         const result = segmentSchema.validate(source, validationOptions);
         if (result.error) {
           errors.push(...result.error.details.map((detail) => {
@@ -44,7 +46,13 @@ function validate(schema: ValidationSchema | RequestValidationSchema): RequestHa
           continue;
         }
         if (segment === 'file') {
-          req.file = result.value as Express.Multer.File;
+          if (Array.isArray(result.value)) {
+            req.files = result.value as unknown as Express.Multer.File[];
+            req.file = result.value[0] as Express.Multer.File;
+          } else {
+            req.file = result.value as Express.Multer.File;
+            req.files = [result.value as Express.Multer.File];
+          }
         } else if (segment === 'query') {
           Object.defineProperty(req, 'query', { configurable: true, enumerable: true, value: result.value });
         } else {
