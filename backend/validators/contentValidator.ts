@@ -3,7 +3,7 @@ import type { RequestValidationSchema } from '../middlewares/validate.js';
 import { commonMessages, idParams, nonEmptyPatch, objectId, paginationQuery } from './commonValidator.js';
 
 const systemFields = { ptId: Joi.forbidden(), status: Joi.forbidden(), publishedAt: Joi.forbidden(), version: Joi.forbidden() };
-export const contentListSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, status: Joi.string().valid('DRAFT', 'PUBLISHED'), customerId: objectId }).messages(commonMessages) };
+export const contentListSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, status: Joi.string().valid('DRAFT', 'PUBLISHED'), customerId: objectId, sortBy: Joi.string().optional(), sortOrder: Joi.string().valid('asc', 'desc').optional() }).messages(commonMessages) };
 export const contentIdSchema: RequestValidationSchema = { params: idParams() };
 const segmentalSchema = Joi.object({
   rightArm: Joi.number().allow(null),
