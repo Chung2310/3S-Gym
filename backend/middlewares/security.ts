@@ -29,7 +29,7 @@ export function configureSecurity(app: Application, options: SecurityOptions): v
 
   app.use(cors({
     origin(origin, callback) {
-      if (!origin || options.corsOrigins.length === 0 || options.corsOrigins.includes(origin)) return callback(null, true);
+      if (!origin || isDevelopment || options.corsOrigins.length === 0 || options.corsOrigins.includes(origin)) return callback(null, true);
       return callback(new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Nguồn truy cập không được phép.' }));
     },
     credentials: true,
