@@ -13,6 +13,7 @@ import {
   PanelLeftOpen,
   Ruler,
   Salad,
+  UserPen,
   Users,
   WalletCards,
   X
@@ -387,6 +388,26 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
                 <span className="portal-user-role">{roleNames[user.role]}</span>
                 {user.username && user.fullName && user.fullName !== user.username && (
                   <div className="portal-user-uname">@{user.username}</div>
+                )}
+                {user.role === 'PT' && (
+                  <Link
+                    to="/pt/profile"
+                    className="portal-user-edit-link"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginTop: '10px',
+                      paddingTop: '8px',
+                      borderTop: '1px solid #f1f5f9',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: '#00a4e4',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <UserPen size={14} /> Chỉnh sửa hồ sơ
+                  </Link>
                 )}
               </div>
             </div>

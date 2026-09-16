@@ -25,4 +25,25 @@ export const createUserSchema: RequestValidationSchema = { body: Joi.object({
   address: profileFields.address, specialization: profileFields.specialization, status: profileFields.status,
 }).messages(commonMessages) };
 export const updateUserSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...profileFields, password: sixDigitPassword.allow('', null), username: Joi.forbidden(), role: Joi.forbidden() }) };
+export const updateSelfProfileSchema: RequestValidationSchema = {
+  body: nonEmptyPatch({
+    fullName: profileFields.fullName,
+    phone: profileFields.phone,
+    email: profileFields.email,
+    avatarUrl: profileFields.avatarUrl,
+    dateOfBirth: profileFields.dateOfBirth,
+    gender: profileFields.gender,
+    yearsOfExperience: profileFields.yearsOfExperience,
+    certificates: profileFields.certificates,
+    bio: profileFields.bio,
+    address: profileFields.address,
+    specialization: profileFields.specialization,
+    password: sixDigitPassword.allow('', null),
+    currentPassword: Joi.string().allow('', null).messages(commonMessages),
+    role: Joi.forbidden(),
+    status: Joi.forbidden(),
+    username: Joi.forbidden(),
+  }),
+};
 export const deleteUserSchema: RequestValidationSchema = { params: idParams() };
+
