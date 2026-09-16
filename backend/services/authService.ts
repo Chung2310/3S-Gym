@@ -22,7 +22,18 @@ async function login({ username, password }: { username: string; password: strin
 
   return {
     token,
-    user: { id: user.id, username: user.username, fullName: user.fullName, role: user.role, status: user.status },
+    user: {
+      id: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      role: user.role,
+      status: user.status,
+      avatarUrl: user.avatarUrl || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      gender: user.gender,
+      dateOfBirth: user.dateOfBirth,
+    },
   };
 }
 

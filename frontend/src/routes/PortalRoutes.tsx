@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import PortalNotFound from '../components/PortalNotFound';
@@ -8,6 +9,7 @@ import AdminRoutes from './AdminRoutes';
 import InBodyPage from '../pages/pt/InBodyPage';
 import PtCustomersPage from '../pages/pt/PtCustomersPage';
 import PtDashboardPage from '../pages/pt/PtDashboardPage';
+import PtProfilePage from '../pages/pt/PtProfilePage';
 import RoadmapPage from '../pages/pt/RoadmapPage';
 import MyWorkoutPlans from '../components/workouts/MyWorkoutPlans';
 import WorkoutStudioPage from '../pages/pt/WorkoutStudioPage';
@@ -39,7 +41,7 @@ const roleDestinations = {
 } as const;
 const roleLabels = { SUPER_ADMIN: 'quản trị cấp cao', ADMIN: 'ADMIN', PT: 'PT', CUSTOMER: 'khách hàng' } as const;
 
-function PortalContent({ user }: { user: User }) {
+function PortalContent({ user, onUserUpdated }: { user: User; onUserUpdated?: (user: User) => void }) {
   const { features } = useFeatures();
   const location = useLocation();
   const isPortalRoot = location.pathname === '/portal' || location.pathname === '/portal/' || location.pathname === '/';
@@ -112,6 +114,14 @@ function PortalContent({ user }: { user: User }) {
           element={
             <FeatureRoute user={user} roles={['ADMIN']}>
               <AdminRoutes />
+            </FeatureRoute>
+          }
+        />
+        <Route
+          path="pt/profile"
+          element={
+            <FeatureRoute user={user} roles={['PT']}>
+              <PtProfilePage user={user} onUserUpdated={onUserUpdated} />
             </FeatureRoute>
           }
         />
@@ -233,10 +243,26 @@ function PortalContent({ user }: { user: User }) {
 
 export default function PortalRoutes({ session: providedSession }: { session?: Session }) {
   const session = providedSession || getSession();
-  const user: User = session?.user || { username: '', role: 'CUSTOMER' };
+  const [user, setUser] = useState<User>(session?.user || { username: '', role: 'CUSTOMER' });
+
+  useEffect(() => {
+    const handleProfileUpdated = (e: Event) => {
+      const updated = (e as CustomEvent<User>).detail;
+      if (updated) {
+        setUser((prev) => ({ ...prev, ...updated }));
+      }
+    };
+    window.addEventListener('3s:user-profile-updated', handleProfileUpdated);
+    return () => window.removeEventListener('3s:user-profile-updated', handleProfileUpdated);
+  }, []);
+
+  const handleUserUpdated = (updated: User) => {
+    setUser((prev) => ({ ...prev, ...updated }));
+  };
+
   return (
     <FeaturesProvider>
-      <PortalContent user={user} />
+      <PortalContent user={user} onUserUpdated={handleUserUpdated} />
     </FeaturesProvider>
   );
 }

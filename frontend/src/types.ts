@@ -1,5 +1,22 @@
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'PT' | 'CUSTOMER';
-export interface User { _id?: string; id?: string; username: string; role: UserRole; fullName?: string; phone?: string; email?: string; status?: string; avatarUrl?: string }
+export interface User {
+  _id?: string;
+  id?: string;
+  username: string;
+  role: UserRole;
+  fullName?: string;
+  phone?: string;
+  email?: string;
+  status?: string;
+  avatarUrl?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER' | string;
+  dateOfBirth?: string | Date | null;
+  address?: string;
+  specialization?: string;
+  yearsOfExperience?: number;
+  certificates?: string[];
+  bio?: string;
+}
 export interface Session { token: string; user: User }
 export interface PaginationMeta { page: number; limit?: number; total?: number; totalPages: number }
 export interface ApiResponse<T> { success: true; data: T; meta?: PaginationMeta; message?: string }
