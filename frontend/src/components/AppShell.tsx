@@ -64,12 +64,17 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [creditError, setCreditError] = useState('');
+  const [imgFailed, setImgFailed] = useState(false);
   const isMobile = useMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const items = visibleNavigation(user, features);
   const current = navigationForPath(location.pathname, user, features);
   const { wallet, loading: walletLoading } = useCreditWallet();
+
+  useEffect(() => {
+    setImgFailed(false);
+  }, [user.avatarUrl]);
 
   useEffect(() => {
     let mounted = true;
@@ -377,8 +382,12 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
             {/* User Circle Avatar with Hover Popover */}
             <div className="portal-user-wrap" tabIndex={0} role="button" aria-label={`Tài khoản: ${displayName}`}>
               <div className="portal-user-avatar" title={displayName}>
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={displayName} />
+                {user.avatarUrl && !imgFailed ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={displayName}
+                    onError={() => setImgFailed(true)}
+                  />
                 ) : (
                   <span>{getInitials(user.fullName, user.username)}</span>
                 )}

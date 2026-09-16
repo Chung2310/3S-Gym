@@ -29,7 +29,8 @@ import PaymentResultPage from '../pages/common/PaymentResultPage';
 import CreditAdminPage from '../pages/admin/CreditAdminPage';
 
 import { FeaturesProvider, useFeatures } from '../services/features';
-import { getSession } from '../services/session';
+import { getSession, saveSession } from '../services/session';
+import { api } from '../services/api';
 import type { Session, User } from '../types';
 import { CreditWalletProvider } from '../contexts/CreditWalletContext';
 
@@ -246,18 +247,48 @@ export default function PortalRoutes({ session: providedSession }: { session?: S
   const [user, setUser] = useState<User>(session?.user || { username: '', role: 'CUSTOMER' });
 
   useEffect(() => {
+    let mounted = true;
+
+    // Tự động đồng bộ profile mới nhất từ backend (/api/auth/me) khi tải trang
+    api
+      .get<User>('/api/auth/me')
+      .then((res) => {
+        if (mounted && res.data && res.data.id) {
+          const latestUser = res.data;
+          setUser((prev) => ({ ...prev, ...latestUser }));
+          const current = getSession();
+          if (current) {
+            saveSession({ token: current.token, user: { ...current.user, ...latestUser } });
+          }
+        }
+      })
+      .catch(() => {
+        // Bỏ qua nếu offline
+      });
+
     const handleProfileUpdated = (e: Event) => {
       const updated = (e as CustomEvent<User>).detail;
       if (updated) {
         setUser((prev) => ({ ...prev, ...updated }));
+        const current = getSession();
+        if (current) {
+          saveSession({ token: current.token, user: { ...current.user, ...updated } });
+        }
       }
     };
     window.addEventListener('3s:user-profile-updated', handleProfileUpdated);
-    return () => window.removeEventListener('3s:user-profile-updated', handleProfileUpdated);
+    return () => {
+      mounted = false;
+      window.removeEventListener('3s:user-profile-updated', handleProfileUpdated);
+    };
   }, []);
 
   const handleUserUpdated = (updated: User) => {
     setUser((prev) => ({ ...prev, ...updated }));
+    const current = getSession();
+    if (current) {
+      saveSession({ token: current.token, user: { ...current.user, ...updated } });
+    }
   };
 
   return (
