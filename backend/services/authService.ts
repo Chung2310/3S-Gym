@@ -28,7 +28,7 @@ async function login({ username, password }: { username: string; password: strin
       fullName: user.fullName,
       role: user.role,
       status: user.status,
-      avatarUrl: user.avatarUrl || '',
+      avatarUrl: user.avatarUrl || (user as unknown as Record<string, unknown>).avatar || (user as unknown as Record<string, unknown>).photoUrl || '',
       email: user.email || '',
       phone: user.phone || '',
       gender: user.gender,
