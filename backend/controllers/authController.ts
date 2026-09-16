@@ -4,10 +4,13 @@ import * as authService from '../services/authService.js';
 import User from '../models/User.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
-
 import { updateSelfProfile } from '../services/userService.js';
 
 const login = asyncHandler(async (req, res) => success(res, { message: 'Đăng nhập thành công.', data: await authService.login(req.body) }));
+
+const refresh = asyncHandler(async (req, res) => success(res, { message: 'Làm mới phiên đăng nhập thành công.', data: await authService.refreshSession(req.body) }));
+
+const logout = asyncHandler(async (req, res) => success(res, { message: 'Đăng xuất thành công.', data: await authService.logoutSession(req.body) }));
 
 const getMe = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user!.id).select('-password').lean();
@@ -60,5 +63,4 @@ const updateMe = asyncHandler(async (req, res) => {
   });
 });
 
-export { login, getMe, updateMe };
-
+export { login, refresh, logout, getMe, updateMe };
