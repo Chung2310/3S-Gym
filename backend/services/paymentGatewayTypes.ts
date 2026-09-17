@@ -9,7 +9,7 @@ export interface GatewayCreateInput {
 
 export type GatewayPaymentResult =
   | { configured: false }
-  | { configured: true; redirectUrl: string };
+  | { configured: true; redirectUrl: string; qrCode?: string; paymentLinkId?: string };
 
 export interface GatewayCallbackResult {
   valid: boolean;

@@ -1,56 +1,58 @@
 import type { CreditLedgerEntry } from '../../types/credits';
 
-const labels: Record<CreditLedgerEntry['type'], string> = {
-  TOPUP: 'Nạp credit',
-  RESERVE: 'Tạm giữ AI',
-  SETTLE: 'Quyết toán AI',
-  RELEASE: 'Hoàn credit',
-  ADJUSTMENT: 'Điều chỉnh',
+const labels: Record<CreditLedgerEntry['type'], { title: string; color: string }> = {
+  TOPUP: { title: 'Nạp credit', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  RESERVE: { title: 'Sử dụng AI', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  SETTLE: { title: 'Sử dụng AI', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  RELEASE: { title: 'Hoàn credit', color: 'bg-sky-50 text-sky-700 border-sky-200' },
+  ADJUSTMENT: { title: 'Điều chỉnh', color: 'bg-purple-50 text-purple-700 border-purple-200' },
 };
 
 export default function CreditLedgerTable({ entries }: { entries: CreditLedgerEntry[] }) {
   if (!entries.length) {
     return (
-      <div className="wallet-empty-state">
-        Chưa có giao dịch credit nào được ghi nhận.
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-8 text-center text-sm font-medium text-slate-500">
+        Chưa có lịch sử giao dịch credit nào.
       </div>
     );
   }
 
   return (
-    <div className="pt-dash-table-wrap">
-      <table className="pt-dash-table">
-        <thead>
+    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+      <table className="w-full text-left text-sm">
+        <thead className="border-b border-slate-100 bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
           <tr>
-            <th>Thời gian</th>
-            <th>Loại giao dịch</th>
-            <th>Biến động</th>
-            <th>Số dư sau</th>
-            <th>Ghi chú</th>
+            <th className="px-5 py-3.5 whitespace-nowrap">Thời gian</th>
+            <th className="px-5 py-3.5 whitespace-nowrap">Loại giao dịch</th>
+            <th className="px-5 py-3.5 whitespace-nowrap">Biến động</th>
+            <th className="px-5 py-3.5 whitespace-nowrap">Số dư sau</th>
+            <th className="px-5 py-3.5">Ghi chú</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-slate-100">
           {entries.map((entry) => {
             const isPositive = entry.availableDelta >= 0;
+            const badge = labels[entry.type] || { title: entry.type, color: 'bg-slate-100 text-slate-700 border-slate-200' };
+
             return (
-              <tr key={entry._id}>
-                <td style={{ whiteSpace: 'nowrap', fontWeight: 500, color: '#64748b', fontSize: '0.76rem' }}>
+              <tr key={entry._id} className="hover:bg-slate-50/50 transition-colors">
+                <td className="px-5 py-3.5 whitespace-nowrap text-xs font-medium text-slate-500">
                   {new Date(entry.createdAt).toLocaleString('vi-VN')}
                 </td>
-                <td>
-                  <span className="wallet-ledger-badge">
-                    {labels[entry.type] || entry.type}
+                <td className="px-5 py-3.5 whitespace-nowrap">
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${badge.color}`}>
+                    {badge.title}
                   </span>
                 </td>
-                <td style={{ fontWeight: 800, fontSize: '0.88rem' }}>
-                  <span style={{ color: isPositive ? '#16a34a' : '#e11d48' }}>
+                <td className="px-5 py-3.5 whitespace-nowrap font-bold">
+                  <span className={isPositive ? 'text-emerald-600' : 'text-rose-600'}>
                     {entry.availableDelta > 0 ? `+${entry.availableDelta}` : entry.availableDelta} credit
                   </span>
                 </td>
-                <td style={{ fontWeight: 700, color: '#1e293b', fontFamily: "'Oswald', sans-serif", fontSize: '0.88rem' }}>
-                  {entry.availableAfter}
+                <td className="px-5 py-3.5 whitespace-nowrap font-oswald text-base font-bold text-slate-900">
+                  {entry.availableAfter.toLocaleString('vi-VN')}
                 </td>
-                <td style={{ color: '#475569', fontSize: '0.76rem', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <td className="px-5 py-3.5 text-xs text-slate-600 max-w-xs truncate">
                   {entry.reason || '—'}
                 </td>
               </tr>

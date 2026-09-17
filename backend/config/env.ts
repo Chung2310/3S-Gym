@@ -52,6 +52,11 @@ export interface AppEnv {
   MOMO_API_URL?: string;
   MOMO_REDIRECT_URL?: string;
   MOMO_IPN_URL?: string;
+  PAYOS_CLIENT_ID?: string;
+  PAYOS_API_KEY?: string;
+  PAYOS_CHECKSUM_KEY?: string;
+  PAYOS_RETURN_URL?: string;
+  PAYOS_CANCEL_URL?: string;
 }
 
 let currentEnvironment: AppEnv | undefined;
@@ -111,6 +116,11 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     MOMO_API_URL: optional('MOMO_API_URL'),
     MOMO_REDIRECT_URL: optional('MOMO_REDIRECT_URL'),
     MOMO_IPN_URL: optional('MOMO_IPN_URL'),
+    PAYOS_CLIENT_ID: optional('PAYOS_CLIENT_ID'),
+    PAYOS_API_KEY: optional('PAYOS_API_KEY'),
+    PAYOS_CHECKSUM_KEY: optional('PAYOS_CHECKSUM_KEY'),
+    PAYOS_RETURN_URL: optional('PAYOS_RETURN_URL'),
+    PAYOS_CANCEL_URL: optional('PAYOS_CANCEL_URL'),
   };
   return currentEnvironment;
 }

@@ -26,6 +26,7 @@
     "db:clean:mock-food": "tsx backend/scripts/cleanMockFoodImages.ts"
   },
   "dependencies": {
+    "@payos/node": "^2.0.5",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.1",
     "cors": "^2.8.6",
