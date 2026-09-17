@@ -8,6 +8,7 @@ import { ledgerQuerySchema, orderParamsSchema, topupSchema } from '../validators
 const router = express.Router();
 const callbackLimiter = createRateLimiter({ limit: 120, windowMs: 60_000 });
 
+router.post('/payments/payos/webhook', callbackLimiter, controller.payosWebhook);
 router.get('/payments/vnpay/ipn', callbackLimiter, controller.vnpayIpn);
 router.get('/payments/vnpay/return', callbackLimiter, controller.vnpayReturn);
 router.post('/payments/momo/ipn', callbackLimiter, controller.momoIpn);

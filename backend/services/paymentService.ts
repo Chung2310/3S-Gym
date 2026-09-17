@@ -8,6 +8,7 @@ import PaymentOrder, { type IPaymentOrder, type PaymentGateway } from '../models
 import { createMomoPayment, isMomoConfigured, verifyMomoCallback } from './momoGateway.js';
 import type { GatewayCallbackResult } from './paymentGatewayTypes.js';
 import { createVnpayPayment, isVnpayConfigured, verifyVnpayCallback } from './vnpayGateway.js';
+import { createPayosPayment, getPayosPaymentInfo, isPayosConfigured, verifyPayosCallback } from './payosGateway.js';
 import { ensureWallet, grantTopupCredits } from './creditWalletService.js';
 import { recordUserAudit } from './auditService.js';
 import { withTransaction } from './transactionService.js';
@@ -18,18 +19,19 @@ function unavailable(message: string): never {
   throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message });
 }
 
-function orderView(order: OrderDocument, redirectUrl?: string) {
+function orderView(order: OrderDocument, redirectUrl?: string, qrCodeUrl?: string) {
   return {
     id: order.id, orderCode: order.orderCode, gateway: order.gateway, status: order.status,
     source: order.source, amountVnd: order.amountVnd, baseCredits: order.baseCredits,
     bonusCredits: order.bonusCredits, grantCredits: order.grantCredits,
     expiresAt: order.expiresAt, ...(redirectUrl ? { redirectUrl } : {}),
+    ...(qrCodeUrl ? { qrCodeUrl } : {}),
   };
 }
 
 export function gatewayAvailability() {
   return {
-    PAYOS: true,
+    PAYOS: isPayosConfigured(),
     VNPAY: isVnpayConfigured(),
     MOMO: isMomoConfigured(),
   };
@@ -87,7 +89,10 @@ export async function createPaymentOrder(
     bonusCredits = 0;
   }
 
-  const orderCode = `CR${Date.now().toString(36).toUpperCase()}${randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase()}`;
+  const isPayos = gateway === 'PAYOS';
+  const orderCode = isPayos
+    ? `${Date.now().toString().slice(-9)}${Math.floor(Math.random() * 9000 + 1000)}`
+    : `CR${Date.now().toString(36).toUpperCase()}${randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase()}`;
   const requestId = `REQ-${orderCode}`;
   const order = await PaymentOrder.create({
     userId,
@@ -106,11 +111,27 @@ export async function createPaymentOrder(
     grantIdempotencyKey: `payment-grant:${orderCode}`,
   });
 
-  const description = `Nap credit ${orderCode}`;
+  const description = `Nap credit ${orderCode.slice(-10)}`;
   let redirectUrl: string | undefined;
+  let qrCodeUrl: string | undefined;
 
   if (gateway === 'PAYOS') {
-    redirectUrl = `/portal/wallet/payment-result?orderId=${order.id}&status=PENDING&gateway=PAYOS`;
+    if (!isPayosConfigured()) {
+      unavailable('Cổng thanh toán trực tuyến chưa được cấu hình.');
+    }
+    const result = await createPayosPayment({
+      orderCode,
+      amountVnd,
+      description,
+      createdAt: (order as unknown as { createdAt?: Date }).createdAt,
+    });
+    if (!result.configured) unavailable('Cổng thanh toán trực tuyến chưa được cấu hình.');
+    redirectUrl = result.redirectUrl;
+    qrCodeUrl = result.qrCode;
+    if (result.paymentLinkId) {
+      order.gatewayRequestId = result.paymentLinkId;
+      await order.save();
+    }
   } else if (gateway === 'VNPAY') {
     const result = createVnpayPayment({ orderCode, amountVnd, description, ipAddress });
     if (!result.configured) unavailable('VNPay chưa được cấu hình.');
@@ -121,14 +142,31 @@ export async function createPaymentOrder(
     redirectUrl = result.redirectUrl;
   }
 
-  return orderView(order, redirectUrl);
+  return orderView(order, redirectUrl, qrCodeUrl);
 }
 
 export async function getPaymentOrder(userId: string, id: string) {
   let order = await PaymentOrder.findOne({ _id: id, userId });
   if (!order) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy đơn nạp credit.' });
-  if (order.status === 'PENDING' && order.expiresAt.getTime() <= Date.now()) {
-    order = await PaymentOrder.findOneAndUpdate({ _id: order._id, status: 'PENDING' }, { $set: { status: 'EXPIRED' } }, { returnDocument: 'after' }) || order;
+
+  if (order.status === 'PENDING') {
+    if (order.gateway === 'PAYOS' && isPayosConfigured()) {
+      const info = await getPayosPaymentInfo(Number(order.orderCode));
+      if (info && info.status === 'PAID') {
+        const transactionId = (info as unknown as { transactions?: Array<{ reference?: string }> }).transactions?.[0]?.reference || info.id || String(info.orderCode);
+        return await settleVerifiedCallback('PAYOS', {
+          valid: true,
+          orderCode: String(info.orderCode),
+          amountVnd: info.amount,
+          transactionId,
+          resultCode: '00',
+          success: true,
+        });
+      }
+    }
+    if (order.expiresAt.getTime() <= Date.now()) {
+      order = await PaymentOrder.findOneAndUpdate({ _id: order._id, status: 'PENDING' }, { $set: { status: 'EXPIRED' } }, { returnDocument: 'after' }) || order;
+    }
   }
   return orderView(order);
 }
@@ -180,5 +218,8 @@ async function settleVerifiedCallback(gateway: PaymentGateway, verified: Gateway
   }
 }
 
+export async function settlePayosCallback(input: Record<string, unknown>) {
+  return settleVerifiedCallback('PAYOS', await verifyPayosCallback(input));
+}
 export function settleVnpayCallback(input: Record<string, unknown>) { return settleVerifiedCallback('VNPAY', verifyVnpayCallback(input)); }
 export function settleMomoCallback(input: Record<string, unknown>) { return settleVerifiedCallback('MOMO', verifyMomoCallback(input)); }

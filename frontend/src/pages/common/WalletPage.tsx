@@ -1,40 +1,41 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  CheckCircle2,
   History,
   LoaderCircle,
   QrCode,
-  RefreshCw,
   ShieldCheck,
   Sparkles,
-  WalletCards,
   Zap,
 } from 'lucide-react';
 import CreditLedgerTable from '../../components/credits/CreditLedgerTable';
 import CreditPackageGrid from '../../components/credits/CreditPackageGrid';
 import CustomTopupForm from '../../components/credits/CustomTopupForm';
+import PayosCheckoutModal from '../../components/credits/PayosCheckoutModal';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/ToastProvider';
 import { useCreditWallet } from '../../contexts/CreditWalletContext';
 import { creditsService } from '../../services/credits';
 import { errorMessage } from '../../types';
-import type { CreditLedgerEntry, CreditPackageResponse } from '../../types/credits';
+import type { CreditLedgerEntry, CreditPackageResponse, PaymentOrder } from '../../types/credits';
 
 export default function WalletPage() {
-  const { wallet, loading: walletLoading, refresh: refreshWallet } = useCreditWallet();
+  const { refresh: refreshWallet } = useCreditWallet();
   const toast = useToast();
   const [catalog, setCatalog] = useState<CreditPackageResponse | null>(null);
   const [entries, setEntries] = useState<CreditLedgerEntry[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [type, setType] = useState('');
-  const [selectedId, setSelectedId] = useState('');
-  const [custom, setCustom] = useState('');
-  const [customSelected, setCustomSelected] = useState(false);
+  const [selectedPackageId, setSelectedPackageId] = useState('');
+  const [customAmount, setCustomAmount] = useState('');
+  const [mode, setMode] = useState<'PACKAGE' | 'CUSTOM'>('PACKAGE');
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Active PayOS checkout modal state
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [activeOrder, setActiveOrder] = useState<PaymentOrder | null>(null);
 
   const loadLedger = async (nextPage = page, nextType = type) => {
     try {
@@ -43,18 +44,6 @@ export default function WalletPage() {
       setTotalPages(result.meta?.totalPages || 1);
     } catch (cause) {
       toast.error(errorMessage(cause));
-    }
-  };
-
-  const handleManualRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await Promise.all([refreshWallet?.(), loadLedger(1, type)]);
-      toast.success('Đã đồng bộ số dư credit mới nhất.');
-    } catch {
-      toast.error('Không thể làm mới số dư.');
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -67,10 +56,10 @@ export default function WalletPage() {
         setEntries(ledger.items);
         setTotalPages(ledger.meta?.totalPages || 1);
         if (nextCatalog.packages && nextCatalog.packages.length > 0) {
-          setSelectedId(nextCatalog.packages[0].id);
-          setCustomSelected(false);
+          setSelectedPackageId(nextCatalog.packages[0].id);
+          setMode('PACKAGE');
         } else {
-          setCustomSelected(true);
+          setMode('CUSTOM');
         }
       })
       .catch((cause) => active && setError(errorMessage(cause)))
@@ -81,65 +70,67 @@ export default function WalletPage() {
     };
   }, []);
 
-  const customAmount = Number(custom);
+  const numericCustom = Number(customAmount);
   const customValid =
-    Number.isInteger(customAmount) &&
-    customAmount >= 10_000 &&
-    customAmount <= 50_000_000 &&
-    customAmount % 1_000 === 0;
+    Number.isInteger(numericCustom) &&
+    numericCustom >= 10_000 &&
+    numericCustom <= 50_000_000 &&
+    numericCustom % 1_000 === 0;
 
   const currentPackage = useMemo(
-    () => catalog?.packages.find((item) => item.id === selectedId),
-    [catalog, selectedId],
+    () => catalog?.packages.find((item) => item.id === selectedPackageId),
+    [catalog, selectedPackageId],
   );
 
   const paymentAmountVnd = useMemo(() => {
-    if (customSelected) return customValid ? customAmount : 0;
+    if (mode === 'CUSTOM') return customValid ? numericCustom : 0;
     return currentPackage?.amountVnd || 0;
-  }, [customAmount, customSelected, customValid, currentPackage]);
+  }, [mode, customValid, numericCustom, currentPackage]);
 
-  const estimated = useMemo(
-    () =>
-      customSelected && customValid
-        ? Math.floor(customAmount / 1_000)
-        : currentPackage?.grantCredits || 0,
-    [currentPackage, customAmount, customSelected, customValid],
-  );
+  const estimatedCredits = useMemo(() => {
+    if (mode === 'CUSTOM') return customValid ? Math.floor(numericCustom / 100) : 0;
+    return currentPackage?.grantCredits || 0;
+  }, [mode, customValid, numericCustom, currentPackage]);
 
   const canSubmit =
-    (customSelected ? customValid : Boolean(selectedId)) &&
+    (mode === 'CUSTOM' ? customValid : Boolean(selectedPackageId)) &&
     paymentAmountVnd >= 10_000 &&
     !submitting;
 
-  const checkout = async () => {
+  const handleCreatePayment = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
       const order = await creditsService.createTopup(
-        customSelected
-          ? { gateway: 'PAYOS', customAmountVnd: customAmount }
-          : { gateway: 'PAYOS', packageId: selectedId },
+        mode === 'CUSTOM'
+          ? { gateway: 'PAYOS', customAmountVnd: numericCustom }
+          : { gateway: 'PAYOS', packageId: selectedPackageId },
       );
-      const url = new URL(order.redirectUrl || '', window.location.origin);
-      const allowed =
-        url.protocol === 'https:' ||
-        (url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname));
-      if (!allowed) throw new Error('Liên kết thanh toán không an toàn.');
+
+      // Save pending order and show embedded VietQR Modal directly
+      setActiveOrder(order);
+      setCheckoutModalOpen(true);
       window.sessionStorage.setItem('3s:pending-credit-order-id', order.id);
-      window.location.assign(url.toString());
     } catch (cause) {
       toast.error(errorMessage(cause));
+    } finally {
       setSubmitting(false);
     }
   };
 
+  const handlePaymentSuccess = () => {
+    void refreshWallet?.();
+    void loadLedger(1, type);
+    toast.success('Nạp credit thành công!');
+  };
+
   if (loading) {
     return (
-      <div className="space-y-6 max-w-6xl mx-auto" aria-label="Đang tải ví credit">
-        <div className="h-40 animate-pulse rounded-2xl bg-slate-200" />
+      <div className="mx-auto max-w-5xl space-y-6 animate-pulse p-4">
+        <div className="h-44 rounded-3xl bg-slate-200" />
         <div className="grid gap-4 sm:grid-cols-3">
           {[1, 2, 3].map((item) => (
-            <div key={item} className="h-44 animate-pulse rounded-2xl bg-slate-200" />
+            <div key={item} className="h-40 rounded-2xl bg-slate-200" />
           ))}
         </div>
       </div>
@@ -150,7 +141,7 @@ export default function WalletPage() {
     return (
       <div
         role="alert"
-        className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700 font-medium max-w-6xl mx-auto"
+        className="mx-auto max-w-5xl rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm font-semibold text-rose-700"
       >
         {error}
       </div>
@@ -158,185 +149,175 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* 1. Banner Ví AI 3S Gym */}
-      <section className="wallet-banner">
-        <div className="wallet-banner-inner">
-          <div>
-            <span className="wallet-banner-label">
-              <WalletCards size={18} />
-              <span>Ví AI 3S Gym</span>
-            </span>
-            <p className="wallet-banner-sublabel">Credit khả dụng</p>
-            <div className="wallet-banner-amount">
-              <span className="value">
-                {walletLoading ? '…' : (wallet?.availableCredits ?? 0).toLocaleString('vi-VN')}
-              </span>
-              <span className="unit">credit</span>
+    <div className="mx-auto max-w-5xl space-y-6 pb-12">
+      {/* Top-up Section: Clean, Focus on Recharge with PayOS VietQR */}
+      <section className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
+        {/* Section Header */}
+        <div className="border-b border-slate-100 pb-5">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 font-montserrat">
+                Nạp credit
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">
+                1.000 đ = 10 credit
+              </p>
+            </div>
+
+            {/* Clean Toggle Mode Tabs */}
+            <div className="mt-3 flex rounded-xl bg-slate-100 p-1 sm:mt-0">
+              <button
+                type="button"
+                onClick={() => setMode('PACKAGE')}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  mode === 'PACKAGE'
+                    ? 'bg-white text-[#003b70] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Gói nạp
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('CUSTOM')}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                  mode === 'CUSTOM'
+                    ? 'bg-white text-[#003b70] shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Số tiền tùy chọn
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="mt-6 space-y-6">
+          {mode === 'PACKAGE' ? (
+            <CreditPackageGrid
+              packages={catalog?.packages || []}
+              selectedId={selectedPackageId}
+              onSelect={(id) => setSelectedPackageId(id)}
+            />
+          ) : (
+            <CustomTopupForm
+              value={customAmount}
+              selected={true}
+              onChange={setCustomAmount}
+              onSelect={() => {}}
+            />
+          )}
+
+          {/* PayOS VietQR Security Strip */}
+          <div className="flex flex-col gap-3 rounded-2xl border border-sky-100 bg-sky-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#003b70] text-white">
+                <QrCode size={22} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-800">
+                    Thanh toán
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                    <Zap size={11} /> Tự động 24/7
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Hỗ trợ quét mã bằng tất cả ngân hàng và ví điện tử
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 sm:self-center">
+              <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
+              <span>Bảo mật Napas247</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div className="wallet-reserved">
-              <span className="wallet-reserved-label">Đang tạm giữ</span>
-              <div className="wallet-reserved-amount">
-                {wallet?.reservedCredits ?? 0} <span className="unit">credit</span>
+          {/* Action & Settle Strip */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Tổng thanh toán:
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className="font-oswald text-2xl font-black text-slate-900">
+                  {paymentAmountVnd.toLocaleString('vi-VN')} đ
+                </span>
+                <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
+                  <Sparkles size={12} />
+                  Nhận ngay: <strong className="font-oswald text-base">{estimatedCredits.toLocaleString('vi-VN')}</strong> credit
+                </span>
               </div>
             </div>
 
             <button
               type="button"
-              onClick={handleManualRefresh}
-              disabled={refreshing || walletLoading}
-              className="button button-secondary"
-              style={{ minHeight: 36, height: 36, padding: '0 12px', fontSize: '0.78rem' }}
-              title="Đồng bộ số dư ví"
+              disabled={!canSubmit}
+              onClick={handleCreatePayment}
+              className="inline-flex h-12 items-center justify-center gap-2.5 rounded-2xl bg-[#003b70] px-8 text-sm font-bold text-white shadow-md hover:bg-[#00284d] transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <RefreshCw size={13} className={refreshing || walletLoading ? 'animate-spin' : ''} />
-              <span>{refreshing ? 'Đang tải...' : 'Làm mới'}</span>
+              {submitting ? (
+                <LoaderCircle className="animate-spin" size={18} />
+              ) : (
+                <QrCode size={18} />
+              )}
+              <span>{submitting ? 'Đang tạo mã thanh toán...' : 'Thanh toán'}</span>
             </button>
           </div>
         </div>
       </section>
 
-      {/* 2. Nạp credit — Thiết kế tối ưu hóa cho thanh toán Quét mã QR PayOS */}
-      <div className="pt-card--static">
-        <div className="pt-card-body">
-          <div className="wallet-section-header">
-            <h2 className="wallet-section-title">Nạp credit</h2>
-            <p className="wallet-section-desc">
-              Tỉ giá 1.000đ = 10 credit cơ bản (100đ / credit). Bonus được cộng thêm theo từng gói.
-            </p>
+      {/* 3. Transaction History Section: Compact & Clean */}
+      <section className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <History size={16} />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 font-montserrat">
+              Lịch sử giao dịch credit
+            </h3>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Gói nạp định sẵn */}
-            <CreditPackageGrid
-              packages={catalog?.packages || []}
-              selectedId={customSelected ? '' : selectedId}
-              onSelect={(id) => {
-                setSelectedId(id);
-                setCustomSelected(false);
-              }}
-            />
-
-            {/* Nhập số tiền tùy chỉnh */}
-            <CustomTopupForm
-              value={custom}
-              selected={customSelected}
-              onSelect={() => {
-                setCustomSelected(true);
-                setSelectedId('');
-              }}
-              onChange={setCustom}
-            />
-
-            {customSelected && custom && !customValid && (
-              <p role="alert" className="wallet-validation-error">
-                Số tiền phải từ 10.000đ đến 50.000.000đ và chia hết cho 1.000đ.
-              </p>
-            )}
-
-            {/* Khối giới thiệu phương thức quét mã VietQR qua PayOS */}
-            <div className="wallet-payos-card">
-              <div className="wallet-payos-header">
-                <div className="wallet-payos-title">
-                  <QrCode size={20} className="text-sky-600 shrink-0" />
-                  <span>Chuyển khoản VietQR tự động qua PayOS</span>
-                </div>
-                <span className="wallet-payos-badge">
-                  <Zap size={13} />
-                  <span>Xác nhận tự động 24/7</span>
-                </span>
-              </div>
-
-              <div className="wallet-payos-banks">
-                <span>Hỗ trợ mọi ngân hàng:</span>
-                <span className="wallet-payos-bank-tag">Vietcombank</span>
-                <span className="wallet-payos-bank-tag">MB Bank</span>
-                <span className="wallet-payos-bank-tag">Techcombank</span>
-                <span className="wallet-payos-bank-tag">ACB</span>
-                <span className="wallet-payos-bank-tag">VPBank</span>
-                <span className="wallet-payos-bank-tag">MoMo / ZaloPay</span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>và 40+ ngân hàng Napas247</span>
-              </div>
-            </div>
-
-            {/* Khối Xác Nhận & Nút Tạo Mã QR */}
-            <div className="wallet-confirm-strip">
-              <div>
-                <span className="wallet-confirm-label">
-                  Số tiền thanh toán: {paymentAmountVnd.toLocaleString('vi-VN')} đ
-                </span>
-                <div className="wallet-confirm-amount">
-                  {estimated.toLocaleString('vi-VN')} <span className="unit">credit nhận được</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                disabled={!canSubmit}
-                onClick={checkout}
-                className="wallet-submit-btn"
-                style={{ padding: '0 20px', minWidth: 220 }}
-              >
-                {submitting ? (
-                  <LoaderCircle className="animate-spin" size={18} style={{ flexShrink: 0 }} />
-                ) : (
-                  <QrCode size={18} style={{ flexShrink: 0 }} />
-                )}
-                <span>{submitting ? 'Đang tạo mã QR...' : 'Tạo mã QR thanh toán PayOS'}</span>
-              </button>
-            </div>
-
-            <p className="wallet-disclaimer">
-              <ShieldCheck size={15} />
-              <span>Giao dịch bảo mật qua PayOS / Napas247. Vui lòng quét đúng mã QR để hệ thống cộng credit tự động.</span>
-            </p>
-          </div>
+          <select
+            aria-label="Lọc loại giao dịch"
+            value={type}
+            onChange={(event) => {
+              const next = event.target.value;
+              setType(next);
+              setPage(1);
+              void loadLedger(1, next);
+            }}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-sky-500 focus:outline-none"
+          >
+            <option value="">Tất cả giao dịch</option>
+            <option value="TOPUP">Nạp credit</option>
+            <option value="USAGE">Sử dụng AI</option>
+          </select>
         </div>
-      </div>
 
-      {/* 3. Lịch sử credit */}
-      <div className="pt-card--static">
-        <div className="pt-card-body">
-          <div className="wallet-history-header">
-            <div className="wallet-history-title">
-              <History size={18} />
-              <span>Lịch sử giao dịch credit</span>
-            </div>
-
-            <select
-              aria-label="Lọc loại giao dịch"
-              value={type}
-              onChange={(event) => {
-                const next = event.target.value;
-                setType(next);
-                setPage(1);
-                void loadLedger(1, next);
-              }}
-              className="wallet-filter-select"
-            >
-              <option value="">Tất cả giao dịch</option>
-              <option value="TOPUP">Nạp credit</option>
-              <option value="SETTLE">AI đã dùng</option>
-              <option value="RELEASE">Hoàn credit</option>
-              <option value="ADJUSTMENT">Điều chỉnh</option>
-            </select>
-          </div>
-
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <CreditLedgerTable entries={entries} />
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={async (next) => {
-                setPage(next);
-                await loadLedger(next);
-              }}
-            />
-          </div>
+        <div className="mt-4 space-y-4">
+          <CreditLedgerTable entries={entries} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={async (next) => {
+              setPage(next);
+              await loadLedger(next);
+            }}
+          />
         </div>
-      </div>
+      </section>
+
+      {/* PayOS VietQR Checkout Modal */}
+      <PayosCheckoutModal
+        open={checkoutModalOpen}
+        order={activeOrder}
+        onClose={() => setCheckoutModalOpen(false)}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }
