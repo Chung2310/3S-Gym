@@ -13,6 +13,7 @@ const labels: Record<ContentResource, string> = {
 function createController(resource: ContentResource) {
   return {
     create: asyncHandler(async (req, res) => success(res, { status: 201, message: `Tạo ${labels[resource]} thành công.`, data: await service.createContent(resource, req.user!, req.body) })),
+    get: asyncHandler(async (req, res) => success(res, { message: `Lấy chi tiết ${labels[resource]} thành công.`, data: await service.getContent(resource, req.user!, String(req.params.id)) })),
     update: asyncHandler(async (req, res) => success(res, { message: `Cập nhật ${labels[resource]} thành công.`, data: await service.updateContent(resource, req.user!, String(req.params.id), req.body) })),
     remove: asyncHandler(async (req, res) => { await service.deleteContent(resource, req.user!, String(req.params.id)); return success(res, { message: `Xóa ${labels[resource]} thành công.`, data: null }); }),
     list: asyncHandler(async (req, res) => { const result = await service.listContent(resource, req.user!, req.query); return success(res, { message: `Lấy danh sách ${labels[resource]} thành công.`, data: result.items, meta: result.meta }); }),
