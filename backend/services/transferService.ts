@@ -18,7 +18,7 @@ async function reassignOpenCare(customerId: Types.ObjectId, toPtId: Types.Object
 }
 
 interface TransferPayload { customerId: string; toPtId: string; reason: string }
-interface TransferQuery { page?: unknown; limit?: unknown; status?: unknown; customerId?: unknown }
+interface TransferQuery { page?: unknown; limit?: unknown; status?: unknown; customerId?: unknown; fromPtId?: unknown; toPtId?: unknown; keyword?: unknown; fromDate?: unknown; toDate?: unknown }
 
 function businessError(message: string, status = 400) {
   const code = status === 404 ? ERROR_CODES.NOT_FOUND : status === 409 ? ERROR_CODES.DUPLICATE : ERROR_CODES.VALIDATION;
@@ -242,6 +242,28 @@ async function listTransfers(user: AuthenticatedUser, query: TransferQuery) {
   const statuses: TransferStatus[] = ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'ADMIN_FORCED'];
   if (typeof query.status === 'string' && statuses.includes(query.status as TransferStatus)) filter.status = query.status as TransferStatus;
   if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId);
+  if (typeof query.fromPtId === 'string') filter.fromPtId = new Types.ObjectId(query.fromPtId);
+  if (typeof query.toPtId === 'string') filter.toPtId = new Types.ObjectId(query.toPtId);
+  if (typeof query.fromDate === 'string' || typeof query.toDate === 'string') {
+    filter.createdAt = {};
+    if (typeof query.fromDate === 'string') filter.createdAt.$gte = new Date(query.fromDate);
+    if (typeof query.toDate === 'string') {
+      const end = new Date(query.toDate);
+      end.setUTCHours(23, 59, 59, 999);
+      filter.createdAt.$lte = end;
+    }
+  }
+  if (typeof query.keyword === 'string' && query.keyword.trim()) {
+    const escaped = query.keyword.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(escaped, 'i');
+    const customerIds = await CustomerProfile.find({ $or: [{ fullName: pattern }, { phone: pattern }] }).distinct('_id');
+    filter.$or = [
+      { fromPtName: pattern },
+      { toPtName: pattern },
+      { reason: pattern },
+      ...(customerIds.length ? [{ customerId: { $in: customerIds } }] : []),
+    ];
+  }
   const [items, total] = await Promise.all([
     TransferRequest.find(filter).populate('customerId', 'fullName phone').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
     TransferRequest.countDocuments(filter),
