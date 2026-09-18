@@ -1,9 +1,9 @@
+import { generateNutritionJob } from '../../services/nutritionJobs';
 import { useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   ArrowRightLeft,
   Calendar,
-  Check,
   CheckCircle2,
   Copy,
   Info,
@@ -700,15 +700,7 @@ YÊU CẦU THIẾT KẾ THỰC ĐƠN:
 ${customDietNotes ? `- Yêu cầu bổ sung: ${customDietNotes}` : ''}
       `.trim();
 
-      const res = await api.post<NutritionDraftPlan>(
-        '/api/content-drafts/nutrition',
-        {
-          customerId: targetId,
-          request: compositeRequest,
-          planId: existingPlanId,
-        },
-        { retries: 1, retryDelayMs: 1500 }
-      );
+      const res = { data: await generateNutritionJob<NutritionDraftPlan>({ customerId: targetId, request: compositeRequest, planId: existingPlanId || undefined, durationDays }) };
 
       const draft = res.data;
       if (draft) {

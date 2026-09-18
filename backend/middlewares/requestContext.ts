@@ -19,11 +19,12 @@ function requestContext(req: Request, res: Response, next: NextFunction) {
   const logResponse = () => {
     if (state.logged) return;
     state.logged = true;
-    const statusCode = res.statusCode;
+    const aborted = !res.writableFinished;
+    const statusCode = aborted ? 499 : res.statusCode;
     const durationMs = Math.round((Number(process.hrtime.bigint() - state.startedAt) / 1_000_000) * 100) / 100;
     const metadata = {
       context: 'RESPONSE', method: req.method, url: req.originalUrl, statusCode,
-      durationMs,
+      durationMs, aborted, responseCompleted: !aborted,
       requestId, userId: req.user?.id, role: req.user?.role,
       contentLength: res.getHeader('content-length'), responseBody: sanitizeLogValue(state.responseBody),
     };
