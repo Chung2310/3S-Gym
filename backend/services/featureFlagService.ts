@@ -29,4 +29,18 @@ async function getFeaturesForUser(user: AuthenticatedUser): Promise<Record<Featu
   return Object.fromEntries(entries) as Record<FeatureKey, boolean>;
 }
 
-export { getFeaturesForUser, isEnabled, updateFeature };
+
+// Admin clients need stored permissions, not the effective flags of the current actor.
+async function listFeatures() {
+  const stored = await FeatureFlag.find().lean();
+  return FEATURE_KEYS.map((key) => {
+    const flag = stored.find((item) => item.key === key);
+    return {
+      key,
+      enabled: flag?.enabled ?? false,
+      roles: flag?.roles ?? [],
+      pilotUserIds: (flag?.pilotUserIds ?? []).map(String),
+    };
+  });
+}
+export { getFeaturesForUser, isEnabled, updateFeature, listFeatures };

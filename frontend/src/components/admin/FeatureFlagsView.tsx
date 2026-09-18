@@ -46,25 +46,22 @@ export default function FeatureFlagsView() {
   const [flags, setFlags] = useState<FeatureFlagItem[]>([]);
   const [selectedFlag, setSelectedFlag] = useState<FeatureFlagItem | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const loadFlags = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await api.get<Record<string, boolean>>('/api/features/me');
-      const keys = Object.keys(defaultFeatureDefinitions);
-      const items: FeatureFlagItem[] = keys.map((key) => {
-        const def = defaultFeatureDefinitions[key] || { name: key, description: '' };
-        return {
-          key,
-          name: def.name,
-          description: def.description,
-          enabled: Boolean(result.data?.[key as keyof typeof result.data]),
-          roles: ['ADMIN', 'PT'],
-          pilotUserIds: [],
-        };
-      });
+      setLoadError('');
+      const result = await api.get<FeatureFlagItem[]>('/api/features');
+      const items = result.data.map((flag) => ({
+        ...flag,
+        name: defaultFeatureDefinitions[flag.key]?.name || flag.key,
+        description: defaultFeatureDefinitions[flag.key]?.description || '',
+      }));
       setFlags(items);
     } catch (error) {
+      setFlags([]);
+      setLoadError(errorMessage(error));
       toast.error(errorMessage(error));
     } finally {
       setLoading(false);
@@ -82,6 +79,7 @@ export default function FeatureFlagsView() {
       await api.patch(`/api/features/${flag.key}`, {
         enabled: nextState,
         roles: flag.roles,
+        pilotUserIds: flag.pilotUserIds || [],
       });
       setFlags((current) =>
         current.map((f) => (f.key === flag.key ? { ...f, enabled: nextState } : f))
@@ -107,6 +105,8 @@ export default function FeatureFlagsView() {
         </div>
       </div>
 
+      {loading && <p role="status">Đang tải cấu hình tính năng…</p>}
+      {loadError && <div role="alert"><p>{loadError}</p><button type="button" onClick={() => void loadFlags()}>Thử lại</button></div>}
       <div className="feature-flag-grid">
         {flags.map((flag) => (
           <article className="feature-flag-card" key={flag.key}>
@@ -121,6 +121,7 @@ export default function FeatureFlagsView() {
                 <label className="toggle-switch shrink-0" onClick={(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
+                    disabled={loading}
                     checked={flag.enabled}
                     onChange={() => { }}
                     onClick={(e) => handleToggle(flag, e)}
@@ -148,6 +149,7 @@ export default function FeatureFlagsView() {
               <button
                 type="button"
                 className="h-8.5 px-3 rounded-lg text-xs font-bold text-[#003b70] bg-sky-50 border border-sky-200/80 hover:bg-sky-100 transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs shrink-0"
+                disabled={loading}
                 onClick={() => setSelectedFlag(flag)}
               >
                 <SlidersHorizontal size={13} className="shrink-0" />

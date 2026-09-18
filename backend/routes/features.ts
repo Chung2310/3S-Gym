@@ -18,6 +18,7 @@ const updateValidator = (req: Request): ValidationIssue[] => {
 }; */
 
 router.get('/me', authenticate, featureController.mine);
+router.get('/', authenticate, authorize('ADMIN'), featureController.list);
 router.patch('/:key', authenticate, authorize('ADMIN'), validate(updateFeatureSchema), featureController.update);
 
 export default router;
