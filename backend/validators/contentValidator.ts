@@ -87,6 +87,15 @@ const macros = Joi.object({
   carbs: Joi.number().min(0).required(),
   fat: Joi.number().min(0).required(),
 }).messages(commonMessages);
+
+// AI and mobile editors retain the complete per-day schedule alongside the weekly menu.
+const nutritionDailyPlans = Joi.array().max(31).items(Joi.object({
+  dayOfWeek: Joi.string().allow(''),
+  dayNumber: Joi.number().integer().min(1).max(31),
+  date: Joi.date().iso().allow(null, ''),
+  meals: Joi.array().items(Joi.object().unknown(true)).required(),
+}).unknown(true)).allow(null);
+
 const nutritionFields = {
   customerId: objectId,
   title: Joi.string().trim(),
@@ -98,7 +107,7 @@ const nutritionFields = {
   endDate: Joi.date().iso().allow(null),
   durationDays: Joi.number().integer().min(1).max(31).allow(null),
   menu: Joi.array(),
-  dailyPlans: Joi.array().allow(null),
+  dailyPlans: nutritionDailyPlans,
   createdByAi: Joi.boolean().allow(null),
   reviewStatus: Joi.string().valid('NOT_REQUIRED', 'PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED').allow(null),
   notes: Joi.string().allow('', null),

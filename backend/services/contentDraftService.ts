@@ -111,7 +111,7 @@ export function parseJson(text: string): Record<string, unknown> {
 /**
  * 1. TÁC VỤ RIÊNG BIỆT: TẠO THỰC ĐƠN DINH DƯỠNG CHI TIẾT
  */
-export async function createNutritionDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string, planId?: string) {
+export async function createNutritionDraft(user: AuthenticatedUser, customerId: string, request: string, requestKey: string, planId?: string, durationDays?: number) {
   const customer = await CustomerProfile.findById(customerId).lean();
   if (!customer) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy khách hàng.' });
   if (String(customer.assignedPtId) !== user.id && !isAdminRole(user.role)) {
@@ -130,6 +130,13 @@ export async function createNutritionDraft(user: AuthenticatedUser, customerId: 
   const customerBf = latestInBody?.bodyFatPercentage ? `${latestInBody.bodyFatPercentage}%` : 'Chưa có';
   const customerBmr = latestInBody?.bmr ? `${latestInBody.bmr} kcal` : 'Chưa có';
 
+  const requestedDays = durationDays ?? Number(request.match(/(?:thực đơn|thiet ke thuc don)\s+(\d+)\s*ngày/i)?.[1] || 7);
+  if (!Number.isInteger(requestedDays) || requestedDays < 1 || requestedDays > 31) {
+    throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Thời hạn thực đơn phải từ 1 đến 31 ngày.' });
+  }
+  if (planId && !await NutritionPlan.exists({ _id: planId, customerId: customer._id, ptId: user.id })) {
+    throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy thực đơn thuộc học viên này.' });
+  }
   const prompt = `Bạn là Chuyên gia dinh dưỡng thể thao 3S Gym & Wellness.
 Nhiệm vụ: Thiết kế THỰC ĐƠN CƠM VIỆT CHO 7 NGÀY (Thứ Hai đến Chủ Nhật) cho học viên ${customer.fullName}.
 
@@ -179,10 +186,25 @@ Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown theo schema
   "notes": "Lời khuyên dinh dưỡng, thời điểm uống nước và lưu ý chế biến..."
 }`;
 
-  const raw = await generateNutritionDraft({ userId: user.id, taskType: 'TEXT_NUTRITION', requestKey: `${requestKey}:text-nutrition` }, prompt);
-  const generated = parseJson(raw);
-  const rawDailyPlans = Array.isArray(generated.dailyPlans) ? (generated.dailyPlans as any[]) : [];
-
+  let generated: Record<string, any> = {};
+  const rawDailyPlans: any[] = [];
+  for (let offset = 0; offset < requestedDays; offset += 7) {
+    const batchDays = Math.min(7, requestedDays - offset);
+    const batchPrompt = prompt
+      .replace('CHO 7 NGÀY (Thứ Hai đến Chủ Nhật)', `CHO ${requestedDays} NGÀY, lượt này chỉ sinh ngày ${offset + 1} đến ${offset + batchDays}`)
+      .replace('CẤU TRÚC 7 NGÀY: "dailyPlans" gồm đúng 7 ngày (Thứ Hai, Thứ Ba, Thứ Tư, Thứ Năm, Thứ Sáu, Thứ Bảy, Chủ Nhật)', `CẤU TRÚC: "dailyPlans" của lượt này gồm đúng ${batchDays} ngày, dayNumber từ ${offset + 1} đến ${offset + batchDays}`)
+      + `\nChỉ xuất ${batchDays} ngày của lượt này. Không xuất toàn bộ ${requestedDays} ngày trong một lượt.`;
+    const raw = await generateNutritionDraft({ userId: user.id, taskType: 'TEXT_NUTRITION', requestKey: `${requestKey}:text-nutrition:${offset}` }, batchPrompt);
+    const batch = parseJson(raw);
+    const days = Array.isArray(batch.dailyPlans) ? batch.dailyPlans : [];
+    if (days.length !== batchDays || days.some((day: any) => !Array.isArray(day.meals) || !day.meals.length)) {
+      throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả thiếu ngày hoặc bữa ăn. Chưa lưu thực đơn không đầy đủ.' });
+    }
+    if (offset === 0) generated = batch;
+    rawDailyPlans.push(...days.map((day: any, i: number) => ({ ...day, dayNumber: offset + i + 1 })));
+  }
+  generated.durationDays = requestedDays;
+  generated.dailyPlans = rawDailyPlans;
   if (planId) {
     const existing = await NutritionPlan.findById(planId);
     if (existing) {
@@ -191,6 +213,7 @@ Trả về DUY NHẤT 1 JSON object hợp lệ, KHÔNG kèm markdown theo schema
       }
       existing.set({
         ...generated,
+        status: 'DRAFT', publishedAt: null,
         menu: (rawDailyPlans[0]?.meals as any[]) || (Array.isArray(generated.menu) ? generated.menu : []),
         dailyPlans: rawDailyPlans.length > 0 ? rawDailyPlans : undefined,
         createdByAi: true,
