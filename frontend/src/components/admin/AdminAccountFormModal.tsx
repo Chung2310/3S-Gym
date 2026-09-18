@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from '
 import { ShieldCheck, UserRound } from 'lucide-react';
 import { api } from '../../services/api';
 import {
-  isSixDigitPassword,
+  isValidPassword,
   PASSWORD_ERROR,
   PASSWORD_HINT,
-  PASSWORD_INPUT_PATTERN,
 } from '../../services/passwordValidation';
 import { errorMessage, type AdminAccount, type AdminAccountFormState } from '../../types';
 import FormField from '../ui/FormField';
@@ -62,7 +61,7 @@ export default function AdminAccountFormModal({ open, account, onClose, onSaved 
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if ((!editing || form.password.length > 0) && !isSixDigitPassword(form.password)) {
+    if ((!editing || form.password.length > 0) && !isValidPassword(form.password)) {
       toast.error(PASSWORD_ERROR);
       return;
     }
@@ -165,12 +164,12 @@ export default function AdminAccountFormModal({ open, account, onClose, onSaved 
             label={editing ? 'Mật khẩu mới' : 'Mật khẩu ban đầu'}
             name="password"
             type="password"
-            minLength={6}
-            maxLength={6}
-            inputMode="numeric"
-            pattern={PASSWORD_INPUT_PATTERN}
+            minLength={8}
+            
+            inputMode="text"
+            
             autoComplete="new-password"
-            placeholder={editing ? 'Để trống nếu không đổi; nếu đổi, nhập đúng 6 chữ số' : PASSWORD_HINT}
+            placeholder={editing ? 'Để trống nếu không đổi; nếu đổi, nhập đúng 8 ký tự trở lên' : PASSWORD_HINT}
             value={form.password}
             onChange={change}
             required={!editing}

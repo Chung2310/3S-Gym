@@ -5,10 +5,9 @@ import ProfileFormModal from './ProfileFormModal';
 import { useToast } from './ToastProvider';
 import { api } from '../../services/api';
 import {
-  isSixDigitPassword,
+  isValidPassword,
   PASSWORD_ERROR,
   PASSWORD_HINT,
-  PASSWORD_INPUT_PATTERN,
 } from '../../services/passwordValidation';
 import { errorMessage, type UserRole } from '../../types';
 import { creatableRoles } from '../../services/roles';
@@ -158,7 +157,7 @@ export default function UserFormModal({
       payload.username = form.username.trim();
     }
     const password = form.password || '';
-    if ((!editing || password.length > 0) && !isSixDigitPassword(password)) {
+    if ((!editing || password.length > 0) && !isValidPassword(password)) {
       toast.error(PASSWORD_ERROR);
       return;
     }
@@ -420,12 +419,12 @@ export default function UserFormModal({
             label={editing ? 'Mật khẩu mới (bỏ trống nếu không đổi)' : 'Mật khẩu ban đầu'}
             name="password"
             type="password"
-            minLength={6}
-            maxLength={6}
-            inputMode="numeric"
-            pattern={PASSWORD_INPUT_PATTERN}
+            minLength={8}
+            
+            inputMode="text"
+            
             autoComplete="new-password"
-            placeholder={editing ? 'Để trống nếu không đổi; nếu đổi, nhập đúng 6 chữ số' : PASSWORD_HINT}
+            placeholder={editing ? 'Để trống nếu không đổi; nếu đổi, nhập đúng 8 ký tự trở lên' : PASSWORD_HINT}
             value={form.password}
             onChange={change}
             required={!editing}

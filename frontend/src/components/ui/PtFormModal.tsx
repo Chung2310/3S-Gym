@@ -5,10 +5,9 @@ import ProfileFormModal from './ProfileFormModal';
 import { useToast } from './ToastProvider';
 import { api } from '../../services/api';
 import {
-  isSixDigitPassword,
+  isValidPassword,
   PASSWORD_ERROR,
   PASSWORD_HINT,
-  PASSWORD_INPUT_PATTERN,
 } from '../../services/passwordValidation';
 import { errorMessage } from '../../types';
 
@@ -141,7 +140,7 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
     };
 
     if (!editing) {
-      if (!isSixDigitPassword(form.password)) {
+      if (!isValidPassword(form.password)) {
         toast.error(PASSWORD_ERROR);
         return;
       }
@@ -378,10 +377,10 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
               label="Mật khẩu ban đầu"
               name="password"
               type="password"
-              minLength={6}
-              maxLength={6}
-              inputMode="numeric"
-              pattern={PASSWORD_INPUT_PATTERN}
+              minLength={8}
+              
+              inputMode="text"
+              
               autoComplete="new-password"
               value={form.password}
               onChange={change}

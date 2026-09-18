@@ -1,3 +1,4 @@
+import { isValidPassword, PASSWORD_ERROR } from '../services/passwordPolicy.js';
 import Joi from 'joi';
 import mongoose from 'mongoose';
 import { joiMessages } from './validationMessages.js';
@@ -10,9 +11,9 @@ export const objectId = Joi.string().custom((value: string, helpers) => (
 
 export const email = Joi.string().trim().email().messages(commonMessages);
 export const isoDate = Joi.date().iso().messages(commonMessages);
-export const sixDigitPassword = Joi.string().pattern(/^\d{6}$/).messages({
+export const passwordSchema = Joi.string().custom((value, helpers) => isValidPassword(value) ? value : helpers.error('string.password')).messages({
   ...commonMessages,
-  'string.pattern.base': 'Mật khẩu phải gồm đúng 6 chữ số.',
+  'string.password': PASSWORD_ERROR,
 });
 
 export const paginationQuery = {
