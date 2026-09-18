@@ -16,10 +16,12 @@ function buildSmokeEnvironment(sourceEnv = process.env) {
   return env;
 }
 
-async function waitForReady(baseUrl, deadline) {
+async function waitForReady(baseUrl, deadline, getExitResult = () => undefined) {
   while (Date.now() < deadline) {
+    const exited = getExitResult();
+    if (exited) throw new Error(`Production server exited before readiness (code ${exited.code ?? 'null'}, signal ${exited.signal || 'none'}). Check the server startup logs.`);
     try {
-      const response = await fetch(`${baseUrl}/api/health/ready`);
+      const response = await fetch(`${baseUrl}/api/health/ready`, { signal: AbortSignal.timeout(2_000) });
       if (response.ok) return;
     } catch {
       // The compiled server may still be connecting to MongoDB.
@@ -55,7 +57,7 @@ async function runProductionSmoke(sourceEnv = process.env) {
   env.JWT_SECRET ||= `${randomUUID()}${randomUUID()}`;
   env.PORT ||= '5057';
   env.SUPER_ADMIN_USERNAME ||= `smoke-${randomUUID()}`;
-  env.SUPER_ADMIN_PASSWORD ||= '123456';
+  env.SUPER_ADMIN_PASSWORD ||= 'Smoke@' + randomUUID();
   env.SUPER_ADMIN_FULL_NAME ||= 'Production Smoke Super Admin';
 
   const baseUrl = `http://127.0.0.1:${env.PORT}`;
@@ -65,9 +67,11 @@ async function runProductionSmoke(sourceEnv = process.env) {
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   });
   let childExited = false;
+  let exitResult;
   const exitPromise = new Promise((resolve) => child.once('exit', (code, signal) => {
     childExited = true;
-    resolve({ code, signal });
+    exitResult = { code, signal };
+    resolve(exitResult);
   }));
   child.stdout.on('data', (chunk) => process.stdout.write(`[server] ${chunk}`));
   child.stderr.on('data', (chunk) => process.stdout.write(`[server:stderr] ${chunk}`));
@@ -78,7 +82,7 @@ async function runProductionSmoke(sourceEnv = process.env) {
 
   try {
     const deadline = Date.now() + timeoutMs;
-    await waitForReady(baseUrl, deadline);
+    await waitForReady(baseUrl, deadline, () => exitResult);
     const login = await requestJson(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -112,4 +116,4 @@ if (process.argv[1] && fileURLToPath(import.meta.url).toLowerCase() === process.
   });
 }
 
-export { buildSmokeEnvironment, runProductionSmoke };
+export { buildSmokeEnvironment, runProductionSmoke, waitForReady };
