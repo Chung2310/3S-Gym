@@ -213,6 +213,7 @@ async function listUsers(query: UserListQuery) {
 
   const usersWithWallet = users.map((u) => ({
     ...u,
+    avatarUrl: u.avatarUrl || (u as unknown as Record<string, unknown>).avatar || (u as unknown as Record<string, unknown>).photoUrl || '',
     availableCredits: walletMap.get(String(u._id))?.availableCredits ?? 0,
     reservedCredits: walletMap.get(String(u._id))?.reservedCredits ?? 0,
   }));

@@ -71,6 +71,37 @@ describe('Auth Me and Login Profile API', () => {
     expect(res.status).toBe(401);
   });
 
+  it('returns each PT avatar in the admin list, including legacy profile images', async () => {
+    const password = await bcrypt.hash('Secret123!', 10);
+    await User.create({ username: 'avatar_admin', password, role: 'ADMIN' });
+    const profiles = [
+      { username: 'pt_current', avatarUrl: 'https://example.com/current.jpg', avatar: 'https://example.com/old.jpg' },
+      { username: 'pt_legacy_avatar', avatarUrl: '', avatar: 'https://example.com/avatar.jpg' },
+      { username: 'pt_legacy_photo', photoUrl: 'https://example.com/photo.jpg' },
+      { username: 'pt_no_avatar' },
+    ];
+    // Raw inserts preserve fields saved before avatarUrl became the canonical field.
+    await User.collection.insertMany(profiles.map((profile) => ({ ...profile, password, role: 'PT', status: 'ACTIVE' })));
+
+    const login = await request(app).post('/api/auth/login')
+      .send({ username: 'avatar_admin', password: 'Secret123!' });
+    expect(login.status).toBe(200);
+
+    const response = await request(app).get('/api/users?role=PT')
+      .set('Authorization', `Bearer ${login.body.data.token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toHaveLength(4);
+    const avatars = Object.fromEntries(response.body.data.map((user: { username: string; avatarUrl: string }) => [user.username, user.avatarUrl]));
+    expect(avatars).toEqual({
+      pt_current: 'https://example.com/current.jpg',
+      pt_legacy_avatar: 'https://example.com/avatar.jpg',
+      pt_legacy_photo: 'https://example.com/photo.jpg',
+      pt_no_avatar: '',
+    });
+    expect(response.body.data.every((user: Record<string, unknown>) => !('password' in user))).toBe(true);
+  });
+
   it('allows PT to update self profile and rejects role/status change', async () => {
     const hashedPassword = await bcrypt.hash('123456', 10);
     const user = await User.create({
@@ -135,4 +166,3 @@ describe('Auth Me and Login Profile API', () => {
     expect(reLogin.status).toBe(200);
   });
 });
-
