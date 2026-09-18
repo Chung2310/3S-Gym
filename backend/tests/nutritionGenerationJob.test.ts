@@ -53,7 +53,19 @@ it('generates exact 14 days across bounded batches and persists a single draft',
   generate.mockResolvedValue(output(7));
   const plan = await createNutritionDraft({ id: userId, role: 'PT' }, customerId, 'Thực đơn 14 ngày', 'test-14', undefined, 14);
   expect(plan.dailyPlans).toHaveLength(14);
-  expect(plan.durationDays).toBe(14);
+  expect(plan.durationDays).toBe(14);  const dailyPlans = plan.dailyPlans.map((day: any, index: number) => ({
+    ...day, dayNumber: index + 1, dayOfWeek: 'Thứ Hai', date: `2026-09-${String(index + 1).padStart(2, '0')}`,
+  }));
+  const saved = await request(app).patch(`/api/nutrition-plans/${plan.id}`).set('Authorization', `Bearer ${token}`).send({
+    customerId, title: 'Thực đơn AI đã kiểm tra', targetCalories: 1800, macros: { protein: 130, carbs: 190, fat: 60 },
+    durationDays: 14, startDate: '2026-09-01', endDate: '2026-09-14', menu: [], dailyPlans,
+  });
+  expect(saved.status).toBe(200);
+  expect(saved.body.data.dailyPlans).toHaveLength(14);
+  const published = await request(app).patch(`/api/nutrition-plans/${plan.id}/publish`).set('Authorization', `Bearer ${token}`);
+  expect(published.status).toBe(200);
+  expect(published.body.data.status).toBe('PUBLISHED');
+  expect((await Plan.findById(plan.id))?.dailyPlans).toHaveLength(14);
   expect(plan.status).toBe('DRAFT');
   expect(generate).toHaveBeenCalledTimes(2);
   expect(generate.mock.calls[1][1]).toContain('dayNumber từ 8 đến 14');
@@ -66,4 +78,14 @@ it('handles a partial last week and refuses incomplete AI output', async () => {
   generate.mockResolvedValue(output(2));
   await expect(createNutritionDraft({ id: userId, role: 'PT' }, customerId, 'Thực đơn 7 ngày', 'bad')).rejects.toThrow('thiếu ngày');
   expect(await Plan.countDocuments()).toBe(1);
+});
+it('accepts dailyPlans on create and rejects malformed schedules without opening system fields', async () => {
+  const base = { customerId, title: 'Thực đơn', targetCalories: 1800, macros: { protein: 130, carbs: 190, fat: 60 } };
+  const created = await request(app).post('/api/nutrition-plans').set('Authorization', `Bearer ${token}`).send({ ...base, dailyPlans: [{ dayNumber: 1, meals: [{ title: 'Sáng', items: [{ name: 'Trứng', calories: 150 }] }] }] });
+  expect(created.status).toBe(201);
+  expect(created.body.data.dailyPlans[0].meals[0].items[0].name).toBe('Trứng');
+  for (const invalid of [{ dailyPlans: 'invalid' }, { dailyPlans: [{ dayNumber: 32, meals: [] }] }, { dailyPlans: [{ meals: 'invalid' }] }, { dailyPlans: [], status: 'PUBLISHED' }]) {
+    const result = await request(app).patch(`/api/nutrition-plans/${created.body.data._id}`).set('Authorization', `Bearer ${token}`).send(invalid);
+    expect(result.status).toBe(400);
+  }
 });
