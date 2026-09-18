@@ -4,14 +4,8 @@ import {
   Camera,
   Trash2,
   Lock,
-  Award,
-  Phone,
-  Mail,
-  Calendar,
-  MapPin,
   Save,
   CheckCircle2,
-  AlertCircle,
   Eye,
   EyeOff,
   Briefcase,
@@ -22,7 +16,7 @@ import { api } from '../../services/api';
 import { useToast } from '../../components/ui/ToastProvider';
 import { errorMessage, type User } from '../../types';
 import { getSession, saveSession } from '../../services/session';
-import { isSixDigitPassword, PASSWORD_ERROR } from '../../services/passwordValidation';
+import { isValidPassword, PASSWORD_ERROR } from '../../services/passwordValidation';
 
 interface PtProfilePageProps {
   user: User;
@@ -175,7 +169,7 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
         toast.error('Vui lòng nhập mật khẩu hiện tại để đổi mật khẩu.');
         return;
       }
-      if (!isSixDigitPassword(form.newPassword)) {
+      if (!isValidPassword(form.newPassword)) {
         toast.error(PASSWORD_ERROR);
         return;
       }
@@ -633,7 +627,7 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
                   <div style={{ fontWeight: 700, color: '#003b70', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Lock size={15} color="#00a4e4" /> Quy tắc mật khẩu
                   </div>
-                  Mật khẩu hệ thống gồm đúng <strong>6 chữ số</strong> (ví dụ: 123456). Vui lòng nhập mật khẩu hiện tại trước khi đổi sang mật khẩu mới.
+                  Mật khẩu mới cần tối thiểu <strong>8 ký tự</strong>, có thể gồm chữ, số và ký tự đặc biệt. Vui lòng nhập mật khẩu hiện tại trước khi đổi sang mật khẩu mới.
                 </div>
 
                 <div>
@@ -646,8 +640,8 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
                       name="currentPassword"
                       value={form.currentPassword}
                       onChange={handleInputChange}
-                      placeholder="Nhập 6 số mật khẩu hiện tại..."
-                      maxLength={6}
+                      placeholder="Nhập mật khẩu hiện tại..."
+                      
                       style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                     />
                     <button
@@ -662,7 +656,7 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
 
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '6px' }}>
-                    Mật khẩu mới (6 chữ số)
+                    Mật khẩu mới (8 ký tự trở lên)
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -670,8 +664,8 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
                       name="newPassword"
                       value={form.newPassword}
                       onChange={handleInputChange}
-                      placeholder="Nhập 6 số mật khẩu mới..."
-                      maxLength={6}
+                      placeholder="Nhập mật khẩu mới..."
+                      
                       style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                     />
                     <button
@@ -694,8 +688,8 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
                       name="confirmPassword"
                       value={form.confirmPassword}
                       onChange={handleInputChange}
-                      placeholder="Nhập lại 6 số mật khẩu mới..."
-                      maxLength={6}
+                      placeholder="Nhập lại mật khẩu mới..."
+                      
                       style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                     />
                     <button

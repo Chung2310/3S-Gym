@@ -1,3 +1,4 @@
+import { isValidPassword, PASSWORD_ERROR } from './passwordPolicy.js';
 import bcrypt from 'bcryptjs';
 import type { Model, QueryFilter, Types } from 'mongoose';
 import User, { type IUser, type UserDocument, type UserRole, type UserStatus } from '../models/User.js';
@@ -49,9 +50,9 @@ interface OwnedContent {
   ptId: Types.ObjectId;
 }
 
-function assertSixDigitPassword(password: string): void {
-  if (!/^\d{6}$/.test(password)) {
-    throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Mật khẩu phải gồm đúng 6 chữ số.' });
+function assertPassword(password: string): void {
+  if (!isValidPassword(password)) {
+    throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: PASSWORD_ERROR });
   }
 }
 
@@ -60,7 +61,7 @@ function optionalContact(value: string | null | undefined): string | undefined {
 }
 
 async function createUser(payload: UserPayload) {
-  assertSixDigitPassword(payload.password);
+  assertPassword(payload.password);
   const existing = await User.exists({ username: payload.username.trim() });
   if (existing) {
     throw new AppError({
@@ -230,7 +231,7 @@ async function updatePt(id: string, payload: UpdatePtPayload): Promise<UserDocum
     if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
   }
   if (payload.password) {
-    assertSixDigitPassword(payload.password);
+    assertPassword(payload.password);
     user.password = await bcrypt.hash(payload.password, 10);
   }
   await user.save();
@@ -279,7 +280,7 @@ async function updateManagedUser(actor: AuthenticatedUser, id: string, payload: 
     if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
   }
   if (payload.password) {
-    assertSixDigitPassword(payload.password);
+    assertPassword(payload.password);
     user.password = await bcrypt.hash(payload.password, 10);
   }
   await user.save();
@@ -357,7 +358,7 @@ async function updateSelfProfile(actor: AuthenticatedUser, payload: UpdateSelfPr
     if (!isCurrentValid) {
       throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Mật khẩu hiện tại không chính xác.' });
     }
-    assertSixDigitPassword(payload.password);
+    assertPassword(payload.password);
     user.password = await bcrypt.hash(payload.password, 10);
   }
 

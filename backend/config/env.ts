@@ -1,3 +1,4 @@
+import { isValidPassword, PASSWORD_ERROR } from '../services/passwordPolicy.js';
 export type NodeEnvironment = 'development' | 'test' | 'production';
 
 export const APP_POLICY = Object.freeze({
@@ -70,8 +71,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     : nodeEnvironment === 'test' ? [] : ['SUPER_ADMIN_USERNAME', 'SUPER_ADMIN_PASSWORD'];
   const missing = requiredKeys.filter((key) => !source[key]?.trim());
   if (missing.length) throw new Error(`Thiếu biến môi trường bắt buộc: ${missing.join(', ')}`);
-  if (source.SUPER_ADMIN_PASSWORD && !/^\d{6}$/.test(source.SUPER_ADMIN_PASSWORD)) {
-    throw new Error('SUPER_ADMIN_PASSWORD phải gồm đúng 6 chữ số.');
+  // Existing deployments may retain a legacy six-digit bootstrap credential; new users are checked by createUser.
+  if (source.SUPER_ADMIN_PASSWORD && !isValidPassword(source.SUPER_ADMIN_PASSWORD) && !/^\d{6}$/.test(source.SUPER_ADMIN_PASSWORD)) {
+    throw new Error("SUPER_ADMIN_PASSWORD: " + PASSWORD_ERROR);
   }
 
   const jwtSecret = source.JWT_SECRET?.trim()

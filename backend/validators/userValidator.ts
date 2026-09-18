@@ -1,12 +1,12 @@
 /* oxlint-disable unicorn/no-thenable */
 import Joi from 'joi';
 import type { RequestValidationSchema } from '../middlewares/validate.js';
-import { commonMessages, email, idParams, nonEmptyPatch, paginationQuery, sixDigitPassword } from './commonValidator.js';
+import { commonMessages, email, idParams, nonEmptyPatch, paginationQuery, passwordSchema } from './commonValidator.js';
 
 const roles = ['SUPER_ADMIN', 'ADMIN', 'PT', 'CUSTOMER'];
 const creatableRoles = ['ADMIN', 'PT', 'CUSTOMER'];
 const profileFields = {
-  password: sixDigitPassword, fullName: Joi.string().trim().messages(commonMessages),
+  password: passwordSchema, fullName: Joi.string().trim().messages(commonMessages),
   phone: Joi.string().trim().messages(commonMessages), email: email.allow('', null),
   avatarUrl: Joi.string().uri().allow('', null).messages(commonMessages), dateOfBirth: Joi.date().max('now').allow(null).messages(commonMessages),
   gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').messages(commonMessages),
@@ -24,7 +24,7 @@ export const createUserSchema: RequestValidationSchema = { body: Joi.object({
   yearsOfExperience: profileFields.yearsOfExperience, certificates: profileFields.certificates, bio: profileFields.bio,
   address: profileFields.address, specialization: profileFields.specialization, status: profileFields.status,
 }).messages(commonMessages) };
-export const updateUserSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...profileFields, password: sixDigitPassword.allow('', null), username: Joi.forbidden(), role: Joi.forbidden() }) };
+export const updateUserSchema: RequestValidationSchema = { params: idParams(), body: nonEmptyPatch({ ...profileFields, password: passwordSchema.allow('', null), username: Joi.forbidden(), role: Joi.forbidden() }) };
 export const updateSelfProfileSchema: RequestValidationSchema = {
   body: nonEmptyPatch({
     fullName: profileFields.fullName,
@@ -38,7 +38,7 @@ export const updateSelfProfileSchema: RequestValidationSchema = {
     bio: profileFields.bio,
     address: profileFields.address,
     specialization: profileFields.specialization,
-    password: sixDigitPassword.allow('', null),
+    password: passwordSchema.allow('', null),
     currentPassword: Joi.string().allow('', null).messages(commonMessages),
     role: Joi.forbidden(),
     status: Joi.forbidden(),
