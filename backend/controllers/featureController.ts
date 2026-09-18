@@ -13,4 +13,8 @@ const update = asyncHandler(async (req, res) => success(res, {
   data: await featureFlagService.updateFeature(String(req.params.key) as FeatureKey, req.body),
 }));
 
-export { mine, update };
+const list = asyncHandler(async (_req, res) => success(res, {
+  message: 'Lấy cấu hình quản trị tính năng thành công.',
+  data: await featureFlagService.listFeatures(),
+}));
+export { mine, update, list };

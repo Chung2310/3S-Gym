@@ -50,7 +50,7 @@ export default function FeatureFlagModal({ open, feature, onClose, onSaved }: Fe
   const dirty = useMemo(() => {
     return (
       enabled !== initial.enabled ||
-      JSON.stringify(roles.sort()) !== JSON.stringify(initial.roles.sort()) ||
+      JSON.stringify([...roles].sort()) !== JSON.stringify([...initial.roles].sort()) ||
       pilotUsersText !== initial.pilotUsersText
     );
   }, [enabled, roles, pilotUsersText, initial]);
