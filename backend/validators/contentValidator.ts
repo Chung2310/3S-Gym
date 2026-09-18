@@ -82,15 +82,36 @@ const validateNutritionDates = (value: Record<string, unknown>, helpers: any) =>
   }
   return value;
 };
-const macros = Joi.object({ protein: Joi.number().min(0).required(), carbs: Joi.number().min(0).required(), fat: Joi.number().min(0).required() }).messages(commonMessages);
+const macros = Joi.object({
+  protein: Joi.number().min(0).required(),
+  carbs: Joi.number().min(0).required(),
+  fat: Joi.number().min(0).required(),
+}).messages(commonMessages);
+
 // AI and mobile editors retain the complete per-day schedule alongside the weekly menu.
 const nutritionDailyPlans = Joi.array().max(31).items(Joi.object({
   dayOfWeek: Joi.string().allow(''),
   dayNumber: Joi.number().integer().min(1).max(31),
   date: Joi.date().iso().allow(null, ''),
   meals: Joi.array().items(Joi.object().unknown(true)).required(),
-}).unknown(true));
-const nutritionFields = { customerId: objectId, title: Joi.string().trim(), targetCalories: Joi.number().positive(), macros, bmr: Joi.number().min(0).allow(null), tdee: Joi.number().min(0).allow(null), startDate: Joi.date().iso().allow(null), endDate: Joi.date().iso().allow(null), durationDays: Joi.number().integer().min(1).max(31).allow(null), menu: Joi.array(), dailyPlans: nutritionDailyPlans, notes: Joi.string().allow('', null) };
+}).unknown(true)).allow(null);
+
+const nutritionFields = {
+  customerId: objectId,
+  title: Joi.string().trim(),
+  targetCalories: Joi.number().positive(),
+  macros,
+  bmr: Joi.number().min(0).allow(null),
+  tdee: Joi.number().min(0).allow(null),
+  startDate: Joi.date().iso().allow(null),
+  endDate: Joi.date().iso().allow(null),
+  durationDays: Joi.number().integer().min(1).max(31).allow(null),
+  menu: Joi.array(),
+  dailyPlans: nutritionDailyPlans,
+  createdByAi: Joi.boolean().allow(null),
+  reviewStatus: Joi.string().valid('NOT_REQUIRED', 'PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED').allow(null),
+  notes: Joi.string().allow('', null),
+};
 export const nutritionPlanSchemas = { create: { body: Joi.object({ ...nutritionFields, customerId: objectId.required(), title: nutritionFields.title.required(), targetCalories: nutritionFields.targetCalories.required(), macros: macros.required() }).custom(validateNutritionDates).messages(commonMessages) }, update: { body: nonEmptyPatch({ ...nutritionFields, ...systemFields }).custom(validateNutritionDates).messages(commonMessages) } } satisfies Record<string, RequestValidationSchema>;
 const sessionSchema = Joi.object({ sessionNumber: Joi.number().min(1), name: Joi.string().allow('', null), focus: Joi.string().allow('', null), exercises: Joi.array().items(Joi.string()) }).unknown(true);
 const week = Joi.object({ week: Joi.number().integer().min(1).required(), focus: Joi.string().trim().required(), sessionTargets: Joi.number().min(0).allow(null), sessions: Joi.array().items(sessionSchema) }).messages(commonMessages);
