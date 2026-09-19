@@ -29,7 +29,11 @@ async function startServer() {
         process.once('SIGTERM', () => shutdown('SIGTERM', 0));
         process.once('SIGINT', () => shutdown('SIGINT', 0));
         process.once('message', (message) => {
-            if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'shutdown') void shutdown('IPC', 0);
+            if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'shutdown') {
+                void shutdown('IPC', 0).then(() => {
+                    if (process.send) process.send({ type: 'shutdown-complete', exitCode: process.exitCode ?? 0 });
+                });
+            }
         });
         process.once('unhandledRejection', (error) => { logger.fatal({ err: error }, 'Unhandled rejection'); shutdown('unhandledRejection', 1); });
         process.once('uncaughtException', (error) => { logger.fatal({ err: error }, 'Uncaught exception'); shutdown('uncaughtException', 1); });

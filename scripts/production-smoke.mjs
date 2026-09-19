@@ -4,7 +4,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const startupTimeoutMs = 90_000;
-const shutdownTimeoutMs = 15_000;
+const shutdownTimeoutMs = 30_000;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function buildSmokeEnvironment(sourceEnv = process.env) {
@@ -54,6 +54,27 @@ async function waitForShutdown(exitPromise, isExited, kill) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+function requestShutdown(child) {
+  if (!child.connected) {
+    child.kill('SIGTERM');
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    const onMessage = (message) => {
+      if (message?.type !== 'shutdown-complete') return;
+      child.off('message', onMessage);
+      if (child.connected) child.disconnect();
+      resolve();
+    };
+    child.on('message', onMessage);
+    child.send({ type: 'shutdown' }, (error) => {
+      if (!error) return;
+      child.off('message', onMessage);
+      reject(error);
+    });
+  });
 }
 
 async function runProductionSmoke(sourceEnv = process.env) {
@@ -108,13 +129,12 @@ async function runProductionSmoke(sourceEnv = process.env) {
       headers: { authorization: `Bearer ${token}` },
     });
 
-    if (child.connected) {
-      child.send({ type: 'shutdown' }, (error) => {
-        if (error) child.kill('SIGTERM');
-        else if (child.connected) child.disconnect();
-      });
-    } else child.kill('SIGTERM');
-    const result = await waitForShutdown(exitPromise, () => childExited, () => child.kill('SIGKILL'));
+    const shutdownRequested = requestShutdown(child);
+    const result = await waitForShutdown(
+      Promise.all([shutdownRequested, exitPromise]).then(([, exit]) => exit),
+      () => childExited,
+      () => child.kill('SIGKILL'),
+    );
     if (result.code !== 0) throw new Error(`Production server exited with code ${result.code ?? 'null'} (${result.signal || 'no signal'}).`);
     process.stdout.write('PRODUCTION_SMOKE_OK\n');
   } finally {
@@ -133,4 +153,4 @@ if (process.argv[1] && fileURLToPath(import.meta.url).toLowerCase() === process.
   });
 }
 
-export { buildSmokeEnvironment, runProductionSmoke, waitForReady };
+export { buildSmokeEnvironment, requestShutdown, runProductionSmoke, waitForReady };
