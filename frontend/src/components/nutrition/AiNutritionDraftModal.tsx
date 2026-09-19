@@ -1,9 +1,10 @@
+import { generateNutritionJob } from '../../services/nutritionJobs';
 import { useState } from 'react';
 import { ArrowRightLeft, Check, Sparkles, Utensils, X, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
-import type { NutritionDraftPlan, MealDishItem } from '../../types';
+import type { NutritionDraftPlan } from '../../types';
 import MealSwapperModal from './MealSwapperModal';
 import MealInfographicPoster from '../MealInfographicPoster';
 
@@ -28,11 +29,7 @@ export default function AiNutritionDraftModal({ open, customerId, customerName, 
   const generate = async () => {
     try {
       setLoading(true);
-      const result = await api.post<NutritionDraftPlan>(
-        '/api/content-drafts/nutrition',
-        { customerId, request },
-        { retries: 1, retryDelayMs: 1500 }
-      );
+      const result = { data: await generateNutritionJob<NutritionDraftPlan>({ customerId, request }) };
 
       // Enhance draft with visual poster dishes if menu exists
       const d = result.data;

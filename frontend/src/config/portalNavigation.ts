@@ -10,6 +10,7 @@ import {
   Ruler,
   Salad,
   ShieldCheck,
+  User as UserIcon,
   Users,
   WalletCards,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ export interface NavigationItem {
 }
 
 export const portalNavigation: NavigationItem[] = [
+  { path: '/pt/profile', label: 'Hồ sơ cá nhân', section: 'Tài khoản', icon: UserIcon, roles: ['PT'] },
   { path: '/wallet', label: 'Ví credit', section: 'Tài khoản', icon: WalletCards, roles: ['ADMIN', 'PT', 'CUSTOMER'], matchChildren: true },
   { path: '/admin/credits', label: 'Quản trị credit', section: 'Tài khoản', icon: WalletCards, roles: ['ADMIN'], matchChildren: true },
   { path: '/admin', label: 'Quản trị & HLV PT', section: 'Vận hành', icon: LayoutDashboard, roles: ['ADMIN'] },

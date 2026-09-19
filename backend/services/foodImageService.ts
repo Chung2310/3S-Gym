@@ -91,48 +91,22 @@ export async function findMatchingFoodImage(
 ): Promise<IFoodImage | null> {
   const normMeal = normalizeFoodName(mealName);
 
-  // 1. Khớp chính xác tên bữa ăn / tên món chính
-  if (normMeal) {
+  // 1. Chỉ lấy khi tên món ăn trùng khớp chính xác với món đã từng tạo trước đây
+  if (normMeal && normMeal.length >= 2) {
     const exact = await FoodImage.findOne({ normalizedName: normMeal, ...NOT_MOCK_IMAGE_FILTER });
     if (exact) return exact;
-
-    // 2. Tìm kiếm chứa cụm từ chính
-    const regexMatch = await FoodImage.findOne({
-      normalizedName: { $regex: new RegExp(`(^|\\s)${normMeal}(\\s|$)`, 'i') },
-      ...NOT_MOCK_IMAGE_FILTER,
-    }).sort({ usageCount: -1 });
-    if (regexMatch) return regexMatch;
   }
 
-  // 3. Khớp theo từng món ăn thành phần trong bữa (ưu tiên món đạm chính)
-  for (const item of itemNames) {
-    const normItem = normalizeFoodName(item);
-    if (!normItem || normItem.length < 3) continue;
+  // 2. Nếu tên bữa ăn chung chung (vd: "Bữa Sáng", "Bữa Trưa") và có món con cụ thể, kiểm tra xem có món nào trùng tên chính xác không
+  const isGenericMealName = ['bua sang', 'bua trua', 'bua toi', 'bua phu', 'bua an'].includes(normMeal);
+  if (isGenericMealName && itemNames.length > 0) {
+    for (const item of itemNames) {
+      const normItem = normalizeFoodName(item);
+      if (!normItem || normItem.length < 2) continue;
 
-    // Tìm món khớp chính xác
-    const itemExact = await FoodImage.findOne({ normalizedName: normItem, ...NOT_MOCK_IMAGE_FILTER });
-    if (itemExact) return itemExact;
-
-    // Tìm món chứa tên
-    const itemPartial = await FoodImage.findOne({
-      normalizedName: { $regex: new RegExp(normItem, 'i') },
-      ...NOT_MOCK_IMAGE_FILTER,
-    }).sort({ usageCount: -1 });
-    if (itemPartial) return itemPartial;
-  }
-
-  // 4. Tìm kiếm theo từ khóa quan trọng (vd: "uc ga", "bo", "ca hoi", "trung")
-  const allKeywords = [
-    ...extractKeywords(mealName),
-    ...itemNames.flatMap(extractKeywords),
-  ].filter((kw) => kw.includes(' ') || ['ga', 'bo', 'ca', 'tom', 'trung', 'heo', 'muc'].includes(kw));
-
-  if (allKeywords.length > 0) {
-    const keywordMatch = await FoodImage.findOne({
-      keywords: { $in: allKeywords },
-      ...NOT_MOCK_IMAGE_FILTER,
-    }).sort({ usageCount: -1 });
-    if (keywordMatch) return keywordMatch;
+      const itemExact = await FoodImage.findOne({ normalizedName: normItem, ...NOT_MOCK_IMAGE_FILTER });
+      if (itemExact) return itemExact;
+    }
   }
 
   return null;

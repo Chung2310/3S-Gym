@@ -1,3 +1,4 @@
+import { isValidPassword, PASSWORD_ERROR } from '../services/passwordPolicy.js';
 export type NodeEnvironment = 'development' | 'test' | 'production';
 
 export const APP_POLICY = Object.freeze({
@@ -52,6 +53,11 @@ export interface AppEnv {
   MOMO_API_URL?: string;
   MOMO_REDIRECT_URL?: string;
   MOMO_IPN_URL?: string;
+  PAYOS_CLIENT_ID?: string;
+  PAYOS_API_KEY?: string;
+  PAYOS_CHECKSUM_KEY?: string;
+  PAYOS_RETURN_URL?: string;
+  PAYOS_CANCEL_URL?: string;
 }
 
 let currentEnvironment: AppEnv | undefined;
@@ -65,8 +71,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     : nodeEnvironment === 'test' ? [] : ['SUPER_ADMIN_USERNAME', 'SUPER_ADMIN_PASSWORD'];
   const missing = requiredKeys.filter((key) => !source[key]?.trim());
   if (missing.length) throw new Error(`Thiếu biến môi trường bắt buộc: ${missing.join(', ')}`);
-  if (source.SUPER_ADMIN_PASSWORD && !/^\d{6}$/.test(source.SUPER_ADMIN_PASSWORD)) {
-    throw new Error('SUPER_ADMIN_PASSWORD phải gồm đúng 6 chữ số.');
+  // Existing deployments may retain a legacy six-digit bootstrap credential; new users are checked by createUser.
+  if (source.SUPER_ADMIN_PASSWORD && !isValidPassword(source.SUPER_ADMIN_PASSWORD) && !/^\d{6}$/.test(source.SUPER_ADMIN_PASSWORD)) {
+    throw new Error("SUPER_ADMIN_PASSWORD: " + PASSWORD_ERROR);
   }
 
   const jwtSecret = source.JWT_SECRET?.trim()
@@ -91,7 +98,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     TRUST_PROXY: APP_POLICY.TRUST_PROXY,
     JSON_BODY_LIMIT: APP_POLICY.JSON_BODY_LIMIT,
     PROVIDER_TIMEOUT_MS: Number(source.PROVIDER_TIMEOUT_MS) || APP_POLICY.PROVIDER_TIMEOUT_MS,
-    AUTH_RATE_LIMIT_PER_15M: APP_POLICY.AUTH_RATE_LIMIT_PER_15M,
+    AUTH_RATE_LIMIT_PER_15M: Number(source.AUTH_RATE_LIMIT_PER_15M) || (nodeEnvironment === 'development' ? 1_000 : APP_POLICY.AUTH_RATE_LIMIT_PER_15M),
     AI_RATE_LIMIT_PER_MINUTE: APP_POLICY.AI_RATE_LIMIT_PER_MINUTE,
     OCR_MAX_FILE_BYTES: APP_POLICY.OCR_MAX_FILE_BYTES,
     AI_MODEL: source.AI_MODEL?.trim() || source.OPENROUTER_MODEL?.trim() || APP_POLICY.AI_MODEL,
@@ -111,6 +118,11 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     MOMO_API_URL: optional('MOMO_API_URL'),
     MOMO_REDIRECT_URL: optional('MOMO_REDIRECT_URL'),
     MOMO_IPN_URL: optional('MOMO_IPN_URL'),
+    PAYOS_CLIENT_ID: optional('PAYOS_CLIENT_ID'),
+    PAYOS_API_KEY: optional('PAYOS_API_KEY'),
+    PAYOS_CHECKSUM_KEY: optional('PAYOS_CHECKSUM_KEY'),
+    PAYOS_RETURN_URL: optional('PAYOS_RETURN_URL'),
+    PAYOS_CANCEL_URL: optional('PAYOS_CANCEL_URL'),
   };
   return currentEnvironment;
 }

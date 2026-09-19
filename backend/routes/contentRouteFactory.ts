@@ -31,6 +31,7 @@ function createContentRouter(resource: ContentResource, schemas: { create: Reque
   };
   */
   router.get('/', authenticate, authorize('ADMIN', 'PT'), validate(contentListSchema), controller.list);
+  router.get('/:id', authenticate, authorize('ADMIN', 'PT'), validate(contentIdSchema), controller.get);
   router.post('/', authenticate, authorize('ADMIN', 'PT'), validate(schemas.create), controller.create);
   router.patch('/:id', authenticate, authorize('ADMIN', 'PT'), validate({ ...schemas.update, params: contentIdSchema.params }), controller.update);
   router.delete('/:id', authenticate, authorize('ADMIN', 'PT'), validate(contentIdSchema), controller.remove);

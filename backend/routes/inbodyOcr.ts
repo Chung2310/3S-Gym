@@ -21,5 +21,5 @@ const validator = (req: never): never[] => {
   return errors;
 }; */
 
-router.post('/', createRateLimiter({ limit: env.AI_RATE_LIMIT_PER_MINUTE, windowMs: 60_000 }), authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), upload.single('image'), validate(inbodyOcrUploadSchema), controller.create);
+router.post('/', createRateLimiter({ limit: env.AI_RATE_LIMIT_PER_MINUTE, windowMs: 60_000 }), authenticate, authorize('ADMIN', 'PT'), requireFeature('OCR_INBODY'), upload.array('image', 5), validate(inbodyOcrUploadSchema), controller.create);
 export default router;

@@ -4,10 +4,9 @@ import FormModal from './FormModal';
 import { useToast } from './ToastProvider';
 import { api } from '../../services/api';
 import {
-  isSixDigitPassword,
+  isValidPassword,
   PASSWORD_ERROR,
   PASSWORD_HINT,
-  PASSWORD_INPUT_PATTERN,
 } from '../../services/passwordValidation';
 import { errorMessage } from '../../types';
 
@@ -26,7 +25,7 @@ export default function CustomerAccountModal({ open, customer, onClose, onSaved 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!customer?._id) return;
-    if (!isSixDigitPassword(form.password)) {
+    if (!isValidPassword(form.password)) {
       toast.error(PASSWORD_ERROR);
       return;
     }
@@ -66,10 +65,10 @@ export default function CustomerAccountModal({ open, customer, onClose, onSaved 
             label="Mật khẩu ban đầu"
             name="customerPassword"
             type="password"
-            minLength={6}
-            maxLength={6}
-            inputMode="numeric"
-            pattern={PASSWORD_INPUT_PATTERN}
+            minLength={8}
+            
+            inputMode="text"
+            
             placeholder={PASSWORD_HINT}
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}

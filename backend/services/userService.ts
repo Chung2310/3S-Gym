@@ -1,3 +1,4 @@
+import { isValidPassword, PASSWORD_ERROR } from './passwordPolicy.js';
 import bcrypt from 'bcryptjs';
 import type { Model, QueryFilter, Types } from 'mongoose';
 import User, { type IUser, type UserDocument, type UserRole, type UserStatus } from '../models/User.js';
@@ -34,6 +35,9 @@ export interface UserPayload {
 
 export type UpdatePtPayload = Partial<Omit<UserPayload, 'username' | 'role'>>;
 export type UpdateUserPayload = Partial<Omit<UserPayload, 'username'>>;
+export type UpdateSelfProfilePayload = Partial<Omit<UserPayload, 'username' | 'role' | 'status'>> & {
+  currentPassword?: string | null;
+};
 export interface UserListQuery {
   page?: unknown;
   limit?: unknown;
@@ -46,9 +50,9 @@ interface OwnedContent {
   ptId: Types.ObjectId;
 }
 
-function assertSixDigitPassword(password: string): void {
-  if (!/^\d{6}$/.test(password)) {
-    throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Mật khẩu phải gồm đúng 6 chữ số.' });
+function assertPassword(password: string): void {
+  if (!isValidPassword(password)) {
+    throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: PASSWORD_ERROR });
   }
 }
 
@@ -57,7 +61,7 @@ function optionalContact(value: string | null | undefined): string | undefined {
 }
 
 async function createUser(payload: UserPayload) {
-  assertSixDigitPassword(payload.password);
+  assertPassword(payload.password);
   const existing = await User.exists({ username: payload.username.trim() });
   if (existing) {
     throw new AppError({
@@ -209,6 +213,7 @@ async function listUsers(query: UserListQuery) {
 
   const usersWithWallet = users.map((u) => ({
     ...u,
+    avatarUrl: u.avatarUrl || (u as unknown as Record<string, unknown>).avatar || (u as unknown as Record<string, unknown>).photoUrl || '',
     availableCredits: walletMap.get(String(u._id))?.availableCredits ?? 0,
     reservedCredits: walletMap.get(String(u._id))?.reservedCredits ?? 0,
   }));
@@ -227,7 +232,7 @@ async function updatePt(id: string, payload: UpdatePtPayload): Promise<UserDocum
     if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
   }
   if (payload.password) {
-    assertSixDigitPassword(payload.password);
+    assertPassword(payload.password);
     user.password = await bcrypt.hash(payload.password, 10);
   }
   await user.save();
@@ -276,7 +281,7 @@ async function updateManagedUser(actor: AuthenticatedUser, id: string, payload: 
     if (value !== undefined) user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
   }
   if (payload.password) {
-    assertSixDigitPassword(payload.password);
+    assertPassword(payload.password);
     user.password = await bcrypt.hash(payload.password, 10);
   }
   await user.save();
@@ -341,13 +346,58 @@ async function ensureBootstrapSuperAdmin({ username, password, fullName = 'Quả
   return createUser({ username: normalizedUsername, password, fullName, role: 'SUPER_ADMIN' });
 }
 
+async function updateSelfProfile(actor: AuthenticatedUser, payload: UpdateSelfProfilePayload): Promise<UserDocument> {
+  const user = await User.findById(actor.id);
+  if (!user) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài khoản.' });
+  if (user.status === 'LOCKED') throw new AppError({ status: 403, code: ERROR_CODES.AUTHORIZATION, message: 'Tài khoản đã bị khóa.' });
+
+  if (payload.password) {
+    if (!payload.currentPassword) {
+      throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng nhập mật khẩu hiện tại để đổi mật khẩu.' });
+    }
+    const isCurrentValid = await bcrypt.compare(payload.currentPassword, user.password);
+    if (!isCurrentValid) {
+      throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Mật khẩu hiện tại không chính xác.' });
+    }
+    assertPassword(payload.password);
+    user.password = await bcrypt.hash(payload.password, 10);
+  }
+
+  const fields: Array<keyof UpdateSelfProfilePayload> = [
+    'avatarUrl',
+    'dateOfBirth',
+    'gender',
+    'fullName',
+    'address',
+    'specialization',
+    'yearsOfExperience',
+    'certificates',
+    'bio',
+  ];
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'email')) user.set('email', optionalContact(payload.email));
+  if (Object.prototype.hasOwnProperty.call(payload, 'phone')) user.set('phone', optionalContact(payload.phone));
+
+  for (const field of fields) {
+    const value = payload[field];
+    if (value !== undefined) {
+      user.set(field, value === '' && ['email', 'phone'].includes(field) ? undefined : value === '' && field === 'dateOfBirth' ? null : value);
+    }
+  }
+
+  await user.save();
+  return user;
+}
+
 export {
   createUser,
   createManagedUser,
   listUsers,
   updatePt,
   updateManagedUser,
+  updateSelfProfile,
   deletePt,
   deleteManagedUser,
   ensureBootstrapSuperAdmin,
 };
+

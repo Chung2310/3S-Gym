@@ -75,8 +75,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<A
 
 export const api = {
   get: <T = unknown>(path: string, options: RequestOptions = {}) => request<T>(path, options),
-  post: <T = unknown>(path: string, body: unknown, options: RequestOptions = {}) => request<T>(path, { ...options, method: 'POST', body: JSON.stringify(body) }),
-  patch: <T = unknown>(path: string, body: unknown = {}, options: RequestOptions = {}) => request<T>(path, { ...options, method: 'PATCH', body: JSON.stringify(body) }),
+  post: <T = unknown>(path: string, body: unknown, options: RequestOptions = {}) =>
+    request<T>(path, { ...options, method: 'POST', body: body instanceof FormData ? body : JSON.stringify(body) }),
+  patch: <T = unknown>(path: string, body: unknown = {}, options: RequestOptions = {}) =>
+    request<T>(path, { ...options, method: 'PATCH', body: body instanceof FormData ? body : JSON.stringify(body) }),
   delete: <T = unknown>(path: string, options: RequestOptions = {}) => request<T>(path, { ...options, method: 'DELETE' }),
   upload: <T = unknown>(path: string, formData: FormData, options: RequestOptions = {}) => request<T>(path, { ...options, method: 'POST', body: formData }),
   uploadPatch: <T = unknown>(path: string, formData: FormData, options: RequestOptions = {}) => request<T>(path, { ...options, method: 'PATCH', body: formData }),

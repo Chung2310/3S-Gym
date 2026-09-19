@@ -1,3 +1,4 @@
+import { isValidPassword, PASSWORD_ERROR } from '../services/passwordPolicy.js';
 import mongoose from 'mongoose';
 import Joi from 'joi';
 import { AppError } from '../errors/AppError.js';
@@ -34,7 +35,9 @@ function validate(schema: ValidationSchema | RequestValidationSchema): RequestHa
       for (const segment of segments) {
         const segmentSchema = schema[segment];
         if (!segmentSchema) continue;
-        const source = segment === 'file' ? req.file : req[segment];
+        const source = segment === 'file'
+          ? (Array.isArray(req.files) && req.files.length > 0 ? req.files : req.file)
+          : req[segment];
         const result = segmentSchema.validate(source, validationOptions);
         if (result.error) {
           errors.push(...result.error.details.map((detail) => {
@@ -44,7 +47,13 @@ function validate(schema: ValidationSchema | RequestValidationSchema): RequestHa
           continue;
         }
         if (segment === 'file') {
-          req.file = result.value as Express.Multer.File;
+          if (Array.isArray(result.value)) {
+            req.files = result.value as unknown as Express.Multer.File[];
+            req.file = result.value[0] as Express.Multer.File;
+          } else {
+            req.file = result.value as Express.Multer.File;
+            req.files = [result.value as Express.Multer.File];
+          }
         } else if (segment === 'query') {
           Object.defineProperty(req, 'query', { configurable: true, enumerable: true, value: result.value });
         } else {
@@ -68,7 +77,7 @@ function createUserValidator(req: BodyRequest): ValidationIssue[] {
   const { username, password, role } = req.body;
   const errors: ValidationIssue[] = [];
   if (typeof username !== 'string' || username.trim().length < 3) errors.push({ field: 'username', message: 'Tên đăng nhập phải có ít nhất 3 ký tự.' });
-  if (typeof password !== 'string' || !/^\d{6}$/.test(password)) errors.push({ field: 'password', message: 'Mật khẩu phải gồm đúng 6 chữ số.' });
+  if (!isValidPassword(password)) errors.push({ field: 'password', message: PASSWORD_ERROR });
   if (!['ADMIN', 'PT', 'CUSTOMER'].includes(role)) errors.push({ field: 'role', message: 'Vai trò không hợp lệ.' });
   if (role === 'PT' && (typeof req.body.fullName !== 'string' || !req.body.fullName.trim())) errors.push({ field: 'fullName', message: 'Vui lòng nhập họ tên PT.' });
   if (role === 'PT' && (typeof req.body.phone !== 'string' || !req.body.phone.trim())) errors.push({ field: 'phone', message: 'Vui lòng nhập số điện thoại PT.' });
@@ -92,7 +101,7 @@ function loginValidator(req: BodyRequest): ValidationIssue[] {
 function updateUserValidator(req: Request): ValidationIssue[] {
   const errors: ValidationIssue[] = [];
   if (!mongoose.isValidObjectId(req.params.id)) errors.push({ field: 'id', message: 'Mã PT không hợp lệ.' });
-  const body = { ...req.body, username: 'valid-user', role: 'PT', password: req.body.password || '123456' };
+  const body = { ...req.body, username: 'valid-user', role: 'PT', password: req.body.password || 'validation-placeholder' };
   errors.push(...createUserValidator({ body }).filter((error) => !['username', 'role'].includes(error.field)));
   return errors;
 }

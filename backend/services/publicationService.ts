@@ -20,7 +20,7 @@ interface ContentBase {
 }
 
 interface ContentPayload extends Record<string, unknown> { customerId: string }
-interface ContentQuery { page?: unknown; limit?: unknown; customerId?: unknown; status?: unknown }
+interface ContentQuery { page?: unknown; limit?: unknown; customerId?: unknown; status?: unknown; sortBy?: unknown; sortOrder?: unknown }
 type ContentModel = Model<ContentBase>;
 
 const models: Record<ContentResource, ContentModel> = {
@@ -84,7 +84,13 @@ async function listContent(resource: ContentResource, user: AuthenticatedUser, q
       ? new (await import('mongoose')).Types.ObjectId(query.customerId)
       : { $in: ids };
   }
-  const sortOption: Record<string, -1 | 1> = resource === 'nutritionPlans' ? { startDate: -1, createdAt: -1 } : { createdAt: -1 };
+  const sortOption: Record<string, -1 | 1> = query.sortBy
+    ? { [String(query.sortBy)]: query.sortOrder === 'asc' ? 1 : -1 }
+    : resource === 'nutritionPlans'
+    ? { startDate: -1, createdAt: -1 }
+    : resource === 'inbody'
+    ? { measurementDate: -1, createdAt: -1 }
+    : { createdAt: -1 };
   const [items, total] = await Promise.all([
     Model.find(filter).populate('customerId', 'fullName phone').sort(sortOption).skip((page - 1) * limit).limit(limit).lean(),
     Model.countDocuments(filter),
@@ -109,6 +115,13 @@ async function setPublication(resource: ContentResource, user: AuthenticatedUser
   return saved;
 }
 
+async function getContent(resource: ContentResource, user: AuthenticatedUser, id: string) {
+  const item = await models[resource].findById(id).lean();
+  if (!item) throw appError('Không tìm thấy nội dung.', 404);
+  await assertCustomerAccess(user, item.customerId);
+  return item;
+}
+
 async function getMyContent(user: AuthenticatedUser) {
   const customer = await CustomerProfile.findOne({ userId: user.id });
   if (!customer) throw appError('Không tìm thấy hồ sơ khách hàng.', 404);
@@ -123,4 +136,4 @@ async function getMyContent(user: AuthenticatedUser) {
   return { profile: customer, inbody, goals, workoutPlans, nutritionPlans, progressReports };
 }
 
-export { createContent, updateContent, deleteContent, listContent, setPublication, getMyContent };
+export { createContent, updateContent, deleteContent, listContent, getContent, setPublication, getMyContent };

@@ -153,7 +153,11 @@ export async function listLedger(userId: string, query: { page?: unknown; limit?
   const page = Math.max(1, Number(query.page || 1));
   const limit = Math.min(100, Math.max(1, Number(query.limit || 20)));
   const filter: Record<string, unknown> = { userId: objectId(userId) };
-  if (['TOPUP', 'RESERVE', 'SETTLE', 'RELEASE', 'ADJUSTMENT'].includes(String(query.type))) filter.type = query.type;
+  if (String(query.type) === 'USAGE') {
+    filter.type = { $in: ['SETTLE', 'RESERVE'] };
+  } else if (['TOPUP', 'RESERVE', 'SETTLE', 'RELEASE', 'ADJUSTMENT'].includes(String(query.type))) {
+    filter.type = query.type;
+  }
   const [items, total] = await Promise.all([CreditLedgerEntry.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), CreditLedgerEntry.countDocuments(filter)]);
   return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }

@@ -23,6 +23,7 @@ import {
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import ConfirmModal from '../ui/ConfirmModal';
+import Pagination from '../ui/Pagination';
 import { errorMessage } from '../../types';
 import type { Customer, PaginationMeta } from '../../types';
 
@@ -99,7 +100,7 @@ export default function NutritionPlanList({
     async (page = 1) => {
       try {
         setLoading(true);
-        const query = new URLSearchParams({ page: String(page), limit: '20' });
+        const query = new URLSearchParams({ page: String(page), limit: '6' });
         if (customerId) query.set('customerId', customerId);
 
         const res = await api.get<NutritionPlanItem[]>(`/api/nutrition-plans?${query}`);
@@ -638,6 +639,21 @@ export default function NutritionPlanList({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination Bar */}
+      {meta.totalPages > 1 && (
+        <div style={{ marginTop: '16px' }}>
+          <Pagination
+            page={meta.page || 1}
+            totalPages={meta.totalPages || 1}
+            totalItems={meta.total}
+            pageSize={6}
+            itemLabel="thực đơn"
+            loading={loading}
+            onPageChange={(p) => void loadPlans(p)}
+          />
         </div>
       )}
 

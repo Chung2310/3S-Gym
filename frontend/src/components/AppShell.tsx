@@ -13,6 +13,7 @@ import {
   PanelLeftOpen,
   Ruler,
   Salad,
+  UserPen,
   Users,
   WalletCards,
   X
@@ -63,12 +64,17 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [creditError, setCreditError] = useState('');
+  const [imgFailed, setImgFailed] = useState(false);
   const isMobile = useMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const items = visibleNavigation(user, features);
   const current = navigationForPath(location.pathname, user, features);
   const { wallet, loading: walletLoading } = useCreditWallet();
+
+  useEffect(() => {
+    setImgFailed(false);
+  }, [user.avatarUrl]);
 
   useEffect(() => {
     let mounted = true;
@@ -376,8 +382,12 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
             {/* User Circle Avatar with Hover Popover */}
             <div className="portal-user-wrap" tabIndex={0} role="button" aria-label={`Tài khoản: ${displayName}`}>
               <div className="portal-user-avatar" title={displayName}>
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={displayName} />
+                {user.avatarUrl && !imgFailed ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={displayName}
+                    onError={() => setImgFailed(true)}
+                  />
                 ) : (
                   <span>{getInitials(user.fullName, user.username)}</span>
                 )}
@@ -387,6 +397,26 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
                 <span className="portal-user-role">{roleNames[user.role]}</span>
                 {user.username && user.fullName && user.fullName !== user.username && (
                   <div className="portal-user-uname">@{user.username}</div>
+                )}
+                {user.role === 'PT' && (
+                  <Link
+                    to="/pt/profile"
+                    className="portal-user-edit-link"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginTop: '10px',
+                      paddingTop: '8px',
+                      borderTop: '1px solid #f1f5f9',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: '#00a4e4',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <UserPen size={14} /> Chỉnh sửa hồ sơ
+                  </Link>
                 )}
               </div>
             </div>

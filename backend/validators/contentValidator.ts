@@ -3,7 +3,7 @@ import type { RequestValidationSchema } from '../middlewares/validate.js';
 import { commonMessages, idParams, nonEmptyPatch, objectId, paginationQuery } from './commonValidator.js';
 
 const systemFields = { ptId: Joi.forbidden(), status: Joi.forbidden(), publishedAt: Joi.forbidden(), version: Joi.forbidden() };
-export const contentListSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, status: Joi.string().valid('DRAFT', 'PUBLISHED'), customerId: objectId }).messages(commonMessages) };
+export const contentListSchema: RequestValidationSchema = { query: Joi.object({ ...paginationQuery, status: Joi.string().valid('DRAFT', 'PUBLISHED'), customerId: objectId, sortBy: Joi.string().optional(), sortOrder: Joi.string().valid('asc', 'desc').optional() }).messages(commonMessages) };
 export const contentIdSchema: RequestValidationSchema = { params: idParams() };
 const segmentalSchema = Joi.object({
   rightArm: Joi.number().allow(null),
@@ -82,8 +82,36 @@ const validateNutritionDates = (value: Record<string, unknown>, helpers: any) =>
   }
   return value;
 };
-const macros = Joi.object({ protein: Joi.number().min(0).required(), carbs: Joi.number().min(0).required(), fat: Joi.number().min(0).required() }).messages(commonMessages);
-const nutritionFields = { customerId: objectId, title: Joi.string().trim(), targetCalories: Joi.number().positive(), macros, bmr: Joi.number().min(0).allow(null), tdee: Joi.number().min(0).allow(null), startDate: Joi.date().iso().allow(null), endDate: Joi.date().iso().allow(null), durationDays: Joi.number().integer().min(1).max(31).allow(null), menu: Joi.array(), notes: Joi.string().allow('', null) };
+const macros = Joi.object({
+  protein: Joi.number().min(0).required(),
+  carbs: Joi.number().min(0).required(),
+  fat: Joi.number().min(0).required(),
+}).messages(commonMessages);
+
+// AI and mobile editors retain the complete per-day schedule alongside the weekly menu.
+const nutritionDailyPlans = Joi.array().max(31).items(Joi.object({
+  dayOfWeek: Joi.string().allow(''),
+  dayNumber: Joi.number().integer().min(1).max(31),
+  date: Joi.date().iso().allow(null, ''),
+  meals: Joi.array().items(Joi.object().unknown(true)).required(),
+}).unknown(true)).allow(null);
+
+const nutritionFields = {
+  customerId: objectId,
+  title: Joi.string().trim(),
+  targetCalories: Joi.number().positive(),
+  macros,
+  bmr: Joi.number().min(0).allow(null),
+  tdee: Joi.number().min(0).allow(null),
+  startDate: Joi.date().iso().allow(null),
+  endDate: Joi.date().iso().allow(null),
+  durationDays: Joi.number().integer().min(1).max(31).allow(null),
+  menu: Joi.array(),
+  dailyPlans: nutritionDailyPlans,
+  createdByAi: Joi.boolean().allow(null),
+  reviewStatus: Joi.string().valid('NOT_REQUIRED', 'PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED').allow(null),
+  notes: Joi.string().allow('', null),
+};
 export const nutritionPlanSchemas = { create: { body: Joi.object({ ...nutritionFields, customerId: objectId.required(), title: nutritionFields.title.required(), targetCalories: nutritionFields.targetCalories.required(), macros: macros.required() }).custom(validateNutritionDates).messages(commonMessages) }, update: { body: nonEmptyPatch({ ...nutritionFields, ...systemFields }).custom(validateNutritionDates).messages(commonMessages) } } satisfies Record<string, RequestValidationSchema>;
 const sessionSchema = Joi.object({ sessionNumber: Joi.number().min(1), name: Joi.string().allow('', null), focus: Joi.string().allow('', null), exercises: Joi.array().items(Joi.string()) }).unknown(true);
 const week = Joi.object({ week: Joi.number().integer().min(1).required(), focus: Joi.string().trim().required(), sessionTargets: Joi.number().min(0).allow(null), sessions: Joi.array().items(sessionSchema) }).messages(commonMessages);

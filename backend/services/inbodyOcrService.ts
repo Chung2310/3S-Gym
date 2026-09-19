@@ -59,12 +59,18 @@ async function createOcrDraft(
   user: AuthenticatedUser,
   customerId: unknown,
   measurementDate: unknown,
-  file: Express.Multer.File,
+  fileOrFiles: Express.Multer.File | Express.Multer.File[],
   requestKey: string
 ) {
+  const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+  const primaryFile = files[0];
+  if (!primaryFile) {
+    throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Vui lòng cung cấp file ảnh hoặc PDF phiếu InBody.' });
+  }
+
   const extracted = await extractInBody(
     { userId: user.id, taskType: 'OCR_INBODY', requestKey: `${requestKey}:ocr-inbody` },
-    file
+    files
   );
 
   let targetCustomer: { _id: unknown; fullName: string } | null = null;
@@ -121,7 +127,13 @@ async function createOcrDraft(
     publishedAt: null,
     ocrStatus: 'REVIEW_REQUIRED',
     ocrWarnings: warnings,
-    sourceImage: { fileName: file.originalname, mimeType: file.mimetype, data: file.buffer },
+    sourceImage: {
+      fileName: files.length > 1
+        ? `${files.length} tệp (${files.map((f) => f.originalname).join(', ')})`
+        : primaryFile.originalname,
+      mimeType: primaryFile.mimetype,
+      data: primaryFile.buffer,
+    },
   });
 }
 

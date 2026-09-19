@@ -14,11 +14,11 @@ const upload = multer({
 router.post('/images/meal-image', authenticate, authorize('ADMIN', 'PT'), controller.getOrGenerateMealImage);
 router.get('/food-images', authenticate, authorize('ADMIN', 'PT'), controller.listFoodImages);
 
-// Các tác vụ quản trị kho ảnh dành riêng cho ADMIN
-router.post('/food-images/upload', authenticate, authorize('ADMIN'), upload.single('image'), controller.uploadFoodImage);
+// Các tác vụ quản trị kho ảnh (Upload & AI Generate cho phép cả ADMIN và PT)
+router.post('/food-images/upload', authenticate, authorize('ADMIN', 'PT'), upload.single('image'), controller.uploadFoodImage);
 router.patch('/food-images/:id', authenticate, authorize('ADMIN'), upload.single('image'), controller.updateFoodImage);
 router.post('/food-images/:id/regenerate-ai', authenticate, authorize('ADMIN'), controller.regenerateAiImage);
-router.post('/food-images/ai-generate', authenticate, authorize('ADMIN'), controller.createAiFoodImage);
+router.post('/food-images/ai-generate', authenticate, authorize('ADMIN', 'PT'), controller.createAiFoodImage);
 router.delete('/food-images/:id', authenticate, authorize('ADMIN'), controller.deleteFoodImage);
 
 export default router;
