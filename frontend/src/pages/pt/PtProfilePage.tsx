@@ -259,9 +259,6 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#003b70', margin: 0, letterSpacing: '-0.5px' }}>
               Hồ sơ Huấn luyện viên
             </h1>
-            <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '0.9rem' }}>
-              Quản lý thông tin tài khoản cá nhân, ảnh đại diện và hồ sơ chuyên môn
-            </p>
           </div>
         </div>
       </div>
@@ -393,13 +390,6 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
               </div>
             </div>
 
-            {/* Tip card */}
-            <div style={{ marginTop: '20px', background: '#f8fafc', borderRadius: '12px', padding: '14px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '0.8rem', color: '#475569', lineHeight: 1.5 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#00a4e4', fontWeight: 700, marginBottom: '4px' }}>
-                <Sparkles size={14} /> Hồ sơ đầy đủ
-              </div>
-              Ảnh đại diện và thông tin của bạn sẽ hiển thị với học viên khi họ xem tiến trình và giáo án được phân công.
-            </div>
           </div>
 
           {/* ======================================================= */}
@@ -591,7 +581,7 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
 
                   <div style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '6px' }}>
-                      Bằng cấp & Chứng chỉ (Mỗi dòng 1 chứng chỉ)
+                      Bằng cấp & Chứng chỉ
                     </label>
                     <textarea
                       name="certificates"
@@ -605,7 +595,7 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#003b70', marginBottom: '6px' }}>
-                      Giới thiệu bản thân & Triết lý huấn luyện (Bio)
+                      Giới thiệu bản thân
                     </label>
                     <textarea
                       name="bio"
@@ -627,7 +617,7 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
                   <div style={{ fontWeight: 700, color: '#003b70', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Lock size={15} color="#00a4e4" /> Quy tắc mật khẩu
                   </div>
-                  Mật khẩu mới cần tối thiểu <strong>8 ký tự</strong>, có thể gồm chữ, số và ký tự đặc biệt. Vui lòng nhập mật khẩu hiện tại trước khi đổi sang mật khẩu mới.
+                  Mật khẩu mới cần tối thiểu <strong>8 ký tự</strong>, có thể gồm chữ, số và ký tự đặc biệt.
                 </div>
 
                 <div>

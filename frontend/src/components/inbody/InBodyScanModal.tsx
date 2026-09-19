@@ -110,7 +110,7 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
       description={
         draft
           ? 'Vui lòng đối chiếu và chỉnh sửa các chỉ số từ bản quét trước khi lưu.'
-          : 'Tải ảnh chụp hoặc file PDF phiếu đo để hệ thống tự động nhận diện các chỉ số thể trạng.'
+          : undefined
       }
       dirty={Boolean(customerId || measurementDate || image || draft)}
       loading={loading}
@@ -124,9 +124,9 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) 200px', gap: '16px', alignItems: 'start' }}>
             <div>
               <CustomerSelect
-                label="Học viên / Khách hàng (Tùy chọn - Hệ thống tự đọc từ phiếu)"
+                label="Khách hàng"
                 name="customerId"
-                ariaLabel="Học viên / Khách hàng"
+                ariaLabel=" Khách hàng"
                 value={customerId}
                 onChange={(selectedId) => setCustomerId(selectedId)}
                 placeholder="Chọn trước học viên hoặc để trống để AI tự nhận diện..."
@@ -155,9 +155,6 @@ export default function InBodyScanModal({ open, onClose, onConfirmed }: InBodySc
                   background: '#ffffff',
                 }}
               />
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
-                Tự động lấy ngày trên phiếu hoặc hôm nay
-              </span>
             </label>
           </div>
 

@@ -36,7 +36,6 @@ export default function DailyProgressReports({ groups }: { groups: DailyProgress
   return (
     <ProgressSection
       title="Ghi nhận theo ngày"
-      description="Tự động tổng hợp từ những ngày PT đã hoàn tất ghi nhận buổi tập."
       count={groups.length}
     >
       {groups.length === 0 ? (

@@ -176,7 +176,7 @@ export default function NutritionPage() {
           onClick={() => setActiveTab('meal_swapper')}
         >
           <Sparkles size={15} style={{ display: 'inline', marginRight: '6px', color: '#00a4e4' }} />
-          2. Thiết Kế Thực Đơn & AI Cơm Việt
+          2. Thiết Kế Thực Đơn 
         </button>
 
         <button

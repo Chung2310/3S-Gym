@@ -263,7 +263,7 @@ export default function UserManagementView({ actor }: { actor: User }) {
           }}
         >
           <UserIcon size={13} />
-          <span>Hội viên (Customer)</span>
+          <span>Hội viên</span>
         </button>
       </div>
 

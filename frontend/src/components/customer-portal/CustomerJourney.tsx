@@ -37,7 +37,6 @@ function SchedulePanel({ journey }: { journey: CustomerJourneyDto }) {
     <div className="space-y-4">
       <ProgressSection
         title="Lịch sắp tới"
-        description="Các lịch hẹn tập luyện sắp tới đã được PT sắp xếp cho khách hàng."
         count={upcomingEvents.length}
       >
         {upcomingEvents.length > 0 ? (
@@ -93,7 +92,6 @@ function SchedulePanel({ journey }: { journey: CustomerJourneyDto }) {
 
       <ProgressSection
         title="Buổi đã tập"
-        description="Kết quả thực tế của các buổi đã được ghi nhận."
         count={journey.sessions.length}
       >
         {journey.sessions.length > 0 ? (
@@ -118,7 +116,6 @@ function PhotosPanel({ journey }: { journey: CustomerJourneyDto }) {
   return (
     <ProgressSection
       title="Ảnh tiến độ"
-      description="Các mốc hình thể đã được ghi nhận trong hành trình."
       count={journey.photos.length}
     >
       {journey.photos.length > 0 ? (

@@ -149,7 +149,7 @@ export const KnowledgeDocList: React.FC<KnowledgeDocListProps> = ({
             Chưa có tài liệu tri thức nào
           </div>
           <p className="text-xs text-slate-500 max-w-md mx-auto my-2 mb-4">
-            Bấm "Tải Lên File Tri Thức" để tải các tài liệu quy chuẩn (PDF, Word, Markdown, TXT) hoặc "Nạp 4 Tài Liệu Chuẩn 3S".
+            Bấm "Tải Lên File Tri Thức" để tải các tài liệu quy chuẩn (PDF, Word, Markdown, TXT)".
           </p>
           <div className="flex justify-center gap-2.5">
             <button

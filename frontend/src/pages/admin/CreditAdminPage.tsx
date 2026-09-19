@@ -180,12 +180,7 @@ export default function CreditAdminPage() {
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-[0.15em] text-secondary">
-              Financial & Credit Operations
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#003b70] mt-1">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#003b70]">
             Quản trị Credit Tài khoản
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -278,7 +273,7 @@ export default function CreditAdminPage() {
           <div className="flex flex-wrap items-center gap-2">
             {[
               { id: '', label: 'Tất cả tài khoản' },
-              { id: 'CUSTOMER', label: 'Hội viên (Customer)' },
+              { id: 'CUSTOMER', label: 'Hội viên' },
               { id: 'PT', label: 'Huấn luyện viên' },
               { id: 'ADMIN', label: 'Quản trị viên' },
             ].map((chip) => (
@@ -318,7 +313,7 @@ export default function CreditAdminPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                <th className="px-5 py-3.5">Người dùng / Khách hàng</th>
+                <th className="px-5 py-3.5">Người dùng</th>
                 <th className="px-4 py-3.5">Vai trò</th>
                 <th className="px-4 py-3.5">Số dư Credit</th>
                 <th className="px-4 py-3.5">Tạm giữ</th>

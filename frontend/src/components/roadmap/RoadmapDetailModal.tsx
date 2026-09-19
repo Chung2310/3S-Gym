@@ -51,9 +51,6 @@ export default function RoadmapDetailModal({
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <StatusBadge status={roadmap.status} />
-                <span className="text-xs bg-white border border-slate-300 px-1.5 py-0.5 rounded font-bold text-slate-600">
-                  v{roadmap.version || 1}
-                </span>
                 <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold inline-flex items-center gap-1">
                   <User className="w-3 h-3 text-emerald-600" /> {customerName} {customerPhone ? `(${customerPhone})` : ''}
                 </span>
