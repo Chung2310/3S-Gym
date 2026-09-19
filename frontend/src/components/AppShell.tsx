@@ -78,19 +78,24 @@ export default function AppShell({ user, children, features = {} }: AppShellProp
 
   useEffect(() => {
     let mounted = true;
-    api
-      .get<{ readAt: string | null }[]>('/api/notifications?page=1&limit=20')
-      .then((res) => {
-        if (mounted && Array.isArray(res.data)) {
-          const unread = res.data.filter((n) => !n.readAt).length;
-          setUnreadCount(unread);
-        }
-      })
-      .catch(() => {
-        // Silently ignore if unauthorized / unauthenticated
-      });
+    const pollUnread = () => {
+      api
+        .get<{ readAt: string | null }[]>('/api/notifications?page=1&limit=20')
+        .then((res) => {
+          if (mounted && Array.isArray(res.data)) {
+            const unread = res.data.filter((n) => !n.readAt).length;
+            setUnreadCount(unread);
+          }
+        })
+        .catch(() => {
+          // Silently ignore if unauthorized / unauthenticated
+        });
+    };
+    pollUnread();
+    const interval = setInterval(pollUnread, 60_000);
     return () => {
       mounted = false;
+      clearInterval(interval);
     };
   }, [location.pathname]);
 
