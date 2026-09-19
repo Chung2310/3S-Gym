@@ -21,6 +21,10 @@ export const FoodImageUploadModal: React.FC<FoodImageUploadModalProps> = ({
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('OTHER');
+  const [calories, setCalories] = useState('');
+  const [protein, setProtein] = useState('');
+  const [carbs, setCarbs] = useState('');
+  const [fat, setFat] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -55,6 +59,10 @@ export const FoodImageUploadModal: React.FC<FoodImageUploadModalProps> = ({
       formData.append('image', file);
       formData.append('name', name.trim());
       formData.append('category', category);
+      if (calories.trim()) formData.append('calories', calories.trim());
+      if (protein.trim()) formData.append('protein', protein.trim());
+      if (carbs.trim()) formData.append('carbs', carbs.trim());
+      if (fat.trim()) formData.append('fat', fat.trim());
 
       const res = await api.upload<FoodImageItem>('/api/food-images/upload', formData);
       toast.success(res.message || 'Đã tải ảnh lên kho thành công!');
@@ -62,6 +70,11 @@ export const FoodImageUploadModal: React.FC<FoodImageUploadModalProps> = ({
       setFile(null);
       setPreviewUrl(null);
       setName('');
+      setCategory('OTHER');
+      setCalories('');
+      setProtein('');
+      setCarbs('');
+      setFat('');
       onSuccess();
     } catch (err) {
       toast.error(errorMessage(err));
@@ -71,8 +84,8 @@ export const FoodImageUploadModal: React.FC<FoodImageUploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <UploadCloud size={20} className="text-sky-600" />
@@ -125,6 +138,63 @@ export const FoodImageUploadModal: React.FC<FoodImageUploadModalProps> = ({
               <option value="DRINK">🥤 Sinh tố / Nước uống</option>
               <option value="OTHER">✨ Khác</option>
             </select>
+          </div>
+
+          {/* Calo & Dinh Dưỡng (Macros) */}
+          <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200 mb-4">
+            <div className="text-xs font-bold text-amber-900 mb-2">
+              Thông tin Dinh dưỡng ước tính (Macros - Tùy chọn):
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div>
+                <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                  🔥 Calo (kcal):
+                </label>
+                <input
+                  type="number"
+                  placeholder="vd: 250"
+                  value={calories}
+                  onChange={(e) => setCalories(e.target.value)}
+                  className="w-full py-1.5 px-2 rounded-md border border-amber-300 text-xs bg-white outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                  🥩 Đạm (g):
+                </label>
+                <input
+                  type="number"
+                  placeholder="vd: 30"
+                  value={protein}
+                  onChange={(e) => setProtein(e.target.value)}
+                  className="w-full py-1.5 px-2 rounded-md border border-amber-300 text-xs bg-white outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                  🍚 Tinh bột (g):
+                </label>
+                <input
+                  type="number"
+                  placeholder="vd: 15"
+                  value={carbs}
+                  onChange={(e) => setCarbs(e.target.value)}
+                  className="w-full py-1.5 px-2 rounded-md border border-amber-300 text-xs bg-white outline-none focus:border-amber-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-amber-950 mb-1">
+                  🥑 Chất béo (g):
+                </label>
+                <input
+                  type="number"
+                  placeholder="vd: 5"
+                  value={fat}
+                  onChange={(e) => setFat(e.target.value)}
+                  className="w-full py-1.5 px-2 rounded-md border border-amber-300 text-xs bg-white outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="mb-5">
