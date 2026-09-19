@@ -6,5 +6,8 @@ export * from './FoodImageEditModal';
 export * from './FoodImageUploadModal';
 export * from './FoodImageAiModal';
 export * from './KnowledgeDocModal';
+export * from './KnowledgeUploadModal';
+export * from './KnowledgeTopicDropdown';
+export * from './knowledgeTopics';
 export * from './KnowledgeDocList';
 export * from './FoodImagePagination';

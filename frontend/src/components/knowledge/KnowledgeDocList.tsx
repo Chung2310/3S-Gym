@@ -1,16 +1,14 @@
 import React from 'react';
-import { Plus, Zap, RefreshCw, FileText, Trash2, Search } from 'lucide-react';
+import { UploadCloud, Zap, RefreshCw, FileText, Trash2, Search } from 'lucide-react';
 import type { KnowledgeDocument } from '../../types/knowledge';
 import type { PaginationMeta } from '../../types';
 import { FoodImagePagination } from './FoodImagePagination';
+import { KNOWLEDGE_TOPICS, getTopicBadgeStyle } from './knowledgeTopics';
 
 export const DOC_TOPICS = [
   { val: 'ALL', label: 'Tất cả chủ đề', icon: '📚' },
-  { val: 'DINH DƯỠNG', label: 'Dinh Dưỡng', icon: '🥗' },
-  { val: 'TẬP LUYỆN', label: 'Tập Luyện', icon: '🏋️' },
-  { val: 'PHỤC HỒI', label: 'Phục Hồi', icon: '🧘' },
-  { val: 'CHĂM SÓC', label: 'Chăm Sóc', icon: '🤝' },
-] as const;
+  ...KNOWLEDGE_TOPICS.map((t) => ({ val: t.val, label: t.shortLabel, icon: t.icon })),
+];
 
 export const DOC_STATUSES = [
   { val: 'ALL', label: 'Tất cả trạng thái' },
@@ -21,6 +19,7 @@ export const DOC_STATUSES = [
 interface KnowledgeDocListProps {
   docs: KnowledgeDocument[];
   loading: boolean;
+  onOpenUploadModal: () => void;
   onOpenDocModal: (doc?: KnowledgeDocument) => void;
   onTogglePublishDoc: (doc: KnowledgeDocument) => void;
   onDeleteDoc: (id: string, title: string) => void;
@@ -40,6 +39,7 @@ interface KnowledgeDocListProps {
 export const KnowledgeDocList: React.FC<KnowledgeDocListProps> = ({
   docs,
   loading,
+  onOpenUploadModal,
   onOpenDocModal,
   onTogglePublishDoc,
   onDeleteDoc,
@@ -107,10 +107,10 @@ export const KnowledgeDocList: React.FC<KnowledgeDocListProps> = ({
 
             <button
               type="button"
-              onClick={() => onOpenDocModal()}
+              onClick={onOpenUploadModal}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer transition-colors shadow-xs"
             >
-              <Plus size={15} /> Thêm Tài Liệu Mới
+              <UploadCloud size={15} /> Tải Lên File Tri Thức
             </button>
           </div>
         </div>
@@ -149,15 +149,24 @@ export const KnowledgeDocList: React.FC<KnowledgeDocListProps> = ({
             Chưa có tài liệu tri thức nào
           </div>
           <p className="text-xs text-slate-500 max-w-md mx-auto my-2 mb-4">
-            Bấm "Nạp 4 Tài Liệu Chuẩn 3S" để nạp ngay các tài liệu quy chuẩn dinh dưỡng và phục hồi thể thao.
+            Bấm "Tải Lên File Tri Thức" để tải các tài liệu quy chuẩn (PDF, Word, Markdown, TXT) hoặc "Nạp 4 Tài Liệu Chuẩn 3S".
           </p>
-          <button
-            type="button"
-            onClick={onSeedDocs}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer transition-colors"
-          >
-            <Zap size={14} /> Nạp 4 Tài Liệu Mẫu Ngay
-          </button>
+          <div className="flex justify-center gap-2.5">
+            <button
+              type="button"
+              onClick={onSeedDocs}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs cursor-pointer hover:bg-emerald-100 transition-colors"
+            >
+              <Zap size={14} /> Nạp 4 Tài Liệu Mẫu
+            </button>
+            <button
+              type="button"
+              onClick={onOpenUploadModal}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer transition-colors"
+            >
+              <UploadCloud size={14} /> Tải Lên File Ngay
+            </button>
+          </div>
         </div>
       ) : (
         <>
@@ -169,15 +178,17 @@ export const KnowledgeDocList: React.FC<KnowledgeDocListProps> = ({
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span
-                      className={`text-[11px] font-extrabold px-2 py-0.5 rounded-sm ${
-                        doc.topic === 'DINH DƯỠNG'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-blue-50 text-blue-700'
-                      }`}
-                    >
-                      {doc.topic}
-                    </span>
+                    {(() => {
+                      const topicStyle = getTopicBadgeStyle(doc.topic);
+                      return (
+                        <span
+                          className={`text-[11px] font-extrabold px-2 py-0.5 rounded-sm flex items-center gap-1 ${topicStyle.bg} ${topicStyle.text}`}
+                        >
+                          <span>{topicStyle.icon}</span>
+                          <span>{doc.topic}</span>
+                        </span>
+                      );
+                    })()}
                     <span
                       className={`text-[11px] font-bold px-2 py-0.5 rounded-sm ${
                         doc.status === 'PUBLISHED'
@@ -187,6 +198,11 @@ export const KnowledgeDocList: React.FC<KnowledgeDocListProps> = ({
                     >
                       {doc.status === 'PUBLISHED' ? '✓ Đã xuất bản' : 'Bản nháp'}
                     </span>
+                    {doc.chunkCount !== undefined && doc.chunkCount > 0 && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-sm bg-sky-50 text-sky-700 border border-sky-200 flex items-center gap-1">
+                        ⚡ {doc.chunkCount} đoạn RAG
+                      </span>
+                    )}
                     <span className="text-[11px] text-slate-400">v{doc.version || 1}</span>
                   </div>
 
@@ -215,7 +231,7 @@ export const KnowledgeDocList: React.FC<KnowledgeDocListProps> = ({
                     onClick={() => onOpenDocModal(doc)}
                     className="px-2.5 py-1.5 rounded-md text-xs font-bold bg-slate-50 text-slate-700 border border-slate-300 cursor-pointer hover:bg-slate-100 transition-colors"
                   >
-                    Sửa
+                    Chi tiết
                   </button>
                   <button
                     type="button"
