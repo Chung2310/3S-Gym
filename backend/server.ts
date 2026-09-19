@@ -9,6 +9,7 @@ import { APP_POLICY, getEnv } from './config/env.js';
 import { startAiWorkoutGenerationWorker } from './services/aiWorkoutGenerationJobService.js';
 import { startAiNutritionGenerationWorker } from './services/aiNutritionGenerationJobService.js';
 import { startPackageAlertScheduler, stopPackageAlertScheduler } from './services/packageAlertScheduler.js';
+
 const env = getEnv();
 const PORT = env.PORT;
 
@@ -36,7 +37,14 @@ async function startServer() {
             flush: flushTelemetry,
             exit: (code: number) => {
                 process.exitCode = code;
-                process.exit(code);
+                if (process.send) {
+                    try {
+                        process.send({ type: 'shutdown-complete', exitCode: code });
+                    } catch {}
+                }
+                setImmediate(() => {
+                    process.exit(code);
+                });
             },
             logger,
             timeoutMs: APP_POLICY.SHUTDOWN_TIMEOUT_MS,
@@ -44,7 +52,9 @@ async function startServer() {
         process.once('SIGTERM', () => shutdown('SIGTERM', 0));
         process.once('SIGINT', () => shutdown('SIGINT', 0));
         process.once('message', (message) => {
-            if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'shutdown') void shutdown('IPC', 0);
+            if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'shutdown') {
+                void shutdown('IPC', 0);
+            }
         });
         process.once('unhandledRejection', (error) => { logger.fatal({ err: error }, 'Unhandled rejection'); shutdown('unhandledRejection', 1); });
         process.once('uncaughtException', (error) => { logger.fatal({ err: error }, 'Uncaught exception'); shutdown('uncaughtException', 1); });

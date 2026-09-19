@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-const timeoutMs = 30_000;
+const startupTimeoutMs = 90_000;
+const shutdownTimeoutMs = 30_000;
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function buildSmokeEnvironment(sourceEnv = process.env) {
@@ -21,7 +22,7 @@ async function waitForReady(baseUrl, deadline, getExitResult = () => undefined) 
     const exited = getExitResult();
     if (exited) throw new Error(`Production server exited before readiness (code ${exited.code ?? 'null'}, signal ${exited.signal || 'none'}). Check the server startup logs.`);
     try {
-      const response = await fetch(`${baseUrl}/api/health/ready`, { signal: AbortSignal.timeout(2_000) });
+      const response = await fetch(`${baseUrl}/api/health/ready`, { headers: { connection: 'close' }, signal: AbortSignal.timeout(2_000) });
       if (response.ok) return;
     } catch {
       // The compiled server may still be connecting to MongoDB.
@@ -32,10 +33,59 @@ async function waitForReady(baseUrl, deadline, getExitResult = () => undefined) 
 }
 
 async function requestJson(url, init) {
-  const response = await fetch(url, init);
+  const response = await fetch(url, { ...init, headers: { ...init?.headers, connection: 'close' }, signal: AbortSignal.timeout(10_000) });
   const body = await response.json().catch(() => null);
   if (!response.ok) throw new Error(`Smoke request failed (${response.status}): ${JSON.stringify(body)}`);
   return body;
+}
+
+async function waitForShutdown(exitPromise, isExited, kill) {
+  let timer;
+  try {
+    return await Promise.race([
+      exitPromise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          if (!isExited()) kill();
+          reject(new Error('Production server did not stop after the shutdown request.'));
+        }, shutdownTimeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function requestShutdown(child) {
+  if (!child.connected) {
+    child.kill('SIGTERM');
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      if (settled) return;
+      settled = true;
+      child.off('message', onMessage);
+      child.off('exit', onExit);
+      if (child.connected) child.disconnect();
+      resolve();
+    };
+    const onMessage = (message) => {
+      if (message?.type !== 'shutdown-complete') return;
+      cleanup();
+    };
+    const onExit = () => {
+      cleanup();
+    };
+    child.on('message', onMessage);
+    child.once('exit', onExit);
+    child.send({ type: 'shutdown' }, (error) => {
+      if (!error) return;
+      cleanup();
+      reject(error);
+    });
+  });
 }
 
 async function runProductionSmoke(sourceEnv = process.env) {
@@ -76,12 +126,8 @@ async function runProductionSmoke(sourceEnv = process.env) {
   child.stdout.on('data', (chunk) => process.stdout.write(`[server] ${chunk}`));
   child.stderr.on('data', (chunk) => process.stdout.write(`[server:stderr] ${chunk}`));
 
-  const timer = setTimeout(() => {
-    if (!childExited) child.kill('SIGKILL');
-  }, timeoutMs);
-
   try {
-    const deadline = Date.now() + timeoutMs;
+    const deadline = Date.now() + startupTimeoutMs;
     await waitForReady(baseUrl, deadline, () => exitResult);
     const login = await requestJson(`${baseUrl}/api/auth/login`, {
       method: 'POST',
@@ -94,13 +140,15 @@ async function runProductionSmoke(sourceEnv = process.env) {
       headers: { authorization: `Bearer ${token}` },
     });
 
-    if (child.connected) child.send({ type: 'shutdown' });
-    else child.kill('SIGTERM');
-    const result = await exitPromise;
+    const shutdownRequested = requestShutdown(child);
+    const result = await waitForShutdown(
+      Promise.all([shutdownRequested, exitPromise]).then(([, exit]) => exit),
+      () => childExited,
+      () => child.kill('SIGKILL'),
+    );
     if (result.code !== 0) throw new Error(`Production server exited with code ${result.code ?? 'null'} (${result.signal || 'no signal'}).`);
     process.stdout.write('PRODUCTION_SMOKE_OK\n');
   } finally {
-    clearTimeout(timer);
     if (!childExited) {
       child.kill('SIGKILL');
       await exitPromise;
@@ -116,4 +164,4 @@ if (process.argv[1] && fileURLToPath(import.meta.url).toLowerCase() === process.
   });
 }
 
-export { buildSmokeEnvironment, runProductionSmoke, waitForReady };
+export { buildSmokeEnvironment, requestShutdown, runProductionSmoke, waitForReady };
