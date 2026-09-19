@@ -244,11 +244,13 @@ async function listTransfers(user: AuthenticatedUser, query: TransferQuery) {
   if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId);
   if (typeof query.fromPtId === 'string') filter.fromPtId = new Types.ObjectId(query.fromPtId);
   if (typeof query.toPtId === 'string') filter.toPtId = new Types.ObjectId(query.toPtId);
-  if (typeof query.fromDate === 'string' || typeof query.toDate === 'string') {
+  const fromDate = query.fromDate instanceof Date ? query.fromDate : typeof query.fromDate === 'string' && query.fromDate ? new Date(query.fromDate) : null;
+  const toDate = query.toDate instanceof Date ? query.toDate : typeof query.toDate === 'string' && query.toDate ? new Date(query.toDate) : null;
+  if (fromDate || toDate) {
     filter.createdAt = {};
-    if (typeof query.fromDate === 'string') filter.createdAt.$gte = new Date(query.fromDate);
-    if (typeof query.toDate === 'string') {
-      const end = new Date(query.toDate);
+    if (fromDate && !isNaN(fromDate.getTime())) filter.createdAt.$gte = fromDate;
+    if (toDate && !isNaN(toDate.getTime())) {
+      const end = new Date(toDate);
       end.setUTCHours(23, 59, 59, 999);
       filter.createdAt.$lte = end;
     }
