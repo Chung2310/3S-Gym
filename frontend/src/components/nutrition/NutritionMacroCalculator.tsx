@@ -231,15 +231,7 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#bae6fd', fontWeight: 700 }}>
-              Định Lượng Calo & Nhu Cầu Chuyển Hóa
-            </span>
-            <span style={{ background: '#38bdf8', color: '#0f172a', fontSize: '0.65rem', fontWeight: 800, padding: '1px 6px', borderRadius: '4px' }}>
-              AI Chuyên Gia
-            </span>
-          </div>
-          <h2 style={{ margin: '2px 0 0', fontSize: '1.15rem', color: '#ffffff', fontWeight: 800 }}>
+          <h2 style={{ margin: 0, fontSize: '1.15rem', color: '#ffffff', fontWeight: 800 }}>
             {selectedCustomer ? `Phân Tích Dinh Dưỡng: ${selectedCustomer.fullName}` : 'Phân Tích Năng Lượng & Macro Cá Nhân Hóa'}
           </h2>
         </div>
@@ -263,7 +255,7 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
               gap: '6px',
             }}
           >
-            Hỏi Chuyên Gia AI (Khuyên dùng)
+            Hỏi Chuyên Gia AI
           </button>
 
           <button
@@ -829,9 +821,6 @@ export default function NutritionMacroCalculator({ selectedCustomer, onApplyPlan
                     gap: '10px',
                   }}
                 >
-                  <h4 style={{ margin: 0, fontSize: '1rem', color: '#003b70', fontWeight: 800 }}>
-                    Sẵn Sàng Phân Tích Cá Nhân Hóa Bằng AI
-                  </h4>
                   <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', maxWidth: '340px', lineHeight: 1.5 }}>
                     Điền dạng thể chất, giờ làm việc & thói quen ăn uống bên trái, sau đó bấm <strong>&quot;AI Phân Tích Thể Chất&quot;</strong> để nhận chiến lược dinh dưỡng chuẩn xác.
                   </p>

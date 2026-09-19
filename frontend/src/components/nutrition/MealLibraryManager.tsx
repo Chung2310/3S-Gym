@@ -334,7 +334,7 @@ export default function MealLibraryManager({ onSelectForPlan }: MealLibraryManag
               <Utensils size={20} color="#ffffff" />
             </div>
             <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900 }}>
-              Quản Lý Kho Món Ăn & Dinh Dưỡng (Meal Manager)
+              Quản Lý Kho Món Ăn & Dinh Dưỡng
             </h2>
           </div>
         </div>
@@ -929,7 +929,7 @@ export default function MealLibraryManager({ onSelectForPlan }: MealLibraryManag
                         borderRadius: '4px',
                       }}
                     >
-                      Chuẩn 3S
+                   
                     </span>
                   )}
                 </div>

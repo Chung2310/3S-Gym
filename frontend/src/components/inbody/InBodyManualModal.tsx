@@ -242,7 +242,6 @@ export default function InBodyManualModal({
       open={open}
       size="lg"
       title={editingItem ? 'Chỉnh sửa phiếu đo InBody' : 'Nhập kết quả InBody thủ công'}
-      description="Nhập đầy đủ các chỉ số thể chất từ máy đo InBody. Hệ thống sẽ tự động phân tích và đưa ra gợi ý tư vấn cho PT."
       dirty={isDirty}
       loading={loading}
       submitLabel={editingItem ? 'Cập nhật chỉ số' : 'Lưu kết quả InBody'}
@@ -509,7 +508,7 @@ export default function InBodyManualModal({
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Layers size={16} color="#0284c7" /> Phân Tích Cơ & Mỡ Từng Phân Vùng (Segmental - Tùy chọn)
+              <Layers size={16} color="#0284c7" /> Phân Tích Cơ & Mỡ Từng Phân Vùng
             </span>
             {showSegmental ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
@@ -580,7 +579,7 @@ export default function InBodyManualModal({
         {/* 5. PT Consultation Notes */}
         <label className="field" style={{ margin: 0 }}>
           <span style={{ fontWeight: 600, color: '#003b70', fontSize: '0.86rem' }}>
-            Ghi chú tư vấn riêng của PT (Tùy chọn)
+            Ghi chú tư vấn riêng của PT 
           </span>
           <textarea
             rows={3}

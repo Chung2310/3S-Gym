@@ -482,7 +482,7 @@ export default function InBodyReviewForm({ draft, onConfirmed }: InBodyReviewFor
           }}
         >
           <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Layers size={16} color="#0284c7" /> Phân Tích Cơ & Mỡ Từng Phân Vùng (Segmental - Tùy chọn)
+            <Layers size={16} color="#0284c7" /> Phân Tích Cơ & Mỡ Từng Phân Vùng
           </span>
           {showSegmental ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
