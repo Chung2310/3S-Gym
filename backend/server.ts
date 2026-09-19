@@ -37,9 +37,7 @@ async function startServer() {
             flush: flushTelemetry,
             exit: (code: number) => {
                 process.exitCode = code;
-                setTimeout(() => {
-                    process.exit(code);
-                }, 200).unref();
+                process.exit(code);
             },
             logger,
             timeoutMs: APP_POLICY.SHUTDOWN_TIMEOUT_MS,
@@ -50,9 +48,7 @@ async function startServer() {
             if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'shutdown') {
                 void shutdown('IPC', 0).then(() => {
                     if (process.send) process.send({ type: 'shutdown-complete', exitCode: process.exitCode ?? 0 });
-                    setTimeout(() => {
-                        process.exit(process.exitCode ?? 0);
-                    }, 200).unref();
+                    process.exit(process.exitCode ?? 0);
                 });
             }
         });
