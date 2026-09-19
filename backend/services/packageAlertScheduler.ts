@@ -289,6 +289,9 @@ export async function startPackageAlertScheduler(): Promise<void> {
   intervalId = setInterval(() => {
     void tick();
   }, SCAN_INTERVAL_MS);
+  if (intervalId && typeof intervalId.unref === 'function') {
+    intervalId.unref();
+  }
 }
 
 export function stopPackageAlertScheduler(): void {

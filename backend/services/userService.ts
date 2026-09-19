@@ -50,7 +50,8 @@ interface OwnedContent {
   ptId: Types.ObjectId;
 }
 
-function assertPassword(password: string): void {
+function assertPassword(password: string, allowLegacyDigits = false): void {
+  if (allowLegacyDigits && /^\d{6}$/.test(password)) return;
   if (!isValidPassword(password)) {
     throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: PASSWORD_ERROR });
   }
@@ -60,8 +61,8 @@ function optionalContact(value: string | null | undefined): string | undefined {
   return value?.trim() || undefined;
 }
 
-async function createUser(payload: UserPayload) {
-  assertPassword(payload.password);
+async function createUser(payload: UserPayload, allowLegacyDigits = false) {
+  assertPassword(payload.password, allowLegacyDigits);
   const existing = await User.exists({ username: payload.username.trim() });
   if (existing) {
     throw new AppError({
@@ -343,7 +344,7 @@ async function ensureBootstrapSuperAdmin({ username, password, fullName = 'Quả
     await ensureWallet(configuredUser.id);
     return configuredUser;
   }
-  return createUser({ username: normalizedUsername, password, fullName, role: 'SUPER_ADMIN' });
+  return createUser({ username: normalizedUsername, password, fullName, role: 'SUPER_ADMIN' }, true);
 }
 
 async function updateSelfProfile(actor: AuthenticatedUser, payload: UpdateSelfProfilePayload): Promise<UserDocument> {
