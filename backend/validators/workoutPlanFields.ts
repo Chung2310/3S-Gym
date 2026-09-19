@@ -60,6 +60,7 @@ const trackingPrescription = Joi.alternatives().conditional('trackingType', {
 const studioExerciseFields = {
   exerciseId: objectId,
   name: Joi.string().trim().required(),
+  muscleGroup: Joi.string().trim().allow('', null),
   trackingType: classifiedTrackingType.required(),
   prescription: trackingPrescription.required(),
   sets: Joi.number().integer().min(1),

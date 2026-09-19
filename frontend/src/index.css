@@ -1404,6 +1404,12 @@ a {
   padding: 22px 24px;
 }
 
+.portal-content:has(.workout-studio) {
+  width: 100%;
+  max-width: 1720px;
+  padding: 14px 18px;
+}
+
 .mobile-menu,
 .mobile-close {
   display: none;

@@ -16,11 +16,11 @@ const templateExerciseSchema = new Schema({
 const templateSessionSchema = new Schema({ name: { type: String, required: true }, exercises: { type: [templateExerciseSchema], default: [] } }, { _id: false });
 const scheduledExerciseSchema = new Schema({
   weekNumber: { type: Number, min: 1, default: 1 }, dayNumber: { type: Number, required: true, min: 1 }, startMinute: { type: Number, required: true, min: 0, max: 1425 }, durationMinutes: { type: Number, required: true, min: 15, max: 1440 },
-  exerciseId: { type: Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, sets: { type: Number, min: 1 }, reps: String, weight: String, rpe: { type: Number, min: 0, max: 10 }, rir: { type: Number, min: 0 }, tempo: String, restSeconds: { type: Number, min: 0 }, notes: String,
+  exerciseId: { type: Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, muscleGroup: { type: String, default: '' }, sets: { type: Number, min: 1 }, reps: String, weight: String, rpe: { type: Number, min: 0, max: 10 }, rir: { type: Number, min: 0 }, tempo: String, restSeconds: { type: Number, min: 0 }, notes: String,
   trackingType: { type: String, enum: TRACKING_TYPES, default: 'UNCLASSIFIED' }, prescription: { type: Schema.Types.Mixed, default: () => ({}) },
 }, { _id: false });
 const unscheduledExerciseSchema = new Schema({
-  durationMinutes: { type: Number, required: true, min: 15, max: 1440 }, exerciseId: { type: Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, sets: { type: Number, min: 1 }, reps: String, weight: String, rpe: { type: Number, min: 0, max: 10 }, rir: { type: Number, min: 0 }, tempo: String, restSeconds: { type: Number, min: 0 }, notes: String,
+  durationMinutes: { type: Number, required: true, min: 15, max: 1440 }, exerciseId: { type: Schema.Types.ObjectId, ref: 'Exercise' }, name: { type: String, required: true }, muscleGroup: { type: String, default: '' }, sets: { type: Number, min: 1 }, reps: String, weight: String, rpe: { type: Number, min: 0, max: 10 }, rir: { type: Number, min: 0 }, tempo: String, restSeconds: { type: Number, min: 0 }, notes: String,
   trackingType: { type: String, enum: TRACKING_TYPES, default: 'UNCLASSIFIED' }, prescription: { type: Schema.Types.Mixed, default: () => ({}) },
 }, { _id: false });
 const schema = new Schema<IWorkoutTemplate>({
