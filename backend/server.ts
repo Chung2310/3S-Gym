@@ -8,6 +8,7 @@ import { logger } from './config/logger.js';
 import { APP_POLICY, getEnv } from './config/env.js';
 import { startAiWorkoutGenerationWorker } from './services/aiWorkoutGenerationJobService.js';
 import { startAiNutritionGenerationWorker } from './services/aiNutritionGenerationJobService.js';
+import { startPackageAlertScheduler, stopPackageAlertScheduler } from './services/packageAlertScheduler.js';
 
 const env = getEnv();
 const PORT = env.PORT;
@@ -23,12 +24,16 @@ async function startServer() {
         await ensureCreditReferenceData();
         await startAiWorkoutGenerationWorker();
         await startAiNutritionGenerationWorker();
+        await startPackageAlertScheduler();
         await app.frontendReady;
         initTelemetry();
         const server = app.listen(PORT, () => logger.info({ port: PORT }, 'Máy chủ đã khởi động'));
         const shutdown = createShutdown({
             server,
-            disconnect: disconnectDatabase,
+            disconnect: async () => {
+                stopPackageAlertScheduler();
+                await disconnectDatabase();
+            },
             flush: flushTelemetry,
             exit: (code: number) => {
                 process.exitCode = code;
