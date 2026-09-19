@@ -62,24 +62,27 @@ function requestShutdown(child) {
     return Promise.resolve();
   }
   return new Promise((resolve, reject) => {
-    const onMessage = (message) => {
-      if (message?.type !== 'shutdown-complete') return;
+    let settled = false;
+    const cleanup = () => {
+      if (settled) return;
+      settled = true;
       child.off('message', onMessage);
+      child.off('exit', onExit);
       if (child.connected) child.disconnect();
-      // Cho phép process thoát tự nhiên, nếu sau 2s chưa thoát thì gửi SIGTERM
-      setTimeout(() => {
-        try {
-          if (child.exitCode === null && child.signalCode === null) {
-            child.kill('SIGTERM');
-          }
-        } catch {}
-      }, 2000).unref();
       resolve();
     };
+    const onMessage = (message) => {
+      if (message?.type !== 'shutdown-complete') return;
+      cleanup();
+    };
+    const onExit = () => {
+      cleanup();
+    };
     child.on('message', onMessage);
+    child.once('exit', onExit);
     child.send({ type: 'shutdown' }, (error) => {
       if (!error) return;
-      child.off('message', onMessage);
+      cleanup();
       reject(error);
     });
   });
