@@ -8,6 +8,8 @@ import { logger } from './config/logger.js';
 import { APP_POLICY, getEnv } from './config/env.js';
 import { startAiWorkoutGenerationWorker } from './services/aiWorkoutGenerationJobService.js';
 import { startAiNutritionGenerationWorker } from './services/aiNutritionGenerationJobService.js';
+import { startPackageAlertScheduler, stopPackageAlertScheduler } from './services/packageAlertScheduler.js';
+
 const env = getEnv();
 const PORT = env.PORT;
 
@@ -22,14 +24,37 @@ async function startServer() {
         await ensureCreditReferenceData();
         await startAiWorkoutGenerationWorker();
         await startAiNutritionGenerationWorker();
+        await startPackageAlertScheduler();
         await app.frontendReady;
         initTelemetry();
         const server = app.listen(PORT, () => logger.info({ port: PORT }, 'Máy chủ đã khởi động'));
-        const shutdown = createShutdown({ server, disconnect: disconnectDatabase, flush: flushTelemetry, exit: (code: number) => { process.exitCode = code; }, logger, timeoutMs: APP_POLICY.SHUTDOWN_TIMEOUT_MS });
+        const shutdown = createShutdown({
+            server,
+            disconnect: async () => {
+                stopPackageAlertScheduler();
+                await disconnectDatabase();
+            },
+            flush: flushTelemetry,
+            exit: (code: number) => {
+                process.exitCode = code;
+                if (process.send) {
+                    try {
+                        process.send({ type: 'shutdown-complete', exitCode: code });
+                    } catch {}
+                }
+                setImmediate(() => {
+                    process.exit(code);
+                });
+            },
+            logger,
+            timeoutMs: APP_POLICY.SHUTDOWN_TIMEOUT_MS,
+        });
         process.once('SIGTERM', () => shutdown('SIGTERM', 0));
         process.once('SIGINT', () => shutdown('SIGINT', 0));
         process.once('message', (message) => {
-            if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'shutdown') void shutdown('IPC', 0);
+            if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'shutdown') {
+                void shutdown('IPC', 0);
+            }
         });
         process.once('unhandledRejection', (error) => { logger.fatal({ err: error }, 'Unhandled rejection'); shutdown('unhandledRejection', 1); });
         process.once('uncaughtException', (error) => { logger.fatal({ err: error }, 'Uncaught exception'); shutdown('uncaughtException', 1); });

@@ -31,6 +31,7 @@ export default function WorkoutSessionModal({
           customerId={journey.customer._id}
           customerName={item?.customer.fullName || journey.customer.fullName}
           activePlan={activePlan || null}
+          previousSessions={journey.sessions}
           onSaved={onSaved}
           onClose={onClose}
         />

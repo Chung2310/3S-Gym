@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import { Camera, CheckCircle2, ClipboardList, Dumbbell, MessageSquare, PenLine, Scale, Sparkles } from 'lucide-react';
+import { AlertTriangle, Camera, CheckCircle2, ClipboardList, Dumbbell, MessageSquare, PenLine, Scale, Sparkles } from 'lucide-react';
 import { api } from '../../services/api';
+import { getSession } from '../../services/session';
+import { clearWorkoutSessionCache, readWorkoutSessionCache, workoutSessionCacheKey, writeWorkoutSessionCache, type CachedWorkoutSession } from '../../services/workoutSessionCache';
 import { buildBodyMeasurementInput } from '../../services/bodyMeasurement';
 import { uploadWorkoutProgressPhotos } from '../../services/progressPhotos';
 import { localWorkoutSessionTime, workoutSessionIso } from '../../services/workoutSessionTime';
+import { compareWorkoutWithPreviousDay } from '../../services/workoutDayComparison';
 import {
   errorMessage,
   TRACKING_TYPE_LABELS,
@@ -23,6 +26,7 @@ import {
   type TrackingResult,
   type TrackingType,
   type WorkoutProgressPhotoDraft,
+  type WorkoutSessionDto,
 } from '../../types';
 import { useToast } from '../ui/ToastProvider';
 import ProgressEmptyState from './ProgressEmptyState';
@@ -34,6 +38,7 @@ import StrengthResultEditor from './tracking/StrengthResultEditor';
 import WorkoutMeasurementFields from './WorkoutMeasurementFields';
 import WorkoutProgressPhotoFields from './WorkoutProgressPhotoFields';
 import CustomerSignaturePad, { type CustomerSignaturePadHandle } from './CustomerSignaturePad';
+import WorkoutDayComparison from './WorkoutDayComparison';
 
 interface PlannedExercise {
   exerciseId?: string;
@@ -53,6 +58,7 @@ interface Props {
   customerId: string;
   customerName?: string;
   activePlan: WorkoutLoggerActivePlan | null;
+  previousSessions?: WorkoutSessionDto[];
   onSaved: () => void;
   onClose?: () => void;
 }
@@ -149,24 +155,38 @@ export default function WorkoutSessionLogger({
   customerId,
   customerName,
   activePlan,
+  previousSessions = [],
   onSaved,
   onClose,
 }: Props) {
   const toast = useToast();
-  const idempotencyKey = useRef(key());
+  const idempotencyKey = useRef<string>(key());
   const submitting = useRef(false);
   const signaturePadRef = useRef<CustomerSignaturePadHandle>(null);
   const [signerName, setSignerName] = useState(customerName || '');
-  const [_hasSignature, setHasSignature] = useState(false);
+  const [signatureDataUrl, setSignatureDataUrl] = useState('');
+  const [restoredSignature, setRestoredSignature] = useState(false);
   const [sessionIndex, setSessionIndex] = useState(0);
   const [recordedAt, setRecordedAt] = useState(localWorkoutSessionTime);
-  const [attendance, setAttendance] = useState<'PRESENT' | 'LATE' | 'ABSENT'>('PRESENT');
   const [feeling, setFeeling] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [measurement, setMeasurement] = useState<BodyMeasurementDraft>({});
   const [progressPhotos, setProgressPhotos] = useState<WorkoutProgressPhotoDraft[]>([]);
   const [editedResults, setEditedResults] = useState<Record<number, ExerciseResultDraft[]>>({});
+  const cacheKey = useMemo(() => {
+    const user = getSession()?.user;
+    const ownerId = user?._id || user?.id || user?.username;
+    return ownerId ? workoutSessionCacheKey(ownerId, customerId) : '';
+  }, [customerId]);
+  const planSessionCount = activePlan?.sessions?.length || 0;
+  const [cacheReady, setCacheReady] = useState(!cacheKey);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [cacheNotice, setCacheNotice] = useState('');
+  const [cacheError, setCacheError] = useState('');
+  const restoredPhotoUrls = useRef<string[]>([]);
+  const savedRef = useRef(false);
+  const markEdited = () => { setHasChanges(true); setCacheError(''); };
 
   const exercises = useMemo(
     () => activePlan?.sessions?.[sessionIndex]?.exercises || [],
@@ -177,14 +197,104 @@ export default function WorkoutSessionLogger({
   const hasUnclassified = exercises.some(
     (exercise) => !exercise.trackingType || exercise.trackingType === 'UNCLASSIFIED',
   );
+  const dayComparison = useMemo(() => compareWorkoutWithPreviousDay(
+    recordedAt.recordedDate,
+    exercises.map((exercise, index) => ({
+      exerciseId: exercise.exerciseId,
+      name: exercise.name,
+      trackingType: exercise.trackingType,
+      result: results[index]?.result,
+    })),
+    previousSessions,
+  ), [recordedAt.recordedDate, exercises, results, previousSessions]);
 
   useEffect(() => {
-    setSessionIndex(0);
-    setEditedResults({});
-    setRecordedAt(localWorkoutSessionTime());
-    signaturePadRef.current?.clear();
-    setSignerName(customerName || '');
-  }, [customerId, customerName, activePlan?._id, activePlan?.version]);
+    let active = true;
+    savedRef.current = false;
+    if (cacheKey) setCacheReady(false);
+    setHasChanges(false);
+    setCacheNotice('');
+    setCacheError('');
+    const restore = async () => {
+      try {
+        const cached = cacheKey ? await readWorkoutSessionCache(cacheKey) : null;
+        if (!active) return;
+        if (cached && cached.customerId === customerId) {
+          const samePlan = cached.planId === activePlan?._id && cached.planVersion === activePlan?.version && Number.isInteger(cached.sessionIndex) && cached.sessionIndex >= 0 && cached.sessionIndex < planSessionCount;
+          const photos = cached.progressPhotos.map((photo) => {
+            const previewUrl = URL.createObjectURL(photo.file);
+            restoredPhotoUrls.current.push(previewUrl);
+            return { ...photo, previewUrl };
+          });
+          idempotencyKey.current = cached.idempotencyKey;
+          setSessionIndex(samePlan ? cached.sessionIndex : 0);
+          setEditedResults(samePlan ? cached.editedResults : {});
+          setRecordedAt(cached.recordedAt);
+          setFeeling(cached.feeling);
+          setNotes(cached.notes);
+          setMeasurement(cached.measurement);
+          setProgressPhotos(photos);
+          setSignerName(cached.signerName);
+          setSignatureDataUrl(cached.signatureDataUrl);
+          setRestoredSignature(Boolean(cached.signatureDataUrl));
+          setCacheNotice(samePlan
+            ? 'Đã khôi phục tiến độ tự lưu trên trình duyệt.'
+            : 'Giáo án đã thay đổi. Đã giữ ghi chú, số đo, ảnh và chữ ký; kết quả bài tập được đặt lại.');
+        } else {
+          idempotencyKey.current = key();
+          setSessionIndex(0);
+          setEditedResults({});
+          setRecordedAt(localWorkoutSessionTime());
+          setFeeling('');
+          setNotes('');
+          setMeasurement({});
+          setProgressPhotos([]);
+          setSignerName(customerName || '');
+          setSignatureDataUrl('');
+          setRestoredSignature(false);
+          signaturePadRef.current?.clear();
+        }
+      } catch (error) {
+        if (active) {
+          setSessionIndex(0); setEditedResults({}); setRecordedAt(localWorkoutSessionTime());
+          setFeeling(''); setNotes(''); setMeasurement({}); setProgressPhotos([]);
+          setSignerName(customerName || ''); setSignatureDataUrl(''); setRestoredSignature(false);
+          setCacheError(`Không thể đọc cache tiến độ: ${errorMessage(error)}`);
+        }
+      } finally {
+        if (active) setCacheReady(true);
+      }
+    };
+    void restore();
+    return () => {
+      active = false;
+      for (const url of restoredPhotoUrls.current) URL.revokeObjectURL(url);
+      restoredPhotoUrls.current = [];
+    };
+  }, [cacheKey, customerId, customerName, activePlan?._id, activePlan?.version, planSessionCount]);
+
+  useEffect(() => {
+    if (!cacheReady || !hasChanges || !cacheKey || !activePlan || savedRef.current) return;
+    const cached: CachedWorkoutSession = {
+      customerId,
+      planId: activePlan._id,
+      planVersion: activePlan.version,
+      idempotencyKey: idempotencyKey.current,
+      sessionIndex,
+      recordedAt,
+      feeling,
+      notes,
+      measurement,
+      progressPhotos: progressPhotos.map(({ id, file, angle }) => ({ id, file, angle })),
+      editedResults,
+      signerName,
+      signatureDataUrl,
+      updatedAt: new Date().toISOString(),
+    };
+    void writeWorkoutSessionCache(cacheKey, cached)
+      .then(() => setCacheNotice('Tiến độ đã được tự lưu trên trình duyệt.'))
+      .catch((error) => setCacheError(`Không thể tự lưu tiến độ: ${errorMessage(error)}`));
+  }, [cacheReady, hasChanges, cacheKey, activePlan, customerId, sessionIndex, recordedAt, feeling, notes, measurement, progressPhotos, editedResults, signerName, signatureDataUrl]);
 
   if (!activePlan) {
     return (
@@ -196,12 +306,14 @@ export default function WorkoutSessionLogger({
     );
   }
 
-  const updateResult = (exerciseIndex: number, result: TrackingResult) =>
+  const updateResult = (exerciseIndex: number, result: TrackingResult) => {
+    markEdited();
     setEditedResults((current) => {
       const next = (current[sessionIndex] || initialResults).map((draft) => ({ ...draft }));
       next[exerciseIndex] = { ...next[exerciseIndex], result };
       return { ...current, [sessionIndex]: next };
     });
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -227,7 +339,7 @@ export default function WorkoutSessionLogger({
       toast.error('Ngày hoặc giờ ghi nhận không hợp lệ.');
       return;
     }
-    if (attendance !== 'ABSENT' && hasUnclassified) {
+    if (hasUnclassified) {
       toast.error('Có bài tập chưa phân loại cách ghi nhận. Hãy cập nhật giáo án trước khi ghi buổi tập.');
       return;
     }
@@ -235,22 +347,17 @@ export default function WorkoutSessionLogger({
     submitting.current = true;
     setLoading(true);
     try {
-      const exerciseResults =
-        attendance === 'ABSENT'
-          ? []
-          : exercises.map((exercise, exerciseIndex) => ({
-              ...(exercise.exerciseId ? { exerciseId: exercise.exerciseId } : {}),
-              exerciseIndex,
-              result: stripClientIds(results[exerciseIndex].result),
-              ...(results[exerciseIndex].notes ? { notes: results[exerciseIndex].notes } : {}),
-            }));
-      const bodyMeasurement =
-        attendance === 'ABSENT' ? undefined : buildBodyMeasurementInput(measurement);
-      const uploadedPhotos =
-        attendance === 'ABSENT' ? [] : await uploadWorkoutProgressPhotos(progressPhotos);
+      const exerciseResults = exercises.map((exercise, exerciseIndex) => ({
+        ...(exercise.exerciseId ? { exerciseId: exercise.exerciseId } : {}),
+        exerciseIndex,
+        result: stripClientIds(results[exerciseIndex].result),
+        ...(results[exerciseIndex].notes ? { notes: results[exerciseIndex].notes } : {}),
+      }));
+      const bodyMeasurement = buildBodyMeasurementInput(measurement);
+      const uploadedPhotos = await uploadWorkoutProgressPhotos(progressPhotos);
 
       let customerSignature: { signatureUrl: string; signedAt: string; signerName?: string } | undefined;
-      if (attendance !== 'ABSENT' && signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+      if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
         try {
           const blob = await signaturePadRef.current.toBlob();
           let sigUrl = '';
@@ -283,13 +390,17 @@ export default function WorkoutSessionLogger({
         }
       }
 
+      if (!customerSignature && signatureDataUrl) {
+        customerSignature = { signatureUrl: signatureDataUrl, signedAt: new Date().toISOString(), ...(signerName.trim() ? { signerName: signerName.trim() } : {}) };
+      }
+
       const result = await api.post('/api/workout-sessions', {
         customerId,
         workoutPlanId: activePlan._id,
         workoutPlanVersion: activePlan.version,
         sessionIndex,
         performedAt,
-        attendance,
+        attendance: 'PRESENT',
         exerciseResults,
         feeling,
         notes,
@@ -298,6 +409,11 @@ export default function WorkoutSessionLogger({
         ...(uploadedPhotos.length > 0 ? { progressPhotos: uploadedPhotos } : {}),
         ...(customerSignature ? { customerSignature } : {})
       });
+      savedRef.current = true;
+      if (cacheKey) {
+        try { await clearWorkoutSessionCache(cacheKey); }
+        catch (error) { toast.error(`Buổi tập đã lưu nhưng chưa xóa được cache: ${errorMessage(error)}`); }
+      }
       toast.success(result.message);
       signaturePadRef.current?.clear();
       onSaved();
@@ -310,8 +426,15 @@ export default function WorkoutSessionLogger({
     }
   };
 
+  if (!cacheReady) return <p role="status" className="py-8 text-center text-sm text-slate-600">Đang khôi phục tiến độ đã lưu...</p>;
+
   return (
     <form aria-label="Ghi nhận buổi tập" noValidate onSubmit={submit}>
+      <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-slate-700" role="status">
+        <CheckCircle2 size={17} className="mr-2 inline text-sky-700" aria-hidden="true" />
+        {cacheNotice || 'Nội dung đang nhập sẽ tự lưu trên trình duyệt và hiện lại khi mở màn này.'}
+      </div>
+      {cacheError && <p role="alert" className="mb-4 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900"><AlertTriangle size={17} aria-hidden="true" />{cacheError}</p>}
       {/* 1. Thông tin ca tập — dùng profile-form-section và profile-form-grid từ index.css */}
       <section className="profile-form-section pt-0">
         <h3>
@@ -336,7 +459,7 @@ export default function WorkoutSessionLogger({
             <select
               id="session-select"
               value={sessionIndex}
-              onChange={(event) => setSessionIndex(Number(event.target.value))}
+              onChange={(event) => { markEdited(); setSessionIndex(Number(event.target.value)); }}
             >
               {(activePlan.sessions || []).map((session, index) => (
                 <option key={`${session.name}-${index}`} value={index}>
@@ -353,7 +476,7 @@ export default function WorkoutSessionLogger({
               aria-label="Ngày ghi nhận"
               type="date"
               value={recordedAt.recordedDate}
-              onChange={(event) => setRecordedAt((current) => ({ ...current, recordedDate: event.target.value }))}
+              onChange={(event) => { markEdited(); setRecordedAt((current) => ({ ...current, recordedDate: event.target.value })); }}
               required
             />
           </div>
@@ -366,30 +489,16 @@ export default function WorkoutSessionLogger({
               type="time"
               step={60}
               value={recordedAt.recordedTime}
-              onChange={(event) => setRecordedAt((current) => ({ ...current, recordedTime: event.target.value }))}
+              onChange={(event) => { markEdited(); setRecordedAt((current) => ({ ...current, recordedTime: event.target.value })); }}
               required
             />
           </div>
 
-          <div className="field grid-full-width">
-            <label htmlFor="attendance-select">Điểm danh</label>
-            <select
-              id="attendance-select"
-              aria-label="Điểm danh"
-              value={attendance}
-              onChange={(event) => setAttendance(event.target.value as typeof attendance)}
-            >
-              <option value="PRESENT">🟢 Có mặt</option>
-              <option value="LATE">🟡 Đi muộn</option>
-              <option value="ABSENT">🔴 Vắng mặt</option>
-            </select>
-          </div>
         </div>
       </section>
 
       {/* 2. Danh sách bài tập — dùng profile-form-section và pt-card từ index.css */}
-      {attendance !== 'ABSENT' && (
-        <section className="profile-form-section">
+      <section className="profile-form-section">
           <h3>
             <Dumbbell size={16} />
             <span>Kết quả bài tập ({exercises.length})</span>
@@ -425,18 +534,20 @@ export default function WorkoutSessionLogger({
               </div>
             ))}
           </div>
-        </section>
-      )}
+          {recordedAt.recordedDate && (
+            <div className="mt-4">
+              <WorkoutDayComparison comparisons={dayComparison} dateKey={recordedAt.recordedDate} />
+            </div>
+          )}
+      </section>
 
       {/* 3. Chỉ số cơ thể & Ảnh tiến độ */}
-      {attendance !== 'ABSENT' && (
-        <>
           <section className="profile-form-section">
             <h3>
               <Scale size={16} />
               <span>Chỉ số đo lường</span>
             </h3>
-            <WorkoutMeasurementFields value={measurement} onChange={setMeasurement} />
+            <WorkoutMeasurementFields value={measurement} onChange={(value) => { markEdited(); setMeasurement(value); }} />
           </section>
 
           <section className="profile-form-section">
@@ -446,12 +557,10 @@ export default function WorkoutSessionLogger({
             </h3>
             <WorkoutProgressPhotoFields
               value={progressPhotos}
-              onChange={setProgressPhotos}
+              onChange={(value) => { markEdited(); setProgressPhotos(value); }}
               disabled={loading}
             />
           </section>
-        </>
-      )}
 
       {/* 4. Cảm nhận & Ghi chú — dùng profile-form-section và profile-form-grid từ index.css */}
       <section className="profile-form-section">
@@ -468,7 +577,7 @@ export default function WorkoutSessionLogger({
               aria-label="Cảm nhận sau buổi tập"
               placeholder="Ví dụ: Thể lực tốt, hoàn thành trọn vẹn giáo án..."
               value={feeling}
-              onChange={(event) => setFeeling(event.target.value)}
+              onChange={(event) => { markEdited(); setFeeling(event.target.value); }}
             />
           </div>
 
@@ -480,28 +589,33 @@ export default function WorkoutSessionLogger({
               aria-label="Ghi chú buổi tập"
               placeholder="Nhập lưu ý kỹ thuật, điều chỉnh tạ buổi sau..."
               value={notes}
-              onChange={(event) => setNotes(event.target.value)}
+              onChange={(event) => { markEdited(); setNotes(event.target.value); }}
             />
           </div>
         </div>
       </section>
 
       {/* 6. Chữ ký xác nhận của khách hàng */}
-      {attendance !== 'ABSENT' && (
-        <section className="profile-form-section">
+      <section className="profile-form-section">
           <h3>
             <PenLine size={16} />
             <span>Chữ ký xác nhận của khách hàng</span>
           </h3>
-          <CustomerSignaturePad
-            ref={signaturePadRef}
-            signerName={signerName}
-            onSignerNameChange={setSignerName}
-            onSignatureChange={setHasSignature}
-            placeholderName={customerName || 'Họ và tên khách hàng'}
-          />
-        </section>
-      )}
+          {restoredSignature ? (
+            <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+              <img src={signatureDataUrl} alt="Chữ ký đã khôi phục" className="max-h-44 max-w-full bg-white" />
+              <button type="button" className="button button-secondary mt-3 min-h-[44px]" onClick={() => { markEdited(); setRestoredSignature(false); setSignatureDataUrl(''); }}>Ký lại</button>
+            </div>
+          ) : (
+            <CustomerSignaturePad
+              ref={signaturePadRef}
+              signerName={signerName}
+              onSignerNameChange={(value) => { markEdited(); setSignerName(value); }}
+              onSignatureChange={(hasSignature) => { markEdited(); setSignatureDataUrl(hasSignature ? signaturePadRef.current?.toDataUrl() || '' : ''); }}
+              placeholderName={customerName || 'Họ và tên khách hàng'}
+            />
+          )}
+      </section>
 
       {/* 5. Action Buttons — sticky bottom để luôn thấy nút thao tác trên mobile */}
       <div className="profile-form-actions sticky bottom-0 z-20 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-6 border-t border-slate-200 bg-white/95 backdrop-blur-xs p-3.5 sm:p-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] flex items-center justify-end gap-2.5">

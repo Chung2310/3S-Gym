@@ -67,31 +67,57 @@ function normalizeLevel(level: unknown): 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED
   return 'INTERMEDIATE';
 }
 
-function requiredNumber(
+const PRESCRIPTION_FIELD_NAMES: Record<string, string> = {
+  targetWeight: 'mức tạ mục tiêu (kg)',
+  addedWeight: 'mức tạ thêm (kg)',
+  sets: 'số hiệp tập (sets)',
+  reps: 'số lần lặp (reps)',
+  restSeconds: 'thời gian nghỉ giữa hiệp',
+  durationMinutes: 'thời lượng tập (phút)',
+  rounds: 'số vòng tập (rounds)',
+  workSeconds: 'thời gian tập mỗi vòng',
+  targetRpe: 'chỉ số gắng sức (RPE)',
+  targetRir: 'chỉ số RIR',
+  side: 'bên tập (trái/phải/cả hai)',
+  targetDiscomfort: 'mức độ căng cơ',
+};
+
+function parseNumberField(
   source: Record<string, unknown>,
   key: string,
   min: number,
   max: number,
+  defaultValue?: number,
   integer = false,
 ) {
   const raw = source[key];
+  if (raw === undefined || raw === null || raw === '') {
+    if (defaultValue !== undefined) return defaultValue;
+  }
   const parsed = Number(raw);
-  if ((typeof raw !== 'number' && typeof raw !== 'string') || raw === '' || !Number.isFinite(parsed)
+  if ((typeof raw !== 'number' && typeof raw !== 'string') || !Number.isFinite(parsed)
     || parsed < min || parsed > max || (integer && !Number.isInteger(parsed))) {
+    if (defaultValue !== undefined) return defaultValue;
+    const fieldLabel = PRESCRIPTION_FIELD_NAMES[key] || key;
     throw new AppError({
       status: 502,
       code: ERROR_CODES.EXTERNAL,
-      message: `AI trả về prescription không hợp lệ tại trường ${key}.`,
+      message: `AI gợi ý thông số bài tập chưa hợp lệ ở phần "${fieldLabel}".`,
     });
   }
   return parsed;
 }
 
-function requiredReps(source: Record<string, unknown>) {
+function parseRepsField(source: Record<string, unknown>, defaultValue = '10-12') {
   const raw = source.reps;
   const reps = typeof raw === 'number' || typeof raw === 'string' ? String(raw).trim() : '';
   if (!reps || reps.length > 100) {
-    throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về prescription không hợp lệ tại trường reps.' });
+    if (defaultValue) return defaultValue;
+    throw new AppError({
+      status: 502,
+      code: ERROR_CODES.EXTERNAL,
+      message: 'AI gợi ý thông số bài tập chưa hợp lệ ở phần "số lần lặp (reps)".',
+    });
   }
   return reps;
 }
@@ -101,48 +127,46 @@ function prescriptionFor(trackingType: ClassifiedTrackingType, value: unknown): 
     throw new AppError({
       status: 502,
       code: ERROR_CODES.EXTERNAL,
-      message: `AI không trả về prescription cho bài tập ${trackingType}.`,
+      message: `AI chưa tạo được thông số bài tập cho dạng bài ${trackingType}.`,
     });
   }
   const source = value as Record<string, unknown>;
 
   switch (trackingType) {
     case 'STRENGTH': return {
-      sets: requiredNumber(source, 'sets', 1, 20, true),
-      reps: requiredReps(source),
-      targetWeight: requiredNumber(source, 'targetWeight', 0, 1_000),
-      targetRpe: requiredNumber(source, 'targetRpe', 0, 10),
-      targetRir: requiredNumber(source, 'targetRir', 0, 10),
-      restSeconds: requiredNumber(source, 'restSeconds', 0, 600, true),
+      sets: parseNumberField(source, 'sets', 1, 20, 3, true),
+      reps: parseRepsField(source, '8-12'),
+      targetWeight: parseNumberField(source, 'targetWeight', 0, 1_000, 0),
+      targetRpe: parseNumberField(source, 'targetRpe', 0, 10, 7),
+      targetRir: parseNumberField(source, 'targetRir', 0, 10, 2),
+      restSeconds: parseNumberField(source, 'restSeconds', 0, 600, 90, true),
     };
     case 'BODYWEIGHT': return {
-      sets: requiredNumber(source, 'sets', 1, 20, true),
-      reps: requiredReps(source),
-      addedWeight: requiredNumber(source, 'addedWeight', 0, 1_000),
-      targetRpe: requiredNumber(source, 'targetRpe', 0, 10),
-      targetRir: requiredNumber(source, 'targetRir', 0, 10),
-      restSeconds: requiredNumber(source, 'restSeconds', 0, 600, true),
+      sets: parseNumberField(source, 'sets', 1, 20, 3, true),
+      reps: parseRepsField(source, '10-15'),
+      addedWeight: parseNumberField(source, 'addedWeight', 0, 1_000, 0),
+      targetRpe: parseNumberField(source, 'targetRpe', 0, 10, 7),
+      targetRir: parseNumberField(source, 'targetRir', 0, 10, 2),
+      restSeconds: parseNumberField(source, 'restSeconds', 0, 600, 60, true),
     };
     case 'CARDIO': return {
-      durationMinutes: requiredNumber(source, 'durationMinutes', 1, 240, true),
-      targetRpe: requiredNumber(source, 'targetRpe', 0, 10),
+      durationMinutes: parseNumberField(source, 'durationMinutes', 1, 240, 30, true),
+      targetRpe: parseNumberField(source, 'targetRpe', 0, 10, 6),
     };
     case 'INTERVAL': return {
-      rounds: requiredNumber(source, 'rounds', 1, 100, true),
-      workSeconds: requiredNumber(source, 'workSeconds', 1, 3_600, true),
-      restSeconds: requiredNumber(source, 'restSeconds', 0, 3_600, true),
-      targetRpe: requiredNumber(source, 'targetRpe', 0, 10),
+      rounds: parseNumberField(source, 'rounds', 1, 100, 5, true),
+      workSeconds: parseNumberField(source, 'workSeconds', 1, 3_600, 45, true),
+      restSeconds: parseNumberField(source, 'restSeconds', 0, 3_600, 15, true),
+      targetRpe: parseNumberField(source, 'targetRpe', 0, 10, 8),
     };
     case 'MOBILITY': {
-      const side = String(source.side ?? '');
-      if (!['LEFT', 'RIGHT', 'BOTH'].includes(side)) {
-        throw new AppError({ status: 502, code: ERROR_CODES.EXTERNAL, message: 'AI trả về prescription không hợp lệ tại trường side.' });
-      }
+      const side = String(source.side ?? '').toUpperCase();
+      const validSide = ['LEFT', 'RIGHT', 'BOTH'].includes(side) ? (side as 'LEFT' | 'RIGHT' | 'BOTH') : 'BOTH';
       return {
-        durationMinutes: requiredNumber(source, 'durationMinutes', 1, 240, true),
-        reps: requiredNumber(source, 'reps', 1, 1_000, true),
-        side: side as 'LEFT' | 'RIGHT' | 'BOTH',
-        targetDiscomfort: requiredNumber(source, 'targetDiscomfort', 0, 10),
+        durationMinutes: parseNumberField(source, 'durationMinutes', 1, 240, 15, true),
+        reps: parseNumberField(source, 'reps', 1, 1_000, 10, true),
+        side: validSide,
+        targetDiscomfort: parseNumberField(source, 'targetDiscomfort', 0, 10, 3),
       };
     }
   }

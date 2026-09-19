@@ -112,6 +112,7 @@ export default function PtProgressWorkspace({
             customerId={journey.customer._id}
             customerName={journey.customer.fullName}
             activePlan={activePlan}
+            previousSessions={journey.sessions}
             onSaved={onRefresh}
           />
           {journey.sessions.map((session) => <WorkoutSessionDetail session={session} key={session._id} />)}
