@@ -1,41 +1,148 @@
-import { ArrowLeft, CheckCircle2, Save } from 'lucide-react';
-import { useState } from 'react';
+import React from 'react';
+import { ArrowLeft, CheckCircle2, Save, Sliders, Calendar, Dumbbell, Target } from 'lucide-react';
 
 interface Props {
-  title: string; goal: string; level: string; durationDays: number; dirty: boolean; saving: boolean;
-  contextLabel?: string; readOnly?: boolean;
-  onBack: () => void; onTitleChange: (value: string) => void; onGoalChange: (value: string) => void;
-  onLevelChange: (value: string) => void; onDurationDaysChange: (value: number) => void; onSave: () => void;
+  title: string;
+  goal: string;
+  level: string;
+  durationDays: number;
+  dirty: boolean;
+  saving: boolean;
+  contextLabel?: string;
+  readOnly?: boolean;
+  onBack: () => void;
+  onTitleChange: (value: string) => void;
+  onGoalChange: (value: string) => void;
+  onLevelChange: (value: string) => void;
+  onDurationDaysChange: (value: number) => void;
+  onSave: () => void;
+  onOpenSettings?: () => void;
+  activeWeek?: number;
+  activeDay?: number;
+  dayItemsCount?: number;
+  totalScheduledCount?: number;
+  unscheduledCount?: number;
 }
 
 export default function StudioHeader(props: Props) {
-  const [durationDraft, setDurationDraft] = useState<string | null>(null);
-
-  const changeDuration = (value: string) => {
-    if (value === '') {
-      setDurationDraft('');
-      return;
+  const getLevelBadge = (level: string) => {
+    switch (level) {
+      case 'BEGINNER':
+        return { label: 'Cơ bản', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+      case 'INTERMEDIATE':
+        return { label: 'Trung cấp', bg: 'bg-amber-50 text-amber-700 border-amber-200' };
+      case 'ADVANCED':
+        return { label: 'Nâng cao', bg: 'bg-purple-50 text-purple-700 border-purple-200' };
+      default:
+        return { label: level || 'Cơ bản', bg: 'bg-slate-100 text-slate-700 border-slate-200' };
     }
-    setDurationDraft(null);
-    const durationDays = Number(value);
-    if (Number.isFinite(durationDays)) props.onDurationDaysChange(durationDays);
   };
 
-  return <>
-    <header className="studio-header" role="banner" aria-label="Thông tin giáo án">
-      <div className="studio-header-command">
-        <button type="button" aria-label="Về danh sách giáo án" className="studio-back-button" onClick={props.onBack}><ArrowLeft size={16} aria-hidden="true" /></button>
-        <div className="studio-header-title"><h1>Thiết kế giáo án</h1></div>
-        <span role="status" aria-live="polite" className={`studio-save-state ${props.dirty ? 'is-dirty' : 'is-saved'}`}><CheckCircle2 size={14} aria-hidden="true" />{props.dirty ? 'Chưa lưu' : 'Đã lưu'}</span>
-        <button type="button" className="button button-primary" disabled={props.saving || props.readOnly} onClick={props.onSave}><Save size={17} aria-hidden="true" /> {props.saving ? 'Đang lưu...' : 'Lưu giáo án'}</button>
+  const levelBadge = getLevelBadge(props.level);
+
+  return (
+    <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs mb-3.5 space-y-2.5">
+      {/* Top Main Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Left: Back & Title */}
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            type="button"
+            aria-label="Về danh sách giáo án"
+            onClick={props.onBack}
+            className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer shrink-0"
+          >
+            <ArrowLeft size={17} />
+          </button>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${levelBadge.bg}`}>
+                {levelBadge.label}
+              </span>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-900 text-white">
+                {props.durationDays} NGÀY
+              </span>
+              {props.contextLabel && (
+                <span className="text-[11px] font-semibold text-slate-500">
+                  • {props.contextLabel}
+                </span>
+              )}
+            </div>
+            <h1 className="text-base sm:text-lg font-black text-slate-900 m-0 truncate">
+              {props.title || 'Giáo án mới'}
+            </h1>
+          </div>
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+          <span
+            role="status"
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+              props.dirty
+                ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+            }`}
+          >
+            <CheckCircle2 size={13} />
+            <span className="hidden sm:inline">{props.dirty ? 'Chưa lưu' : 'Đã lưu'}</span>
+          </span>
+
+          {props.onOpenSettings && (
+            <button
+              type="button"
+              onClick={props.onOpenSettings}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer shadow-xs transition-colors"
+            >
+              <Sliders size={14} className="text-sky-600" />
+              <span>Cài đặt</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            disabled={props.saving || props.readOnly}
+            onClick={props.onSave}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer shadow-xs transition-colors disabled:opacity-50"
+          >
+            <Save size={14} />
+            <span>{props.saving ? 'Đang lưu...' : 'Lưu giáo án'}</span>
+          </button>
+        </div>
       </div>
-      <div className="studio-header-fields" role="group" aria-label="Thông tin cơ bản">
-        <label><span data-field-title>Tên giáo án</span><input aria-label="Tên giáo án" placeholder="Ví dụ: Tăng cơ nền tảng 8 tuần" value={props.title} disabled={props.readOnly} onChange={(event) => props.onTitleChange(event.target.value)} /></label>
-        <label><span data-field-title>Mục tiêu</span><input aria-label="Mục tiêu" placeholder="Ví dụ: Tăng cơ và cải thiện sức mạnh" value={props.goal} disabled={props.readOnly} onChange={(event) => props.onGoalChange(event.target.value)} /></label>
-        <label><span data-field-title>Cấp độ</span><select aria-label="Cấp độ giáo án" value={props.level} disabled={props.readOnly} onChange={(event) => props.onLevelChange(event.target.value)}><option value="BEGINNER">Cơ bản</option><option value="INTERMEDIATE">Trung cấp</option><option value="ADVANCED">Nâng cao</option></select></label>
-        <label><span data-field-title>Số ngày</span><input aria-label="Số ngày giáo án" type="number" min="1" max="365" placeholder="Ví dụ: 7" value={durationDraft ?? props.durationDays} disabled={props.readOnly} onChange={(event) => changeDuration(event.target.value)} onBlur={() => { if (durationDraft === '') setDurationDraft(null); }} /></label>
+
+      {/* Sub Bar: Compact Info & Stats */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs font-semibold text-slate-500">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1 text-slate-700">
+            <Calendar size={13} className="text-sky-600" />
+            <span>
+              Tuần {props.activeWeek || 1} · Ngày {props.activeDay || 1} ({props.dayItemsCount ?? 0} bài)
+            </span>
+          </div>
+          <span className="text-slate-300 hidden sm:inline">•</span>
+          <div className="flex items-center gap-1 text-slate-700">
+            <Dumbbell size={13} className="text-indigo-600" />
+            <span>{props.totalScheduledCount ?? 0} bài đã xếp</span>
+          </div>
+          {props.unscheduledCount !== undefined && props.unscheduledCount > 0 && (
+            <>
+              <span className="text-slate-300 hidden sm:inline">•</span>
+              <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px]">
+                {props.unscheduledCount} bài chưa xếp
+              </span>
+            </>
+          )}
+        </div>
+
+        {props.goal && (
+          <div className="flex items-center gap-1 text-slate-600 text-[11px] truncate max-w-md">
+            <Target size={12} className="text-emerald-600 shrink-0" />
+            <span className="truncate">{props.goal}</span>
+          </div>
+        )}
       </div>
-    </header>
-    {props.contextLabel && <p className="studio-context-note">{props.contextLabel}{props.readOnly ? ' · Chỉ xem' : ''}</p>}
-  </>;
+    </div>
+  );
 }

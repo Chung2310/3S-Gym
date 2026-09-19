@@ -138,17 +138,17 @@ export default function MealLibraryManager({ onSelectForPlan }: MealLibraryManag
         nextList = customFoods.map((item) =>
           item.id === editingFoodId
             ? {
-                ...item,
-                name: foodName.trim(),
-                category: foodCategory,
-                caloriesPer100g: kcal100,
-                proteinPer100g: p100,
-                carbsPer100g: c100,
-                fatPer100g: f100,
-                defaultServingGrams: grams,
-                servingLabel: foodServing.trim() || `${grams}g`,
-                prepTip: foodPrepTip.trim() || undefined,
-              }
+              ...item,
+              name: foodName.trim(),
+              category: foodCategory,
+              caloriesPer100g: kcal100,
+              proteinPer100g: p100,
+              carbsPer100g: c100,
+              fatPer100g: f100,
+              defaultServingGrams: grams,
+              servingLabel: foodServing.trim() || `${grams}g`,
+              prepTip: foodPrepTip.trim() || undefined,
+            }
             : item
         );
       } else {
@@ -337,9 +337,6 @@ export default function MealLibraryManager({ onSelectForPlan }: MealLibraryManag
               Quản Lý Kho Món Ăn & Dinh Dưỡng (Meal Manager)
             </h2>
           </div>
-          <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9, maxWidth: '650px' }}>
-            Kho dữ liệu thực phẩm & món ăn thể hình Việt Nam. Huấn luyện viên có thể tự do thêm món mới, chỉnh sửa định lượng Calo/Macro, hoặc xóa các món không dùng đến.
-          </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -891,18 +888,18 @@ export default function MealLibraryManager({ onSelectForPlan }: MealLibraryManag
                         item.category === 'protein'
                           ? '#eff6ff'
                           : item.category === 'carbs'
-                          ? '#fef3c7'
-                          : item.category === 'veggies'
-                          ? '#ecfdf5'
-                          : '#fdf2f8',
+                            ? '#fef3c7'
+                            : item.category === 'veggies'
+                              ? '#ecfdf5'
+                              : '#fdf2f8',
                       color:
                         item.category === 'protein'
                           ? '#1d4ed8'
                           : item.category === 'carbs'
-                          ? '#b45309'
-                          : item.category === 'veggies'
-                          ? '#047857'
-                          : '#be185d',
+                            ? '#b45309'
+                            : item.category === 'veggies'
+                              ? '#047857'
+                              : '#be185d',
                     }}
                   >
                     {item.categoryLabel}

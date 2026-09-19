@@ -18,6 +18,7 @@ export interface ScheduledExercise {
   tempo?: string;
   restSeconds?: number;
   notes?: string;
+  muscleGroup?: string;
   trackingType?: TrackingType;
   prescription?: TrackingPrescription;
 }

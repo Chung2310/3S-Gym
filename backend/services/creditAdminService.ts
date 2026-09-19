@@ -79,7 +79,14 @@ export async function createAdjustment(actor: AuthenticatedUser, input: { userId
 async function listModel(Model: Model<unknown>, query: ListQuery, fixed: Record<string, unknown> = {}) {
   const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = { ...fixed };
   for (const key of ['status', 'gateway', 'taskType', 'userId', 'type'] as const) if (query[key] !== undefined && !(key in fixed)) filter[key] = query[key];
-  const [items, total] = await Promise.all([Model.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), Model.countDocuments(filter)]);
+  const queryChain = Model.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit);
+  if ('schema' in Model && (Model as { schema?: { path?: (k: string) => unknown } }).schema?.path?.('userId')) {
+    (queryChain as unknown as { populate: (k: string, f: string) => void }).populate('userId', 'fullName username phone email role');
+  }
+  if ('schema' in Model && (Model as { schema?: { path?: (k: string) => unknown } }).schema?.path?.('actorUserId')) {
+    (queryChain as unknown as { populate: (k: string, f: string) => void }).populate('actorUserId', 'fullName username phone email role');
+  }
+  const [items, total] = await Promise.all([queryChain.lean(), Model.countDocuments(filter)]);
   return { items, meta: meta(page, limit, total) };
 }
 export const listPaymentOrders = (query: ListQuery) => listModel(PaymentOrder as unknown as Model<unknown>, query);
