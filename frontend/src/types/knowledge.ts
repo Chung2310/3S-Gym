@@ -38,6 +38,7 @@ export interface KnowledgeDocument {
   approvedById?: string;
   effectiveAt?: string;
   publishedAt?: string;
+  chunkCount?: number;
   createdAt: string;
   updatedAt: string;
 }

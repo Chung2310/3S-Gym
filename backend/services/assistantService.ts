@@ -8,6 +8,7 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { recordAudit } from './auditService.js';
+import { searchVectors } from './vectorSearchProvider.js';
 export async function getConversation(user: AuthenticatedUser, id: string) { const item = await AssistantConversation.findOne({ _id: id, ptId: new Types.ObjectId(user.id) }); if (!item) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy hội thoại.' }); return item; }
 export async function listSuggestions(user: AuthenticatedUser, query: Record<string, unknown>) { const page = Number(query.page || 1); const limit = Number(query.limit || 20); const filter: Record<string, unknown> = { ptId: new Types.ObjectId(user.id) }; if (typeof query.customerId === 'string') filter.customerId = new Types.ObjectId(query.customerId); if (['PT_REVIEW_REQUIRED', 'APPROVED', 'REJECTED'].includes(String(query.reviewStatus))) filter.reviewStatus = query.reviewStatus; const [items, total] = await Promise.all([AssistantSuggestion.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), AssistantSuggestion.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
 export async function getSuggestion(user: AuthenticatedUser, id: string) { const item = await AssistantSuggestion.findOne({ _id: id, ptId: new Types.ObjectId(user.id) }); if (!item) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy đề xuất.' }); return item; }
@@ -74,6 +75,31 @@ export async function createSuggestion(user: AuthenticatedUser, payload: { custo
     historyContext = `\nLỊCH SỬ TRAO ĐỔI TRONG PHIÊN CHAT NÀY:\n` + recent.map((m) => `${m.role === 'USER' ? 'Người dùng' : 'Trợ lý AI'}: ${m.content}`).join('\n');
   }
 
+  // 1. RAG RETRIEVAL: Tìm kiếm các đoạn tri thức chuẩn từ kho tài liệu 3S-Gym
+  let knowledgeContext = '';
+  let citations: Array<{ documentId: string; title: string }> = [];
+
+  try {
+    const hits = await searchVectors(payload.scenario, { status: 'PUBLISHED' }, 4);
+    if (hits && hits.length > 0) {
+      const rawCitations = hits
+        .filter((h) => h.documentId && h.title)
+        .map((h) => ({ documentId: h.documentId, title: h.title! }));
+
+      // Loại bỏ duplicate citations
+      const uniqueCitations = Array.from(new Map(rawCitations.map((c) => [c.documentId, c])).values());
+      citations = uniqueCitations;
+
+      knowledgeContext = `\n=== TÀI LIỆU & QUY CHUẨN TỪ KHO TRI THỨC 3S-GYM (BẮT BUỘC BÁM SÁT ĐỂ TRẢ LỜI) ===\n` +
+        hits.map((h, idx) => `[Tài liệu ${idx + 1}: ${h.title || 'Tài liệu chuẩn'} (Chủ đề: ${h.topic})]\n${h.content}`).join('\n\n') +
+        `\n\nNGUYÊN TẮC BẮT BUỘC VỀ KHO TRI THỨC:\n` +
+        `- Nếu câu hỏi của người dùng có liên quan đến các quy định, thiết bị phần cứng, thông số kỹ thuật, bài tập, dinh dưỡng hoặc quy chuẩn trong tài liệu ở trên: Bạn BẮT BUỘC phải trả lời chính xác, bám sát các số liệu và giải pháp có trong tài liệu.\n` +
+        `- Tuyệt đối không bịa đặt hoặc suy diễn sai lệch so với tài liệu tri thức nội bộ 3S-Gym đã cung cấp.`;
+    }
+  } catch (err) {
+    console.warn('[assistantService] Không thể thực hiện RAG vector search:', err);
+  }
+
   const prompt = `Bạn là Trợ lý Chuyên gia Sức khỏe, Thể hình & Dinh dưỡng Toàn diện của hệ thống 3S-Gym (3S-Gym Comprehensive Health, Fitness & Coaching Intelligence).
 Bạn sở hữu toàn diện nền tảng tri thức khoa học thể thao cập nhật nhất từ các tổ chức chuẩn mực quốc tế (NSCA, NASM, ACSM, ISSA, ISSN, Precision Nutrition, PubMed), am hiểu sâu sắc cơ sinh học vận động, giải phẫu chức năng, phân tích InBody, cùng kinh nghiệm dinh dưỡng và lối sống thực tế tại Việt Nam.
 
@@ -81,6 +107,7 @@ Bạn có nhiệm vụ giải đáp CHÍNH XÁC, CHUYÊN SÂU và THỰC TẾ G�
 ${profileContext}
 ${inbodyContext}
 ${historyContext}
+${knowledgeContext}
 
 CÂU HỎI MỚI NHẤT HOẶC TÌNH HUỐNG HIỆN TẠI:
 "${payload.scenario}"
@@ -128,7 +155,7 @@ HỆ THỐNG NGUYÊN TẮC PHẢN HỒI (CỰC KỲ QUAN TRỌNG):
     requestType: payload.requestType,
     scenario: payload.scenario,
     content,
-    citations: [],
+    citations,
     customerContextFields: customer ? ['fullName', 'initialGoal'] : [],
     safetyWarnings: ['Nội dung do AI đề xuất, PT phải kiểm tra trước khi sử dụng.'],
     reviewStatus: 'PT_REVIEW_REQUIRED',

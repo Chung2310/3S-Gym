@@ -447,6 +447,40 @@ export default function PtAssistantPage() {
                     }}
                   >
                     {msg.content}
+
+                    {/* Hiển thị nguồn tri thức RAG nếu có trích dẫn */}
+                    {!isUser && msg.citations && msg.citations.length > 0 && (
+                      <div
+                        style={{
+                          marginTop: '8px',
+                          paddingTop: '6px',
+                          borderTop: '1px solid #e2e8f0',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '0.72rem',
+                          color: '#64748b',
+                        }}
+                      >
+                        <span style={{ fontWeight: 650, color: '#0369a1' }}>📚 Nguồn tài liệu:</span>
+                        {msg.citations.map((c, cIdx) => (
+                          <span
+                            key={cIdx}
+                            style={{
+                              background: '#e0f2fe',
+                              color: '#0369a1',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 600,
+                            }}
+                            title={`ID: ${c.documentId}`}
+                          >
+                            {c.title}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
