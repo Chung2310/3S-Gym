@@ -8,6 +8,7 @@ import { logger } from './config/logger.js';
 import { APP_POLICY, getEnv } from './config/env.js';
 import { startAiWorkoutGenerationWorker } from './services/aiWorkoutGenerationJobService.js';
 import { startAiNutritionGenerationWorker } from './services/aiNutritionGenerationJobService.js';
+
 const env = getEnv();
 const PORT = env.PORT;
 
@@ -25,13 +26,28 @@ async function startServer() {
         await app.frontendReady;
         initTelemetry();
         const server = app.listen(PORT, () => logger.info({ port: PORT }, 'Máy chủ đã khởi động'));
-        const shutdown = createShutdown({ server, disconnect: disconnectDatabase, flush: flushTelemetry, exit: (code: number) => { process.exitCode = code; }, logger, timeoutMs: APP_POLICY.SHUTDOWN_TIMEOUT_MS });
+        const shutdown = createShutdown({
+            server,
+            disconnect: disconnectDatabase,
+            flush: flushTelemetry,
+            exit: (code: number) => {
+                process.exitCode = code;
+                setTimeout(() => {
+                    process.exit(code);
+                }, 200).unref();
+            },
+            logger,
+            timeoutMs: APP_POLICY.SHUTDOWN_TIMEOUT_MS,
+        });
         process.once('SIGTERM', () => shutdown('SIGTERM', 0));
         process.once('SIGINT', () => shutdown('SIGINT', 0));
         process.once('message', (message) => {
             if (typeof message === 'object' && message !== null && 'type' in message && message.type === 'shutdown') {
                 void shutdown('IPC', 0).then(() => {
                     if (process.send) process.send({ type: 'shutdown-complete', exitCode: process.exitCode ?? 0 });
+                    setTimeout(() => {
+                        process.exit(process.exitCode ?? 0);
+                    }, 200).unref();
                 });
             }
         });

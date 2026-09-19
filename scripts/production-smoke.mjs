@@ -22,7 +22,7 @@ async function waitForReady(baseUrl, deadline, getExitResult = () => undefined) 
     const exited = getExitResult();
     if (exited) throw new Error(`Production server exited before readiness (code ${exited.code ?? 'null'}, signal ${exited.signal || 'none'}). Check the server startup logs.`);
     try {
-      const response = await fetch(`${baseUrl}/api/health/ready`, { signal: AbortSignal.timeout(2_000) });
+      const response = await fetch(`${baseUrl}/api/health/ready`, { headers: { connection: 'close' }, signal: AbortSignal.timeout(2_000) });
       if (response.ok) return;
     } catch {
       // The compiled server may still be connecting to MongoDB.
@@ -33,7 +33,7 @@ async function waitForReady(baseUrl, deadline, getExitResult = () => undefined) 
 }
 
 async function requestJson(url, init) {
-  const response = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
+  const response = await fetch(url, { ...init, headers: { ...init?.headers, connection: 'close' }, signal: AbortSignal.timeout(10_000) });
   const body = await response.json().catch(() => null);
   if (!response.ok) throw new Error(`Smoke request failed (${response.status}): ${JSON.stringify(body)}`);
   return body;
@@ -66,6 +66,14 @@ function requestShutdown(child) {
       if (message?.type !== 'shutdown-complete') return;
       child.off('message', onMessage);
       if (child.connected) child.disconnect();
+      // Cho phép process thoát tự nhiên, nếu sau 2s chưa thoát thì gửi SIGTERM
+      setTimeout(() => {
+        try {
+          if (child.exitCode === null && child.signalCode === null) {
+            child.kill('SIGTERM');
+          }
+        } catch {}
+      }, 2000).unref();
       resolve();
     };
     child.on('message', onMessage);

@@ -25,8 +25,21 @@ function createShutdown({ server, disconnect, flush, exit, logger, timeoutMs = 1
         exit(exitCode);
         resolve();
       };
-      const timer = setTimeout(() => { logger.fatal({ signal }, 'Quá thời gian dừng dịch vụ'); finish(); }, timeoutMs);
-      if (server?.close) server.close(finish); else finish();
+      const timer = setTimeout(() => {
+        logger.fatal({ signal }, 'Quá thời gian dừng dịch vụ');
+        if (server && typeof (server as { closeAllConnections?: () => void }).closeAllConnections === 'function') {
+          (server as { closeAllConnections?: () => void }).closeAllConnections?.();
+        }
+        finish();
+      }, timeoutMs);
+      if (server?.close) {
+        if (typeof (server as { closeIdleConnections?: () => void }).closeIdleConnections === 'function') {
+          (server as { closeIdleConnections?: () => void }).closeIdleConnections?.();
+        }
+        server.close(finish);
+      } else {
+        finish();
+      }
     });
     return shutdownPromise;
   };
