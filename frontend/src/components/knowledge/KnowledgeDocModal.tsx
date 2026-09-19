@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, X } from 'lucide-react';
+import { FileText, X, Layers } from 'lucide-react';
 import { api } from '../../services/api';
 import { useToast } from '../ui/ToastProvider';
 import { errorMessage } from '../../types';
 import type { KnowledgeDocument } from '../../types/knowledge';
+import { KnowledgeTopicDropdown } from './KnowledgeTopicDropdown';
+import { KNOWLEDGE_TOPICS } from './knowledgeTopics';
 
 interface KnowledgeDocModalProps {
   isOpen: boolean;
@@ -20,18 +22,18 @@ export const KnowledgeDocModal: React.FC<KnowledgeDocModalProps> = ({
 }) => {
   const toast = useToast();
   const [title, setTitle] = useState('');
-  const [topic, setTopic] = useState('DINH DƯỠNG');
+  const [topic, setTopic] = useState(KNOWLEDGE_TOPICS[0].val);
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (editingDoc) {
-      setTitle(editingDoc.title);
-      setTopic(editingDoc.topic);
-      setContent(editingDoc.content);
+      setTitle(editingDoc.title || '');
+      setTopic(editingDoc.topic || KNOWLEDGE_TOPICS[0].val);
+      setContent(editingDoc.content || '');
     } else {
       setTitle('');
-      setTopic('DINH DƯỠNG');
+      setTopic(KNOWLEDGE_TOPICS[0].val);
       setContent('');
     }
   }, [editingDoc, isOpen]);
@@ -72,83 +74,90 @@ export const KnowledgeDocModal: React.FC<KnowledgeDocModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <FileText size={20} className="text-sky-600" />
-            <h3 className="m-0 text-base font-extrabold text-slate-900">
-              {editingDoc ? 'Chỉnh Sửa Tài Liệu Tri Thức' : 'Tạo Tài Liệu Tri Thức Mới'}
-            </h3>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+        <div className="flex justify-between items-center pb-3 border-b border-slate-100 mb-4 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center">
+              <FileText size={20} />
+            </div>
+            <div>
+              <h3 className="m-0 text-base font-extrabold text-slate-900">
+                {editingDoc ? 'Chỉnh Sửa Tài Liệu Tri Thức' : 'Tạo Tài Liệu Tri Thức Mới'}
+              </h3>
+              <p className="m-0 text-xs text-slate-500 mt-0.5">
+                {editingDoc ? 'Cập nhật tiêu đề, nội dung và chủ đề tri thức' : 'Nhập nội dung tài liệu thủ công'}
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="bg-transparent border-none cursor-pointer text-slate-400 hover:text-slate-600"
+            disabled={saving}
+            className="bg-transparent border-none cursor-pointer text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3.5">
-            <label className="block text-xs font-bold text-slate-700 mb-1">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1">
+          <div className="mb-4">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
               Tiêu đề tài liệu:
             </label>
             <input
               type="text"
-              placeholder="Ví dụ: Quy chuẩn tính Macro thể hình, Hướng dẫn bù nước..."
+              placeholder="Ví dụ: Giới thiệu Green Ocean, Quy chuẩn tính Macro..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full py-2 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-sky-500"
+              disabled={saving}
+              className="w-full py-2.5 px-3 rounded-xl border border-slate-300 text-xs font-semibold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 text-slate-800"
               required
             />
           </div>
 
-          <div className="mb-3.5">
-            <label className="block text-xs font-bold text-slate-700 mb-1">
+          <div className="mb-4">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <Layers size={14} className="text-sky-600" />
               Chủ đề phân loại:
             </label>
-            <select
+            <KnowledgeTopicDropdown
               value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              className="w-full py-2 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-sky-500 bg-white"
-            >
-              <option value="DINH DƯỠNG">DINH DƯỠNG (Dinh dưỡng & Thực đơn)</option>
-              <option value="TẬP LUYỆN">TẬP LUYỆN (Giáo án & Kỹ thuật)</option>
-              <option value="PHỤC HỒI">PHỤC HỒI (Giấc ngủ & Thư giãn cơ)</option>
-              <option value="CHĂM SÓC">CHĂM SÓC (Chăm sóc & Hội viên)</option>
-            </select>
+              onChange={(val) => setTopic(val)}
+              disabled={saving}
+            />
           </div>
 
           <div className="mb-5">
-            <label className="block text-xs font-bold text-slate-700 mb-1">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
               Nội dung tri thức:
             </label>
             <textarea
-              rows={6}
+              rows={8}
               placeholder="Nhập nội dung quy chuẩn tri thức chuyên môn chi tiết..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full py-2 px-3 rounded-lg border border-slate-300 text-xs outline-none focus:border-sky-500 leading-relaxed"
+              disabled={saving}
+              className="w-full p-3 rounded-xl border border-slate-300 text-xs outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 leading-relaxed font-normal text-slate-800"
               required
             />
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-600 font-bold text-xs cursor-pointer hover:bg-slate-50 transition-colors"
+              disabled={saving}
+              className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold text-xs cursor-pointer hover:bg-slate-50 transition-colors"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-4.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-5 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
             >
-              {saving ? 'Đang lưu...' : 'Lưu Tài Liệu'}
+              {saving ? 'Đang lưu & Tạo Vector...' : 'Lưu Tài Liệu'}
             </button>
           </div>
         </form>

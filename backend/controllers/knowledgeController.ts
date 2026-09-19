@@ -18,6 +18,18 @@ export const listDocuments = asyncHandler(async (req, res) => {
   });
 });
 
+export const uploadDocuments = asyncHandler(async (req, res) => {
+  const files = (req.files as Express.Multer.File[]) || (req.file ? [req.file] : []);
+  const topic = String(req.body.topic || 'QUY TRÌNH & HỆ THỐNG');
+  const result = await knowledgeService.uploadAndProcessFiles(files, topic, req.user!);
+
+  return success(res, {
+    status: 201,
+    message: result.message,
+    data: result,
+  });
+});
+
 export const createDocument = asyncHandler(async (req, res) => {
   const doc = await knowledgeService.createDocument(req.body, req.user!);
   return success(res, {

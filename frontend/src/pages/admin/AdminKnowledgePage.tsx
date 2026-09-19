@@ -14,6 +14,7 @@ import {
   FoodImageUploadModal,
   FoodImageAiModal,
   KnowledgeDocModal,
+  KnowledgeUploadModal,
   KnowledgeDocList,
   FoodImagePagination,
 } from '../../components/knowledge';
@@ -50,6 +51,7 @@ export default function AdminKnowledgePage() {
   const [docs, setDocs] = useState<KnowledgeDocument[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [showDocModal, setShowDocModal] = useState(false);
+  const [showUploadDocModal, setShowUploadDocModal] = useState(false);
   const [editingDoc, setEditingDoc] = useState<KnowledgeDocument | null>(null);
   const [docsSearchQuery, setDocsSearchQuery] = useState('');
   const [docsTopicFilter, setDocsTopicFilter] = useState<string>('ALL');
@@ -338,6 +340,7 @@ export default function AdminKnowledgePage() {
         <KnowledgeDocList
           docs={docs}
           loading={loadingDocs}
+          onOpenUploadModal={() => setShowUploadDocModal(true)}
           onOpenDocModal={handleOpenDocModal}
           onTogglePublishDoc={handleTogglePublishDoc}
           onDeleteDoc={handleDeleteDoc}
@@ -413,6 +416,12 @@ export default function AdminKnowledgePage() {
         isOpen={showDocModal}
         editingDoc={editingDoc}
         onClose={() => setShowDocModal(false)}
+        onSuccess={() => void loadDocs()}
+      />
+
+      <KnowledgeUploadModal
+        isOpen={showUploadDocModal}
+        onClose={() => setShowUploadDocModal(false)}
         onSuccess={() => void loadDocs()}
       />
     </div>
