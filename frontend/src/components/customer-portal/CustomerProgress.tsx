@@ -7,7 +7,6 @@ export default function CustomerProgress({ reports }: { reports: JourneyProgress
   return (
     <ProgressSection
       title="Báo cáo tiến độ"
-      description="Các đánh giá đã được huấn luyện viên công bố."
       count={reports.length}
     >
       {reports.length > 0 ? (

@@ -538,7 +538,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
             placeholder="Chọn hoặc tìm học viên..."
           />
           <label className="field">
-            <span style={{ fontWeight: 700 }}>Tên Lộ trình (Roadmap Title)</span>
+            <span style={{ fontWeight: 700 }}>Tên Lộ trình</span>
             <input
               aria-label="Tên roadmap"
               placeholder="Ví dụ: Lộ trình Giảm mỡ & Tái cấu trúc 12 tuần..."
@@ -618,7 +618,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
 
           <div className="flex flex-col">
             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-              Chỉ số mục tiêu (Con số)
+              Chỉ số mục tiêu
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
@@ -920,7 +920,7 @@ export default function RoadmapForm({ onSaved, onCancel, initialData }: RoadmapF
         </label>
 
         <label className="field" style={{ marginTop: '12px' }}>
-          <span style={{ fontWeight: 700 }}>Ghi chú cá nhân hóa / Yêu cầu riêng của học viên</span>
+          <span style={{ fontWeight: 700 }}>Ghi chú cá nhân hóa</span>
           <input
             placeholder="Ví dụ: Dân văn phòng ngồi nhiều đau lưng dưới, ưu tiên siết mỡ đùi và eo, tập sáng..."
             value={customNotes}

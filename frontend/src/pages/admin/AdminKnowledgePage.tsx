@@ -191,9 +191,6 @@ export default function AdminKnowledgePage() {
             <h1 className="m-0 text-xl font-extrabold text-slate-900">
               Kho Tri Thức & Thư Viện Ảnh Món Ăn
             </h1>
-            <p className="m-0 text-xs text-slate-500 mt-0.5">
-              Kho lưu trữ trung tâm: Quản lý ảnh món ăn lưu folder vật lý và tài liệu quy chuẩn dinh dưỡng
-            </p>
           </div>
         </div>
 

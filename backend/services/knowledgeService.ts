@@ -285,6 +285,6 @@ export async function seedStandardKnowledgeLibrary(user: AuthenticatedUser) {
 
   return {
     count: seeded.length,
-    message: `Đã nạp ${seeded.length} tài liệu tri thức chuẩn 3S-Gym và hoàn tất RAG vector!`,
+    message: `Đã nạp ${seeded.length} tài liệu tri thức và hoàn tất RAG vector!`,
   };
 }

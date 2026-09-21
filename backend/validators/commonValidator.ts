@@ -33,8 +33,8 @@ export function withDateRange(fields: Joi.SchemaMap, fromKey: string, toKey: str
   return Joi.object(fields).custom((value: Record<string, unknown>, helpers) => {
     const from = value[fromKey];
     const to = value[toKey];
-    if (from && to && new Date(String(to)) <= new Date(String(from))) {
-      return helpers.message({ custom: `Ngày ${toKey} phải sau ngày ${fromKey}.` });
+    if (from && to && new Date(String(to)).getTime() < new Date(String(from)).getTime()) {
+      return helpers.message({ custom: `Ngày ${toKey} phải sau hoặc bằng ngày ${fromKey}.` });
     }
     return value;
   }).messages(commonMessages);

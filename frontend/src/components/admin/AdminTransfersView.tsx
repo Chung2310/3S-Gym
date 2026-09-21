@@ -224,7 +224,6 @@ export default function AdminTransfersView() {
             <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 750, color: '#003b70' }}>
               Chọn nhanh học viên cần điều chuyển
             </h3>
-            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Bấm nút "Chuyển PT" trên học viên để bắt đầu</span>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
