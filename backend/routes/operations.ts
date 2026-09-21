@@ -22,6 +22,7 @@ router.patch('/progress-reports/:id', ...progress, validate(updateProgressReport
 router.delete('/progress-reports/:id', ...progress, validate(operationIdSchema), c.deleteReport);
 
 router.get('/notifications', authenticate, validate(listOperationSchema), c.notifications);
+router.post('/notifications/test', authenticate, c.createTestNotification);
 router.patch('/notifications/:id/read', authenticate, validate(operationIdSchema), c.readNotification);
 
 /* legacy manual validator removed */

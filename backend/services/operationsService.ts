@@ -3,6 +3,7 @@ import ProgressReport, { type IProgressReport } from '../models/ProgressReport.j
 import CustomerProfile from '../models/CustomerProfile.js'; import User, { type IUser } from '../models/User.js'; import CareAlert from '../models/CareAlert.js'; import PtPackage from '../models/PtPackage.js';
 import { AppError } from '../errors/AppError.js'; import { ERROR_CODES } from '../errors/errorCodes.js'; import { recordAudit } from './auditService.js'; import type { AuthenticatedUser } from '../types/express.js'; import { isAdminRole } from './roles.js';
 import { createNotificationOnce } from './notificationService.js';
+import { sendPushToUser } from './pushService.js';
 import { withTransaction } from './transactionService.js';
 import { getJourney } from './customerJourneyService.js';
 import { generateProgressReport } from './progressReportGenerator.js';
@@ -27,6 +28,77 @@ export async function unpublishReport(user: AuthenticatedUser, id: string) { con
 export async function deleteReport(user: AuthenticatedUser, id: string) { const report = await reportFor(user, id); if (report.status !== 'DRAFT') throw denied('Chỉ có thể xóa báo cáo chưa công bố.', 403); await report.deleteOne(); await recordAudit({ actor: user, action: 'PROGRESS_REPORT_DELETED', resourceType: 'progressReports', resourceId: id, customerId: report.customerId }); return report; }
 export async function listNotifications(user: AuthenticatedUser, query: Record<string, unknown>) { const page = Number(query.page || 1), limit = Number(query.limit || 20); const filter: QueryFilter<INotification> = { userId: new Types.ObjectId(user.id) }; const [items, total] = await Promise.all([Notification.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(), Notification.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
 export async function readNotification(user: AuthenticatedUser, id: string) { const item = await Notification.findOneAndUpdate({ _id: id, userId: user.id }, { $set: { readAt: new Date() } }, { returnDocument: 'after' }); if (!item) throw denied('Không tìm thấy thông báo.', 404); return item; }
+
+const TEST_NOTIFICATION_TEMPLATES = [
+  {
+    type: 'PACKAGE_ALERT',
+    title: 'Gói tập sắp hết hạn (3 ngày)',
+    message: 'Học viên Nguyễn Văn An chỉ còn 3 ngày trong gói PT 24 buổi. Hãy trao đổi gia hạn nhé!',
+    resourceType: 'careAlerts',
+  },
+  {
+    type: 'CALENDAR_EVENT_CREATED',
+    title: 'Lịch tập mới với học viên',
+    message: 'Bạn có buổi tập PT Thể lực & Cardio với Trần Minh Thảo lúc 15:30 chiều nay.',
+    resourceType: 'calendarEvents',
+  },
+  {
+    type: 'PROGRESS_REPORT_PUBLISHED',
+    title: 'Báo cáo tiến độ InBody mới',
+    message: 'Chỉ số mỡ của học viên Lê Hoàng đã giảm 1.8%, cơ tăng 0.9kg trong đợt kiểm tra mới nhất!',
+    resourceType: 'progressReports',
+  },
+  {
+    type: 'CARE_ALERT_CREATED',
+    title: 'Khách 5 ngày chưa tập',
+    message: 'Học viên Phạm Quốc Bảo chưa có check-in tập luyện trong 5 ngày qua. Hãy gửi tin nhắn chăm sóc!',
+    resourceType: 'careAlerts',
+  },
+  {
+    type: 'WALLET_CREDIT_REWARD',
+    title: 'Thưởng Credit AI',
+    message: 'Hệ thống đã cộng 100 Credit AI vào ví của bạn nhờ hoàn thành mục tiêu tập luyện tuần qua.',
+    resourceType: 'wallet',
+  },
+  {
+    type: 'PACKAGE_LOW_SESSIONS',
+    title: 'Học viên sắp hết buổi tập',
+    message: 'Học viên Vũ Mai Linh chỉ còn 2 buổi tập PT. Cần liên hệ tư vấn gia hạn gói mới.',
+    resourceType: 'careAlerts',
+  },
+];
+
+export async function createTestNotification(user: AuthenticatedUser) {
+  const sample = TEST_NOTIFICATION_TEMPLATES[Math.floor(Math.random() * TEST_NOTIFICATION_TEMPLATES.length)];
+  const randomResourceId = new Types.ObjectId().toString();
+
+  const item = await Notification.create({
+    userId: new Types.ObjectId(user.id),
+    type: sample.type,
+    title: sample.title,
+    message: sample.message,
+    resourceType: sample.resourceType,
+    resourceId: randomResourceId,
+    readAt: null,
+  });
+
+  let pushSent = 0;
+  try {
+    pushSent = await sendPushToUser(user.id, {
+      title: sample.title,
+      body: sample.message,
+      data: {
+        screen: 'notifications',
+        resourceType: sample.resourceType,
+        resourceId: randomResourceId,
+      },
+    });
+  } catch {
+    // Không để lỗi push làm fail tạo thông báo
+  }
+
+  return { item, pushSent };
+}
 export async function createEvent(user: AuthenticatedUser, payload: Partial<ICalendarEvent>) { const customer = payload.customerId ? await customerFor(user, String(payload.customerId)) : null; const event = await CalendarEvent.create({ ...payload, ownerPtId: user.id, status: 'SCHEDULED' }); if (customer?.userId) await createNotificationOnce({ userId: customer.userId, type: 'CALENDAR_EVENT_CREATED', title: 'Lịch tập mới', message: event.title, resourceType: 'calendarEvents', resourceId: event.id }); await recordAudit({ actor: user, action: 'CALENDAR_EVENT_CREATED', resourceType: 'calendarEvent', resourceId: event.id, customerId: event.customerId }); return event; }
 export async function listEvents(user: AuthenticatedUser, query: Record<string, unknown>) { const page = Number(query.page || 1), limit = Number(query.limit || 20); const filter: QueryFilter<ICalendarEvent> = isAdminRole(user.role) ? {} : { ownerPtId: new Types.ObjectId(user.id) }; if (query.fromDate || query.toDate) filter.startsAt = { ...(query.fromDate ? { $gte: new Date(String(query.fromDate)) } : {}), ...(query.toDate ? { $lt: new Date(String(query.toDate)) } : {}) }; const [items, total] = await Promise.all([CalendarEvent.find(filter).sort({ startsAt: 1 }).skip((page - 1) * limit).limit(limit).lean(), CalendarEvent.countDocuments(filter)]); return { items, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } }; }
 export async function updateEvent(user: AuthenticatedUser, id: string, payload: Partial<ICalendarEvent>) {
