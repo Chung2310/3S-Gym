@@ -37,7 +37,7 @@ const sections = [
     "Người có quyền truy cập và bên cung cấp dịch vụ",
     [
       "Dữ liệu được truy cập theo vai trò và phạm vi phân quyền, bao gồm huấn luyện viên phụ trách và người quản trị phục vụ hoạt động của phòng tập.",
-      "Hệ thống tích hợp các dịch vụ kỹ thuật như lưu trữ/hạ tầng, Cloudinary cho nội dung ảnh, OpenRouter và nhà cung cấp mô hình AI cho tính năng AI/OCR, PayOS cho thanh toán và hạ tầng thông báo khi được bật. Chỉ các dịch vụ được cấu hình và sử dụng mới tham gia xử lý luồng dữ liệu tương ứng.",
+      "Hệ thống tích hợp các dịch vụ kỹ thuật như lưu trữ/hạ tầng, Cloudinary cho nội dung ảnh, OpenRouter và nhà cung cấp mô hình AI cho tính năng AI/OCR, SePay cho thanh toán chuyển khoản; PayOS có thể tiếp tục xử lý các đơn đã tạo trước khi chuyển đổi và hạ tầng thông báo khi được bật. Chỉ các dịch vụ được cấu hình và sử dụng mới tham gia xử lý luồng dữ liệu tương ứng.",
       "Khi dùng AI/OCR, nội dung yêu cầu, tài liệu hoặc các chỉ số liên quan có thể được gửi đến nhà cung cấp AI. Các nhà cung cấp hạ tầng và AI có thể xử lý dữ liệu ngoài Việt Nam theo chính sách của họ. Dữ liệu cũng có thể được cung cấp cho cơ quan có thẩm quyền khi có yêu cầu hợp lệ."
     ]
   ],

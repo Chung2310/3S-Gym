@@ -12,6 +12,7 @@ export type GatewayPaymentResult =
   | { configured: true; redirectUrl: string; qrCode?: string; paymentLinkId?: string };
 
 export interface GatewayCallbackResult {
+  recipient?: { bankName: string; accountNumber: string; subAccount: string };
   valid: boolean;
   orderCode?: string;
   amountVnd?: number;

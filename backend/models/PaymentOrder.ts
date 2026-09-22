@@ -1,9 +1,20 @@
 import mongoose, { Schema } from 'mongoose';
 
-export type PaymentGateway = 'PAYOS' | 'VNPAY' | 'MOMO';
+export type PaymentGateway = 'SEPAY' | 'PAYOS' | 'VNPAY' | 'MOMO';
 export type PaymentOrderStatus = 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED';
 
+export interface BankTransferDetails {
+  bankCode: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  content: string;
+  webhookAccountNumber: string;
+  subAccount: string;
+}
+
 export interface IPaymentOrder {
+  bankTransfer?: BankTransferDetails;
   userId: mongoose.Types.ObjectId;
   walletId: mongoose.Types.ObjectId;
   gateway: PaymentGateway;
@@ -26,9 +37,18 @@ export interface IPaymentOrder {
 const nonNegativeInteger = { type: Number, min: 0, validate: Number.isInteger, required: true } as const;
 
 const paymentOrderSchema = new Schema<IPaymentOrder>({
+  bankTransfer: { type: new Schema<BankTransferDetails>({
+    bankCode: { type: String, required: true },
+    bankName: { type: String, required: true },
+    accountNumber: { type: String, required: true },
+    accountHolder: { type: String, required: true },
+    content: { type: String, required: true },
+    webhookAccountNumber: { type: String, required: true },
+    subAccount: { type: String, default: '' },
+  }, { _id: false }), default: undefined },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   walletId: { type: Schema.Types.ObjectId, ref: 'CreditWallet', required: true, index: true },
-  gateway: { type: String, enum: ['PAYOS', 'VNPAY', 'MOMO'], required: true, index: true },
+  gateway: { type: String, enum: ['SEPAY', 'PAYOS', 'VNPAY', 'MOMO'], required: true, index: true },
   orderCode: { type: String, required: true, unique: true, trim: true, maxlength: 100 },
   status: { type: String, enum: ['PENDING', 'PAID', 'FAILED', 'EXPIRED'], required: true, default: 'PENDING', index: true },
   source: { type: String, enum: ['PACKAGE', 'CUSTOM'], required: true },
