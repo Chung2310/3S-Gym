@@ -1,17 +1,25 @@
-import { timingSafeEqual } from 'node:crypto';
+import { randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
 import { getEnv, type AppEnv } from '../config/env.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import type { BankTransferDetails } from '../models/PaymentOrder.js';
 import type { GatewayCallbackResult } from './paymentGatewayTypes.js';
 
-const ORDER_CODE = /^CR[A-F0-9]{20}$/;
-// Optional app routing prefix (2-5 characters) attached to the internal CR code.
-const PAYMENT_CODE = /^(?:[A-Z0-9]{2,5})?CR[A-F0-9]{20}$/;
+const LEGACY_ORDER_CODE = /^CR[A-F0-9]{20}$/;
+const SHORT_ORDER_CODE = /^[A-Z0-9]{2,5}[0-9]{8}$/;
+const ORDER_CODE = /^(?:CR[A-F0-9]{20}|[A-Z0-9]{2,5}[0-9]{8})$/;
+// Accept both the new short code and persisted legacy payment codes.
+const PAYMENT_CODE = /^(?:(?:[A-Z0-9]{2,5})?CR[A-F0-9]{20}|[A-Z0-9]{2,5}[0-9]{8})$/;
 const normalized = (value: string) => value.trim().toUpperCase();
 
+// VietQR uses MB; MBB is commonly entered as the bank's stock ticker.
+function qrBankCode(value: string): string {
+  const code = value.trim();
+  return code.toUpperCase() === 'MBB' ? 'MB' : code;
+}
+
 function config(env: AppEnv) {
-  const bankCode = env.SEPAY_BANK_CODE?.trim();
+  const bankCode = qrBankCode(env.SEPAY_BANK_CODE || '');
   const bankName = env.SEPAY_BANK_NAME?.trim();
   const accountNumber = env.SEPAY_ACCOUNT_NUMBER?.trim();
   const accountHolder = env.SEPAY_ACCOUNT_HOLDER?.trim();
@@ -30,6 +38,13 @@ export function isSepayConfigured(env: AppEnv = getEnv()): boolean {
   return config(env) !== null;
 }
 
+export function createSepayOrderCode(env: AppEnv = getEnv()): string {
+  const note = normalized(env.SEPAY_TRANSFER_NOTE || '');
+  return note
+    ? note + String(randomInt(0, 100_000_000)).padStart(8, '0')
+    : 'CR' + randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase();
+}
+
 export function createSepayPayment(
   input: { orderCode: string; amountVnd: number },
   env: AppEnv = getEnv(),
@@ -44,7 +59,9 @@ export function createSepayPayment(
     bankName: settings.bankName,
     accountNumber: settings.qrAccount,
     accountHolder: settings.accountHolder,
-    content: [settings.prefix, settings.note + input.orderCode].filter(Boolean).join(' '),
+    content: [settings.prefix, LEGACY_ORDER_CODE.test(input.orderCode)
+      ? settings.note + input.orderCode
+      : [input.orderCode.slice(0, -8), input.orderCode].join(' ')].filter(Boolean).join(' '),
     webhookAccountNumber: settings.accountNumber,
     subAccount: env.SEPAY_SUB_ACCOUNT?.trim() || '',
   };
@@ -53,7 +70,7 @@ export function createSepayPayment(
 export function sepayQrUrl(transfer: BankTransferDetails, amountVnd: number): string {
   const url = new URL('https://vietqr.app/img');
   url.search = new URLSearchParams({
-    acc: transfer.accountNumber, bank: transfer.bankCode, amount: String(amountVnd),
+    acc: transfer.accountNumber, bank: qrBankCode(transfer.bankCode), amount: String(amountVnd),
     des: transfer.content, template: 'compact', showinfo: 'true', fullacc: 'true',
     holder: transfer.accountHolder,
   }).toString();
@@ -81,7 +98,7 @@ export function verifySepayCallback(
   if (input.transferType !== 'in') throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Loại giao dịch SePay không hợp lệ.' });
   const code = typeof input.code === 'string' ? normalized(input.code) : '';
   const content = typeof input.content === 'string' ? normalized(input.content) : '';
-  const matches = Array.from(content.matchAll(/(?:^|[^A-Z0-9])((?:[A-Z0-9]{2,5})?CR[A-F0-9]{20})(?=$|[^A-Z0-9])/g), match => match[1]);
+  const matches = Array.from(content.matchAll(/(?:^|[^A-Z0-9])((?:[A-Z0-9]{2,5})?CR[A-F0-9]{20}|[A-Z0-9]{2,5}[0-9]{8})(?=$|[^A-Z0-9])/g), match => match[1]);
   const codes = new Set(matches);
   if (PAYMENT_CODE.test(code)) codes.add(code);
   if (!codes.size) return null; // An unrelated bank transfer is acknowledged, never credited.
@@ -99,7 +116,7 @@ export function verifySepayCallback(
     throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Giao dịch SePay thiếu hoặc sai thông tin.' });
   }
   return {
-    valid: true, success: true, orderCode: [...codes][0].slice(-22), paymentCode: [...codes][0], amountVnd: amount,
+    valid: true, success: true, orderCode: SHORT_ORDER_CODE.test([...codes][0]) ? [...codes][0] : [...codes][0].slice(-22), paymentCode: [...codes][0], amountVnd: amount,
     transactionId, resultCode: 'SEPAY_IN',
     recipient: {
       bankName: input.gateway.trim(), accountNumber: input.accountNumber.trim(),

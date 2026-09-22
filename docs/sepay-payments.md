@@ -21,12 +21,14 @@ Các biến bắt buộc trong .env / secret store của server (không đặt t
 Thêm vào nội dung ENV_FILE / ENV_FILE_PROD trên GitHub Variables:
 
 ```env
-SEPAY_TRANSFER_NOTE=3SGYM
+SEPAY_TRANSFER_NOTE=SG
 ```
 
-NOTE dùng 2-5 ký tự chữ/số không dấu, không khoảng trắng; backend chuyển thành chữ hoa. Mã thanh toán là NOTE ghép liền với mã đơn, ví dụ 3SGYMCR0123456789ABCDEF0123. Mã đơn nội bộ CR... không đổi.
+NOTE dùng 2-5 ký tự chữ/số không dấu, không khoảng trắng; backend chuyển thành chữ hoa. Đơn mới có mã NOTE + 8 chữ số, nội dung giống Luxcare: SG SG12345678. QR giữ nguyên nội dung này. Mã được kiểm tra trùng và có unique index trong database; nếu trùng đồng thời, đơn bị từ chối trước khi hiển thị QR.
 
-Trong SePay, bật Nhận diện mã thanh toán, tạo mẫu tiền tố 3SGYM, hậu tố tối thiểu = tối đa = 22, loại Số và chữ. Chọn Lọc theo mã thanh toán = 3SGYM cho webhook 3S. Đặt mẫu 3SGYM trước mẫu CR chung nếu cùng tồn tại; SePay dùng mẫu khớp đầu tiên. Không thêm khoảng trắng giữa 3SGYM và CR.
+Trong SePay, bật Nhận diện mã thanh toán, tạo mẫu tiền tố SG, hậu tố tối thiểu = tối đa = 8, loại Số nguyên. Chọn Lọc theo mã thanh toán = SG cho webhook 3S. Mã SePay trích được là SG12345678; SG đứng riêng là nhãn ứng dụng.
+
+Đơn cũ dạng SGCR... vẫn được backend đối soát. Trong thời gian chuyển đổi, giữ thêm mẫu SG + 22 ký tự Số và chữ cho đơn cũ (hoặc tạm dùng SG + 8–22 ký tự Số và chữ); không sửa nội dung hay mã của đơn đã tạo.
 
 Để trống NOTE giữ định dạng cũ CR + 20 ký tự. Đơn đã tạo lưu nguyên nội dung cũ; khi đổi NOTE cần giữ mẫu/bộ lọc cũ cho các đơn đang chờ đến khi đối soát xong. Webhook kiểm tra mã thanh toán theo snapshot đơn, không theo NOTE hiện tại.
 
@@ -44,7 +46,7 @@ MongoDB phải hỗ trợ transaction (replica set/Atlas). Khi không có transa
 2. Thêm webhook Có tiền vào cho đúng tài khoản/VA.
 3. URL production: https://3s.igentechnology.net/api/credits/payments/sepay/webhook
 4. Chọn chứng thực API Key. SePay gửi Authorization: Apikey <khóa>; dùng khóa trùng SEPAY_WEBHOOK_API_KEY.
-5. Dùng body JSON. Với NOTE=3SGYM, cấu hình mẫu 3SGYM + 22 ký tự Số và chữ, lọc webhook theo 3SGYM như mục trên. Khi NOTE trống, dùng CR + 20 ký tự. Backend đọc mã đầy đủ từ content khi code trống.
+5. Dùng body JSON. Với NOTE=SG, cấu hình mẫu SG + 8 chữ số, lọc webhook theo SG như mục trên. Khi NOTE trống, dùng CR + 20 ký tự. Backend đọc mã đầy đủ từ content khi code trống.
 6. Kiểm tra payload thực tế để điền BANK_NAME, ACCOUNT_NUMBER và SUB_ACCOUNT khớp chính xác. Lưu ý quy tắc VA/memo riêng của ngân hàng trong tài liệu SePay.
 7. Thử Test Mode và webhook thử trên môi trường thử nghiệm trước khi mở nạp tiền production.
 
