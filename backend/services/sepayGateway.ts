@@ -6,10 +6,11 @@ import type { BankTransferDetails } from '../models/PaymentOrder.js';
 import type { GatewayCallbackResult } from './paymentGatewayTypes.js';
 
 const LEGACY_ORDER_CODE = /^CR[A-F0-9]{20}$/;
-const SHORT_ORDER_CODE = /^[A-Z0-9]{2,5}[0-9]{8}$/;
-const ORDER_CODE = /^(?:CR[A-F0-9]{20}|[A-Z0-9]{2,5}[0-9]{8})$/;
+// A short payment prefix must contain a letter: bank references can be 10-13 digits.
+const SHORT_ORDER_CODE = /^(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,5}[0-9]{8}$/;
+const ORDER_CODE = /^(?:CR[A-F0-9]{20}|(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,5}[0-9]{8})$/;
 // Accept both the new short code and persisted legacy payment codes.
-const PAYMENT_CODE = /^(?:(?:[A-Z0-9]{2,5})?CR[A-F0-9]{20}|[A-Z0-9]{2,5}[0-9]{8})$/;
+const PAYMENT_CODE = /^(?:(?:[A-Z0-9]{2,5})?CR[A-F0-9]{20}|(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,5}[0-9]{8})$/;
 const normalized = (value: string) => value.trim().toUpperCase();
 
 // VietQR uses MB; MBB is commonly entered as the bank's stock ticker.
@@ -30,7 +31,7 @@ function config(env: AppEnv) {
   if (!bankCode || !bankName || !accountNumber || !accountHolder || !qrAccount || !secret
     || !/^[a-zA-Z0-9]{1,19}$/.test(accountNumber) || !/^[a-zA-Z0-9]{1,19}$/.test(qrAccount)
     || !/^[a-zA-Z0-9 ]{0,40}$/.test(prefix)
-    || (note !== '' && !/^[A-Z0-9]{2,5}$/.test(note))) return null;
+    || (note !== '' && (!/^[A-Z0-9]{2,5}$/.test(note) || !/[A-Z]/.test(note)))) return null;
   return { bankCode, bankName, accountNumber, accountHolder, qrAccount, secret, prefix, note };
 }
 
@@ -98,7 +99,7 @@ export function verifySepayCallback(
   if (input.transferType !== 'in') throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Loại giao dịch SePay không hợp lệ.' });
   const code = typeof input.code === 'string' ? normalized(input.code) : '';
   const content = typeof input.content === 'string' ? normalized(input.content) : '';
-  const matches = Array.from(content.matchAll(/(?:^|[^A-Z0-9])((?:[A-Z0-9]{2,5})?CR[A-F0-9]{20}|[A-Z0-9]{2,5}[0-9]{8})(?=$|[^A-Z0-9])/g), match => match[1]);
+  const matches = Array.from(content.matchAll(/(?:^|[^A-Z0-9])((?:[A-Z0-9]{2,5})?CR[A-F0-9]{20}|(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,5}[0-9]{8})(?=$|[^A-Z0-9])/g), match => match[1]);
   const codes = new Set(matches);
   if (PAYMENT_CODE.test(code)) codes.add(code);
   if (!codes.size) return null; // An unrelated bank transfer is acknowledged, never credited.
