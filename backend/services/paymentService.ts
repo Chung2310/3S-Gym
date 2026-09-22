@@ -1,3 +1,4 @@
+import { createSepayPayment, isSepayConfigured, sepayQrUrl, verifySepayCallback } from './sepayGateway.js';
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import { AppError } from '../errors/AppError.js';
@@ -8,10 +9,10 @@ import PaymentOrder, { type IPaymentOrder, type PaymentGateway } from '../models
 import { createMomoPayment, isMomoConfigured, verifyMomoCallback } from './momoGateway.js';
 import type { GatewayCallbackResult } from './paymentGatewayTypes.js';
 import { createVnpayPayment, isVnpayConfigured, verifyVnpayCallback } from './vnpayGateway.js';
-import { createPayosPayment, getPayosPaymentInfo, isPayosConfigured, verifyPayosCallback } from './payosGateway.js';
+import { getPayosPaymentInfo, isPayosConfigured, verifyPayosCallback } from './payosGateway.js';
 import { ensureWallet, grantTopupCredits } from './creditWalletService.js';
 import { recordUserAudit } from './auditService.js';
-import { withTransaction } from './transactionService.js';
+import { supportsTransactions, withTransaction } from './transactionService.js';
 
 type OrderDocument = mongoose.HydratedDocument<IPaymentOrder>;
 
@@ -24,6 +25,12 @@ function orderView(order: OrderDocument, redirectUrl?: string, qrCodeUrl?: strin
     id: order.id, orderCode: order.orderCode, gateway: order.gateway, status: order.status,
     source: order.source, amountVnd: order.amountVnd, baseCredits: order.baseCredits,
     bonusCredits: order.bonusCredits, grantCredits: order.grantCredits,
+    ...(order.bankTransfer ? { bankTransfer: {
+      bankName: order.bankTransfer.bankName, accountNumber: order.bankTransfer.accountNumber,
+      accountHolder: order.bankTransfer.accountHolder, content: order.bankTransfer.content,
+    } } : {}),
+    ...(order.gateway === 'SEPAY' && order.bankTransfer && order.status === 'PENDING'
+      ? { qrCodeUrl: sepayQrUrl(order.bankTransfer, order.amountVnd) } : {}),
     expiresAt: order.expiresAt, ...(redirectUrl ? { redirectUrl } : {}),
     ...(qrCodeUrl ? { qrCodeUrl } : {}),
   };
@@ -31,7 +38,8 @@ function orderView(order: OrderDocument, redirectUrl?: string, qrCodeUrl?: strin
 
 export function gatewayAvailability() {
   return {
-    PAYOS: isPayosConfigured(),
+    SEPAY: isSepayConfigured(),
+    PAYOS: false, // Legacy callbacks only; no new PayOS orders.
     VNPAY: isVnpayConfigured(),
     MOMO: isMomoConfigured(),
   };
@@ -55,7 +63,10 @@ export async function createPaymentOrder(
   input: { gateway: PaymentGateway; packageId?: string; customAmountVnd?: number },
   ipAddress: string,
 ) {
-  const gateway = input.gateway || 'PAYOS';
+  const gateway = input.gateway || 'SEPAY';
+  if (gateway === 'PAYOS') unavailable('PayOS đã ngừng tạo đơn mới. Vui lòng sử dụng SePay.');
+  if (gateway === 'SEPAY' && !isSepayConfigured()) unavailable('SePay chưa được cấu hình đầy đủ.');
+  if (gateway === 'SEPAY' && !(await supportsTransactions())) unavailable('Thanh toán SePay cần MongoDB replica set để cộng credit an toàn.');
   if (gateway === 'VNPAY' && !isVnpayConfigured()) unavailable('VNPay chưa được cấu hình.');
   if (gateway === 'MOMO' && !isMomoConfigured()) unavailable('MoMo chưa được cấu hình.');
 
@@ -89,15 +100,20 @@ export async function createPaymentOrder(
     bonusCredits = 0;
   }
 
-  const isPayos = gateway === 'PAYOS';
-  const orderCode = isPayos
-    ? `${Date.now().toString().slice(-9)}${Math.floor(Math.random() * 9000 + 1000)}`
+  if (!Number.isSafeInteger(baseCredits + bonusCredits) || baseCredits + bonusCredits <= 0) {
+    throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Số tiền nạp chưa đủ để quy đổi credit.' });
+  }
+
+  const orderCode = gateway === 'SEPAY'
+    ? 'CR' + randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase()
     : `CR${Date.now().toString(36).toUpperCase()}${randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase()}`;
+  const bankTransfer = gateway === 'SEPAY' ? createSepayPayment({ orderCode, amountVnd }) : undefined;
   const requestId = `REQ-${orderCode}`;
   const order = await PaymentOrder.create({
     userId,
     walletId: wallet._id,
     gateway,
+    bankTransfer,
     orderCode,
     status: 'PENDING',
     source,
@@ -115,23 +131,8 @@ export async function createPaymentOrder(
   let redirectUrl: string | undefined;
   let qrCodeUrl: string | undefined;
 
-  if (gateway === 'PAYOS') {
-    if (!isPayosConfigured()) {
-      unavailable('Cổng thanh toán trực tuyến chưa được cấu hình.');
-    }
-    const result = await createPayosPayment({
-      orderCode,
-      amountVnd,
-      description,
-      createdAt: (order as unknown as { createdAt?: Date }).createdAt,
-    });
-    if (!result.configured) unavailable('Cổng thanh toán trực tuyến chưa được cấu hình.');
-    redirectUrl = result.redirectUrl;
-    qrCodeUrl = result.qrCode;
-    if (result.paymentLinkId) {
-      order.gatewayRequestId = result.paymentLinkId;
-      await order.save();
-    }
+  if (gateway === 'SEPAY') {
+    qrCodeUrl = sepayQrUrl(bankTransfer!, amountVnd);
   } else if (gateway === 'VNPAY') {
     const result = createVnpayPayment({ orderCode, amountVnd, description, ipAddress });
     if (!result.configured) unavailable('VNPay chưa được cấu hình.');
@@ -175,9 +176,20 @@ async function settleVerifiedCallback(gateway: PaymentGateway, verified: Gateway
   try {
     if (!verified.valid) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Chữ ký callback thanh toán không hợp lệ.' });
     if (!verified.orderCode) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Callback thiếu mã đơn thanh toán.' });
-    return await withTransaction(async (session) => {
+    if (gateway === 'SEPAY' && !(await supportsTransactions())) unavailable('Thanh toán SePay cần MongoDB replica set để cộng credit an toàn.');
+    const settle = async (session: mongoose.ClientSession) => {
     const order = await PaymentOrder.findOne({ orderCode: verified.orderCode, gateway }).session(session);
     if (!order) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy đơn thanh toán.' });
+    if (gateway === 'SEPAY') {
+      const expected = order.bankTransfer;
+      const recipient = verified.recipient;
+      if (!expected || !recipient
+        || expected.webhookAccountNumber !== recipient.accountNumber
+        || expected.bankName.toUpperCase() !== recipient.bankName.toUpperCase()
+        || expected.subAccount !== recipient.subAccount) {
+        throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Tài khoản nhận tiền SePay không khớp đơn thanh toán.' });
+      }
+    }
     if (verified.amountVnd !== order.amountVnd) throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Số tiền callback không khớp đơn thanh toán.' });
     if (!verified.success) {
       if (order.status === 'PENDING' || order.status === 'EXPIRED') {
@@ -202,7 +214,8 @@ async function settleVerifiedCallback(gateway: PaymentGateway, verified: Gateway
       metadata: { credits: order.grantCredits, amountVnd: order.amountVnd, gateway },
     }, session);
     return orderView(order);
-    });
+    };
+    return await (gateway === 'SEPAY' ? mongoose.connection.transaction(settle) : withTransaction(settle));
   } catch (error) {
     if (verified.orderCode) {
       const order = await PaymentOrder.findOne({ orderCode: verified.orderCode, gateway }).select({ _id: 1, userId: 1 }).lean();
@@ -223,3 +236,14 @@ export async function settlePayosCallback(input: Record<string, unknown>) {
 }
 export function settleVnpayCallback(input: Record<string, unknown>) { return settleVerifiedCallback('VNPAY', verifyVnpayCallback(input)); }
 export function settleMomoCallback(input: Record<string, unknown>) { return settleVerifiedCallback('MOMO', verifyMomoCallback(input)); }
+
+export async function settleSepayCallback(input: Record<string, unknown>, authorization?: string) {
+  const verified = verifySepayCallback(input, authorization);
+  if (!verified) return { ignored: true };
+  return settleVerifiedCallback('SEPAY', verified);
+}
+
+export async function getTopupRate() {
+  const pricing = await CreditPricing.findOne({ key: 'GLOBAL' }).select('vndPerCredit').lean();
+  return pricing?.vndPerCredit ?? null;
+}

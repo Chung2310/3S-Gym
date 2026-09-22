@@ -166,6 +166,7 @@ const LoginPage = () => {
               )}
             </button>
           </form>
+          <Link to="/privacy-policy" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, color: '#0284C7', textDecoration: 'underline' }}>Chính sách bảo mật</Link>
 
         </div>
 

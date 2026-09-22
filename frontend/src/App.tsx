@@ -1,3 +1,4 @@
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import { BrowserRouter as Router, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import Navbar from './components/Navbar';
@@ -11,6 +12,7 @@ import { destinationForRole, getSession } from './services/session';
 /** Map route prefixes to page titles for SEO & UX */
 function titleForPath(pathname: string): string {
   if (pathname === '/') return '3S Wellness Fitness & Yoga | Phòng Tập Gym & Yoga Cao Cấp Bắc Ninh';
+  if (pathname === '/privacy-policy') return 'Chính sách bảo mật | 3S Gym';
   if (pathname === '/login') return 'Đăng Nhập | 3S Wellness Fitness & Yoga';
   return '3S Gym — Hệ Thống Quản Lý';
 }
@@ -29,6 +31,7 @@ function MainContent() {
       {!hideNavbar && <Navbar />}
       <main>
         <Routes>
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route
             path="/"
             element={session ? <Navigate to={destinationForRole()} replace /> : <LandingPage />}

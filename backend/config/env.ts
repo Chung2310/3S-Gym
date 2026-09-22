@@ -53,6 +53,14 @@ export interface AppEnv {
   MOMO_API_URL?: string;
   MOMO_REDIRECT_URL?: string;
   MOMO_IPN_URL?: string;
+  SEPAY_BANK_CODE?: string;
+  SEPAY_BANK_NAME?: string;
+  SEPAY_ACCOUNT_NUMBER?: string;
+  SEPAY_ACCOUNT_HOLDER?: string;
+  SEPAY_QR_ACCOUNT_NUMBER?: string;
+  SEPAY_SUB_ACCOUNT?: string;
+  SEPAY_TRANSFER_PREFIX?: string;
+  SEPAY_WEBHOOK_API_KEY?: string;
   PAYOS_CLIENT_ID?: string;
   PAYOS_API_KEY?: string;
   PAYOS_CHECKSUM_KEY?: string;
@@ -118,6 +126,14 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     MOMO_API_URL: optional('MOMO_API_URL'),
     MOMO_REDIRECT_URL: optional('MOMO_REDIRECT_URL'),
     MOMO_IPN_URL: optional('MOMO_IPN_URL'),
+    SEPAY_BANK_CODE: optional('SEPAY_BANK_CODE'),
+    SEPAY_BANK_NAME: optional('SEPAY_BANK_NAME'),
+    SEPAY_ACCOUNT_NUMBER: optional('SEPAY_ACCOUNT_NUMBER'),
+    SEPAY_ACCOUNT_HOLDER: optional('SEPAY_ACCOUNT_HOLDER'),
+    SEPAY_QR_ACCOUNT_NUMBER: optional('SEPAY_QR_ACCOUNT_NUMBER'),
+    SEPAY_SUB_ACCOUNT: optional('SEPAY_SUB_ACCOUNT'),
+    SEPAY_TRANSFER_PREFIX: optional('SEPAY_TRANSFER_PREFIX'),
+    SEPAY_WEBHOOK_API_KEY: optional('SEPAY_WEBHOOK_API_KEY'),
     PAYOS_CLIENT_ID: optional('PAYOS_CLIENT_ID'),
     PAYOS_API_KEY: optional('PAYOS_API_KEY'),
     PAYOS_CHECKSUM_KEY: optional('PAYOS_CHECKSUM_KEY'),

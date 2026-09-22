@@ -137,7 +137,7 @@ jobs:
         if: github.ref_name == 'develop'
         uses: appleboy/ssh-action@v1.0.3
         env:
-          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE }}
+          ENV_FILE_CONTENT: ${{ vars.ENV_FILE }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -157,8 +157,9 @@ jobs:
             mkdir -p "$TARGET_DIR"
             cd "$TARGET_DIR"
 
-            # Tạo/ghi nội dung cấu hình từ GitHub Secrets vào file .env cục bộ
-            echo "$ENV_FILE_CONTENT" > .env
+            # Tạo/ghi nội dung cấu hình từ GitHub Variables vào file .env cục bộ
+            : "${ENV_FILE_CONTENT:?GitHub Variable ENV_FILE must not be empty}"
+            printf '%s\n' "$ENV_FILE_CONTENT" > .env
 
             # Đăng nhập vào GHCR trên VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -214,7 +215,7 @@ jobs:
         if: github.ref_name == 'production'
         uses: appleboy/ssh-action@v1.0.3
         env:
-          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_PROD }}
+          ENV_FILE_CONTENT: ${{ vars.ENV_FILE_PROD }}
         with:
           host: ${{ secrets.SSH_HOST_PROD }}
           username: ${{ secrets.SSH_USER_PROD }}
@@ -234,8 +235,9 @@ jobs:
             mkdir -p "$TARGET_DIR"
             cd "$TARGET_DIR"
 
-            # Tạo/ghi nội dung cấu hình từ GitHub Secrets vào file .env cục bộ
-            echo "$ENV_FILE_CONTENT" > .env
+            # Tạo/ghi nội dung cấu hình từ GitHub Variables vào file .env cục bộ
+            : "${ENV_FILE_CONTENT:?GitHub Variable ENV_FILE_PROD must not be empty}"
+            printf '%s\n' "$ENV_FILE_CONTENT" > .env
 
             # Đăng nhập vào GHCR trên VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin

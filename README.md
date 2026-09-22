@@ -80,29 +80,43 @@ View your app in AI Studio: https://ai.studio/apps/c9f16f0c-380d-4f8a-bd87-6bcf8
 
 ## 🚀 Hướng dẫn cấu hình CI/CD (GitHub Actions)
 
-Dự án này sử dụng GitHub Actions để tự động hóa toàn bộ quá trình Tích hợp liên tục (CI) và Triển khai liên tục (CD) lên Firebase cùng máy chủ VPS chạy Docker.
+GitHub Actions kiểm tra mã nguồn, build Docker image lên GHCR và triển khai lên VPS.
 
-### 1. Cấu hình GitHub Secrets
-Để kích hoạt luồng triển khai tự động (CD), bạn cần truy cập vào Repo GitHub của mình -> **Settings** -> **Secrets and variables** -> **Actions** và tạo mới các **Repository Secrets** sau:
+### 1. Cấu hình GitHub Variables và Secrets
 
-| Tên Secret | Mô tả chi tiết | Cách lấy thông tin |
+Vào **Settings → Secrets and variables → Actions → Variables**, tạo **Repository variables**:
+
+| Tên Variable | Nội dung | Nhánh sử dụng |
 | :--- | :--- | :--- |
-| `GCP_SA_KEY` | Khóa tài khoản dịch vụ (JSON Key) để xác thực và deploy Rules & Functions lên Firebase. | Tạo Service Account với vai trò Editor trong GCP IAM Console và tải file JSON Key về. |
-| `SSH_HOST` | Địa chỉ IP hoặc tên miền của máy chủ VPS đích. | Địa chỉ máy chủ VPS của bạn. |
-| `SSH_USER` | Tên tài khoản đăng nhập SSH của VPS. | Thường là `root`, `ubuntu`, hoặc `centos`. |
-| `SSH_KEY` | Nội dung khóa Private Key SSH dùng để xác thực kết nối. | Khóa SSH Private tương ứng với Public Key được thêm vào `authorized_keys` của VPS. |
-| `SSH_PORT` | Cổng kết nối SSH (tùy chọn). | Mặc định là `22` nếu không thiết lập. |
+| `ENV_FILE` | Toàn bộ nội dung file `.env` của staging, giữ nguyên các dòng `KEY=value`. | `develop` |
+| `ENV_FILE_PROD` | Toàn bộ nội dung file `.env` của production, giữ nguyên các dòng `KEY=value`. | `production` |
+
+Workflow đọc `vars.ENV_FILE` và `vars.ENV_FILE_PROD`, chuyển nội dung qua biến môi trường của bước SSH rồi ghi vào `.env` trên VPS. Không fallback sang Secrets. Nếu Variable rỗng hoặc chưa được tạo, bước deploy dừng trước khi ghi đè `.env`. Các cấu hình SePay nằm trong nội dung `.env` tương ứng; xem [hướng dẫn SePay](docs/sepay-payments.md).
+
+Trong tab **Secrets**, cấu hình thông tin kết nối:
+
+| Tên Secret staging | Tên Secret production | Nội dung |
+| :--- | :--- | :--- |
+| `SSH_HOST` | `SSH_HOST_PROD` | IP hoặc tên miền VPS. |
+| `SSH_USER` | `SSH_USER_PROD` | Tài khoản SSH. |
+| `SSH_KEY` | `SSH_KEY_PROD` | Private key SSH. |
+| `SSH_PORT` | `SSH_PORT_PROD` | Cổng SSH, mặc định `22`. |
+
+`GITHUB_TOKEN` do GitHub Actions cấp để đăng nhập GHCR.
 
 ### 2. Quy trình kiểm tra tích hợp (CI)
-Mỗi khi bạn thực hiện **Push** hoặc **Tạo Pull Request** hướng về nhánh `develop` hoặc `production`, GitHub Actions sẽ tự động chạy:
-1. **Kiểm tra kiểu dữ liệu (Type check)**: Chạy `yarn typecheck` (`tsc --noEmit`) trên toàn bộ dự án.
-2. **Kiểm tra biên dịch (chỉ trên Pull Request)**: Chạy thử build dự án (`yarn build`) để bắt lỗi build trước khi merge. Khi push, bước này được bỏ qua vì Docker image đã build lại toàn bộ.
+
+Khi push hoặc mở pull request tới `develop` / `production`, pipeline chạy `npm ci`, lint và TypeScript. Pull request chạy thêm build frontend. Workflow backend riêng kiểm tra TypeScript, lint, build và smoke test backend.
 
 ### 3. Quy trình triển khai tự động (CD)
-Khi mã nguồn được merge thành công vào các nhánh chỉ định, CD sẽ tự động triển khai tương ứng:
-* **Nhánh `develop`**: Triển khai lên môi trường **Staging** trên VPS (đường dẫn `/opt/igen-erp/staging`).
-* **Nhánh `production`**: Triển khai lên môi trường **Production** trên VPS (đường dẫn `/opt/igen-erp/production`).
-* Cả hai môi trường đều tự động cập nhật Firebase Cloud Functions, Firestore & Storage Security Rules.
+
+Sau khi kiểm tra thành công, push lên nhánh triển khai sẽ build/push image và deploy:
+
+- `develop`: staging tại `/opt/3s-gym/staging`, dùng `ENV_FILE`.
+- `production`: production tại `/opt/3s-gym/production`, dùng `ENV_FILE_PROD`.
+
+Push nhánh tính năng không chạy bước triển khai production/staging.
+
 # 3S Gym
 
 ## Cấu hình môi trường
