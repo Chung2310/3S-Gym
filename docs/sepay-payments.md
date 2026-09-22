@@ -24,7 +24,7 @@ Thêm vào nội dung ENV_FILE / ENV_FILE_PROD trên GitHub Variables:
 SEPAY_TRANSFER_NOTE=SG
 ```
 
-NOTE dùng 2-5 ký tự chữ/số không dấu, không khoảng trắng; backend chuyển thành chữ hoa. Đơn mới có mã NOTE + 8 chữ số, nội dung giống Luxcare: SG SG12345678. QR giữ nguyên nội dung này. Mã được kiểm tra trùng và có unique index trong database; nếu trùng đồng thời, đơn bị từ chối trước khi hiển thị QR.
+NOTE dùng 2-5 ký tự chữ/số không dấu, phải có ít nhất một chữ cái, không khoảng trắng; backend chuyển thành chữ hoa. Đơn mới có mã NOTE + 8 chữ số, nội dung giống Luxcare: SG SG12345678. QR giữ nguyên nội dung này. Mã được kiểm tra trùng và có unique index trong database; nếu trùng đồng thời, đơn bị từ chối trước khi hiển thị QR.
 
 Trong SePay, bật Nhận diện mã thanh toán, tạo mẫu tiền tố SG, hậu tố tối thiểu = tối đa = 8, loại Số nguyên. Chọn Lọc theo mã thanh toán = SG cho webhook 3S. Mã SePay trích được là SG12345678; SG đứng riêng là nhãn ứng dụng.
 
