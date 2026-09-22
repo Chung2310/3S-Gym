@@ -1,6 +1,7 @@
 import { Check, Coins, Sparkles, Zap } from 'lucide-react';
 
 interface CustomTopupFormProps {
+  vndPerCredit?: number | null;
   value: string;
   selected: boolean;
   onChange: (value: string) => void;
@@ -18,12 +19,14 @@ const PRESETS = [
 
 export default function CustomTopupForm({
   value,
+  vndPerCredit,
   selected,
   onChange,
   onSelect,
 }: CustomTopupFormProps) {
   const numericVal = Number(value) || 0;
-  const convertedCredits = Math.floor(numericVal / 100);
+  const rate = vndPerCredit && vndPerCredit > 0 ? vndPerCredit : null;
+  const convertedCredits = rate ? Math.floor(numericVal / rate) : null;
 
   const handlePresetClick = (amount: number) => {
     onSelect();
@@ -63,18 +66,18 @@ export default function CustomTopupForm({
               Tự nhập số tiền tùy chọn
             </span>
             <span className="text-xs text-slate-500">
-              Tối thiểu 10.000đ · Tỉ giá: 1.000đ = 10 credit
+              Tối thiểu 10.000đ · {rate ? rate.toLocaleString('vi-VN') + 'đ = 1 credit' : 'Chưa có tỉ giá quy đổi'}
             </span>
           </div>
         </label>
 
-        {selected && numericVal >= 10_000 && (
+        {selected && convertedCredits !== null && numericVal >= 10_000 && (
           <div className="hidden sm:flex items-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200/80 px-3 py-1 text-xs font-semibold text-emerald-800">
             <Zap size={14} className="text-emerald-600" />
             <span>
               Quy đổi:{' '}
               <strong className="font-oswald text-sm font-bold text-emerald-700">
-                {convertedCredits.toLocaleString('vi-VN')}
+                {convertedCredits?.toLocaleString('vi-VN')}
               </strong>{' '}
               credit
             </span>
@@ -110,7 +113,7 @@ export default function CustomTopupForm({
                     isPresetActive ? 'text-sky-200' : 'text-slate-400'
                   }`}
                 >
-                  {(preset.amount / 100).toLocaleString('vi-VN')} cr
+                  {rate ? Math.floor(preset.amount / rate).toLocaleString('vi-VN') + ' cr' : '—'}
                 </span>
               </button>
             );
@@ -145,7 +148,7 @@ export default function CustomTopupForm({
           <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
             <span className="flex items-center gap-1">
               <Sparkles size={13} className="text-sky-600" />
-              Tương đương: {convertedCredits.toLocaleString('vi-VN')} credit
+              Tương đương: {convertedCredits === null ? 'Chưa có tỉ giá' : convertedCredits.toLocaleString('vi-VN') + ' credit'}
             </span>
             {numericVal < 10000 && (
               <span className="text-rose-500 font-medium">Tối thiểu 10.000đ</span>

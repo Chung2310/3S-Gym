@@ -581,6 +581,7 @@ const LandingPage = () => {
           </div>
 
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '24px', textAlign: 'center', fontSize: '0.8rem' }}>
+            <a href="/privacy-policy" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, color: 'white', textDecoration: 'underline' }}>Chính sách bảo mật</a><br />
             © {new Date().getFullYear()} 3S Wellness Fitness & Yoga Bắc Ninh. All rights reserved.
           </div>
         </div>

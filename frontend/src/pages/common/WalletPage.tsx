@@ -10,7 +10,7 @@ import {
 import CreditLedgerTable from '../../components/credits/CreditLedgerTable';
 import CreditPackageGrid from '../../components/credits/CreditPackageGrid';
 import CustomTopupForm from '../../components/credits/CustomTopupForm';
-import PayosCheckoutModal from '../../components/credits/PayosCheckoutModal';
+import SepayCheckoutModal from '../../components/credits/SepayCheckoutModal';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/ToastProvider';
 import { useCreditWallet } from '../../contexts/CreditWalletContext';
@@ -33,7 +33,7 @@ export default function WalletPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Active PayOS checkout modal state
+  // Active SePay checkout modal state
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [activeOrder, setActiveOrder] = useState<PaymentOrder | null>(null);
 
@@ -72,6 +72,7 @@ export default function WalletPage() {
 
   const numericCustom = Number(customAmount);
   const customValid =
+    Boolean(catalog?.vndPerCredit && catalog.vndPerCredit > 0 && numericCustom >= catalog.vndPerCredit) &&
     Number.isInteger(numericCustom) &&
     numericCustom >= 10_000 &&
     numericCustom <= 50_000_000 &&
@@ -88,11 +89,12 @@ export default function WalletPage() {
   }, [mode, customValid, numericCustom, currentPackage]);
 
   const estimatedCredits = useMemo(() => {
-    if (mode === 'CUSTOM') return customValid ? Math.floor(numericCustom / 100) : 0;
+    if (mode === 'CUSTOM') return customValid && catalog?.vndPerCredit ? Math.floor(numericCustom / catalog.vndPerCredit) : 0;
     return currentPackage?.grantCredits || 0;
-  }, [mode, customValid, numericCustom, currentPackage]);
+  }, [mode, customValid, numericCustom, currentPackage, catalog?.vndPerCredit]);
 
   const canSubmit =
+    Boolean(catalog?.gateways.SEPAY) &&
     (mode === 'CUSTOM' ? customValid : Boolean(selectedPackageId)) &&
     paymentAmountVnd >= 10_000 &&
     !submitting;
@@ -103,8 +105,8 @@ export default function WalletPage() {
     try {
       const order = await creditsService.createTopup(
         mode === 'CUSTOM'
-          ? { gateway: 'PAYOS', customAmountVnd: numericCustom }
-          : { gateway: 'PAYOS', packageId: selectedPackageId },
+          ? { gateway: 'SEPAY', customAmountVnd: numericCustom }
+          : { gateway: 'SEPAY', packageId: selectedPackageId },
       );
 
       // Save pending order and show embedded VietQR Modal directly
@@ -150,7 +152,7 @@ export default function WalletPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 pb-12">
-      {/* Top-up Section: Clean, Focus on Recharge with PayOS VietQR */}
+      {/* Top-up Section: Clean, Focus on Recharge with SePay VietQR */}
       <section className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs">
         {/* Section Header */}
         <div className="border-b border-slate-100 pb-5">
@@ -202,6 +204,7 @@ export default function WalletPage() {
             />
           ) : (
             <CustomTopupForm
+              vndPerCredit={catalog?.vndPerCredit}
               value={customAmount}
               selected={true}
               onChange={setCustomAmount}
@@ -209,10 +212,10 @@ export default function WalletPage() {
             />
           )}
 
-          {/* PayOS VietQR Security Strip */}
+          {/* SePay VietQR Security Strip */}
           <div className="flex flex-col gap-3 rounded-2xl border border-sky-100 bg-sky-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#003b70] text-white">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-action-primary text-white">
                 <QrCode size={22} />
               </div>
               <div>
@@ -221,19 +224,21 @@ export default function WalletPage() {
                     Thanh toán
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold text-emerald-800">
-                    <Zap size={11} /> Tự động 24/7
+                    <Zap size={11} /> VietQR
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Hỗ trợ quét mã bằng tất cả ngân hàng và ví điện tử
+                  Chuyển khoản VietQR, xác nhận qua SePay
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 sm:self-center">
               <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
-              <span>Bảo mật Napas247</span>
+              <span>Đối chiếu qua SePay</span>
             </div>
           </div>
+
+          {!catalog?.gateways.SEPAY && <p role="status" className="flex items-center gap-2 text-sm text-amber-700"><ShieldCheck size={18} /> Nạp tiền SePay hiện chưa sẵn sàng. Vui lòng liên hệ quản trị viên.</p>}
 
           {/* Action & Settle Strip */}
           <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -256,7 +261,7 @@ export default function WalletPage() {
               type="button"
               disabled={!canSubmit}
               onClick={handleCreatePayment}
-              className="inline-flex h-12 items-center justify-center gap-2.5 rounded-2xl bg-[#003b70] px-8 text-sm font-bold text-white shadow-md hover:bg-[#00284d] transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex h-12 items-center justify-center gap-2.5 rounded-2xl bg-[#003b70] px-8 text-sm font-bold text-white shadow-md hover:bg-action-pressed transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
             >
               {submitting ? (
                 <LoaderCircle className="animate-spin" size={18} />
@@ -311,8 +316,8 @@ export default function WalletPage() {
         </div>
       </section>
 
-      {/* PayOS VietQR Checkout Modal */}
-      <PayosCheckoutModal
+      {/* SePay VietQR Checkout Modal */}
+      <SepayCheckoutModal
         open={checkoutModalOpen}
         order={activeOrder}
         onClose={() => setCheckoutModalOpen(false)}

@@ -1,6 +1,6 @@
 import type { PaginationMeta } from '../types';
 
-export type PaymentGateway = 'PAYOS' | 'VNPAY' | 'MOMO';
+export type PaymentGateway = 'SEPAY' | 'PAYOS' | 'VNPAY' | 'MOMO';
 export interface CreditWallet {
   id: string;
   availableCredits: number;
@@ -40,13 +40,16 @@ export interface PaymentOrder {
   expiresAt: string;
   redirectUrl?: string;
   qrCodeUrl?: string;
+  bankTransfer?: { bankName: string; accountNumber: string; accountHolder: string; content: string };
 }
 export interface GatewayAvailability {
+  SEPAY?: boolean;
   PAYOS?: boolean;
   VNPAY?: boolean;
   MOMO?: boolean;
 }
 export interface CreditPackageResponse {
+  vndPerCredit?: number | null;
   packages: CreditPackage[];
   gateways: GatewayAvailability;
 }
