@@ -1,4 +1,4 @@
-import { createSepayPayment, isSepayConfigured, sepayQrUrl, verifySepayCallback } from './sepayGateway.js';
+import { createSepayOrderCode, createSepayPayment, isSepayConfigured, sepayQrUrl, verifySepayCallback } from './sepayGateway.js';
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import { AppError } from '../errors/AppError.js';
@@ -104,9 +104,17 @@ export async function createPaymentOrder(
     throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Số tiền nạp chưa đủ để quy đổi credit.' });
   }
 
-  const orderCode = gateway === 'SEPAY'
-    ? 'CR' + randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase()
+  let orderCode = gateway === 'SEPAY'
+    ? createSepayOrderCode()
     : `CR${Date.now().toString(36).toUpperCase()}${randomUUID().replaceAll('-', '').slice(0, 10).toUpperCase()}`;
+  if (gateway === 'SEPAY') {
+    let attempts = 0;
+    while (await PaymentOrder.exists({ orderCode })) {
+      if (++attempts >= 10) unavailable('Chưa thể tạo mã thanh toán. Vui lòng thử lại.');
+      orderCode = createSepayOrderCode();
+    }
+  }
+  // The unique orderCode index also rejects a concurrent collision before showing a QR.
   const bankTransfer = gateway === 'SEPAY' ? createSepayPayment({ orderCode, amountVnd }) : undefined;
   const requestId = `REQ-${orderCode}`;
   const order = await PaymentOrder.create({
