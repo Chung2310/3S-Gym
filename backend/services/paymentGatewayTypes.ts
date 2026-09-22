@@ -15,6 +15,7 @@ export interface GatewayCallbackResult {
   recipient?: { bankName: string; accountNumber: string; subAccount: string };
   valid: boolean;
   orderCode?: string;
+  paymentCode?: string;
   amountVnd?: number;
   transactionId?: string;
   resultCode?: string;

@@ -60,6 +60,7 @@ export interface AppEnv {
   SEPAY_QR_ACCOUNT_NUMBER?: string;
   SEPAY_SUB_ACCOUNT?: string;
   SEPAY_TRANSFER_PREFIX?: string;
+  SEPAY_TRANSFER_NOTE?: string;
   SEPAY_WEBHOOK_API_KEY?: string;
   PAYOS_CLIENT_ID?: string;
   PAYOS_API_KEY?: string;
@@ -133,6 +134,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     SEPAY_QR_ACCOUNT_NUMBER: optional('SEPAY_QR_ACCOUNT_NUMBER'),
     SEPAY_SUB_ACCOUNT: optional('SEPAY_SUB_ACCOUNT'),
     SEPAY_TRANSFER_PREFIX: optional('SEPAY_TRANSFER_PREFIX'),
+    SEPAY_TRANSFER_NOTE: optional('SEPAY_TRANSFER_NOTE'),
     SEPAY_WEBHOOK_API_KEY: optional('SEPAY_WEBHOOK_API_KEY'),
     PAYOS_CLIENT_ID: optional('PAYOS_CLIENT_ID'),
     PAYOS_API_KEY: optional('PAYOS_API_KEY'),
