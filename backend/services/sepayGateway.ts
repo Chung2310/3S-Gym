@@ -6,6 +6,8 @@ import type { BankTransferDetails } from '../models/PaymentOrder.js';
 import type { GatewayCallbackResult } from './paymentGatewayTypes.js';
 
 const ORDER_CODE = /^CR[A-F0-9]{20}$/;
+// Optional app routing prefix (2-5 characters) attached to the internal CR code.
+const PAYMENT_CODE = /^(?:[A-Z0-9]{2,5})?CR[A-F0-9]{20}$/;
 const normalized = (value: string) => value.trim().toUpperCase();
 
 function config(env: AppEnv) {
@@ -16,10 +18,12 @@ function config(env: AppEnv) {
   const qrAccount = env.SEPAY_QR_ACCOUNT_NUMBER?.trim() || accountNumber;
   const secret = env.SEPAY_WEBHOOK_API_KEY?.trim();
   const prefix = env.SEPAY_TRANSFER_PREFIX?.trim() || '';
+  const note = normalized(env.SEPAY_TRANSFER_NOTE || '');
   if (!bankCode || !bankName || !accountNumber || !accountHolder || !qrAccount || !secret
     || !/^[a-zA-Z0-9]{1,19}$/.test(accountNumber) || !/^[a-zA-Z0-9]{1,19}$/.test(qrAccount)
-    || !/^[a-zA-Z0-9 ]{0,40}$/.test(prefix)) return null;
-  return { bankCode, bankName, accountNumber, accountHolder, qrAccount, secret, prefix };
+    || !/^[a-zA-Z0-9 ]{0,40}$/.test(prefix)
+    || (note !== '' && !/^[A-Z0-9]{2,5}$/.test(note))) return null;
+  return { bankCode, bankName, accountNumber, accountHolder, qrAccount, secret, prefix, note };
 }
 
 export function isSepayConfigured(env: AppEnv = getEnv()): boolean {
@@ -40,7 +44,7 @@ export function createSepayPayment(
     bankName: settings.bankName,
     accountNumber: settings.qrAccount,
     accountHolder: settings.accountHolder,
-    content: [settings.prefix, input.orderCode].filter(Boolean).join(' '),
+    content: [settings.prefix, settings.note + input.orderCode].filter(Boolean).join(' '),
     webhookAccountNumber: settings.accountNumber,
     subAccount: env.SEPAY_SUB_ACCOUNT?.trim() || '',
   };
@@ -77,11 +81,11 @@ export function verifySepayCallback(
   if (input.transferType !== 'in') throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Loại giao dịch SePay không hợp lệ.' });
   const code = typeof input.code === 'string' ? normalized(input.code) : '';
   const content = typeof input.content === 'string' ? normalized(input.content) : '';
-  const matches = Array.from(content.matchAll(/(?:^|[^A-Z0-9])(CR[A-F0-9]{20})(?=$|[^A-Z0-9])/g), match => match[1]);
+  const matches = Array.from(content.matchAll(/(?:^|[^A-Z0-9])((?:[A-Z0-9]{2,5})?CR[A-F0-9]{20})(?=$|[^A-Z0-9])/g), match => match[1]);
   const codes = new Set(matches);
-  if (ORDER_CODE.test(code)) codes.add(code);
+  if (PAYMENT_CODE.test(code)) codes.add(code);
   if (!codes.size) return null; // An unrelated bank transfer is acknowledged, never credited.
-  if (codes.size !== 1 || (code && !ORDER_CODE.test(code))) {
+  if (codes.size !== 1 || (code && !PAYMENT_CODE.test(code))) {
     throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Mã thanh toán SePay không rõ ràng.' });
   }
   const amount = input.transferAmount;
@@ -95,7 +99,7 @@ export function verifySepayCallback(
     throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Giao dịch SePay thiếu hoặc sai thông tin.' });
   }
   return {
-    valid: true, success: true, orderCode: [...codes][0], amountVnd: amount,
+    valid: true, success: true, orderCode: [...codes][0].slice(-22), paymentCode: [...codes][0], amountVnd: amount,
     transactionId, resultCode: 'SEPAY_IN',
     recipient: {
       bankName: input.gateway.trim(), accountNumber: input.accountNumber.trim(),

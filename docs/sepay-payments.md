@@ -16,11 +16,25 @@ Các biến bắt buộc trong .env / secret store của server (không đặt t
 - SEPAY_ACCOUNT_HOLDER: tên chủ tài khoản không dấu.
 - SEPAY_WEBHOOK_API_KEY: khóa riêng cho xác thực webhook, trùng khóa cấu hình trong SePay. Đây không phải API token dùng truy vấn giao dịch.
 
+## Lọc webhook riêng cho 3S
+
+Thêm vào nội dung ENV_FILE / ENV_FILE_PROD trên GitHub Variables:
+
+```env
+SEPAY_TRANSFER_NOTE=3SGYM
+```
+
+NOTE dùng 2-5 ký tự chữ/số không dấu, không khoảng trắng; backend chuyển thành chữ hoa. Mã thanh toán là NOTE ghép liền với mã đơn, ví dụ 3SGYMCR0123456789ABCDEF0123. Mã đơn nội bộ CR... không đổi.
+
+Trong SePay, bật Nhận diện mã thanh toán, tạo mẫu tiền tố 3SGYM, hậu tố tối thiểu = tối đa = 22, loại Số và chữ. Chọn Lọc theo mã thanh toán = 3SGYM cho webhook 3S. Đặt mẫu 3SGYM trước mẫu CR chung nếu cùng tồn tại; SePay dùng mẫu khớp đầu tiên. Không thêm khoảng trắng giữa 3SGYM và CR.
+
+Để trống NOTE giữ định dạng cũ CR + 20 ký tự. Đơn đã tạo lưu nguyên nội dung cũ; khi đổi NOTE cần giữ mẫu/bộ lọc cũ cho các đơn đang chờ đến khi đối soát xong. Webhook kiểm tra mã thanh toán theo snapshot đơn, không theo NOTE hiện tại.
+
 Tùy tài khoản ngân hàng:
 
 - SEPAY_QR_ACCOUNT_NUMBER: số tài khoản/VA đưa vào QR nếu khác tài khoản gốc.
 - SEPAY_SUB_ACCOUNT: giá trị subAccount dự kiến trong webhook nếu dùng VA; để trống khi webhook trả null/chuỗi rỗng.
-- SEPAY_TRANSFER_PREFIX: nội dung bắt buộc theo ngân hàng, ví dụ SEVQR hoặc TKP001. Mã đơn đầy đủ được thêm phía sau; không bỏ hoặc rút gọn mã.
+- SEPAY_TRANSFER_PREFIX: nội dung bắt buộc theo ngân hàng, ví dụ SEVQR hoặc TKP001. Đây là chuỗi ngân hàng/VA bắt buộc, khác với NOTE dùng định tuyến webhook. Nội dung đầy đủ: PREFIX + khoảng trắng + NOTE ghép liền mã đơn. Không bỏ hoặc rút gọn mã.
 
 MongoDB phải hỗ trợ transaction (replica set/Atlas). Khi không có transaction, webhook SePay từ chối xử lý để tránh trạng thái đã thanh toán nhưng chưa cộng credit.
 
@@ -30,7 +44,7 @@ MongoDB phải hỗ trợ transaction (replica set/Atlas). Khi không có transa
 2. Thêm webhook Có tiền vào cho đúng tài khoản/VA.
 3. URL production: https://3s.igentechnology.net/api/credits/payments/sepay/webhook
 4. Chọn chứng thực API Key. SePay gửi Authorization: Apikey <khóa>; dùng khóa trùng SEPAY_WEBHOOK_API_KEY.
-5. Dùng body JSON. Nếu cấu hình nhận diện mã thanh toán, dùng tiền tố CR và phần tiếp theo 20 ký tự chữ/số. Backend cũng đọc mã đầy đủ từ content khi code trống.
+5. Dùng body JSON. Với NOTE=3SGYM, cấu hình mẫu 3SGYM + 22 ký tự Số và chữ, lọc webhook theo 3SGYM như mục trên. Khi NOTE trống, dùng CR + 20 ký tự. Backend đọc mã đầy đủ từ content khi code trống.
 6. Kiểm tra payload thực tế để điền BANK_NAME, ACCOUNT_NUMBER và SUB_ACCOUNT khớp chính xác. Lưu ý quy tắc VA/memo riêng của ngân hàng trong tài liệu SePay.
 7. Thử Test Mode và webhook thử trên môi trường thử nghiệm trước khi mở nạp tiền production.
 
@@ -70,4 +84,5 @@ Bộ kiểm thử dùng MongoDB replica set tạm, dữ liệu ngân hàng giả
 
 - [Webhook và phản hồi, API Key, chống trùng](https://docs.sepay.vn/tich-hop-webhooks.html)
 - [Ảnh VietQR và quy tắc ngân hàng/VA](https://developer.sepay.vn/vi/tien-ich-khac/tao-qr-code)
+- [Cấu hình mã và bộ lọc webhook](https://developer.sepay.vn/vi/sepay-webhooks/cau-hinh-ma-thanh-toan)
 - [SePay Test Mode](https://docs.sepay.vn/test-mode.html)

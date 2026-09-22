@@ -183,6 +183,11 @@ async function settleVerifiedCallback(gateway: PaymentGateway, verified: Gateway
     if (gateway === 'SEPAY') {
       const expected = order.bankTransfer;
       const recipient = verified.recipient;
+      // Match the order snapshot, so note changes do not invalidate in-flight orders.
+      const paymentCode = expected?.content.trim().split(/\s+/).at(-1)?.toUpperCase();
+      if (!paymentCode || paymentCode !== verified.paymentCode) {
+        throw new AppError({ status: 409, code: ERROR_CODES.VALIDATION, message: 'Mã thanh toán SePay không khớp nội dung của đơn.' });
+      }
       if (!expected || !recipient
         || expected.webhookAccountNumber !== recipient.accountNumber
         || expected.bankName.toUpperCase() !== recipient.bankName.toUpperCase()
