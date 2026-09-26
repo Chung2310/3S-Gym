@@ -11,6 +11,7 @@ router.post('/refresh', validate(refreshSchema), authController.refresh);
 router.post('/logout', validate(logoutSchema), authController.logout);
 router.get('/me', authenticate, authController.getMe);
 router.patch('/me', authenticate, validate(updateSelfProfileSchema), authController.updateMe);
+router.delete('/me', authenticate, authController.deleteMe);
 router.post('/push-token', authenticate, authController.updatePushToken);
 
 export default router;

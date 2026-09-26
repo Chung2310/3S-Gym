@@ -8,6 +8,7 @@ import Goal from '../models/Goal.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
 import NutritionPlan from '../models/NutritionPlan.js';
 import CreditWallet from '../models/CreditWallet.js';
+import DeviceSession from '../models/DeviceSession.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { ensureWallet } from './creditWalletService.js';
@@ -390,6 +391,64 @@ async function updateSelfProfile(actor: AuthenticatedUser, payload: UpdateSelfPr
   return user;
 }
 
+async function deleteSelfAccount(actor: AuthenticatedUser): Promise<void> {
+  const user = await User.findById(actor.id);
+  if (!user) {
+    throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài khoản.' });
+  }
+
+  if (user.role === 'SUPER_ADMIN') {
+    throw forbidden('Không thể xóa tài khoản quản trị cấp cao.', 403);
+  }
+
+  if (user.role === 'ADMIN') {
+    throw forbidden('Tài khoản quản trị viên không thể tự xóa.', 403);
+  }
+
+  const hasAssignedCustomers = await CustomerProfile.exists({ assignedPtId: user._id });
+  if (hasAssignedCustomers) {
+    throw new AppError({
+      status: 409,
+      code: ERROR_CODES.DUPLICATE,
+      message: 'Tài khoản vẫn còn khách hàng phụ trách. Vui lòng chuyển hết khách hàng sang PT khác trước khi xóa tài khoản.',
+    });
+  }
+
+  if (user.role === 'PT') {
+    const contentModels: Array<Model<OwnedContent>> = [
+      InBodyRecord as unknown as Model<OwnedContent>,
+      Goal as unknown as Model<OwnedContent>,
+      WorkoutPlan as unknown as Model<OwnedContent>,
+      NutritionPlan as unknown as Model<OwnedContent>,
+    ];
+    await withTransaction(async (session) => {
+      for (const item of contentModels) {
+        await item.deleteMany({ ptId: user._id }).session(session);
+      }
+      await DeviceSession.deleteMany({ userId: user._id }).session(session);
+      await CreditWallet.deleteMany({ userId: user._id }).session(session);
+      await User.deleteOne({ _id: user._id }, { session });
+    });
+    return;
+  }
+
+  if (user.role === 'CUSTOMER') {
+    await withTransaction(async (session) => {
+      await CustomerProfile.updateMany({ userId: user._id }, { $unset: { userId: 1 } }, { session });
+      await DeviceSession.deleteMany({ userId: user._id }).session(session);
+      await CreditWallet.deleteMany({ userId: user._id }).session(session);
+      await User.deleteOne({ _id: user._id }, { session });
+    });
+    return;
+  }
+
+  await withTransaction(async (session) => {
+    await DeviceSession.deleteMany({ userId: user._id }).session(session);
+    await CreditWallet.deleteMany({ userId: user._id }).session(session);
+    await User.deleteOne({ _id: user._id }, { session });
+  });
+}
+
 export {
   createUser,
   createManagedUser,
@@ -399,6 +458,7 @@ export {
   updateSelfProfile,
   deletePt,
   deleteManagedUser,
+  deleteSelfAccount,
   ensureBootstrapSuperAdmin,
 };
 

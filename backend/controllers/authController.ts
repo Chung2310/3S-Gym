@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import DeviceSession from '../models/DeviceSession.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
-import { updateSelfProfile } from '../services/userService.js';
+import { deleteSelfAccount, updateSelfProfile } from '../services/userService.js';
 
 const login = asyncHandler(async (req, res) => success(res, { message: 'Đăng nhập thành công.', data: await authService.login(req.body) }));
 
@@ -86,4 +86,9 @@ const updateMe = asyncHandler(async (req, res) => {
   });
 });
 
-export { login, refresh, logout, getMe, updateMe, updatePushToken };
+const deleteMe = asyncHandler(async (req, res) => {
+  await deleteSelfAccount(req.user!);
+  return success(res, { message: 'Xóa tài khoản thành công.', data: null });
+});
+
+export { login, refresh, logout, getMe, updateMe, updatePushToken, deleteMe };
