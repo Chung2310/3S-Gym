@@ -4,4 +4,4 @@ Disallow: /portal/
 Disallow: /login
 Disallow: /api/
 
-Sitemap: https://3sgym.vn/sitemap.xml
+Sitemap: https://3s.igentechnology.net/sitemap.xml

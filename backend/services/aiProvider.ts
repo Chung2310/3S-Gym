@@ -82,7 +82,7 @@ async function callOpenRouter(prompt: string, options: AiCallOptions = {}): Prom
           headers: {
             Authorization: `Bearer ${key}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.APP_URL || 'http://3s.igentechsolutions.com',
+            'HTTP-Referer': process.env.APP_URL || 'https://3s.igentechnology.net',
             'X-Title': '3S Gym & Wellness Fitness',
           },
           body: JSON.stringify(bodyPayload),
