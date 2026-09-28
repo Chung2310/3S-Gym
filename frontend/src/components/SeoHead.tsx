@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 /** Canonical site URL used in structured data and meta tags. */
-const SITE_URL = 'https://3sgym.vn';
+const SITE_URL = 'https://3s.igentechnology.net';
 
 /**
  * JSON-LD structured data schemas for SEO and GEO (Generative Engine Optimization).

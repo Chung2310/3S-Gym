@@ -48,7 +48,7 @@ async function callOpenRouterGeminiImage(
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.APP_URL || 'http://3s.igentechsolutions.com',
+        'HTTP-Referer': process.env.APP_URL || 'https://3s.igentechnology.net',
         'X-Title': '3S Gym & Wellness Fitness',
       },
       body: JSON.stringify({
