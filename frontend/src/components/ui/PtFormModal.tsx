@@ -277,7 +277,7 @@ export default function PtFormModal({ open, pt, onClose, onSaved }: PtFormModalP
             type="email"
             value={form.email}
             onChange={change}
-            placeholder="coach@3sgym.vn"
+            placeholder="coach@3s.igentechnology.net"
           />
           <FormField
             label="Ngày sinh"

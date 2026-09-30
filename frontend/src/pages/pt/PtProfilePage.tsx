@@ -491,7 +491,7 @@ export default function PtProfilePage({ user, onUserUpdated }: PtProfilePageProp
                         name="email"
                         value={form.email}
                         onChange={handleInputChange}
-                        placeholder="pt@3sgym.vn"
+                        placeholder="pt@3s.igentechnology.net"
                         style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                       />
                     </div>
