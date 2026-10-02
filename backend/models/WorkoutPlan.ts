@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose from 'mongoose';
 import { TRACKING_TYPES } from '../types/exerciseTracking.js';
 const exerciseSchema = new mongoose.Schema({
@@ -44,6 +45,8 @@ const schema = new mongoose.Schema({
   version: { type: Number, default: 1 },
 }, { timestamps: true });
 
-schema.index({ customerId: 1 }, { unique: true, partialFilterExpression: { lifecycleStatus: 'ACTIVE' } });
+schema.index({ customerId: 1 }, { unique: true, partialFilterExpression: { lifecycleStatus: 'ACTIVE' } });schema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model('WorkoutPlan', schema);

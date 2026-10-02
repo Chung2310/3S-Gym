@@ -1,6 +1,9 @@
+import { deleteTrainerAccount } from './trainerAccountDeletionService.js';
+import { ensurePersonalWorkspaceFeatures } from './personalWorkspaceService.js';
 import { isValidPassword, PASSWORD_ERROR } from './passwordPolicy.js';
 import bcrypt from 'bcryptjs';
-import type { Model, QueryFilter, Types } from 'mongoose';
+import { randomUUID } from 'node:crypto';
+import { Types, type Model, type QueryFilter } from 'mongoose';
 import User, { type IUser, type UserDocument, type UserRole, type UserStatus } from '../models/User.js';
 import CustomerProfile, { type ICustomerProfile } from '../models/CustomerProfile.js';
 import InBodyRecord from '../models/InBodyRecord.js';
@@ -9,12 +12,14 @@ import WorkoutPlan from '../models/WorkoutPlan.js';
 import NutritionPlan from '../models/NutritionPlan.js';
 import CreditWallet from '../models/CreditWallet.js';
 import DeviceSession from '../models/DeviceSession.js';
+import Center from '../models/Center.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { ensureWallet } from './creditWalletService.js';
-import { withTransaction } from './transactionService.js';
+import { withRequiredTransaction, withTransaction } from './transactionService.js';
 import { recordAudit } from './auditService.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 export interface UserPayload {
   username: string;
@@ -32,6 +37,7 @@ export interface UserPayload {
   certificates?: string[];
   bio?: string;
   status?: UserStatus;
+  centerId?: Types.ObjectId | string;
 }
 
 export type UpdatePtPayload = Partial<Omit<UserPayload, 'username' | 'role'>>;
@@ -64,7 +70,7 @@ function optionalContact(value: string | null | undefined): string | undefined {
 
 async function createUser(payload: UserPayload, allowLegacyDigits = false) {
   assertPassword(payload.password, allowLegacyDigits);
-  const existing = await User.exists({ username: payload.username.trim() });
+  const existing = await runWithSystemCenterAccess(() => User.exists({ username: payload.username.trim() }));
   if (existing) {
     throw new AppError({
       status: 409,
@@ -91,6 +97,7 @@ async function createUser(payload: UserPayload, allowLegacyDigits = false) {
         certificates: payload.certificates || [],
         bio: payload.bio || '',
         status: payload.status || 'ACTIVE',
+        ...(payload.centerId ? { centerId: typeof payload.centerId === 'string' ? new Types.ObjectId(payload.centerId) : payload.centerId } : {}),
       },
     ], { session });
     await ensureWallet(user.id, session);
@@ -116,7 +123,7 @@ async function createUser(payload: UserPayload, allowLegacyDigits = false) {
         if (payload.fullName) existingProfile.fullName = payload.fullName;
         await existingProfile.save({ session });
       } else {
-        const defaultPt = await User.findOne({ role: 'PT', status: 'ACTIVE' }).session(session);
+        const defaultPt = await User.findOne({ role: 'PT', status: 'ACTIVE', ...(payload.centerId ? { centerId: payload.centerId } : {}) }).session(session);
         if (defaultPt) {
           await CustomerProfile.create(
             [
@@ -148,24 +155,109 @@ function forbidden(message: string, status = 403) {
   return new AppError({ status, code: ERROR_CODES.AUTHORIZATION, message });
 }
 
+async function registerCenterAdmin(input: { centerName: string; username: string; password: string; fullName: string; email?: string; phone?: string }) {
+  assertPassword(input.password);
+  const username = input.username.trim();
+  const email = optionalContact(input.email)?.toLowerCase();
+  const phone = optionalContact(input.phone);
+  const duplicateConditions: Array<Record<string, string>> = [{ username }];
+  if (email) duplicateConditions.push({ email });
+  if (phone) duplicateConditions.push({ phone });
+  if (await runWithSystemCenterAccess(() => User.exists({ $or: duplicateConditions }))) {
+    throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'Tên đăng nhập, email hoặc số điện thoại đã được sử dụng.' });
+  }
+
+  const centerName = input.centerName.trim();
+  const slugBase = centerName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'gym';
+  const center = await Center.create({ name: centerName, slug: `${slugBase}-${randomUUID().slice(0, 8)}`, workspaceType: 'GYM' });
+
+  try {
+    const admin = await runWithCenter(String(center._id), () => createUser({
+      username,
+      password: input.password,
+      role: 'ADMIN',
+      fullName: input.fullName.trim(),
+      email,
+      phone,
+      centerId: center._id,
+    }));
+    center.ownerAdminId = admin._id;
+    await center.save();
+    await ensurePersonalWorkspaceFeatures(center._id, undefined, ['ADMIN', 'PT']);
+    return { center, admin };
+  } catch (error) {
+    await runWithSystemCenterAccess(async () => {
+      const createdAdmin = await User.findOne({ username, centerId: center._id }).select({ _id: 1 }).lean();
+      if (createdAdmin) {
+        await CreditWallet.deleteMany({ userId: createdAdmin._id });
+        await User.deleteOne({ _id: createdAdmin._id });
+      }
+      await Center.deleteOne({ _id: center._id });
+    });
+    throw error;
+  }
+}
+
+async function registerPtAccount(input: { username: string; password: string; fullName: string; email?: string; phone?: string }) {
+  assertPassword(input.password);
+  const username = input.username.trim();
+  const email = optionalContact(input.email)?.toLowerCase();
+  const phone = optionalContact(input.phone);
+  const duplicateConditions: Array<Record<string, string>> = [{ username }];
+  if (email) duplicateConditions.push({ email });
+  if (phone) duplicateConditions.push({ phone });
+  if (await runWithSystemCenterAccess(() => User.exists({ $or: duplicateConditions }))) {
+    throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'Tên đăng nhập, email hoặc số điện thoại đã được sử dụng.' });
+  }
+
+  const fullName = input.fullName.trim();
+  const slugBase = fullName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'pt';
+  const password = await bcrypt.hash(input.password, 10);
+  try {
+    return await runWithSystemCenterAccess(() => withRequiredTransaction(async session => {
+      const [center] = await Center.create([{
+        name: `Không gian cá nhân - ${fullName}`.slice(0, 120),
+        slug: `pt-${slugBase}-${randomUUID().slice(0, 8)}`,
+        workspaceType: 'PERSONAL',
+      }], { session });
+      const result = await runWithCenter(String(center._id), async () => {
+        const [pt] = await User.create([{
+          username, password, role: 'PT', fullName, email, phone,
+          centerId: center._id,
+        }], { session });
+        await ensureWallet(pt.id, session);
+        await ensurePersonalWorkspaceFeatures(center._id, session);
+        return pt;
+      });
+      center.ownerPtId = result._id;
+      await center.save({ session });
+      return { center, pt: result };
+    }));
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+      throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'Tên đăng nhập, email hoặc số điện thoại đã được sử dụng.' });
+    }
+    throw error;
+  }
+}
+
 async function createManagedUser(actor: AuthenticatedUser, payload: UserPayload) {
+  if (!actor.centerId) throw forbidden('Tài khoản chưa được gán trung tâm.', 409);
+  if (payload.role === 'CUSTOMER') throw forbidden('Only PT accounts can be created for a center.');
   if (payload.role === 'SUPER_ADMIN') {
     throw forbidden('Không thể tạo thêm tài khoản quản trị cấp cao.');
   }
-  if (payload.role === 'ADMIN' && actor.role !== 'SUPER_ADMIN') {
-    throw forbidden('Chỉ quản trị cấp cao mới có thể tạo tài khoản quản trị.');
+  if (payload.role === 'ADMIN') {
+    throw forbidden('Mỗi trung tâm có một tài khoản Admin chủ sở hữu. Admin mới được tạo khi đăng ký trung tâm.');
   }
-  const user = await createUser(payload);
-  if (user.role === 'ADMIN') {
-    await recordAudit({ actor, action: 'ADMIN_CREATED', resourceType: 'USER', resourceId: user.id });
-  }
-  return user;
+  return createUser({ ...payload, centerId: actor.centerId });
 }
 
-async function listUsers(query: UserListQuery) {
+async function listUsers(query: UserListQuery, actor: AuthenticatedUser) {
+  if (!actor.centerId) throw forbidden('Tài khoản chưa được gán trung tâm.', 409);
   const page = Number(query.page || 1);
   const limit = Number(query.limit || 20);
-  const filter: QueryFilter<IUser> = {};
+  const filter: QueryFilter<IUser> = { centerId: new Types.ObjectId(actor.centerId) };
   if (query.role === 'SUPER_ADMIN' || query.role === 'ADMIN' || query.role === 'PT' || query.role === 'CUSTOMER') {
     filter.role = query.role;
   }
@@ -223,8 +315,8 @@ async function listUsers(query: UserListQuery) {
   return { users: usersWithWallet, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 
-async function updatePt(id: string, payload: UpdatePtPayload): Promise<UserDocument> {
-  const user = await User.findById(id);
+async function updatePt(id: string, payload: UpdatePtPayload, centerId: string): Promise<UserDocument> {
+  const user = await User.findOne({ _id: id, role: 'PT', centerId });
   if (!user || user.role !== 'PT') throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài khoản PT.' });
   const fields: Array<keyof UpdatePtPayload> = ['avatarUrl', 'dateOfBirth', 'gender', 'fullName', 'address', 'specialization', 'yearsOfExperience', 'certificates', 'bio', 'status'];
   if (Object.prototype.hasOwnProperty.call(payload, 'email')) user.set('email', optionalContact(payload.email));
@@ -241,8 +333,8 @@ async function updatePt(id: string, payload: UpdatePtPayload): Promise<UserDocum
   return user;
 }
 
-async function deletePt(id: string): Promise<void> {
-  const pt = await User.findOne({ _id: id, role: 'PT' });
+async function deletePt(id: string, centerId: string): Promise<void> {
+  const pt = await User.findOne({ _id: id, role: 'PT', centerId });
   if (!pt) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài khoản PT.' });
   if (await CustomerProfile.exists({ assignedPtId: id })) throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'Vui lòng chuyển hết khách sang PT khác trước khi xóa PT.' });
   const contentModels: Array<Model<OwnedContent>> = [
@@ -258,7 +350,8 @@ async function deletePt(id: string): Promise<void> {
 }
 
 async function updateManagedUser(actor: AuthenticatedUser, id: string, payload: UpdateUserPayload): Promise<UserDocument> {
-  const user = await User.findById(id);
+  if (!actor.centerId) throw forbidden('Tài khoản chưa được gán trung tâm.', 409);
+  const user = await User.findOne({ _id: id, centerId: actor.centerId });
   if (!user) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài khoản.' });
 
   if (payload.role !== undefined) {
@@ -294,7 +387,8 @@ async function updateManagedUser(actor: AuthenticatedUser, id: string, payload: 
 }
 
 async function deleteManagedUser(actor: AuthenticatedUser, id: string): Promise<void> {
-  const user = await User.findById(id);
+  if (!actor.centerId) throw forbidden('Tài khoản chưa được gán trung tâm.', 409);
+  const user = await User.findOne({ _id: id, centerId: actor.centerId });
   if (!user) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy tài khoản.' });
 
   if (user.role === 'SUPER_ADMIN') {
@@ -305,7 +399,7 @@ async function deleteManagedUser(actor: AuthenticatedUser, id: string): Promise<
     throw forbidden('Chỉ quản trị cấp cao mới có thể xóa tài khoản quản trị.');
   }
   if (user.role === 'PT') {
-    await deletePt(id);
+    await deletePt(id, actor.centerId);
     return;
   }
 
@@ -322,30 +416,43 @@ async function deleteManagedUser(actor: AuthenticatedUser, id: string): Promise<
 }
 
 async function ensureBootstrapSuperAdmin({ username, password, fullName = 'Quản lý cấp cao 3S' }: { username?: string; password?: string; fullName?: string }) {
-  if (!username || !password) return null;
-  const normalizedUsername = username.trim();
-  const [existingSuperAdmin, configuredUser] = await Promise.all([
-    User.findOne({ role: 'SUPER_ADMIN' }),
-    User.findOne({ username: normalizedUsername }),
-  ]);
-  if (existingSuperAdmin) {
-    if (existingSuperAdmin.username !== normalizedUsername) {
-      throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'SUPER_ADMIN hiện tại không khớp SUPER_ADMIN_USERNAME đã cấu hình.' });
+  return runWithSystemCenterAccess(async () => {
+    if (!username || !password) return null;
+    const normalizedUsername = username.trim();
+    const center = await Center.findOneAndUpdate(
+      { slug: '3s-gym' },
+      { $setOnInsert: { name: '3S Gym', slug: '3s-gym', status: 'ACTIVE', workspaceType: 'GYM' } },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
+    );
+    if (!center) throw new Error('Could not initialize the 3S Gym center.');
+    const [existingSuperAdmin, configuredUser] = await Promise.all([
+      User.findOne({ role: 'SUPER_ADMIN' }),
+      User.findOne({ username: normalizedUsername }),
+    ]);
+    if (existingSuperAdmin) {
+      if (existingSuperAdmin.username !== normalizedUsername) {
+        throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'SUPER_ADMIN hiện tại không khớp SUPER_ADMIN_USERNAME đã cấu hình.' });
+      }
+      if (!existingSuperAdmin.centerId) {
+        existingSuperAdmin.centerId = center._id;
+        await existingSuperAdmin.save();
+      }
+      await ensureWallet(existingSuperAdmin.id);
+      return existingSuperAdmin;
     }
-    await ensureWallet(existingSuperAdmin.id);
-    return existingSuperAdmin;
-  }
-  if (configuredUser) {
-    if (configuredUser.role !== 'ADMIN') {
-      throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'SUPER_ADMIN_USERNAME chỉ có thể nâng cấp từ tài khoản ADMIN.' });
+    if (configuredUser) {
+      if (configuredUser.role !== 'ADMIN') {
+        throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'SUPER_ADMIN_USERNAME chỉ có thể nâng cấp từ tài khoản ADMIN.' });
+      }
+      configuredUser.role = 'SUPER_ADMIN';
+      if (!configuredUser.fullName && fullName) configuredUser.fullName = fullName;
+      if (!configuredUser.centerId) configuredUser.centerId = center._id;
+      await configuredUser.save();
+      await ensureWallet(configuredUser.id);
+      return configuredUser;
     }
-    configuredUser.role = 'SUPER_ADMIN';
-    if (!configuredUser.fullName && fullName) configuredUser.fullName = fullName;
-    await configuredUser.save();
-    await ensureWallet(configuredUser.id);
-    return configuredUser;
-  }
-  return createUser({ username: normalizedUsername, password, fullName, role: 'SUPER_ADMIN' }, true);
+    return createUser({ username: normalizedUsername, password, fullName, role: 'SUPER_ADMIN', centerId: center._id }, true);
+  });
 }
 
 async function updateSelfProfile(actor: AuthenticatedUser, payload: UpdateSelfProfilePayload): Promise<UserDocument> {
@@ -405,6 +512,11 @@ async function deleteSelfAccount(actor: AuthenticatedUser): Promise<void> {
     throw forbidden('Tài khoản quản trị viên không thể tự xóa.', 403);
   }
 
+  if (user.role === 'PT') {
+    await deleteTrainerAccount(actor);
+    return;
+  }
+
   const hasAssignedCustomers = await CustomerProfile.exists({ assignedPtId: user._id });
   if (hasAssignedCustomers) {
     throw new AppError({
@@ -412,24 +524,6 @@ async function deleteSelfAccount(actor: AuthenticatedUser): Promise<void> {
       code: ERROR_CODES.DUPLICATE,
       message: 'Tài khoản vẫn còn khách hàng phụ trách. Vui lòng chuyển hết khách hàng sang PT khác trước khi xóa tài khoản.',
     });
-  }
-
-  if (user.role === 'PT') {
-    const contentModels: Array<Model<OwnedContent>> = [
-      InBodyRecord as unknown as Model<OwnedContent>,
-      Goal as unknown as Model<OwnedContent>,
-      WorkoutPlan as unknown as Model<OwnedContent>,
-      NutritionPlan as unknown as Model<OwnedContent>,
-    ];
-    await withTransaction(async (session) => {
-      for (const item of contentModels) {
-        await item.deleteMany({ ptId: user._id }).session(session);
-      }
-      await DeviceSession.deleteMany({ userId: user._id }).session(session);
-      await CreditWallet.deleteMany({ userId: user._id }).session(session);
-      await User.deleteOne({ _id: user._id }, { session });
-    });
-    return;
   }
 
   if (user.role === 'CUSTOMER') {
@@ -451,6 +545,8 @@ async function deleteSelfAccount(actor: AuthenticatedUser): Promise<void> {
 
 export {
   createUser,
+  registerCenterAdmin,
+  registerPtAccount,
   createManagedUser,
   listUsers,
   updatePt,

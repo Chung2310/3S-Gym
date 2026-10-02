@@ -2,9 +2,11 @@ import { logger } from '../config/logger.js';
 import PtPackage from '../models/PtPackage.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import User from '../models/User.js';
+import Center from '../models/Center.js';
 import CareAlert from '../models/CareAlert.js';
 import { createNotificationOnce } from './notificationService.js';
 import { sendPushToUser } from './pushService.js';
+import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 // ─── Cấu hình ──────────────────────────────────────────────
 const SCAN_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 tiếng quét 1 lần
@@ -113,7 +115,7 @@ const ALERT_RULES: AlertRule[] = [
 ];
 
 // ─── Core scan ──────────────────────────────────────────────
-async function scanPackages(): Promise<void> {
+async function scanPackagesForCenter(): Promise<void> {
   const now = new Date();
   const startOfToday = getStartOfTodayICT();
   const packages = await PtPackage.find({ status: 'ACTIVE' }).lean();
@@ -252,6 +254,11 @@ async function scanPackages(): Promise<void> {
     { context: LOG_CONTEXT, scanned: packages.length, alertsCreated, pushSent, packagesExpired },
     'Quét gói tập hoàn tất',
   );
+}
+
+async function scanPackages(): Promise<void> {
+  const centers = await runWithSystemCenterAccess(() => Center.find({ status: 'ACTIVE' }).select({ _id: 1 }).lean());
+  for (const center of centers) await runWithCenter(String(center._id), scanPackagesForCenter);
 }
 
 // ─── Scheduler ──────────────────────────────────────────────

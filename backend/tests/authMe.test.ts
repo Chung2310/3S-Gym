@@ -1,10 +1,14 @@
 import mongoose from 'mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it as baseIt } from 'vitest';
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import app from '../app.js';
 import User from '../models/User.js';
+import Center from '../models/Center.js';
+import { runWithCenter } from '../tenancy/centerContext.js';
+const CENTER_ID = '111111111111111111111111';
+const it = (name: string, work: () => Promise<void>) => baseIt(name, () => runWithCenter(CENTER_ID, work));
 
 describe('Auth Me and Login Profile API', () => {
   let mongo: MongoMemoryReplSet;
@@ -14,8 +18,12 @@ describe('Auth Me and Login Profile API', () => {
     await mongoose.connect(mongo.getUri());
   });
 
+  beforeEach(async () => {
+    await Center.create({ _id: CENTER_ID, name: 'Existing gym', slug: 'existing-gym', workspaceType: 'GYM' });
+  });
+
   afterEach(async () => {
-    await mongoose.connection.db?.dropDatabase();
+    await Promise.all(Object.values(mongoose.connection.collections).map(collection => collection.deleteMany({})));
   });
 
   afterAll(async () => {
@@ -81,7 +89,7 @@ describe('Auth Me and Login Profile API', () => {
       { username: 'pt_no_avatar' },
     ];
     // Raw inserts preserve fields saved before avatarUrl became the canonical field.
-    await User.collection.insertMany(profiles.map((profile) => ({ ...profile, password, role: 'PT', status: 'ACTIVE' })));
+    await User.collection.insertMany(profiles.map((profile) => ({ ...profile, centerId: new mongoose.Types.ObjectId(CENTER_ID), password, role: 'PT', status: 'ACTIVE' })));
 
     const login = await request(app).post('/api/auth/login')
       .send({ username: 'avatar_admin', password: 'Secret123!' });

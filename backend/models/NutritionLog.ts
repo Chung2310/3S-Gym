@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 
 export interface INutritionLog {
@@ -28,5 +29,7 @@ const schema = new Schema<INutritionLog>({
   notes: { type: String, trim: true, default: '' },
 }, { timestamps: true });
 
-schema.index({ customerId: 1, loggedAt: -1, type: 1 });
+schema.index({ customerId: 1, loggedAt: -1, type: 1 });schema.plugin(centerTenantPlugin);
+
+
 export default mongoose.model<INutritionLog>('NutritionLog', schema);

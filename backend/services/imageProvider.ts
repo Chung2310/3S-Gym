@@ -10,6 +10,7 @@ export const IMAGE_MODEL = 'google/gemini-3.1-flash-image';
 export const FALLBACK_IMAGE_MODEL = 'google/gemini-3.1-flash-lite-image';
 export const FALLBACK_IMAGE_MODEL_FLASH = 'google/gemini-2.5-flash-image';
 const IMAGE_MODELS = [IMAGE_MODEL, FALLBACK_IMAGE_MODEL, FALLBACK_IMAGE_MODEL_FLASH];
+export const IMAGE_UNIT_COST_USD = 0.07;
 
 export type AspectRatio = '1:1' | '4:3' | '3:4' | '3:2' | '2:3' | '16:9' | '9:16' | '21:9' | 'auto';
 export type OutputFormat = 'png' | 'jpeg';
@@ -78,11 +79,14 @@ async function callOpenRouterGeminiImage(
   const mediaType = mimeMatch ? mimeMatch[1] : 'image/png';
   const b64Json = url.replace(/^data:image\/[a-zA-Z0-9.+_-]+;base64,/, '');
 
-  const cost = Number(data.usage?.cost ?? 0.005);
+  // Gemini image generation is billed at the fixed business unit price of
+  // $0.07 per generated image. Keep provider metadata out of the billing
+  // calculation so quota and cost records remain consistent across models.
+  const cost = IMAGE_UNIT_COST_USD;
   const value: GeneratedImage = {
     b64Json,
     mediaType,
-    cost: Number.isFinite(cost) && cost >= 0 ? cost : 0,
+    cost,
     completionTokens: data.usage?.completion_tokens ?? 0,
   };
 

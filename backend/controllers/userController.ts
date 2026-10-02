@@ -17,7 +17,7 @@ const create = asyncHandler(async (req, res) =>
 );
 
 const list = asyncHandler(async (req, res) => {
-  const { users, meta } = await userService.listUsers(req.query);
+  const { users, meta } = await userService.listUsers(req.query, req.user!);
   return success(res, {
     message: 'Lấy danh sách tài khoản thành công.',
     data: users,

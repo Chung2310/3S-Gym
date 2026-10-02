@@ -1,9 +1,11 @@
 import mongoose, { Types, type ClientSession } from 'mongoose';
 import CreditWallet, { type ICreditWallet } from '../models/CreditWallet.js';
 import CreditLedgerEntry, { type CreditLedgerType, type CreditReferenceType } from '../models/CreditLedgerEntry.js';
+import User from '../models/User.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { withTransaction } from './transactionService.js';
+import { getCenterScope, runWithCenter, MissingCenterScopeError } from '../tenancy/centerContext.js';
 
 type WalletDocument = mongoose.HydratedDocument<ICreditWallet>;
 
@@ -32,6 +34,18 @@ async function idempotentWallet(userId: string, idempotencyKey: string, session:
 }
 
 export async function ensureWallet(userId: string, session?: ClientSession): Promise<WalletDocument> {
+  const scope = getCenterScope();
+  if (!scope) throw new MissingCenterScopeError('CreditWallet');
+  const userQuery = scope.kind === 'system'
+    ? User.findById(userId)
+    : User.findOne({ _id: userId, centerId: scope.centerId });
+  // A newly created user is only visible inside the transaction creating it.
+  if (session) userQuery.session(session);
+  const user = await userQuery.select({ _id: 1, centerId: 1 }).lean();
+  if (!user) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy người dùng của ví credit.' });
+  if (scope.kind === 'center' && !user.centerId) throw new AppError({ status: 409, code: ERROR_CODES.UNAVAILABLE, message: 'Tài khoản chưa được gán trung tâm.' });
+  if (scope.kind === 'system' && user.centerId) return runWithCenter(String(user.centerId), () => ensureWallet(userId, session));
+
   try {
     const wallet = await CreditWallet.findOneAndUpdate(
       { userId: objectId(userId) },

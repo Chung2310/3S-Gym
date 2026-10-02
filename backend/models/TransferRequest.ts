@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose from 'mongoose';
 export type TransferStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'ADMIN_FORCED';
 export interface ITransferRequest {
@@ -21,6 +22,8 @@ const transferRequestSchema = new mongoose.Schema<ITransferRequest>({
 transferRequestSchema.index(
   { customerId: 1, status: 1 },
   { unique: true, partialFilterExpression: { status: 'PENDING' } },
-);
+);transferRequestSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<ITransferRequest>('TransferRequest', transferRequestSchema);

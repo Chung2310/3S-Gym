@@ -8,6 +8,8 @@ import BodyMeasurement from '../models/BodyMeasurement.js';
 import CalendarEvent from '../models/CalendarEvent.js';
 import ProgressPhoto from '../models/ProgressPhoto.js';
 import ProgressReport from '../models/ProgressReport.js';
+import Center from '../models/Center.js';
+import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 const PASSWORD = 'Demo123!';
 const PT_USERNAME = 'pt.demo.progress';
@@ -35,7 +37,7 @@ function exerciseLogs(sessionIndex: number, week: number) {
   }));
 }
 
-export async function seedProgressDemo() {
+async function seedProgressDemoForCenter() {
   const password = await bcrypt.hash(PASSWORD, 10);
   const pt = await User.findOneAndUpdate({ username: PT_USERNAME }, { $set: { fullName: 'PT Demo Tiến Độ', password, role: 'PT', status: 'ACTIVE', phone: '0900000990', specialization: 'Strength & Conditioning', yearsOfExperience: 6 } }, { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true });
   const customerUser = await User.findOneAndUpdate({ username: CUSTOMER_USERNAME }, { $set: { fullName: 'Khách Demo Tiến Độ', password, role: 'CUSTOMER', status: 'ACTIVE', phone: '0900000992' } }, { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true });
@@ -68,4 +70,10 @@ export async function seedProgressDemo() {
     { customerId: customer._id, ptId: pt._id, periodStart: '2026-07-13', periodEnd: '2026-08-30', summary: 'Kết thúc 12 tuần với tiến bộ rõ rệt: giảm 5,4 kg, body fat giảm 4,2%, cơ tăng 2,4 kg và duy trì lịch tập ổn định.', metrics: { attendanceRate: 94.4, weightDelta: -5.4, bodyFatDelta: -4.2, muscleDelta: 2.4, streakWeeks: 12 }, sourceVersions: { analytics: 1 }, warnings: [], generatorVersion: 1, status: 'PUBLISHED', version: 1, publishedAt: '2026-08-29' },
   ]);
   return { ptUsername: PT_USERNAME, customerUsername: CUSTOMER_USERNAME, password: PASSWORD, customerId: customer.id, counts: { sessions: workoutSessions.length, measurements: measurements.length, calendarEvents: calendarEvents.length, photos: 3, reports: 2 } };
+}
+
+export async function seedProgressDemo() {
+  const center = await runWithSystemCenterAccess(() => Center.findOne({ slug: '3s-gym' }).select({ _id: 1 }).lean());
+  if (!center) throw new Error('Run npm run db:migrate before seeding progress demo data.');
+  return runWithCenter(String(center._id), seedProgressDemoForCenter);
 }

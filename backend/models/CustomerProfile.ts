@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose from 'mongoose';
 export interface ICustomerProfile {
   userId?: mongoose.Types.ObjectId | null; assignedPtId: mongoose.Types.ObjectId;
@@ -24,9 +25,12 @@ const customerProfileSchema = new mongoose.Schema<ICustomerProfile>({
 
 customerProfileSchema.index({ assignedPtId: 1, status: 1, createdAt: -1 });
 customerProfileSchema.index(
-  { email: 1 },
-  { name: 'unique_customer_email', unique: true, partialFilterExpression: { email: { $type: 'string' } } }
+  { centerId: 1, email: 1 },
+  { name: 'unique_customer_email_per_center', unique: true, partialFilterExpression: { email: { $type: 'string' } } }
 );
+customerProfileSchema.plugin(centerTenantPlugin);
+
+
 
 const CustomerProfile = mongoose.model<ICustomerProfile>('CustomerProfile', customerProfileSchema);
 export type CustomerProfileDocument = mongoose.HydratedDocument<ICustomerProfile>;

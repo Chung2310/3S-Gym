@@ -7,8 +7,11 @@ import { recordAudit } from './auditService.js';
 import { isAdminRole } from './roles.js';
 
 type ExerciseResponse = Record<string, unknown> & { id?: string; ownerPtId?: unknown; videoUrl?: string; videos?: IExercise['videos'] };
-function canManageExercise(user: AuthenticatedUser, exercise: { ownerPtId?: unknown }): boolean {
-  return isAdminRole(user.role) || Boolean(exercise.ownerPtId && String(exercise.ownerPtId) === user.id);
+function canManageExercise(user: AuthenticatedUser, exercise: { ownerPtId?: unknown; centerId?: unknown }): boolean {
+  if (exercise.centerId && String(exercise.centerId) === user.centerId) {
+    return isAdminRole(user.role) || Boolean(exercise.ownerPtId && String(exercise.ownerPtId) === user.id);
+  }
+  return false;
 }
 function normalizeExerciseVideos(user: AuthenticatedUser, value: unknown): ExerciseResponse & { canManage: boolean } {
   const documentLike = value as { toObject?: () => unknown; id?: unknown };
@@ -31,7 +34,7 @@ function creationPayload(user: AuthenticatedUser, payload: Partial<IExercise>) {
     norm.muscleGroups = norm.muscleGroup.split(',').map((s) => s.trim()).filter(Boolean);
     norm.muscleGroup = norm.muscleGroups.join(', ');
   }
-  return { ...norm, scope: 'GLOBAL' as const, ownerPtId: user.role === 'PT' ? user.id : undefined };
+  return { ...norm, scope: 'PRIVATE' as const, ownerPtId: user.role === 'PT' ? user.id : undefined };
 }
 
 
