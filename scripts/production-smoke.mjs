@@ -17,6 +17,30 @@ function buildSmokeEnvironment(sourceEnv = process.env) {
   return env;
 }
 
+function runSmokeMigrations(env) {
+  return new Promise((resolve, reject) => {
+    const migration = spawn(process.execPath, ['dist/backend/scripts/migrate.js', 'up'], {
+      cwd: process.cwd(),
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let settled = false;
+    const finish = (error) => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve();
+    };
+    migration.stdout.on('data', (chunk) => process.stdout.write(`[migration] ${chunk}`));
+    migration.stderr.on('data', (chunk) => process.stdout.write(`[migration:stderr] ${chunk}`));
+    migration.once('error', (error) => finish(error));
+    migration.once('close', (code, signal) => {
+      if (code === 0) return finish();
+      finish(new Error(`Production smoke migrations failed (code ${code ?? 'null'}, signal ${signal || 'none'}).`));
+    });
+  });
+}
+
 async function waitForReady(baseUrl, deadline, getExitResult = () => undefined) {
   while (Date.now() < deadline) {
     const exited = getExitResult();
@@ -110,6 +134,10 @@ async function runProductionSmoke(sourceEnv = process.env) {
   env.SUPER_ADMIN_PASSWORD ||= 'Smoke@' + randomUUID();
   env.SUPER_ADMIN_FULL_NAME ||= 'Production Smoke Super Admin';
 
+  // The smoke database is ephemeral, so prepare it before starting the
+  // production process. A caller-provided database is never modified here.
+  if (memoryServer) await runSmokeMigrations(env);
+
   const baseUrl = `http://127.0.0.1:${env.PORT}`;
   const child = spawn(process.execPath, ['dist/backend/bootstrap.js'], {
     cwd: process.cwd(),
@@ -164,4 +192,4 @@ if (process.argv[1] && fileURLToPath(import.meta.url).toLowerCase() === process.
   });
 }
 
-export { buildSmokeEnvironment, requestShutdown, runProductionSmoke, waitForReady };
+export { buildSmokeEnvironment, requestShutdown, runProductionSmoke, runSmokeMigrations, waitForReady };
