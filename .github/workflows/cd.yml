@@ -163,7 +163,7 @@ jobs:
 
             # Validate the production AI spend guardrails before stopping the old API.
             read_env_value() {
-              awk -F= -v key="$1" '$1 == key { sub(/^[^=]*=/, ""); gsub(/\r$/, ""); print; exit }' .env
+              awk -F= -v key="$1" '$1 ~ "^[[:space:]]*" key "[[:space:]]*$" { value = substr($0, index($0, "=") + 1); sub(/\r$/, "", value); gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); if (value ~ /^".*"$/) value = substr(value, 2, length(value) - 2); if (value !~ /^".*"$/) sub(/[[:space:]]+#.*$/, "", value); gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); print value; exit }' .env
             }
             AI_GLOBAL_MONTHLY_BUDGET_VND="$(read_env_value AI_GLOBAL_MONTHLY_BUDGET_VND)"
             AI_GLOBAL_MAX_RESERVATION_VND="$(read_env_value AI_GLOBAL_MAX_RESERVATION_VND)"
@@ -270,7 +270,7 @@ jobs:
 
             # Validate the production AI spend guardrails before stopping the old API.
             read_env_value() {
-              awk -F= -v key="$1" '$1 == key { sub(/^[^=]*=/, ""); gsub(/\r$/, ""); print; exit }' .env
+              awk -F= -v key="$1" '$1 ~ "^[[:space:]]*" key "[[:space:]]*$" { value = substr($0, index($0, "=") + 1); sub(/\r$/, "", value); gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); if (value ~ /^".*"$/) value = substr(value, 2, length(value) - 2); if (value !~ /^".*"$/) sub(/[[:space:]]+#.*$/, "", value); gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); print value; exit }' .env
             }
             AI_GLOBAL_MONTHLY_BUDGET_VND="$(read_env_value AI_GLOBAL_MONTHLY_BUDGET_VND)"
             AI_GLOBAL_MAX_RESERVATION_VND="$(read_env_value AI_GLOBAL_MAX_RESERVATION_VND)"
