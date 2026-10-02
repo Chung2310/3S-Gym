@@ -7,6 +7,7 @@ export type AiWorkoutGenerationJobStatus = 'PENDING' | 'PROCESSING' | 'SUCCEEDED
 export interface IAiWorkoutGenerationJob {
   ownerPtId: mongoose.Types.ObjectId;
   customerId: mongoose.Types.ObjectId;
+  clientType: 'WEB' | 'MOBILE';
   idempotencyKey: string;
   status: AiWorkoutGenerationJobStatus;
   input: WorkoutGenerationInput;
@@ -21,6 +22,7 @@ export interface IAiWorkoutGenerationJob {
 const schema = new Schema<IAiWorkoutGenerationJob>({
   ownerPtId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   customerId: { type: Schema.Types.ObjectId, ref: 'CustomerProfile', required: true, index: true },
+  clientType: { type: String, enum: ['WEB', 'MOBILE'], required: true, default: 'WEB' },
   idempotencyKey: { type: String, required: true, trim: true, maxlength: 100 },
   status: {
     type: String,

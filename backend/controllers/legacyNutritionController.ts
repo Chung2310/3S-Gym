@@ -69,9 +69,9 @@ export const mealImage = asyncHandler(async (req, res) => {
   deprecate(res, '/api/content-drafts/nutrition');
   const prompt = typeof req.query.prompt === 'string' ? req.query.prompt : 'Full healthy meal platter set with dishes on table';
   const seed = typeof req.query.seed === 'string' ? req.query.seed : '3s-gym';
-  const image = await getMealImage(prompt, seed);
+  const image = await getMealImage({ userId: req.user!.id, taskType: 'IMAGE_GENERATION', requestKey: `${req.requestId}:legacy-meal-image` }, prompt, seed);
   res.setHeader('Content-Type', image.contentType || 'image/jpeg');
-  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.setHeader('Cache-Control', 'private, no-store');
   return res.end(image.buffer);
 });
 

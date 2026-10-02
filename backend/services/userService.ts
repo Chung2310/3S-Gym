@@ -1,4 +1,5 @@
 import { deleteTrainerAccount } from './trainerAccountDeletionService.js';
+import { ensurePersonalWorkspaceFeatures } from './personalWorkspaceService.js';
 import { isValidPassword, PASSWORD_ERROR } from './passwordPolicy.js';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
@@ -15,7 +16,7 @@ import Center from '../models/Center.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { ensureWallet } from './creditWalletService.js';
-import { withTransaction } from './transactionService.js';
+import { withRequiredTransaction, withTransaction } from './transactionService.js';
 import { recordAudit } from './auditService.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
@@ -168,7 +169,7 @@ async function registerCenterAdmin(input: { centerName: string; username: string
 
   const centerName = input.centerName.trim();
   const slugBase = centerName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'gym';
-  const center = await Center.create({ name: centerName, slug: `${slugBase}-${randomUUID().slice(0, 8)}` });
+  const center = await Center.create({ name: centerName, slug: `${slugBase}-${randomUUID().slice(0, 8)}`, workspaceType: 'GYM' });
 
   try {
     const admin = await runWithCenter(String(center._id), () => createUser({
@@ -182,6 +183,7 @@ async function registerCenterAdmin(input: { centerName: string; username: string
     }));
     center.ownerAdminId = admin._id;
     await center.save();
+    await ensurePersonalWorkspaceFeatures(center._id, undefined, ['ADMIN', 'PT']);
     return { center, admin };
   } catch (error) {
     await runWithSystemCenterAccess(async () => {
@@ -192,6 +194,49 @@ async function registerCenterAdmin(input: { centerName: string; username: string
       }
       await Center.deleteOne({ _id: center._id });
     });
+    throw error;
+  }
+}
+
+async function registerPtAccount(input: { username: string; password: string; fullName: string; email?: string; phone?: string }) {
+  assertPassword(input.password);
+  const username = input.username.trim();
+  const email = optionalContact(input.email)?.toLowerCase();
+  const phone = optionalContact(input.phone);
+  const duplicateConditions: Array<Record<string, string>> = [{ username }];
+  if (email) duplicateConditions.push({ email });
+  if (phone) duplicateConditions.push({ phone });
+  if (await runWithSystemCenterAccess(() => User.exists({ $or: duplicateConditions }))) {
+    throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'Tên đăng nhập, email hoặc số điện thoại đã được sử dụng.' });
+  }
+
+  const fullName = input.fullName.trim();
+  const slugBase = fullName.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'pt';
+  const password = await bcrypt.hash(input.password, 10);
+  try {
+    return await runWithSystemCenterAccess(() => withRequiredTransaction(async session => {
+      const [center] = await Center.create([{
+        name: `Không gian cá nhân - ${fullName}`.slice(0, 120),
+        slug: `pt-${slugBase}-${randomUUID().slice(0, 8)}`,
+        workspaceType: 'PERSONAL',
+      }], { session });
+      const result = await runWithCenter(String(center._id), async () => {
+        const [pt] = await User.create([{
+          username, password, role: 'PT', fullName, email, phone,
+          centerId: center._id,
+        }], { session });
+        await ensureWallet(pt.id, session);
+        await ensurePersonalWorkspaceFeatures(center._id, session);
+        return pt;
+      });
+      center.ownerPtId = result._id;
+      await center.save({ session });
+      return { center, pt: result };
+    }));
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+      throw new AppError({ status: 409, code: ERROR_CODES.DUPLICATE, message: 'Tên đăng nhập, email hoặc số điện thoại đã được sử dụng.' });
+    }
     throw error;
   }
 }
@@ -376,7 +421,7 @@ async function ensureBootstrapSuperAdmin({ username, password, fullName = 'Quả
     const normalizedUsername = username.trim();
     const center = await Center.findOneAndUpdate(
       { slug: '3s-gym' },
-      { $setOnInsert: { name: '3S Gym', slug: '3s-gym', status: 'ACTIVE' } },
+      { $setOnInsert: { name: '3S Gym', slug: '3s-gym', status: 'ACTIVE', workspaceType: 'GYM' } },
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
     );
     if (!center) throw new Error('Could not initialize the 3S Gym center.');
@@ -501,6 +546,7 @@ async function deleteSelfAccount(actor: AuthenticatedUser): Promise<void> {
 export {
   createUser,
   registerCenterAdmin,
+  registerPtAccount,
   createManagedUser,
   listUsers,
   updatePt,

@@ -10,7 +10,7 @@ describe('Password policy', () => {
   it.each(valid)('accepts supported password %s consistently for every account operation', password => {
     expect(isValidPassword(password)).toBe(true);
     expect(webPassword(password)).toBe(true);
-    expect(createUserSchema.body!.validate({username:'customer',password,role:'CUSTOMER'}).error).toBeUndefined();
+    expect(createUserSchema.body!.validate({username:'pt-user',password,role:'PT',fullName:'Test PT',phone:'0901234567'}).error).toBeUndefined();
     expect(createCustomerAccountSchema.body!.validate({username:'customer',password}).error).toBeUndefined();
     expect(updateUserSchema.body!.validate({password}).error).toBeUndefined();
     const checked=updateSelfProfileSchema.body!.validate({currentPassword:'123456',password});
@@ -22,7 +22,7 @@ describe('Password policy', () => {
     expect(webPassword(password)).toBe(false);
     expect(updateUserSchema.body!.validate({password}).error).toBeDefined();
     expect(updateSelfProfileSchema.body!.validate({password}).error).toBeDefined();
-    expect(createUserSchema.body!.validate({username:'customer',password,role:'CUSTOMER'}).error).toBeDefined();
+    expect(createUserSchema.body!.validate({username:'pt-user',password,role:'PT',fullName:'Test PT',phone:'0901234567'}).error).toBeDefined();
     expect(createCustomerAccountSchema.body!.validate({username:'customer',password}).error).toBeDefined();
   });
   it('keeps legacy login and optional unchanged passwords', () => {

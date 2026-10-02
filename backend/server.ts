@@ -1,4 +1,5 @@
 import app from './app.js';
+import { startAiReservationRecovery, stopAiReservationRecovery } from './services/aiReservationRecoveryService.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { ensureBootstrapSuperAdmin } from './services/userService.js';
 import { ensureCreditReferenceData, migrationStatus } from './services/migrationService.js';
@@ -21,6 +22,18 @@ async function startServer() {
         if (!migrations.some((migration) => migration.version === '004-center-tenancy' && migration.status === 'APPLIED')) {
             throw new Error('Center-tenancy migration is required before the API can start. Run npm run db:migrate first.');
         }
+        if (!migrations.some((migration) => migration.version === '005-ai-usage-quota-counters' && migration.status === 'APPLIED')) {
+            throw new Error('AI usage quota migration is required before the API can start. Run npm run db:migrate first.');
+        }
+        if (!migrations.some((migration) => migration.version === '006-center-workspace-types' && migration.status === 'APPLIED')) {
+            throw new Error('Center workspace types migration is required before the API can start. Run npm run db:migrate first.');
+        }
+        if (!migrations.some(migration => migration.version === '007-pt-onboarding-and-ai-recovery' && migration.status === 'APPLIED')) {
+            throw new Error('PT onboarding migration is required. Run npm run db:migrate before starting production.');
+        }
+        if (!migrations.some(migration => migration.version === '008-ai-company-global-budget' && migration.status === 'APPLIED')) {
+            throw new Error('Global AI budget migration is required. Run npm run db:migrate before starting production.');
+        }
         await ensureBootstrapSuperAdmin({
             username: env.SUPER_ADMIN_USERNAME,
             password: env.SUPER_ADMIN_PASSWORD,
@@ -31,6 +44,7 @@ async function startServer() {
         await startAiNutritionGenerationWorker();
         await startPackageAlertScheduler();
         startDeletionMediaWorker();
+        startAiReservationRecovery();
         await app.frontendReady;
         initTelemetry();
         const server = app.listen(PORT, () => logger.info({ port: PORT }, 'Máy chủ đã khởi động'));
@@ -39,6 +53,7 @@ async function startServer() {
             disconnect: async () => {
                 stopPackageAlertScheduler();
                 stopDeletionMediaWorker();
+                stopAiReservationRecovery();
                 await disconnectDatabase();
             },
             flush: flushTelemetry,

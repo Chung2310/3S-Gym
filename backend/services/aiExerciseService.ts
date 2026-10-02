@@ -76,7 +76,7 @@ export function cleanExerciseName(value: unknown): string {
 
   // 1. If format has Vietnamese outside and English inside parentheses/brackets:
   // e.g. "Đẩy ngực ngang (Barbell Bench Press)" -> extract "Barbell Bench Press"
-  const vnWithEnMatch = name.match(/^([^({\[]+)\s*[([{]([^)\]}]+)[)\]}]/);
+  const vnWithEnMatch = name.match(/^([^({\x5B]+)\s*[([{]([^)\]}]+)[)\]}]/);
   if (vnWithEnMatch) {
     const outerPart = vnWithEnMatch[1].trim();
     const insidePart = vnWithEnMatch[2].trim();

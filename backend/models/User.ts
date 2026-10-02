@@ -9,6 +9,7 @@ export interface IUser {
     address: string; specialization: string; yearsOfExperience: number;
     certificates: string[]; bio: string; password: string; role: UserRole; status: UserStatus;
     centerId?: mongoose.Types.ObjectId | null;
+    authVersion?: number;
 }
 const userSchema = new mongoose.Schema<IUser>({
     username: {
@@ -53,6 +54,7 @@ const userSchema = new mongoose.Schema<IUser>({
         default: 'ACTIVE'
     },
     centerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Center', default: null, index: true },
+    authVersion: { type: Number, default: 0 },
 }, { timestamps: true });
 
 userSchema.index(

@@ -1,4 +1,20 @@
 import mongoose, { type ClientSession } from 'mongoose';
+import { AppError } from '../errors/AppError.js';
+import { ERROR_CODES } from '../errors/errorCodes.js';
+
+// Operations that change several balances or tenant ownership must never fall
+// back to independent writes on a standalone MongoDB server.
+export async function withRequiredTransaction<T>(work: (session: ClientSession) => Promise<T>): Promise<T> {
+  if (!await supportsTransactions()) {
+    throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message: 'Thao tác cần MongoDB replica set để bảo vệ dữ liệu. Vui lòng liên hệ quản trị hệ thống.' });
+  }
+  const session = await mongoose.startSession();
+  try {
+    let result!: T;
+    await session.withTransaction(async () => { result = await work(session); });
+    return result;
+  } finally { await session.endSession(); }
+}
 
 export async function supportsTransactions(): Promise<boolean> {
   try {

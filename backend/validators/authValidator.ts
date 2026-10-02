@@ -29,6 +29,16 @@ export const registerCenterSchema: RequestValidationSchema = {
   }).messages(commonMessages),
 };
 
+export const registerPtSchema: RequestValidationSchema = {
+  body: Joi.object({
+    username: Joi.string().trim().min(3).max(64).required(),
+    password: passwordSchema.required(),
+    fullName: Joi.string().trim().min(2).max(120).required(),
+    email: email.allow('', null).optional(),
+    phone: Joi.string().trim().max(32).allow('', null).optional(),
+  }).messages(commonMessages),
+};
+
 export const refreshSchema: RequestValidationSchema = {
   body: Joi.object({
     refreshToken: Joi.string().trim().required().messages({

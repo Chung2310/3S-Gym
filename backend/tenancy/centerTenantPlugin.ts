@@ -1,4 +1,4 @@
-import mongoose, { type Schema } from 'mongoose';
+import mongoose, { type ClientSession, type Schema } from 'mongoose';
 import Center from '../models/Center.js';
 import { getCenterScope, MissingCenterScopeError, requireCenterId } from './centerContext.js';
 
@@ -26,20 +26,20 @@ function scopeFilter(filter: Record<string, unknown>, centerId: string) {
   return { $and: [filter, { centerId }] };
 }
 
-async function assertCenterExists() {
+async function assertCenterExists(session?: ClientSession | null) {
   const scope = getCenterScope();
-  if (scope?.kind === 'center' && !await Center.exists({ _id: scope.centerId })) {
+  if (scope?.kind === 'center' && !await Center.exists({ _id: scope.centerId, status: 'ACTIVE' }).session(session ?? null)) {
     throw new Error('The center no longer exists. New tenant data cannot be created.');
   }
 }
 
 function preventRecreationAfterDeletion(schema: Schema) {
-  schema.pre('save', async function () { if (this.isNew) await assertCenterExists(); });
+  schema.pre('save', async function () { await assertCenterExists(this.$session()); });
   addModelMiddleware(schema, 'insertMany', function (next) {
     void assertCenterExists().then(() => next(), error => next(error instanceof Error ? error : new Error('Unable to validate center.')));
   });
-  for (const operation of ['findOneAndUpdate', 'updateOne', 'updateMany', 'replaceOne', 'findOneAndReplace'] as const) {
-    schema.pre(operation, async function () { if (this.getOptions().upsert) await assertCenterExists(); });
+  for (const operation of ['findOneAndUpdate', 'updateOne', 'updateMany', 'replaceOne', 'findOneAndReplace', 'deleteOne', 'deleteMany', 'findOneAndDelete'] as const) {
+    schema.pre(operation, async function () { await assertCenterExists(this.getOptions().session); });
   }
 }
 

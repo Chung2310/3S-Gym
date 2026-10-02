@@ -5,7 +5,9 @@ import type { UserRole } from '../models/User.js';
 export interface AuthenticatedUser extends JwtPayload {
   id: string;
   role: UserRole;
+  clientType?: 'WEB' | 'MOBILE';
   centerId?: string;
+  requestLeaseId?: string;
   username?: string;
   fullName?: string;
 }

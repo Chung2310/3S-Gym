@@ -6,16 +6,23 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import app from '../app.js';
 import FeatureFlag, { FEATURE_KEYS } from '../models/FeatureFlag.js';
 import User, { type UserRole } from '../models/User.js';
+import Center from '../models/Center.js';
+import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 let mongo: MongoMemoryReplSet;
+let centerId: mongoose.Types.ObjectId;
 beforeAll(async () => {
   mongo = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await mongoose.connect(mongo.getUri());
 });
-beforeEach(async () => { await mongoose.connection.db!.dropDatabase(); });
+beforeEach(async () => {
+  await runWithSystemCenterAccess(() => mongoose.connection.db!.dropDatabase());
+  const center = await runWithSystemCenterAccess(() => Center.create({ name: 'Feature Test Gym', slug: `feature-test-${Date.now()}-${Math.random()}` }));
+  centerId = center._id;
+});
 afterAll(async () => { await mongoose.disconnect(); await mongo?.stop(); });
 async function tokenFor(role: UserRole) {
-  const user = await User.create({ username: `features-${role}`, password: 'hashed', role });
+  const user = await runWithCenter(String(centerId), () => User.create({ username: `features-${role}`, password: 'hashed', role, centerId }));
   return jwt.sign({ id: user.id, role }, process.env.JWT_SECRET || 'secret_key');
 }
 
@@ -30,8 +37,9 @@ describe('Feature configuration administration', () => {
   });
   it.each(['ADMIN', 'SUPER_ADMIN'] as const)('returns stored roles and pilots for %s even when its effective flag is false', async (role) => {
     const token = await tokenFor(role);
-    const pilot = new mongoose.Types.ObjectId().toString();
-    await FeatureFlag.create({ key: 'CARE', enabled: true, roles: ['CUSTOMER'], pilotUserIds: [pilot] });
+    const pilotUser = await runWithCenter(String(centerId), () => User.create({ username: `pilot-${role}`, password: 'hashed', role: 'PT', centerId }));
+    const pilot = pilotUser.id;
+    await runWithCenter(String(centerId), () => FeatureFlag.create({ key: 'CARE', enabled: true, roles: ['CUSTOMER'], pilotUserIds: [pilot], centerId }));
     const response = await request(app).get('/api/features').set('Authorization', `Bearer ${token}`);
     expect(response.status).toBe(200);
     expect(response.body.data).toHaveLength(FEATURE_KEYS.length);

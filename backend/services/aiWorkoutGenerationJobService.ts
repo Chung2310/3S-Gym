@@ -7,6 +7,7 @@ import CustomerProfile from '../models/CustomerProfile.js';
 import { generateWorkoutDraft, type WorkoutGenerationInput } from './aiWorkoutService.js';
 import type { AuthenticatedUser } from '../types/express.js';
 import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
+import { runWithClientType } from '../tenancy/clientTypeContext.js';
 
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{8,100}$/;
 let workerScheduled = false;
@@ -54,7 +55,7 @@ async function processNextJob(): Promise<boolean> {
   const centerId = String((job as typeof job & { centerId?: unknown }).centerId || '');
   if (!centerId) throw new Error(`AI workout job ${String(job._id)} is missing centerId.`);
 
-  return runWithCenter(centerId, async () => {
+  return runWithClientType(job.clientType === 'MOBILE' ? 'MOBILE' : 'WEB', () => runWithCenter(centerId, async () => {
   try {
     const result = await generateWorkoutDraft(
       { id: String(job.ownerPtId), role: 'PT', centerId },
@@ -92,7 +93,7 @@ async function processNextJob(): Promise<boolean> {
   }
 
   return true;
-  });
+  }));
 }
 
 async function drainJobs() {
@@ -147,6 +148,7 @@ export async function enqueueWorkoutGeneration(
     job = await AiWorkoutGenerationJob.create({
       ownerPtId: user.id,
       customerId: input.customerId,
+      clientType: user.clientType === 'MOBILE' ? 'MOBILE' : 'WEB',
       idempotencyKey,
       status: 'PENDING',
       input,

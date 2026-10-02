@@ -25,6 +25,21 @@ const registerCenter = asyncHandler(async (req, res) => {
   });
 });
 
+const registerPt = asyncHandler(async (req, res) => {
+  const { center, pt } = await authService.registerPtAccount(req.body);
+  return success(res, {
+    status: 201,
+    message: 'Đăng ký tài khoản PT thành công.',
+    data: {
+      center: { id: String(center._id), type: center.workspaceType },
+      user: {
+        id: String(pt._id), username: pt.username, fullName: pt.fullName,
+        role: pt.role, status: pt.status, email: pt.email || '', phone: pt.phone || '',
+      },
+    },
+  });
+});
+
 const refresh = asyncHandler(async (req, res) => success(res, { message: 'Làm mới phiên đăng nhập thành công.', data: await authService.refreshSession(req.body) }));
 
 const logout = asyncHandler(async (req, res) => success(res, { message: 'Đăng xuất thành công.', data: await authService.logoutSession(req.body) }));
@@ -116,4 +131,4 @@ export const deleteOwner = asyncHandler(async (req, res) => {
   return success(res, { message: 'Đã xóa tài khoản.', data: null });
 });
 
-export { login, registerCenter, refresh, logout, getMe, updateMe, updatePushToken, deleteMe };
+export { login, registerCenter, registerPt, refresh, logout, getMe, updateMe, updatePushToken, deleteMe };

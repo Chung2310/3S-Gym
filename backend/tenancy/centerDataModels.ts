@@ -2,6 +2,7 @@ import type { Model } from 'mongoose';
 import ActivityCalorie from '../models/ActivityCalorie.js';
 import AiNutritionGenerationJob from '../models/AiNutritionGenerationJob.js';
 import AiUsage from '../models/AiUsage.js';
+import AiUsageQuotaCounter from '../models/AiUsageQuotaCounter.js';
 import AiWorkoutGenerationJob from '../models/AiWorkoutGenerationJob.js';
 import AssistantConversation from '../models/AssistantConversation.js';
 import AssistantSuggestion from '../models/AssistantSuggestion.js';
@@ -35,13 +36,17 @@ import PtPackage from '../models/PtPackage.js';
 import Roadmap from '../models/Roadmap.js';
 import TransferRequest from '../models/TransferRequest.js';
 import User from '../models/User.js';
+import GymInvitation from '../models/GymInvitation.js';
+import CenterRequestLease from '../models/CenterRequestLease.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutSession from '../models/WorkoutSession.js';
 import WorkoutSessionDraft from '../models/WorkoutSessionDraft.js';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
 
 export const centerDataModels: Model<any>[] = [
-  User, Exercise, ActivityCalorie, FeatureFlag, AiNutritionGenerationJob, AiUsage, AiWorkoutGenerationJob, AssistantConversation,
+  GymInvitation,
+  CenterRequestLease,
+  User, Exercise, ActivityCalorie, FeatureFlag, AiNutritionGenerationJob, AiUsage, AiUsageQuotaCounter, AiWorkoutGenerationJob, AssistantConversation,
   AssistantSuggestion, AuditLog, BodyMeasurement, CalendarEvent, CareAlert, CareLog,
   CareTask, ConsultationNote, CreditLedgerEntry, CreditWallet, CustomerProfile,
   DeviceSession, FoodImage, Goal, InBodyRecord, KnowledgeChunk, KnowledgeDocument, MuscleGroup,

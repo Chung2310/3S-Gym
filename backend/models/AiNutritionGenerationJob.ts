@@ -7,6 +7,7 @@ export type AiNutritionGenerationJobStatus = 'PENDING' | 'PROCESSING' | 'SUCCEED
 export interface IAiNutritionGenerationJob {
   ownerPtId: mongoose.Types.ObjectId;
   customerId: mongoose.Types.ObjectId;
+  clientType: 'WEB' | 'MOBILE';
   idempotencyKey: string;
   status: AiNutritionGenerationJobStatus;
   input: NutritionGenerationInput;
@@ -21,6 +22,7 @@ export interface IAiNutritionGenerationJob {
 const schema = new Schema<IAiNutritionGenerationJob>({
   ownerPtId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   customerId: { type: Schema.Types.ObjectId, ref: 'CustomerProfile', required: true, index: true },
+  clientType: { type: String, enum: ['WEB', 'MOBILE'], required: true, default: 'WEB' },
   idempotencyKey: { type: String, required: true, trim: true, maxlength: 100 },
   status: {
     type: String,

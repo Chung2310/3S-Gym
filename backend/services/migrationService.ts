@@ -15,9 +15,13 @@ import Roadmap from '../models/Roadmap.js';
 import User from '../models/User.js';
 import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
+import { upCenterWorkspaceTypes, downCenterWorkspaceTypes } from '../migrations/006-center-workspace-types.js';
+import { upPtOnboarding, downPtOnboarding } from '../migrations/007-pt-onboarding-and-ai-recovery.js';
+import { upAiCompanyGlobalBudget, downAiCompanyGlobalBudget } from '../migrations/008-ai-company-global-budget.js';
 import { downExerciseTrackingTypes, upExerciseTrackingTypes } from '../migrations/002-exercise-tracking-types.js';
 import { downSuperAdminRole, upSuperAdminRole } from '../migrations/003-super-admin-role.js';
 import { downCenterTenancy, upCenterTenancy } from '../migrations/004-center-tenancy.js';
+import { downAiUsageQuotaCounters, upAiUsageQuotaCounters } from '../migrations/005-ai-usage-quota-counters.js';
 import { AI_TASK_TYPES, type AiTaskType } from './creditTypes.js';
 import { ensureWallet } from './creditWalletService.js';
 import { runWithSystemCenterAccess } from '../tenancy/centerContext.js';
@@ -188,6 +192,20 @@ const migrations: MigrationDefinition[] = [
     up: upCenterTenancy as MigrationDefinition['up'],
     down: downCenterTenancy,
   },
+  {
+    version: '005-ai-usage-quota-counters',
+    name: 'Create and backfill mobile AI usage quota counters',
+    up: upAiUsageQuotaCounters as MigrationDefinition['up'],
+    down: downAiUsageQuotaCounters,
+  },
+  {
+    version: '006-center-workspace-types',
+    name: 'Classify gym and personal PT workspaces',
+    up: upCenterWorkspaceTypes as MigrationDefinition['up'],
+    down: downCenterWorkspaceTypes,
+  },
+  { version: '007-pt-onboarding-and-ai-recovery', name: 'Personal PT features, gym invitations and AI recovery', up: upPtOnboarding, down: downPtOnboarding },
+  { version: '008-ai-company-global-budget', name: 'Add monthly company-paid AI spend ledger', up: upAiCompanyGlobalBudget, down: downAiCompanyGlobalBudget },
 ];
 
 async function prerequisitesApplied(index: number) {

@@ -7,6 +7,7 @@ import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { getEnv } from '../config/env.js';
 import { registerCenterAdmin as createCenterAdmin } from './userService.js';
+import { registerPtAccount as createPtAccount } from './userService.js';
 import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 interface LoginPayload {
@@ -49,7 +50,7 @@ async function login({ username, password, clientType = 'WEB', deviceInfo, pushT
   if (clientType === 'MOBILE') {
     // Mobile HLV: Token truy cập 7 ngày + Refresh Token 60 ngày để không bị gián đoạn khi đứng lớp
     const token = jwt.sign(
-      { id: user.id, role: user.role, clientType: 'MOBILE' },
+      { id: user.id, role: user.role, clientType: 'MOBILE', authVersion: user.authVersion || 0 },
       env.JWT_SECRET,
       { expiresIn: '7d', algorithm: env.JWT_ALGORITHM, issuer: env.JWT_ISSUER, audience: env.JWT_AUDIENCE },
     );
@@ -110,7 +111,7 @@ async function login({ username, password, clientType = 'WEB', deviceInfo, pushT
 
   // Web Admin/PT: Token 1 ngày chuẩn mực bảo mật
   const token = jwt.sign(
-    { id: user.id, role: user.role, clientType: 'WEB' },
+    { id: user.id, role: user.role, clientType: 'WEB', authVersion: user.authVersion || 0 },
     env.JWT_SECRET,
     { expiresIn: '1d', algorithm: env.JWT_ALGORITHM, issuer: env.JWT_ISSUER, audience: env.JWT_AUDIENCE },
   );
@@ -136,6 +137,10 @@ async function login({ username, password, clientType = 'WEB', deviceInfo, pushT
 
 function registerCenterAdmin(input: Parameters<typeof createCenterAdmin>[0]) {
   return createCenterAdmin(input);
+}
+
+function registerPtAccount(input: Parameters<typeof createPtAccount>[0]) {
+  return createPtAccount(input);
 }
 
 async function refreshSession({ refreshToken }: { refreshToken: string }) {
@@ -171,7 +176,7 @@ async function refreshSession({ refreshToken }: { refreshToken: string }) {
 
     const env = getEnv();
     const token = jwt.sign(
-      { id: user.id, role: user.role, clientType: session.clientType },
+      { id: user.id, role: user.role, clientType: session.clientType, authVersion: user.authVersion || 0 },
       env.JWT_SECRET,
       { expiresIn: '7d', algorithm: env.JWT_ALGORITHM, issuer: env.JWT_ISSUER, audience: env.JWT_AUDIENCE },
     );
@@ -211,5 +216,5 @@ async function logoutSession({ refreshToken, pushToken }: { refreshToken?: strin
   }
   return { success: true };
 }
-export { login, registerCenterAdmin, refreshSession, logoutSession };
+export { login, registerCenterAdmin, registerPtAccount, refreshSession, logoutSession };
 
