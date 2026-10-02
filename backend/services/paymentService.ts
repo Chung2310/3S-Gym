@@ -1,4 +1,4 @@
-import { createSepayOrderCode, createSepayPayment, isSepayConfigured, sepayQrUrl, verifySepayCallback } from './sepayGateway.js';
+import { createSepayOrderCode, createSepayPayment, isSepayConfigured, sepayOrderCodeFromPaymentCode, sepayQrUrl, verifySepayCallback } from './sepayGateway.js';
 import { randomUUID } from 'node:crypto';
 import mongoose from 'mongoose';
 import { AppError } from '../errors/AppError.js';
@@ -21,7 +21,13 @@ function unavailable(message: string): never {
   throw new AppError({ status: 503, code: ERROR_CODES.UNAVAILABLE, message });
 }
 
-function orderView(order: OrderDocument, redirectUrl?: string, qrCodeUrl?: string) {
+function orderView(order: OrderDocument, redirectUrl?: string) {
+  if (order.gateway === 'SEPAY' && order.status === 'PENDING') {
+    const paymentCode = order.bankTransfer?.content.trim().split(/\s+/).at(-1);
+    if (!paymentCode || sepayOrderCodeFromPaymentCode(paymentCode) !== order.orderCode) {
+      unavailable('Nội dung chuyển khoản không khớp mã đơn đã lưu. Vui lòng liên hệ hỗ trợ.');
+    }
+  }
   return {
     id: order.id, orderCode: order.orderCode, gateway: order.gateway, status: order.status,
     source: order.source, amountVnd: order.amountVnd, baseCredits: order.baseCredits,
@@ -33,7 +39,6 @@ function orderView(order: OrderDocument, redirectUrl?: string, qrCodeUrl?: strin
     ...(order.gateway === 'SEPAY' && order.bankTransfer && order.status === 'PENDING'
       ? { qrCodeUrl: sepayQrUrl(order.bankTransfer, order.amountVnd) } : {}),
     expiresAt: order.expiresAt, ...(redirectUrl ? { redirectUrl } : {}),
-    ...(qrCodeUrl ? { qrCodeUrl } : {}),
   };
 }
 
@@ -138,10 +143,10 @@ export async function createPaymentOrder(
 
   const description = `Nap credit ${orderCode.slice(-10)}`;
   let redirectUrl: string | undefined;
-  let qrCodeUrl: string | undefined;
 
   if (gateway === 'SEPAY') {
-    qrCodeUrl = sepayQrUrl(bankTransfer!, amountVnd);
+    // Creation and polling share the same QR source: the saved order snapshot.
+    return orderView(order);
   } else if (gateway === 'VNPAY') {
     const result = createVnpayPayment({ orderCode, amountVnd, description, ipAddress });
     if (!result.configured) unavailable('VNPay chưa được cấu hình.');
@@ -152,7 +157,7 @@ export async function createPaymentOrder(
     redirectUrl = result.redirectUrl;
   }
 
-  return orderView(order, redirectUrl, qrCodeUrl);
+  return orderView(order, redirectUrl);
 }
 
 export async function getPaymentOrder(userId: string, id: string) {
