@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   3s-gym:
     image: ghcr.io/chung2310/3s-gym:${IMAGE_TAG:-latest}
@@ -22,6 +20,16 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  db-migrate:
+    image: ghcr.io/chung2310/3s-gym:${IMAGE_TAG:-latest}
+    env_file:
+      - .env
+    entrypoint: ["node", "dist/backend/scripts/migrate.js", "up"]
+    profiles:
+      - migration
+    networks:
+      - default_network
 
 networks:
   default_network:

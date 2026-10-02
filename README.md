@@ -39,6 +39,8 @@ npm run db:migrate:status
 npm run db:migrate
 ```
 
+`npm run dev` tự áp dụng migration còn thiếu trên database local. GitHub Actions chạy migration một lần bằng container riêng sau khi dừng API cũ và trước khi khởi động image mới. Khi deploy thủ công bằng Docker Compose, vẫn cần chạy migration trước API mới.
+
 Cấu hình VNPay và MoMo theo các biến trong `.env.example`. URL callback/IPN phải là HTTPS công khai và đi thẳng tới backend; URL redirect/return đưa người dùng về `/wallet/payment-result`:
 
 ```env

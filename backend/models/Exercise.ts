@@ -1,4 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
+import { sharedCenterCatalogPlugin } from '../tenancy/centerTenantPlugin.js';
 import { TRACKING_TYPES, type TrackingType } from '../types/exerciseTracking.js';
 export interface IExerciseVideo {
   title: string;
@@ -8,7 +9,7 @@ export interface IExerciseVideo {
 export interface IExercise {
   name: string; muscleGroup: string; muscleGroups?: string[]; level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
   equipment: string[]; description: string; videoUrl: string; videos: IExerciseVideo[]; technique: string; commonMistakes: string[];
-  contraindications: string[]; variants: string[]; scope: 'GLOBAL' | 'PRIVATE'; ownerPtId?: mongoose.Types.ObjectId;
+  contraindications: string[]; variants: string[]; scope: 'GLOBAL' | 'PRIVATE'; ownerPtId?: mongoose.Types.ObjectId; centerId?: mongoose.Types.ObjectId | null;
   defaultTrackingType: TrackingType;
 }
 const exerciseVideoSchema = new Schema<IExerciseVideo>({
@@ -36,5 +37,6 @@ schema.pre('save', function () {
 });
 
 schema.index({ scope: 1, ownerPtId: 1, muscleGroup: 1, level: 1, defaultTrackingType: 1 });
+schema.plugin(sharedCenterCatalogPlugin);
 export default mongoose.model<IExercise>('Exercise', schema);
 

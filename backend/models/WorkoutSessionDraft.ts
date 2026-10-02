@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 
 interface IWorkoutSessionDraft {
@@ -18,5 +19,7 @@ const schema = new Schema<IWorkoutSessionDraft>({
   plan: { type: Schema.Types.Mixed, required: true },
   pendingPayload: { type: Schema.Types.Mixed, default: null },
 }, { timestamps: true, minimize: false });
-schema.index({ ownerId: 1, customerId: 1 }, { unique: true });
+schema.index({ ownerId: 1, customerId: 1 }, { unique: true });schema.plugin(centerTenantPlugin);
+
+
 export default mongoose.model<IWorkoutSessionDraft>('WorkoutSessionDraft', schema);

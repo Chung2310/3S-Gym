@@ -4,7 +4,7 @@ import type { RequestValidationSchema } from '../middlewares/validate.js';
 import { commonMessages, email, idParams, nonEmptyPatch, paginationQuery, passwordSchema } from './commonValidator.js';
 
 const roles = ['SUPER_ADMIN', 'ADMIN', 'PT', 'CUSTOMER'];
-const creatableRoles = ['ADMIN', 'PT', 'CUSTOMER'];
+const creatableRoles = ['PT'];
 const profileFields = {
   password: passwordSchema, fullName: Joi.string().trim().messages(commonMessages),
   phone: Joi.string().trim().messages(commonMessages), email: email.allow('', null),

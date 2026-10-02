@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Document, Types } from 'mongoose';
 
 export interface IPackageTemplate extends Document {
@@ -57,6 +58,8 @@ const packageTemplateSchema = new mongoose.Schema<IPackageTemplate>(
   }
 );
 
-packageTemplateSchema.index({ name: 'text', description: 'text' });
+packageTemplateSchema.index({ name: 'text', description: 'text' });packageTemplateSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<IPackageTemplate>('PackageTemplate', packageTemplateSchema);

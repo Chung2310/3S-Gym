@@ -4,6 +4,7 @@ import { loadEnv } from '../config/env.js';
 import { connectDatabase, disconnectDatabase } from '../config/db.js';
 import FoodImage, { type IFoodImage } from '../models/FoodImage.js';
 import NutritionPlan from '../models/NutritionPlan.js';
+import { runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 dotenv.config({ quiet: true });
 loadEnv();
@@ -94,7 +95,7 @@ async function run() {
   console.log('--- HOÀN TẤT DỌN DẸP ---');
 }
 
-run()
+runWithSystemCenterAccess(() => run())
   .catch((err) => {
     console.error('Lỗi khi chạy dọn dẹp mock data:', err);
     process.exit(1);

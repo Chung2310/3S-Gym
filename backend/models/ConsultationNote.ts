@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema, type Document, type Types } from 'mongoose';
 
 export interface IConsultationNote {
@@ -27,6 +28,8 @@ const consultationNoteSchema = new Schema<IConsultationNote>(
   { timestamps: true }
 );
 
-consultationNoteSchema.index({ customerId: 1, consultationDate: -1 });
+consultationNoteSchema.index({ customerId: 1, consultationDate: -1 });consultationNoteSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<IConsultationNote>('ConsultationNote', consultationNoteSchema);

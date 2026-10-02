@@ -11,11 +11,13 @@ export const AI_TASK_TYPES = [
 ] as const;
 
 export type AiTaskType = (typeof AI_TASK_TYPES)[number];
+export type AiBillingMode = 'WALLET' | 'COMPANY_PAID';
 
 export interface AiBillingContext {
   userId: string;
   taskType: AiTaskType;
   requestKey: string;
+  billingMode?: AiBillingMode;
 }
 
 export interface ProviderUsage {

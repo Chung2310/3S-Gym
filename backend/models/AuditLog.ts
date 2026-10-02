@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 import type { UserRole } from './User.js';
 
@@ -21,6 +22,8 @@ const auditLogSchema = new Schema<IAuditLog>({
   metadata: { type: Schema.Types.Mixed, default: {} },
 }, { timestamps: true });
 
-auditLogSchema.index({ resourceType: 1, resourceId: 1, createdAt: -1 });
+auditLogSchema.index({ resourceType: 1, resourceId: 1, createdAt: -1 });auditLogSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<IAuditLog>('AuditLog', auditLogSchema);

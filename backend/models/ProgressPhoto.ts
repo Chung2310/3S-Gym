@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema, type Document, type Types } from 'mongoose';
 
 export type PhotoStage = 'BEFORE' | 'AFTER' | 'PROGRESS';
@@ -32,6 +33,8 @@ const progressPhotoSchema = new Schema<IProgressPhoto>(
   { timestamps: true }
 );
 
-progressPhotoSchema.index({ customerId: 1, takenDate: -1 });
+progressPhotoSchema.index({ customerId: 1, takenDate: -1 });progressPhotoSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<IProgressPhoto>('ProgressPhoto', progressPhotoSchema);

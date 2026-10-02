@@ -161,6 +161,7 @@ jobs:
             : "${ENV_FILE_CONTENT:?GitHub Variable ENV_FILE must not be empty}"
             printf '%s\n' "$ENV_FILE_CONTENT" > .env
 
+
             # Đăng nhập vào GHCR trên VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -184,6 +185,18 @@ jobs:
             done
 
             # Khởi động lại container mới (Docker compose tự động recreate và restart với downtime tối thiểu)
+            # Validate the exact container environment before stopping the old API.
+            # Compose parses env_file; the compiled backend owns validation rules.
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose --profile migration run --rm --no-deps --entrypoint node db-migrate --input-type=module -e 'import { loadEnv } from "./dist/backend/config/env.js"; try { loadEnv(); console.log("DEPLOY_ENV_OK"); } catch (error) { console.error("Deployment environment validation failed: " + error.message); process.exitCode = 1; }'
+
+            # Stop legacy API writes while records are assigned to their center.
+            if [ -n "$(IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose ps -q 3s-gym)" ]; then
+              IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose stop 3s-gym
+            fi
+
+            # Apply pending migrations once with the new image before starting the API.
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose --profile migration run --rm db-migrate
+
             IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose up -d --force-recreate --remove-orphans
 
             # Không báo deploy thành công nếu container vẫn chạy image cũ.
@@ -239,6 +252,7 @@ jobs:
             : "${ENV_FILE_CONTENT:?GitHub Variable ENV_FILE_PROD must not be empty}"
             printf '%s\n' "$ENV_FILE_CONTENT" > .env
 
+
             # Đăng nhập vào GHCR trên VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -262,6 +276,18 @@ jobs:
             done
 
             # Khởi động lại container mới
+            # Validate the exact container environment before stopping the old API.
+            # Compose parses env_file; the compiled backend owns validation rules.
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose --profile migration run --rm --no-deps --entrypoint node db-migrate --input-type=module -e 'import { loadEnv } from "./dist/backend/config/env.js"; try { loadEnv(); console.log("DEPLOY_ENV_OK"); } catch (error) { console.error("Deployment environment validation failed: " + error.message); process.exitCode = 1; }'
+
+            # Stop legacy API writes while records are assigned to their center.
+            if [ -n "$(IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose ps -q 3s-gym)" ]; then
+              IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose stop 3s-gym
+            fi
+
+            # Apply pending migrations once with the new image before starting the API.
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose --profile migration run --rm db-migrate
+
             IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose up -d --force-recreate --remove-orphans
 
             # Không báo deploy thành công nếu container vẫn chạy image cũ.

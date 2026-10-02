@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose from 'mongoose';
 export interface IPtPackage {
   customerId: mongoose.Types.ObjectId; name: string; totalSessions: number; usedSessions: number;
@@ -13,6 +14,8 @@ const ptPackageSchema = new mongoose.Schema<IPtPackage>({
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   status: { type: String, enum: ['ACTIVE', 'EXPIRED', 'COMPLETED', 'CANCELLED'], default: 'ACTIVE', index: true },
-}, { timestamps: true });
+}, { timestamps: true });ptPackageSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<IPtPackage>('PtPackage', ptPackageSchema);

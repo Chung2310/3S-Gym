@@ -18,7 +18,7 @@ const logUpdateValidator = (req: Request): ValidationIssue[] => { const errors: 
 
 */
 router.post('/nutrition/metrics', authenticate, authorize('ADMIN', 'PT'), validate(nutritionMetricsSchema), controller.metrics);
-router.post('/nutrition/formulas', authenticate, authorize('ADMIN'), validate(createFormulaSchema), controller.createFormula);
+router.post('/nutrition/formulas', authenticate, authorize('SUPER_ADMIN'), validate(createFormulaSchema), controller.createFormula);
 router.get('/nutrition/logs', authenticate, authorize('ADMIN', 'PT'), validate(listNutritionLogsSchema), logController.list);
 router.post('/nutrition/logs', authenticate, authorize('ADMIN', 'PT'), validate(createNutritionLogSchema), logController.create);
 router.patch('/nutrition/logs/:id', authenticate, authorize('ADMIN', 'PT'), validate(updateNutritionLogSchema), logController.update);

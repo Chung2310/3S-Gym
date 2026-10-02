@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 import { TRACKING_TYPES } from '../types/exerciseTracking.js';
 export interface IWorkoutTemplate {
@@ -30,5 +31,7 @@ const schema = new Schema<IWorkoutTemplate>({
   muscleGroups: { type: [String], default: [] }, defaultSets: { type: Number, min: 1 }, defaultReps: { type: String, default: '' }, defaultWeight: { type: String, default: '' }, defaultTempo: { type: String, default: '' }, technicalNotes: { type: String, default: '' },
   sessions: { type: [templateSessionSchema], default: [] }, version: { type: Number, default: 1 },
   status: { type: String, enum: ['ACTIVE', 'ARCHIVED'], default: 'ACTIVE', index: true },
-}, { timestamps: true });
+}, { timestamps: true });schema.plugin(centerTenantPlugin);
+
+
 export default mongoose.model<IWorkoutTemplate>('WorkoutTemplate', schema);

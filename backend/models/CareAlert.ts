@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 export interface ICareAlert { customerId: mongoose.Types.ObjectId; ptId: mongoose.Types.ObjectId; ruleKey: string; title: string; reason: string; status: 'OPEN' | 'RESOLVED'; dueAt: Date; resolvedAt?: Date; resolvedById?: mongoose.Types.ObjectId; result: string }
 const schema = new Schema<ICareAlert>({
@@ -7,5 +8,7 @@ const schema = new Schema<ICareAlert>({
   resolvedAt: Date, resolvedById: { type: Schema.Types.ObjectId, ref: 'User' }, result: { type: String, default: '' },
 }, { timestamps: true });
 schema.index({ customerId: 1, ruleKey: 1 }, { unique: true, partialFilterExpression: { status: 'OPEN' } });
-schema.index({ ptId: 1, status: 1, dueAt: 1 });
+schema.index({ ptId: 1, status: 1, dueAt: 1 });schema.plugin(centerTenantPlugin);
+
+
 export default mongoose.model<ICareAlert>('CareAlert', schema);

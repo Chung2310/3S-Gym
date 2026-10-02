@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose from 'mongoose';
 const schema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'CustomerProfile', required: true, index: true },
@@ -13,6 +14,8 @@ const schema = new mongoose.Schema({
   status: { type: String, enum: ['DRAFT', 'PUBLISHED'], default: 'DRAFT', index: true },
   publishedAt: { type: Date, default: null },
   version: { type: Number, default: 1 },
-}, { timestamps: true });
+}, { timestamps: true });schema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model('Goal', schema);

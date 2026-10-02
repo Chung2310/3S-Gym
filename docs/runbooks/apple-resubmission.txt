@@ -1,0 +1,90 @@
+﻿APPLE RESUBMISSION - WORKING DRAFT; VERIFY ALL BUSINESS ANSWERS BEFORE SENDING
+Last reviewed: 2026-10-02
+
+IMPLEMENTED PRODUCT FLOW
+- Anyone may create an independent PT account from the mobile login screen.
+- A PT can use their personal workspace immediately after signup.
+- A gym admin invites an existing independent PT. Acceptance transfers all records
+  in the personal workspace to the gym only after the PT confirms consent. The gym
+  admin can then manage those records. Gym admins can also create PT accounts.
+- Gym admin accounts are currently provisioned by a 3S SUPER_ADMIN. The app does
+  not offer self-service gym-owner registration. Do not tell Apple that any gym
+  can register its own admin account from the login screen.
+- Mobile AI calls use company-paid fair-use limits. The mobile app does not show
+  or debit the user's credit wallet. Web AI calls continue to use web credits.
+  Production AI calls stop when the configured company monthly budget is reached.
+- No email delivery or verification service exists in this project. Signup uses
+  the existing IP-based rate limits; do not claim email verification.
+
+RELEASE GATES
+1. Set AI_GLOBAL_MONTHLY_BUDGET_VND and AI_GLOBAL_MAX_RESERVATION_VND to values
+   approved by the business. The per-call reserve should cover the largest normal
+   request, including image generation. A provider-reported cost above that reserve
+   is recorded and blocks subsequent calls, but combined overages from calls already
+   in flight can exceed the monthly limit. Monitor provider invoices.
+2. Build the backend and run npm run db:migrate:production against staging first.
+   In production, drain the old API before running the migration so older servers
+   cannot add mobile AI calls between the cost backfill and new API startup. Confirm
+   migrations 004 through 008 are applied. MongoDB must be a replica set or mongos
+   for signup, AI billing reservations, account deletion and gym transfer.
+3. Use disposable staging accounts to test PT signup and rollback, gym invitation,
+   consent, full data transfer, duplicate-data rollback, an in-flight request,
+   old-session revocation and account deletion. Never use production/legacy data.
+4. On iPhone and iPad TestFlight builds, test login, signup, AI consent and limits,
+   nutrition citations, invitations, transfer confirmation, account deletion,
+   keyboard/scrolling and expired sessions.
+5. Publish the updated privacy policy. Verify it describes PT signup, data transfer
+   after consent, AI providers, web credits, deletion and backup retention. Reconcile
+   the App Store privacy answers with the deployed build.
+6. Give App Review active PT and gym-admin accounts with non-sensitive sample data.
+   Keep the review backend available and add clear review notes.
+7. Build and upload a new iOS release. Verify screenshots, description, support URL
+   and privacy-policy URL. Do not resubmit the previously reviewed build.
+
+APP REVIEW RESPONSE DRAFT - DO NOT SEND UNTIL BUSINESS FACTS ARE CONFIRMED
+
+Hello App Review Team,
+
+Thank you for your review. We updated onboarding and added citations to the
+nutrition calculations.
+
+Guideline 3.2 - Business
+
+1. The app is not limited to employees or partners of one company. Individual
+   personal trainers can create a PT account without an invitation and use a
+   personal workspace.
+2. Independent PTs can use the personal workspace. Gym workspaces are currently
+   provisioned by a 3S SUPER_ADMIN. Gym admins can create PT accounts or invite an
+   existing independent PT. [Confirm which organizations may request a gym and
+   whether eligibility restrictions apply.]
+3. PT registration and the personal training-management workspace are available
+   without affiliation to a particular gym. The app is a professional tool, not a
+   consumer gym-membership registration app.
+4. On the login screen, a PT selects account registration and creates a PT account.
+   Gym admins are provisioned by 3S. They may create PT accounts in their gym or
+   invite an independent PT. The PT must consent before personal records transfer.
+5. [Confirm before sending.] iOS users do not buy credits in the app. 3S pays for
+   company-funded mobile AI usage subject to per-user, per-gym and global monthly
+   limits. Website AI usage is billed against credits purchased on the website.
+   Explain any subscription or other fee that applies to the actual iOS experience.
+
+Guideline 1.4.1 - Safety
+
+Nutrition calculation results show a "Method and references" section with links to
+sources. The same citations are available in the macro calculation result. The app
+identifies its calorie, macro and water presets as estimates, not published medical
+recommendations.
+
+References shown in the app:
+https://pubmed.ncbi.nlm.nih.gov/2305711/
+https://www.niddk.nih.gov/bwp
+https://pubmed.ncbi.nlm.nih.gov/28642676/
+https://www.nationalacademies.org/read/10872/chapter/13
+https://www.nationalacademies.org/read/10925/chapter/6
+
+Account deletion is available in Profile > Security & Change Password > Delete
+Account. A gym admin can transfer ownership or close a center. PT deletion removes
+an independent workspace or transfers gym-managed operational records to the active
+gym owner, according to the workspace.
+
+Review credentials are included in App Store Connect Review Information.

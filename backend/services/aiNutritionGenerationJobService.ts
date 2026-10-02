@@ -7,6 +7,8 @@ import CustomerProfile from '../models/CustomerProfile.js';
 import { createNutritionDraft } from './contentDraftService.js';
 export interface NutritionGenerationInput { customerId: string; request: string; planId?: string; durationDays?: number }
 import type { AuthenticatedUser } from '../types/express.js';
+import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
+import { runWithClientType } from '../tenancy/clientTypeContext.js';
 
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{8,100}$/;
 let workerScheduled = false;
@@ -40,6 +42,7 @@ function publicJob(job: any) {
 }
 
 async function processNextJob(): Promise<boolean> {
+  return runWithSystemCenterAccess(async () => {
   // Never automatically repeat a possibly billed generation after an interrupted process.
   await AiNutritionGenerationJob.updateMany({ status: 'PROCESSING', startedAt: { $lt: new Date(Date.now() - 2 * 60 * 60 * 1000) } }, {
     $set: { status: 'FAILED', completedAt: new Date(), error: { code: 'GENERATION_INTERRUPTED', message: 'Tác vụ bị gián đoạn. Kiểm tra danh sách thực đơn trước khi tạo lại.' } },
@@ -55,16 +58,21 @@ async function processNextJob(): Promise<boolean> {
   ).lean();
 
   if (!job) return false;
+  const centerId = String((job as typeof job & { centerId?: unknown }).centerId || '');
+  if (!centerId) throw new Error(`AI nutrition job ${String(job._id)} is missing centerId.`);
 
+  return runWithClientType(job.clientType === 'MOBILE' ? 'MOBILE' : 'WEB', () => runWithCenter(centerId, async () => {
   try {
     const result = await createNutritionDraft(
-      { id: String(job.ownerPtId), role: 'PT' }, job.input.customerId, job.input.request,
+      { id: String(job.ownerPtId), role: 'PT', centerId }, job.input.customerId, job.input.request,
       `ai-nutrition-job:${job._id}`, job.input.planId, job.input.durationDays,
     );
+    // The job already owns its tenant ID; do not duplicate it in the snapshot.
+    const { centerId: _resultCenterId, ...snapshot } = result.toObject() as ReturnType<typeof result.toObject> & { centerId?: unknown };
     await AiNutritionGenerationJob.updateOne(
       { _id: job._id, status: 'PROCESSING' },
       {
-        $set: { status: 'SUCCEEDED', result, completedAt: new Date() },
+        $set: { status: 'SUCCEEDED', result: snapshot, completedAt: new Date() },
         $unset: { error: 1 },
       },
     );
@@ -92,6 +100,8 @@ async function processNextJob(): Promise<boolean> {
   }
 
   return true;
+  }));
+  });
 }
 
 async function drainJobs() {
@@ -147,6 +157,7 @@ export async function enqueueNutritionGeneration(
     job = await AiNutritionGenerationJob.create({
       ownerPtId: user.id,
       customerId: input.customerId,
+      clientType: user.clientType === 'MOBILE' ? 'MOBILE' : 'WEB',
       idempotencyKey,
       status: 'PENDING',
       input,
