@@ -161,26 +161,6 @@ jobs:
             : "${ENV_FILE_CONTENT:?GitHub Variable ENV_FILE must not be empty}"
             printf '%s\n' "$ENV_FILE_CONTENT" > .env
 
-            # Validate the production AI spend guardrails before stopping the old API.
-            read_env_value() {
-              awk -F= -v key="$1" '$1 ~ "^[[:space:]]*" key "[[:space:]]*$" { value = substr($0, index($0, "=") + 1); sub(/\r$/, "", value); gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); if (value ~ /^".*"$/) value = substr(value, 2, length(value) - 2); if (value !~ /^".*"$/) sub(/[[:space:]]+#.*$/, "", value); gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); print value; exit }' .env
-            }
-            AI_GLOBAL_MONTHLY_BUDGET_VND="$(read_env_value AI_GLOBAL_MONTHLY_BUDGET_VND)"
-            AI_GLOBAL_MAX_RESERVATION_VND="$(read_env_value AI_GLOBAL_MAX_RESERVATION_VND)"
-            case "$AI_GLOBAL_MONTHLY_BUDGET_VND" in
-              ''|*[!0-9]*) echo "AI_GLOBAL_MONTHLY_BUDGET_VND must be a positive integer in ENV_FILE"; exit 1 ;;
-            esac
-            case "$AI_GLOBAL_MAX_RESERVATION_VND" in
-              ''|*[!0-9]*) echo "AI_GLOBAL_MAX_RESERVATION_VND must be a positive integer in ENV_FILE"; exit 1 ;;
-            esac
-            if [ "$AI_GLOBAL_MONTHLY_BUDGET_VND" -lt 1 ] || [ "$AI_GLOBAL_MAX_RESERVATION_VND" -lt 1 ]; then
-              echo "AI global budget values must be greater than zero"
-              exit 1
-            fi
-            if [ "$AI_GLOBAL_MAX_RESERVATION_VND" -gt "$AI_GLOBAL_MONTHLY_BUDGET_VND" ]; then
-              echo "AI_GLOBAL_MAX_RESERVATION_VND cannot exceed AI_GLOBAL_MONTHLY_BUDGET_VND"
-              exit 1
-            fi
 
             # Đăng nhập vào GHCR trên VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -205,6 +185,10 @@ jobs:
             done
 
             # Khởi động lại container mới (Docker compose tự động recreate và restart với downtime tối thiểu)
+            # Validate the exact container environment before stopping the old API.
+            # Compose parses env_file; the compiled backend owns validation rules.
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose --profile migration run --rm --no-deps --entrypoint node db-migrate --input-type=module -e 'import { loadEnv } from "./dist/backend/config/env.js"; try { loadEnv(); console.log("DEPLOY_ENV_OK"); } catch (error) { console.error("Deployment environment validation failed: " + error.message); process.exitCode = 1; }'
+
             # Stop legacy API writes while records are assigned to their center.
             if [ -n "$(IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose ps -q 3s-gym)" ]; then
               IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose stop 3s-gym
@@ -268,26 +252,6 @@ jobs:
             : "${ENV_FILE_CONTENT:?GitHub Variable ENV_FILE_PROD must not be empty}"
             printf '%s\n' "$ENV_FILE_CONTENT" > .env
 
-            # Validate the production AI spend guardrails before stopping the old API.
-            read_env_value() {
-              awk -F= -v key="$1" '$1 ~ "^[[:space:]]*" key "[[:space:]]*$" { value = substr($0, index($0, "=") + 1); sub(/\r$/, "", value); gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); if (value ~ /^".*"$/) value = substr(value, 2, length(value) - 2); if (value !~ /^".*"$/) sub(/[[:space:]]+#.*$/, "", value); gsub(/^[[:space:]]+|[[:space:]]+$/, "", value); print value; exit }' .env
-            }
-            AI_GLOBAL_MONTHLY_BUDGET_VND="$(read_env_value AI_GLOBAL_MONTHLY_BUDGET_VND)"
-            AI_GLOBAL_MAX_RESERVATION_VND="$(read_env_value AI_GLOBAL_MAX_RESERVATION_VND)"
-            case "$AI_GLOBAL_MONTHLY_BUDGET_VND" in
-              ''|*[!0-9]*) echo "AI_GLOBAL_MONTHLY_BUDGET_VND must be a positive integer in ENV_FILE_PROD"; exit 1 ;;
-            esac
-            case "$AI_GLOBAL_MAX_RESERVATION_VND" in
-              ''|*[!0-9]*) echo "AI_GLOBAL_MAX_RESERVATION_VND must be a positive integer in ENV_FILE_PROD"; exit 1 ;;
-            esac
-            if [ "$AI_GLOBAL_MONTHLY_BUDGET_VND" -lt 1 ] || [ "$AI_GLOBAL_MAX_RESERVATION_VND" -lt 1 ]; then
-              echo "AI global budget values must be greater than zero"
-              exit 1
-            fi
-            if [ "$AI_GLOBAL_MAX_RESERVATION_VND" -gt "$AI_GLOBAL_MONTHLY_BUDGET_VND" ]; then
-              echo "AI_GLOBAL_MAX_RESERVATION_VND cannot exceed AI_GLOBAL_MONTHLY_BUDGET_VND"
-              exit 1
-            fi
 
             # Đăng nhập vào GHCR trên VPS
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -312,6 +276,10 @@ jobs:
             done
 
             # Khởi động lại container mới
+            # Validate the exact container environment before stopping the old API.
+            # Compose parses env_file; the compiled backend owns validation rules.
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose --profile migration run --rm --no-deps --entrypoint node db-migrate --input-type=module -e 'import { loadEnv } from "./dist/backend/config/env.js"; try { loadEnv(); console.log("DEPLOY_ENV_OK"); } catch (error) { console.error("Deployment environment validation failed: " + error.message); process.exitCode = 1; }'
+
             # Stop legacy API writes while records are assigned to their center.
             if [ -n "$(IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose ps -q 3s-gym)" ]; then
               IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose stop 3s-gym
