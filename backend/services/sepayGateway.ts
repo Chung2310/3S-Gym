@@ -13,6 +13,12 @@ const ORDER_CODE = /^(?:CR[A-F0-9]{20}|(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,5}[0-9]{8})$
 const PAYMENT_CODE = /^(?:(?:[A-Z0-9]{2,5})?CR[A-F0-9]{20}|(?=[A-Z0-9]*[A-Z])[A-Z0-9]{2,5}[0-9]{8})$/;
 const normalized = (value: string) => value.trim().toUpperCase();
 
+// Resolve both current codes and the prefixed codes stored on legacy orders.
+export function sepayOrderCodeFromPaymentCode(paymentCode: string): string | undefined {
+  if (!PAYMENT_CODE.test(paymentCode)) return undefined;
+  return SHORT_ORDER_CODE.test(paymentCode) ? paymentCode : paymentCode.slice(-22);
+}
+
 // VietQR uses MB; MBB is commonly entered as the bank's stock ticker.
 function qrBankCode(value: string): string {
   const code = value.trim();
@@ -117,7 +123,7 @@ export function verifySepayCallback(
     throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Giao dịch SePay thiếu hoặc sai thông tin.' });
   }
   return {
-    valid: true, success: true, orderCode: SHORT_ORDER_CODE.test([...codes][0]) ? [...codes][0] : [...codes][0].slice(-22), paymentCode: [...codes][0], amountVnd: amount,
+    valid: true, success: true, orderCode: sepayOrderCodeFromPaymentCode([...codes][0]), paymentCode: [...codes][0], amountVnd: amount,
     transactionId, resultCode: 'SEPAY_IN',
     recipient: {
       bankName: input.gateway.trim(), accountNumber: input.accountNumber.trim(),
