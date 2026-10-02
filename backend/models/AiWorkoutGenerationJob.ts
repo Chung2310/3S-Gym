@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 import type { WorkoutGenerationInput } from '../services/aiWorkoutService.js';
 
@@ -42,6 +43,8 @@ const schema = new Schema<IAiWorkoutGenerationJob>({
 
 schema.index({ ownerPtId: 1, idempotencyKey: 1 }, { unique: true });
 schema.index({ status: 1, createdAt: 1 });
-schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+schema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });schema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<IAiWorkoutGenerationJob>('AiWorkoutGenerationJob', schema);

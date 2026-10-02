@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 
 export interface ICreditWallet {
@@ -14,7 +15,9 @@ const creditWalletSchema = new Schema<ICreditWallet>({
   availableCredits: { ...nonNegativeInteger, default: 0 },
   reservedCredits: { ...nonNegativeInteger, default: 0 },
   version: { ...nonNegativeInteger, default: 0 },
-}, { timestamps: true });
+}, { timestamps: true });creditWalletSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<ICreditWallet>('CreditWallet', creditWalletSchema);
 

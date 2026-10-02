@@ -17,8 +17,10 @@ import WorkoutPlan from '../models/WorkoutPlan.js';
 import WorkoutTemplate from '../models/WorkoutTemplate.js';
 import { downExerciseTrackingTypes, upExerciseTrackingTypes } from '../migrations/002-exercise-tracking-types.js';
 import { downSuperAdminRole, upSuperAdminRole } from '../migrations/003-super-admin-role.js';
+import { downCenterTenancy, upCenterTenancy } from '../migrations/004-center-tenancy.js';
 import { AI_TASK_TYPES, type AiTaskType } from './creditTypes.js';
 import { ensureWallet } from './creditWalletService.js';
+import { runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 interface VersionedContent { version?: number; status?: string }
 interface MigrationChange { model: string; versionIds: string[]; statusIds: string[] }
@@ -180,6 +182,12 @@ const migrations: MigrationDefinition[] = [
     up: upSuperAdminRole as MigrationDefinition['up'],
     down: downSuperAdminRole,
   },
+  {
+    version: '004-center-tenancy',
+    name: 'Backfill existing data into the 3S Gym center',
+    up: upCenterTenancy as MigrationDefinition['up'],
+    down: downCenterTenancy,
+  },
 ];
 
 async function prerequisitesApplied(index: number) {
@@ -204,6 +212,13 @@ async function applyMigration(migration: MigrationDefinition) {
     throw error;
   }
   if (!lock || lock.ownerId !== ownerId) return false;
+  const heartbeat = setInterval(() => {
+    void MigrationRecord.updateOne(
+      { version: migration.version, status: 'RUNNING', ownerId },
+      { $set: { expiresAt: new Date(Date.now() + LOCK_DURATION_MS) } },
+    ).catch(() => undefined);
+  }, Math.floor(LOCK_DURATION_MS / 3));
+  heartbeat.unref?.();
   try {
     const metadata = await migration.up({ dryRun: false });
     const applied = await MigrationRecord.findOneAndUpdate(
@@ -218,10 +233,13 @@ async function applyMigration(migration: MigrationDefinition) {
       { $set: { status: 'FAILED', error: sanitizedError(error) }, $unset: { ownerId: 1, lockedAt: 1, expiresAt: 1 } },
     );
     throw error;
+  } finally {
+    clearInterval(heartbeat);
   }
 }
 
 async function runMigrations(options: { dryRun?: boolean } = {}) {
+  return runWithSystemCenterAccess(async () => {
   if (options.dryRun) {
     const appliedVersions = new Set((await MigrationRecord.find({ status: 'APPLIED' }).distinct('version')).map(String));
     const dryRun = [];
@@ -240,9 +258,11 @@ async function runMigrations(options: { dryRun?: boolean } = {}) {
     if (await applyMigration(migration)) applied.push(migration.version);
   }
   return { applied };
+  });
 }
 
 async function migrateDown() {
+  return runWithSystemCenterAccess(async () => {
   const record = await MigrationRecord.findOne({ status: 'APPLIED' }).sort({ appliedAt: -1, version: -1 });
   if (!record) return { rolledBack: null };
   const migration = migrations.find((item) => item.version === record.version);
@@ -252,14 +272,20 @@ async function migrateDown() {
   record.rolledBackAt = new Date();
   await record.save();
   return { rolledBack: record.version };
+  });
 }
 
 async function migrationStatus() {
-  return MigrationRecord.find().sort({ version: 1 }).select({ _id: 0, version: 1, name: 1, status: 1, appliedAt: 1, rolledBackAt: 1, error: 1, 'metadata.counts': 1 }).lean();
+  return runWithSystemCenterAccess(() => MigrationRecord.find().sort({ version: 1 }).select({ _id: 0, version: 1, name: 1, status: 1, appliedAt: 1, rolledBackAt: 1, error: 1, 'metadata.counts': 1 }).lean());
 }
 
 async function seedReferenceData() {
-  for (const key of featureKeys) await FeatureFlag.updateOne({ key }, { $setOnInsert: { key, enabled: false, roles: [], pilotUserIds: [] } }, { upsert: true });
+  return runWithSystemCenterAccess(async () => {
+  for (const key of featureKeys) await FeatureFlag.updateOne(
+    { key, $or: [{ centerId: null }, { centerId: { $exists: false } }] },
+    { $setOnInsert: { key, centerId: null, enabled: false, roles: [], pilotUserIds: [] } },
+    { upsert: true },
+  );
   await NutritionFormula.updateOne({ name: 'MIFFLIN_ST_JEOR', version: 1 }, { $setOnInsert: { name: 'MIFFLIN_ST_JEOR', version: 1, active: true, fatLossFactor: 0.85, muscleGainFactor: 1.1, proteinPerKg: 2, fatPerKg: 0.8 } }, { upsert: true });
   const activities = [
     { name: 'Gym / Kháng lực cường độ cao (1h)', category: 'STRENGTH', met: 6.5 },
@@ -277,8 +303,13 @@ async function seedReferenceData() {
     { name: 'Yoga & Giãn cơ (Stretching / Mobility)', category: 'RECOVERY', met: 3 },
     { name: 'Đi bộ nhanh / Đi bộ dốc máy (Incline Walk)', category: 'CARDIO', met: 4.5 },
   ];
-  for (const activity of activities) await ActivityCalorie.updateOne({ name: activity.name }, { $set: { ...activity, active: true } }, { upsert: true });
+  for (const activity of activities) await ActivityCalorie.updateOne(
+    { name: activity.name, $or: [{ centerId: null }, { centerId: { $exists: false } }] },
+    { $set: { ...activity, active: true }, $setOnInsert: { centerId: null } },
+    { upsert: true },
+  );
   await ensureCreditReferenceData();
+  });
 }
 
 export { runMigrations, migrateDown, migrationStatus, seedReferenceData };

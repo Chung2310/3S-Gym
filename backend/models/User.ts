@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'PT' | 'CUSTOMER';
 export type UserStatus = 'ACTIVE' | 'LOCKED';
 
@@ -7,6 +8,7 @@ export interface IUser {
     dateOfBirth: Date | null; gender: 'MALE' | 'FEMALE' | 'OTHER'; phone?: string;
     address: string; specialization: string; yearsOfExperience: number;
     certificates: string[]; bio: string; password: string; role: UserRole; status: UserStatus;
+    centerId?: mongoose.Types.ObjectId | null;
 }
 const userSchema = new mongoose.Schema<IUser>({
     username: {
@@ -49,13 +51,15 @@ const userSchema = new mongoose.Schema<IUser>({
         type: String,
         enum: ['ACTIVE', 'LOCKED'],
         default: 'ACTIVE'
-    }
+    },
+    centerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Center', default: null, index: true },
 }, { timestamps: true });
 
 userSchema.index(
     { role: 1 },
     { name: 'unique_super_admin_role', unique: true, partialFilterExpression: { role: 'SUPER_ADMIN' } }
 );
+userSchema.plugin(centerTenantPlugin);
 
 const User = mongoose.model<IUser>('User', userSchema);
 export type UserDocument = mongoose.HydratedDocument<IUser>;

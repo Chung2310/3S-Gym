@@ -1,7 +1,7 @@
 import app from './app.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { ensureBootstrapSuperAdmin } from './services/userService.js';
-import { ensureCreditReferenceData } from './services/migrationService.js';
+import { ensureCreditReferenceData, migrationStatus } from './services/migrationService.js';
 import { initTelemetry, flushTelemetry } from './services/telemetryService.js';
 import { createShutdown } from './services/lifecycleService.js';
 import { logger } from './config/logger.js';
@@ -9,6 +9,7 @@ import { APP_POLICY, getEnv } from './config/env.js';
 import { startAiWorkoutGenerationWorker } from './services/aiWorkoutGenerationJobService.js';
 import { startAiNutritionGenerationWorker } from './services/aiNutritionGenerationJobService.js';
 import { startPackageAlertScheduler, stopPackageAlertScheduler } from './services/packageAlertScheduler.js';
+import { startDeletionMediaWorker, stopDeletionMediaWorker } from './services/deletionMediaService.js';
 
 const env = getEnv();
 const PORT = env.PORT;
@@ -16,6 +17,10 @@ const PORT = env.PORT;
 async function startServer() {
     try {
         await connectDatabase();
+        const migrations = await migrationStatus();
+        if (!migrations.some((migration) => migration.version === '004-center-tenancy' && migration.status === 'APPLIED')) {
+            throw new Error('Center-tenancy migration is required before the API can start. Run npm run db:migrate first.');
+        }
         await ensureBootstrapSuperAdmin({
             username: env.SUPER_ADMIN_USERNAME,
             password: env.SUPER_ADMIN_PASSWORD,
@@ -25,6 +30,7 @@ async function startServer() {
         await startAiWorkoutGenerationWorker();
         await startAiNutritionGenerationWorker();
         await startPackageAlertScheduler();
+        startDeletionMediaWorker();
         await app.frontendReady;
         initTelemetry();
         const server = app.listen(PORT, () => logger.info({ port: PORT }, 'Máy chủ đã khởi động'));
@@ -32,6 +38,7 @@ async function startServer() {
             server,
             disconnect: async () => {
                 stopPackageAlertScheduler();
+                stopDeletionMediaWorker();
                 await disconnectDatabase();
             },
             flush: flushTelemetry,
@@ -60,6 +67,7 @@ async function startServer() {
         process.once('uncaughtException', (error) => { logger.fatal({ err: error }, 'Uncaught exception'); shutdown('uncaughtException', 1); });
     } catch (error) {
         logger.fatal({ err: error }, 'Không thể khởi động máy chủ');
+        await disconnectDatabase().catch(() => undefined);
         process.exitCode = 1;
     }
 }

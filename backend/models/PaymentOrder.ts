@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 
 export type PaymentGateway = 'SEPAY' | 'PAYOS' | 'VNPAY' | 'MOMO';
@@ -69,6 +70,8 @@ paymentOrderSchema.index(
   { gateway: 1, gatewayTransactionId: 1 },
   { unique: true, partialFilterExpression: { gatewayTransactionId: { $type: 'string' } } },
 );
-paymentOrderSchema.index({ userId: 1, createdAt: -1 });
+paymentOrderSchema.index({ userId: 1, createdAt: -1 });paymentOrderSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<IPaymentOrder>('PaymentOrder', paymentOrderSchema);

@@ -35,9 +35,9 @@ async function recordUserAudit(
   input: Omit<AuditInput, 'actor'>,
   session?: ClientSession,
 ) {
-  const user = await User.findById(userId).select({ role: 1 }).session(session || null).lean();
+  const user = await User.findById(userId).select({ role: 1, centerId: 1 }).session(session || null).lean();
   if (!user) return null;
-  return recordAudit({ ...input, actor: { id: userId, role: user.role } }, session);
+  return recordAudit({ ...input, actor: { id: userId, role: user.role, centerId: user.centerId ? String(user.centerId) : undefined } }, session);
 }
 
 export { recordAudit, recordUserAudit };

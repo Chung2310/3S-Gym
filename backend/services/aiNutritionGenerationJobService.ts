@@ -7,6 +7,7 @@ import CustomerProfile from '../models/CustomerProfile.js';
 import { createNutritionDraft } from './contentDraftService.js';
 export interface NutritionGenerationInput { customerId: string; request: string; planId?: string; durationDays?: number }
 import type { AuthenticatedUser } from '../types/express.js';
+import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{8,100}$/;
 let workerScheduled = false;
@@ -40,6 +41,7 @@ function publicJob(job: any) {
 }
 
 async function processNextJob(): Promise<boolean> {
+  return runWithSystemCenterAccess(async () => {
   // Never automatically repeat a possibly billed generation after an interrupted process.
   await AiNutritionGenerationJob.updateMany({ status: 'PROCESSING', startedAt: { $lt: new Date(Date.now() - 2 * 60 * 60 * 1000) } }, {
     $set: { status: 'FAILED', completedAt: new Date(), error: { code: 'GENERATION_INTERRUPTED', message: 'Tác vụ bị gián đoạn. Kiểm tra danh sách thực đơn trước khi tạo lại.' } },
@@ -55,10 +57,13 @@ async function processNextJob(): Promise<boolean> {
   ).lean();
 
   if (!job) return false;
+  const centerId = String((job as typeof job & { centerId?: unknown }).centerId || '');
+  if (!centerId) throw new Error(`AI nutrition job ${String(job._id)} is missing centerId.`);
 
+  return runWithCenter(centerId, async () => {
   try {
     const result = await createNutritionDraft(
-      { id: String(job.ownerPtId), role: 'PT' }, job.input.customerId, job.input.request,
+      { id: String(job.ownerPtId), role: 'PT', centerId }, job.input.customerId, job.input.request,
       `ai-nutrition-job:${job._id}`, job.input.planId, job.input.durationDays,
     );
     await AiNutritionGenerationJob.updateOne(
@@ -92,6 +97,8 @@ async function processNextJob(): Promise<boolean> {
   }
 
   return true;
+  });
+  });
 }
 
 async function drainJobs() {

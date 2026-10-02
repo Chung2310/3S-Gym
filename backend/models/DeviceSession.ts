@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose from 'mongoose';
 
 export type ClientType = 'WEB' | 'MOBILE';
@@ -87,7 +88,9 @@ const deviceSessionSchema = new mongoose.Schema<IDeviceSession>(
 );
 
 deviceSessionSchema.index({ userId: 1, clientType: 1, status: 1 });
-deviceSessionSchema.index({ refreshToken: 1, status: 1 });
+deviceSessionSchema.index({ refreshToken: 1, status: 1 });deviceSessionSchema.plugin(centerTenantPlugin);
+
+
 
 const DeviceSession = mongoose.model<IDeviceSession>('DeviceSession', deviceSessionSchema);
 

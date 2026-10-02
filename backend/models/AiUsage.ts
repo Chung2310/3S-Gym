@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 import { AI_TASK_TYPES, type AiTaskType, type PricingSnapshot } from '../services/creditTypes.js';
 
@@ -56,7 +57,9 @@ const aiUsageSchema = new Schema<IAiUsage>({
 }, { timestamps: true });
 
 aiUsageSchema.index({ userId: 1, createdAt: -1 });
-aiUsageSchema.index({ status: 1, createdAt: -1 });
+aiUsageSchema.index({ status: 1, createdAt: -1 });aiUsageSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<IAiUsage>('AiUsage', aiUsageSchema);
 

@@ -184,6 +184,14 @@ jobs:
             done
 
             # Khởi động lại container mới (Docker compose tự động recreate và restart với downtime tối thiểu)
+            # Stop legacy API writes while records are assigned to their center.
+            if [ -n "$(IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose ps -q 3s-gym)" ]; then
+              IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose stop 3s-gym
+            fi
+
+            # Apply pending migrations once with the new image before starting the API.
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose --profile migration run --rm db-migrate
+
             IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose up -d --force-recreate --remove-orphans
 
             # Không báo deploy thành công nếu container vẫn chạy image cũ.
@@ -262,6 +270,14 @@ jobs:
             done
 
             # Khởi động lại container mới
+            # Stop legacy API writes while records are assigned to their center.
+            if [ -n "$(IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose ps -q 3s-gym)" ]; then
+              IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose stop 3s-gym
+            fi
+
+            # Apply pending migrations once with the new image before starting the API.
+            IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose --profile migration run --rm db-migrate
+
             IMAGE_TAG="$IMAGE_TAG" CONTAINER_NAME="$CONTAINER_NAME" docker compose up -d --force-recreate --remove-orphans
 
             # Không báo deploy thành công nếu container vẫn chạy image cũ.

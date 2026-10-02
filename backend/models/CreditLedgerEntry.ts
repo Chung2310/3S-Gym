@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 
 export type CreditLedgerType = 'TOPUP' | 'RESERVE' | 'SETTLE' | 'RELEASE' | 'ADJUSTMENT';
@@ -37,7 +38,9 @@ const creditLedgerEntrySchema = new Schema<ICreditLedgerEntry>({
 }, { timestamps: true });
 
 creditLedgerEntrySchema.index({ userId: 1, createdAt: -1 });
-creditLedgerEntrySchema.index({ referenceType: 1, referenceId: 1 });
+creditLedgerEntrySchema.index({ referenceType: 1, referenceId: 1 });creditLedgerEntrySchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<ICreditLedgerEntry>('CreditLedgerEntry', creditLedgerEntrySchema);
 

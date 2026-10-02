@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IFoodImage extends Document {
@@ -45,6 +46,8 @@ const foodImageSchema = new Schema<IFoodImage>(
 
 foodImageSchema.index({ normalizedName: 1, usageCount: -1 });
 foodImageSchema.index({ category: 1, usageCount: -1 });
-foodImageSchema.index({ name: 'text', keywords: 'text' });
+foodImageSchema.index({ name: 'text', keywords: 'text' });foodImageSchema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model<IFoodImage>('FoodImage', foodImageSchema);

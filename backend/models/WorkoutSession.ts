@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 import { TRACKING_TYPES } from '../types/exerciseTracking.js';
 export interface ICustomerSignature {
@@ -33,5 +34,7 @@ const schema = new Schema<IWorkoutSession>({
   customerSignature: { type: customerSignatureSchema, default: undefined },
 }, { timestamps: true });
 schema.index({ ptId: 1, idempotencyKey: 1 }, { unique: true });
-schema.index({ customerId: 1, workoutPlanId: 1, performedAt: -1 });
+schema.index({ customerId: 1, workoutPlanId: 1, performedAt: -1 });schema.plugin(centerTenantPlugin);
+
+
 export default mongoose.model<IWorkoutSession>('WorkoutSession', schema);

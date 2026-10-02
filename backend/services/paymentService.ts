@@ -13,6 +13,7 @@ import { getPayosPaymentInfo, isPayosConfigured, verifyPayosCallback } from './p
 import { ensureWallet, grantTopupCredits } from './creditWalletService.js';
 import { recordUserAudit } from './auditService.js';
 import { supportsTransactions, withTransaction } from './transactionService.js';
+import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 type OrderDocument = mongoose.HydratedDocument<IPaymentOrder>;
 
@@ -181,6 +182,12 @@ export async function getPaymentOrder(userId: string, id: string) {
 }
 
 async function settleVerifiedCallback(gateway: PaymentGateway, verified: GatewayCallbackResult) {
+  if (!verified.valid) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Invalid payment callback signature.' });
+  if (!verified.orderCode) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Payment callback is missing order code.' });
+  const centerLookup = await runWithSystemCenterAccess(() => PaymentOrder.findOne({ orderCode: verified.orderCode, gateway }).select({ centerId: 1 }).lean());
+  const centerId = String((centerLookup as (typeof centerLookup & { centerId?: unknown }) | null)?.centerId || '');
+  if (!centerId) throw new AppError({ status: 404, code: ERROR_CODES.NOT_FOUND, message: 'Không tìm thấy đơn thanh toán.' });
+  return runWithCenter(centerId, async () => {
   try {
     if (!verified.valid) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Chữ ký callback thanh toán không hợp lệ.' });
     if (!verified.orderCode) throw new AppError({ status: 400, code: ERROR_CODES.VALIDATION, message: 'Callback thiếu mã đơn thanh toán.' });
@@ -242,6 +249,7 @@ async function settleVerifiedCallback(gateway: PaymentGateway, verified: Gateway
     }
     throw error;
   }
+  });
 }
 
 export async function settlePayosCallback(input: Record<string, unknown>) {

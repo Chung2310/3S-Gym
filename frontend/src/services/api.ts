@@ -24,17 +24,29 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<A
   const { retries = 0, retryDelayMs = 1500, ...fetchOptions } = options;
   const token = localStorage.getItem('token');
   let lastError: unknown;
+  let consentVersion: string | undefined;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(`${API_BASE_URL}${path}`, {
+      const send = () => fetch(`${API_BASE_URL}${path}`, {
         ...fetchOptions,
         headers: {
           ...(fetchOptions.body && !(fetchOptions.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...fetchOptions.headers,
+          ...(consentVersion ? { 'X-AI-Consent': consentVersion } : {}),
         },
       });
+      let response = await send();
+      if (response.status === 428 && !consentVersion) {
+        const disclosure = await response.json();
+        if (disclosure.code !== 'AI_CONSENT_REQUIRED' || typeof disclosure.consentVersion !== 'string' || !window.confirm(`${disclosure.message}\n\nChính sách: https://3s.igentechnology.net/privacy-policy`)) {
+          throw new ApiError('Đã hủy chia sẻ dữ liệu với AI.', 428, 'AI_CONSENT_DECLINED');
+        }
+        if (localStorage.getItem('token') !== token) throw new ApiError('Phiên đăng nhập đã thay đổi. Vui lòng thực hiện lại.', 409);
+        consentVersion = disclosure.consentVersion;
+        response = await send();
+      }
       const rawPayload: unknown = await response.json().catch(() => ({ success: false, message: 'Phản hồi từ máy chủ không hợp lệ.' }));
       const payload = isRecord(rawPayload) ? rawPayload : {};
       if (!response.ok || payload.success === false) {

@@ -6,8 +6,24 @@ import DeviceSession from '../models/DeviceSession.js';
 import { AppError } from '../errors/AppError.js';
 import { ERROR_CODES } from '../errors/errorCodes.js';
 import { deleteSelfAccount, updateSelfProfile } from '../services/userService.js';
+import { ownerDeletionOptions, deleteOwnerAccount } from '../services/ownerAccountDeletionService.js';
 
 const login = asyncHandler(async (req, res) => success(res, { message: 'Đăng nhập thành công.', data: await authService.login(req.body) }));
+
+const registerCenter = asyncHandler(async (req, res) => {
+  const { center, admin } = await authService.registerCenterAdmin(req.body);
+  return success(res, {
+    status: 201,
+    message: 'Đăng ký trung tâm thành công.',
+    data: {
+      center: { id: String(center._id), name: center.name, slug: center.slug },
+      user: {
+        id: String(admin._id), username: admin.username, fullName: admin.fullName,
+        role: admin.role, status: admin.status, email: admin.email || '', phone: admin.phone || '',
+      },
+    },
+  });
+});
 
 const refresh = asyncHandler(async (req, res) => success(res, { message: 'Làm mới phiên đăng nhập thành công.', data: await authService.refreshSession(req.body) }));
 
@@ -91,4 +107,13 @@ const deleteMe = asyncHandler(async (req, res) => {
   return success(res, { message: 'Xóa tài khoản thành công.', data: null });
 });
 
-export { login, refresh, logout, getMe, updateMe, updatePushToken, deleteMe };
+export const deletionOptions = asyncHandler(async (req, res) => {
+  return success(res, { message: 'Thông tin xóa tài khoản.', data: await ownerDeletionOptions(req.user!) });
+});
+
+export const deleteOwner = asyncHandler(async (req, res) => {
+  await deleteOwnerAccount(req.user!, req.body);
+  return success(res, { message: 'Đã xóa tài khoản.', data: null });
+});
+
+export { login, registerCenter, refresh, logout, getMe, updateMe, updatePushToken, deleteMe };

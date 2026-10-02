@@ -43,6 +43,7 @@ import fs from 'node:fs';
 import { configureSecurity } from './middlewares/security.js';
 import { createRateLimiter } from './middlewares/rateLimit.js';
 import { getEnv } from './config/env.js';
+import { requireAiConsent } from './middlewares/aiConsent.js';
 const app = express();
 
 app.use(requestContext);
@@ -58,6 +59,7 @@ if (!fs.existsSync(foodImagesDir)) {
 app.use('/uploads/food-images', express.static(foodImagesDir));
 
 app.use('/api', createRateLimiter({ limit: 1_000, windowMs: 60_000 }));
+app.use('/api', requireAiConsent);
 
 app.get('/api/health', (req, res) => success(res, {
   message: 'Hệ thống hoạt động bình thường.',

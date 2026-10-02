@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose from 'mongoose';
 const schema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'CustomerProfile', required: false, default: null, index: true },
@@ -52,6 +53,8 @@ const schema = new mongoose.Schema({
       return ret;
     },
   },
-});
+});schema.plugin(centerTenantPlugin);
+
+
 
 export default mongoose.model('InBodyRecord', schema);

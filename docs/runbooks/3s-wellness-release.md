@@ -33,6 +33,8 @@ docker compose pull
 docker compose up -d
 ```
 
+Với deploy thủ công cần chạy `docker compose stop 3s-gym` rồi `docker compose --profile migration run --rm db-migrate` trước `docker compose up -d`. GitHub Actions tự thực hiện bước này cho staging và production.
+
 Xác nhận lần lượt:
 
 1. `GET /api/health/live` trả 200.

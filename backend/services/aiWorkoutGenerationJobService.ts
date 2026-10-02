@@ -6,6 +6,7 @@ import { logger } from '../config/logger.js';
 import CustomerProfile from '../models/CustomerProfile.js';
 import { generateWorkoutDraft, type WorkoutGenerationInput } from './aiWorkoutService.js';
 import type { AuthenticatedUser } from '../types/express.js';
+import { runWithCenter, runWithSystemCenterAccess } from '../tenancy/centerContext.js';
 
 const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._:-]{8,100}$/;
 let workerScheduled = false;
@@ -39,7 +40,7 @@ function publicJob(job: any) {
 }
 
 async function processNextJob(): Promise<boolean> {
-  const job = await AiWorkoutGenerationJob.findOneAndUpdate(
+  const job = await runWithSystemCenterAccess(() => AiWorkoutGenerationJob.findOneAndUpdate(
     { status: 'PENDING' },
     {
       $set: { status: 'PROCESSING', startedAt: new Date() },
@@ -47,13 +48,16 @@ async function processNextJob(): Promise<boolean> {
       $unset: { error: 1 },
     },
     { sort: { createdAt: 1 }, returnDocument: 'after' },
-  ).lean();
+  ).lean());
 
   if (!job) return false;
+  const centerId = String((job as typeof job & { centerId?: unknown }).centerId || '');
+  if (!centerId) throw new Error(`AI workout job ${String(job._id)} is missing centerId.`);
 
+  return runWithCenter(centerId, async () => {
   try {
     const result = await generateWorkoutDraft(
-      { id: String(job.ownerPtId), role: 'PT' },
+      { id: String(job.ownerPtId), role: 'PT', centerId },
       job.input,
       `ai-workout-job:${job._id}`,
     );
@@ -88,6 +92,7 @@ async function processNextJob(): Promise<boolean> {
   }
 
   return true;
+  });
 }
 
 async function drainJobs() {

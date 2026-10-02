@@ -1,3 +1,4 @@
+import { centerTenantPlugin } from '../tenancy/centerTenantPlugin.js';
 import mongoose, { Schema } from 'mongoose';
 
 interface RoadmapSession { sessionNumber: number; name: string; focus: string; exercises?: string[] }
@@ -36,5 +37,7 @@ const roadmapSchema = new Schema<IRoadmap>({
   status: { type: String, enum: ['DRAFT', 'PUBLISHED'], default: 'DRAFT', index: true },
   version: { type: Number, default: 1 }, publishedAt: { type: Date, default: null },
 }, { timestamps: true });
-roadmapSchema.index({ customerId: 1, status: 1, createdAt: -1 });
+roadmapSchema.index({ customerId: 1, status: 1, createdAt: -1 });roadmapSchema.plugin(centerTenantPlugin);
+
+
 export default mongoose.model<IRoadmap>('Roadmap', roadmapSchema);
