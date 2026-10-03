@@ -17,4 +17,4 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 3008
-CMD ["npm", "run", "start:production"]
+CMD ["sh", "-c", "export NODE_ENV=production; exec node dist/backend/bootstrap.js"]
