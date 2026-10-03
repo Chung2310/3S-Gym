@@ -5,6 +5,8 @@ services:
     restart: always
     ports:
       - "${PORT:-3008}:${PORT:-3008}"
+    environment:
+      NODE_ENV: production
     env_file:
       - .env
     volumes:
